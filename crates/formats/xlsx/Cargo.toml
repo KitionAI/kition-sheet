@@ -1,0 +1,21 @@
+[package]
+name = "kition-sheet-xlsx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Sheet file formats: XLSX (SpreadsheetML) and CSV import/export"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-sheet-core = { workspace = true }
+kition-sheet-formula = { workspace = true }
+kition-sheet-model = { workspace = true }
+kition-office-core = { workspace = true }
+thiserror = { workspace = true }
+quick-xml = { workspace = true }
+zip = { workspace = true }
+encoding_rs = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-c8-sheet-3-named-destination
+feature: sheet.agent.named-destination
+intent: A cell write addressed through a static single-cell defined name reaches that cell and preserves its saved value.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 named destination audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: named_destinations
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: named_cell_writes_follow_identity
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

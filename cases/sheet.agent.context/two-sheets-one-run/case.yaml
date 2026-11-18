@@ -1,0 +1,50 @@
+format: 1
+id: sheet.agent.context/two-sheets-one-run
+feature: sheet.agent.context
+intent: >-
+  The workbook opens on its Summary sheet. The agent adds a Total row to the Data sheet and a note
+  to the Notes sheet in one sheet_run, naming each step's sheet (`at.part`) and, for a command
+  that takes its cell from `on`, the cell; each edit lands on its own sheet and Summary, where the
+  person is, is untouched.
+layer: eval
+source:
+  kind: synthetic
+  from: 'task card C4/C5/C6-sheet; a three-sheet workbook the sheet engine wrote'
+  license: owned
+input: [input/budget.xlsx]
+steps:
+  - inspect: { path: budget.xlsx, args: { target: { sheet: Summary } }, as: summary_before }
+  - task:
+      prompt: >-
+        In budget.xlsx, add a row 5 labelled Total to the Data sheet whose Sales cell is a formula
+        summing the three regions, and write Checked in cell A1 of the Notes sheet, in one
+        sheet_run call. Change nothing on the Summary sheet.
+      max_turns: 20
+  - inspect: { path: budget.xlsx, args: { target: { sheet: Data } }, as: data }
+  - inspect: { path: budget.xlsx, args: { target: { sheet: Notes } }, as: notes }
+  - inspect: { path: budget.xlsx, args: { target: { sheet: Summary } }, as: summary_after }
+expected:
+  - actual: out:data
+    compare: values
+    value:
+      content.rows.4.1: Total
+      content.rows.4.2: { approx: 300, tol: 0.001 }
+  - actual: out:notes
+    compare: values
+    value:
+      content.rows.0.1: Checked
+      content.rows.1.1: Figures from the regional offices.
+  - actual: out:summary_after
+    compare: kdm-json
+    against: out:summary_before
+    ignore: [summary, dirty, canUndo, canRedo, revision, details.workbook.sheets.1.used, details.workbook.sheets.2.used]
+    collateral: true
+solution:
+  - tool: sheet_run
+    args:
+      path: budget.xlsx
+      steps:
+        - { command: range.setValues, at: { part: { sheet: Data } }, params: { range: A5, values: [[Total, "=SUM(B2:B4)"]] } }
+        - { command: cell.set, at: { part: { sheet: Notes } }, on: [A1], params: { input: Checked } }
+since: "2026-11-17"
+timeout_s: 600

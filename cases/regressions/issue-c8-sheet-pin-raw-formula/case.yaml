@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-raw-formula
+feature: sheet.agent.independent-reading
+intent: Raw formula assignment guards formula sources just as command-based cell entry does.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-pin
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: pin_adoption
+      filter: raw_formula_assignment_holds_its_sources
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

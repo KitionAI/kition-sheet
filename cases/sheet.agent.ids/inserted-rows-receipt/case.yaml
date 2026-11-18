@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.ids/inserted-rows-receipt
+feature: sheet.agent.ids
+intent: >-
+  Inserting rows shifts every A1 address below them; the receipt says so compactly, as the rows created at their index on the sheet named by its id, never as every cell that moved.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: premise
+      filter: a_receipt_for_inserted_rows_says_what_moved
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+tags: [headless]

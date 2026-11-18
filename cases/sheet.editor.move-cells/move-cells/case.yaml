@@ -1,0 +1,24 @@
+format: 1
+id: sheet.editor.move-cells/move-cells
+feature: sheet.editor.move-cells
+intent: >-
+  `edit.moveCells`, as a drag of the selection's border does it in WPS and Excel: a move takes the
+  cells and the formulas that read them follow; merged areas, notes, validation and conditional
+  formats go with the block; a copy; Shift's room made and closed up; whole rows and columns;
+  refusals; one undo step.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/move_cells.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: move_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

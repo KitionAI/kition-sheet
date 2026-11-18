@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-rows-not-refit
+feature: sheet.editor.workbook-files
+intent: >-
+  Rows whose height the last application only worked out kept that height on open, so wrapped
+  text was cut or rows were too tall next to WPS. Such rows are sized again from their text as
+  WPS sizes them; rows set by hand keep theirs (IMP-C30).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C30)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: opened_rows_are_sized_as_wps_sizes_them
+  - cargo-test:
+      package: kition-sheet-model
+      filter: row_heights_and_wrapped_lines_match_wps
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

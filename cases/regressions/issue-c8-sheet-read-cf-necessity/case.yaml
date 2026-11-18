@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-cf-necessity
+feature: sheet.agent.independent-reading
+intent: Reordering or clearing conditional-format rules preserves an outside row insertion when the operation's rule membership is unchanged.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read maintainer-approved necessity review
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: conditional_format_writes_hold_rules_and_windows_without_cell_values
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

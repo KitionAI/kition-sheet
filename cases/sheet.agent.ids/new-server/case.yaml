@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.ids/new-server
+feature: sheet.agent.ids
+intent: >-
+  Sheet and drawing ids an agent read before survive a rename, a move, saving and a new server opening the saved file: the commands and on take them and the receipt names them.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: premise
+      filter: ids_from_an_earlier_inspect_name_the_same_sheets
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+tags: [headless]

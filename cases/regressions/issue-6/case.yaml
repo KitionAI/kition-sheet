@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-6
+feature: sheet.agent.observe
+intent: >-
+  `check` says when the renderer cannot draw text as Excel does: `sheet.font-substituted` names a
+  font drawn in the built-in face (an Office font whose stand-in the host did not add, such as
+  Calibri without Carlito, or a font with no face), and `sheet.missing-glyph` names characters no
+  face draws (✓ ✗ in Carlito), which show as empty boxes; symbols the built-in faces have
+  (★ ✔ ☐) are drawn from them instead of boxes. Before, both happened with no diagnostic.
+layer: gate
+dimension: ai
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: issue_6
+  - cargo-test:
+      package: kition-sheet-kit
+      test: checks
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

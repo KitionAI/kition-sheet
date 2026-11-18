@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-c8-sheet-2-view
+feature: sheet.agent.premises
+intent: >-
+  Entry normalization does not detach unchanged view state or create a replica when switching
+  sheets in a saved workbook. The existing October regression remains unchanged.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 binding verification
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: switching_sheets_makes_no_replica_and_no_change
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: grouped_rows_keep_a_loadable_replica
+  - cargo-test:
+      package: kition-sheet-kit
+      test: comment_anchors
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

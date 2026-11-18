@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-csv-raw-values
+feature: sheet.editor.workbook-files
+intent: >-
+  Export as CSV wrote the stored numbers (46295, 0.125) rather than what the cells show; WPS
+  writes the shown text (2026-09-30, 12.5%) (EXP-C10, EXP-C93).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (EXP-C10, EXP-C93)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: csv_exports_what_cells_show
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

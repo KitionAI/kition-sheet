@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/refused-contexts
+feature: sheet.agent.context
+intent: >-
+  A part or on the workbook lacks or cannot mean one thing (an unknown sheet, a malformed or out-of-bounds range, cells mixed with drawing objects, a range on another sheet than the part, cells without a sheet in a workbook of several) is invalid_params saying where valid ids come from, time is not available, and nothing changes.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: context
+      filter: a_context_the_workbook_lacks_is_invalid_params
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

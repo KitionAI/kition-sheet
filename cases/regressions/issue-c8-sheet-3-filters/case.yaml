@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-filters
+feature: sheet.agent.precise-families
+intent: Existing filter operations guard their selected scopes, displayed sources and affected visibility while allowing unrelated cell edits.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 filter handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: filters_hold_scopes_sources_and_visibility_but_allow_unrelated_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,31 @@
+format: 1
+id: sheet.editor.rows-columns/structural-edits
+feature: sheet.editor.rows-columns
+intent: >-
+  The engine side of inserting and deleting lines (`home.insertRows {count, below}`,
+  `home.insertColumns {count, right}`, `home.deleteRows`, `home.deleteColumns`): above, below,
+  left and right with any count; every area of the selection; the new lines selected; formats
+  from the line before (above, left) or after (below, right); conditional formats growing over
+  lines inserted after them; validation, links and merges left where they were; frozen panes
+  growing and shrinking but never unfrozen; hidden and grouped lines; filtered rows kept;
+  formulas, merges and charts following; the whole sheet refused; and the editor's right-click
+  (`editor.contextMenu`) selecting what it pressed.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M4
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: rows_columns
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_right_click_selects_what_it_presses_and_names_its_menu
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

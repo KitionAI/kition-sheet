@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-c8-sheet-read-entry-row
+feature: sheet.agent.format-premises
+intent: Entries hold the neighboring content and styles used for automatic row height, and formatting steps hold the target sheet's remembered active style; unrelated rows remain writable.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read blind ENTRY and FIT handler facts
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_edit
+      filter: cell_entries_hold_the_other_cells_that_determine_row_height
+  - cargo-test:
+      package: kition-sheet
+      test: independent_edit
+      filter: cross_sheet_font_step_holds_the_remembered_active_cell
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

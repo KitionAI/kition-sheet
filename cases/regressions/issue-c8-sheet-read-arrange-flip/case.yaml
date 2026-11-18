@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-arrange-flip
+feature: sheet.agent.independent-reading
+intent: The arrange rotate command honors horizontal and vertical flips without swapping the frame, keeps its default turn, and saves the resulting flip state.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: c8_read_engine
+      filter: arrange_rotate_honors_flip_without_swapping_the_frame_and_can_toggle_it_back
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

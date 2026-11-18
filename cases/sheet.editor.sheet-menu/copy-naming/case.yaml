@@ -1,0 +1,29 @@
+format: 1
+id: sheet.editor.sheet-menu/copy-naming
+feature: sheet.editor.sheet-menu
+intent: >-
+  A copy is named as WPS names one: `Sheet3(2)`, then the next number free (`Sheet3(3)`); a copy
+  of a copy counts on from the original's name; Chinese, spaces and symbols stay; a name at the
+  31-character limit is cut for the number. The copy lands right after its sheet, becomes the
+  active sheet at A1 with the tab colour, and Undo takes it away. A new sheet is named after the
+  highest SheetN, so a deleted sheet's name does not come back; the sheet list's Unhide can leave
+  the sheet in view where it is.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M2 (WPS for Mac's sheet menu)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: copying_a_sheet_names_and_places_the_copy_as_wps_does
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: new_sheet_names_count_on_and_unhide_can_stay_put
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

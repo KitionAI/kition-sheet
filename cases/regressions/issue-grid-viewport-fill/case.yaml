@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-grid-viewport-fill
+feature: sheet.editor.viewport
+intent: The grid extends past Z and row 100 to fill wide, tall and scrolled viewports while keeping the workbook clean.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: User report of empty space after column Z in a wide window
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: grid_viewport
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

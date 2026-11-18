@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-command-click-selection
+feature: sheet.editor.format-font
+intent: >-
+  Cmd+click (Ctrl+click) on a cell replaced the selection, so several separate areas could not be
+  selected with the mouse and formatted at once. It now adds the cell (a drag from it a range) as
+  WPS and Excel do (FONT-C29, FONT-C106).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M6 (FONT-C29)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_command_click_adds_a_cell_to_the_selection
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

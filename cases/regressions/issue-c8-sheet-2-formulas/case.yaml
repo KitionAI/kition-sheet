@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-c8-sheet-2-formulas
+feature: sheet.agent.premises
+intent: >-
+  Stale formula text holds its referenced cells, names and coordinate windows, including
+  inside-range growth. Receipts count changed computed results without claiming unchanged ones.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 item 4
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: formula
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: recalculated
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-c8-sheet-3-sizing-tables
+feature: sheet.agent.precise-families
+intent: Automatic sizing holds fitted lines and table controls hold their selected table and affected cell ranges, allowing unrelated cells.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 sizing and table handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: automatic_sizing_holds_only_the_fitted_lines
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: structural_table_controls_hold_their_table_and_written_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

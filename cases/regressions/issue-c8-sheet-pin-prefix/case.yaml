@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-prefix
+feature: sheet.agent.independent-reading
+intent: Later run steps resolve an earlier step's newly created sheet and selection without holding unrelated original-sheet cells.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-pin
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: pin_adoption
+      filter: dependent_steps_plan_from_their_own_created_sheet_and_selection
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

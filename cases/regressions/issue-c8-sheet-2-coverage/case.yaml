@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-coverage
+feature: sheet.agent.premises
+intent: Cell writes refuse changed covering merges, tables and validations while allowing the same changes elsewhere.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 destination dependency audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: cell_constraints_hold_only_regions_that_cover_the_destination
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

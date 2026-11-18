@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-2-checkbox-budget
+feature: sheet.selection.checkbox-budget
+intent: Checkbox toggles visit at most 100000 selected coordinates in total, including empty coordinates, with one budget shared across ranges; an explicit cell bypasses selection traversal.
+layer: gate
+dimension: robustness
+source:
+  kind: synthetic
+  from: C8-sheet-read-2 source-only selection traversal finding
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: checkbox_budget
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,34 @@
+format: 1
+id: sheet.editor.formula-bar/bar-editing
+feature: sheet.editor.formula-bar
+intent: >-
+  What is typed in the formula bar is the cell being typed (`editor.formula`): the cell shows it,
+  a click points at a cell and puts its reference at the bar's caret, `enter` enters it and moves
+  (down, up, right, left or stays), no params drop it, characters the bar did not change keep
+  their fonts; View › Show › Formula Bar (`view.formulaBar`) is the person's and never changes the
+  workbook.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M3
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_formula_bar_types_in_the_cell_and_points_at_cells
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_formula_bar_keeps_the_fonts_of_untouched_characters
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: inspect_gives_the_show_settings
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: the_formula_bar_shows_and_hides_without_changing_the_workbook
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

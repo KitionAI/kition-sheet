@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-checkbox-number-format
+feature: sheet.editor.insert-content
+intent: >-
+  A checkbox was a number format named "checkbox": setting the cell to Text format lost it,
+  the format painter and Paste Special › Formats spread it, new rows inherited it, Space flipped
+  every TRUE or FALSE cell, and .xlsx files got a number format code "checkbox" that no other
+  application reads as a checkbox. A checkbox is now the cell's content (Clear Contents takes it, the formats leave
+  it), saved as Excel's cell control and read back (INSC-C71, INSC-C263 to INSC-C267, INSC-C284,
+  INSC-C328).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M8 (INSC-C71, INSC-C263, INSC-C284, INSC-C328)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: checkboxes
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: checkboxes_round_trip_as_excels_cell_controls
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-saved-receipts
+feature: sheet.agent.premises
+intent: >-
+  A command receipt must describe exactly what saving and reopening the workbook holds.
+  This exposes embedded position tokens, unsaved cell provenance, and drawing quantisation.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-land-13-sheet save/reopen invariant, currently failing
+  license: Apache-2.0
+input: [repo:conformance/basic.xlsx]
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

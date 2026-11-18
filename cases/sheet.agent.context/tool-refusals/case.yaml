@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.context/tool-refusals
+feature: sheet.agent.context
+intent: >-
+  Through the agent tools, an unknown sheet, a malformed or out-of-bounds range, cells mixed with drawing objects, cells without a sheet in a workbook of several, and a time are refused saying what is valid, and nothing changes in the file.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: premise
+      filter: an_unknown_sheet_a_bad_range_or_a_mixed_on_is_invalid_params
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+tags: [headless]

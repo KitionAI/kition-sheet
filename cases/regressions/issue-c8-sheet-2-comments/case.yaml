@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-comments
+feature: sheet.agent.comment-premises
+intent: Note and comment writes hold their target metadata and address windows, permitting unrelated value changes and refusing a changed or relocated comment.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 comment handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: comment_commands_hold_the_target_comment_and_its_address
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

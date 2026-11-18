@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-alt-enter-line-break
+feature: sheet.editor.formula-bar
+intent: >-
+  Alt+Enter (Option+Return) in the cell being typed entered it, as Enter does; WPS and Excel break
+  the line. Now it breaks the line, the cell editor shows the lines (a click on the second puts the
+  caret there), and Enter enters the text with the line break and turns on wrapping.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M3 (BAR-X4, BAR-X5)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: alt_enter_breaks_the_line_in_the_cell
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-c8-sheet-3-cf-priority
+feature: sheet.agent.cf-priority
+intent: Adding a conditional format when an imported rule exhausts priority space returns a parameter error and preserves every rule without invoking panic recovery.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 conditional-format arithmetic audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: conditional_priority
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

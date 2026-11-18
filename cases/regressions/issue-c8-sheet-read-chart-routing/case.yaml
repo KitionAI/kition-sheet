@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-chart-routing
+feature: sheet.agent.independent-reading
+intent: A chart move destination or data source does not reroute the chart target; stale chart or source edits conflict while unrelated cells allow the operation.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read blind chart handler reading and agent dispatch review
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_chart
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

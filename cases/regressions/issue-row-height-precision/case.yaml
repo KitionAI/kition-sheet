@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-row-height-precision
+feature: sheet.cells.rows-columns
+intent: A row height the engine works out from its content (18 pt text gives 24.5454… pt) reads back the same after saving as .xlsx; it had been written rounded to 0.01 pt and came back 0.006 pt taller.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/roundtrip.rs (font formatting round trip)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: row_heights_read_back_as_written
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

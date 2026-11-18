@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-c8-sheet-read-direct-ink
+feature: sheet.agent.independent-reading
+intent: Direct ink holds anchor geometry and object ID allocation while retaining current pen defaults and preserving unrelated outside edits.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent primitive handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_primitive_reads
+      filter: direct_ink_holds_anchor_geometry_and_id_allocation_but_keeps_unrelated_changes
+  - cargo-test:
+      package: kition-sheet
+      test: independent_primitive_reads
+      filter: primitive_defaults_follow_the_restored_editor_state_in_the_direct_binding
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

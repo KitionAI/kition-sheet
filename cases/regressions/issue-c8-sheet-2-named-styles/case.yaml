@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-2-named-styles
+feature: sheet.agent.style-identities
+intent: Named style definitions have tool identities that survive redefinition, table-style rename, and saved reread.
+layer: gate
+dimension: conversion
+source:
+  kind: synthetic
+  from: C8-sheet-2
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: feature_ids
+      filter: named_style_tool_ids_survive_redefinition_rename_and_reopen
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-insert-function-and-f2
+feature: sheet.editor.formula-bar
+intent: >-
+  Insert Function with a function chosen (fx, Formulas › Insert Function) and F2
+  (`edit.beginEdit`) did nothing in the editor: the commands ask the editor to type in the active
+  cell and the editor dropped the request. Now the function goes in at the caret of the formula
+  being typed (`=1+MAX(`) or starts one (`=SUM(`), and F2 edits the active cell in place.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M3 (BAR-C14, BAR-X6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: insert_function_and_f2_type_in_the_active_cell
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

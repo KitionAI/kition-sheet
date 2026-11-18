@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-format-painter-never-painted
+feature: sheet.editor.format-font
+intent: >-
+  Home › Format Painter picked up the selection's formats but a click on a cell never painted
+  them: only an agent's `edit.formatPainter {apply}` did. A press and release (a drag, a heading)
+  in the grid now paints, the pointer shows the brush, Esc puts the painter down, and a sticky
+  painter (a double-click) stays up (FP-C6 to FP-C25).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M6 (FP-C6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_format_painter_paints_what_is_pressed_and_esc_puts_it_down
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

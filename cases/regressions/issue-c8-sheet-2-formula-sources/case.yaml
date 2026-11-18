@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-c8-sheet-2-formula-sources
+feature: sheet.agent.premises
+intent: Formula writes guard whole-column, dynamic and structured sources, including source values held by child cell objects.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 formula source audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: formula_dependency_audit_includes_large_dynamic_and_structured_sources
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: conservative_handlers_hold_child_cells_they_read
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,275 @@
+{
+  "kdm": 1,
+  "kit": "kit.sheet",
+  "schemaVersion": 6,
+  "root": "Workbook",
+  "types": {
+    "Workbook": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key" },
+      "derived": {
+        "computed": { "description": "Digest of formula computed values; changes carry the count of changed existing computed cells" },
+        "nextObjectId": { "premiseOnly": true, "description": "Next drawing/object ID allocated across sheets including group IDs" },
+        "storedScripts": { "premiseOnly": true, "description": "Defined-name entries holding saved scripts" },
+        "storedWatch": { "premiseOnly": true, "description": "Defined-name entries holding the watched-cell list" },
+        "storedViews": { "premiseOnly": true, "description": "Defined-name entries holding saved custom views" },
+        "tabs": { "premiseOnly": true, "description": "Digest of ordered sheet identities, independent of nested sheet content" },
+        "sheetReferences": { "premiseOnly": true, "description": "Formula and internal-link rewrite inputs by referenced sheet identity" },
+        "headerSync": { "premiseOnly": true, "description": "Table headers requiring synchronization with stored column names" },
+        "tableNames": { "premiseOnly": true, "description": "Digest of table identities and names used for uniqueness checks" }
+      },
+      "fields": {
+        "key": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
+        "props": { "kind": "json", "optional": true },
+        "theme": { "kind": "json", "optional": true },
+        "customLists": { "kind": "json", "optional": true },
+        "cellStyles": { "kind": "json", "optional": true },
+        "cellStyleDefinitions": { "kind": "map", "readOnly": true, "sample": false },
+        "styles": { "kind": "map" },
+        "styleObjects": { "kind": "list", "of": "Style", "readOnly": true, "sample": false },
+        "names": { "kind": "list", "of": "Name" },
+        "sheets": { "kind": "list", "of": "Sheet" },
+        "axisFacts": { "kind": "ref", "of": "AxisFacts", "optional": true, "owns": true, "readOnly": true, "sample": false }
+      }
+    },
+    "Name": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key", "prefix": "name:" },
+      "label": "name",
+      "derived": {
+        "lookupName": { "premiseOnly": true, "description": "Digest of the case-insensitive defined name used by explicit table-name uniqueness checks" }
+      },
+      "fields": {
+        "key": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
+        "name": { "kind": "string", "label": "defined name" },
+        "scope": { "kind": "ref", "of": "Sheet", "optional": true },
+        "formula": { "kind": "string", "label": "formula", "sample": false },
+        "props": { "kind": "json", "optional": true }
+      }
+    },
+    "Sheet": {
+      "batchOps": { "*": { "direct": true } },
+      "label": "name",
+      "pathName": "name",
+      "fields": {
+        "name": { "kind": "string", "label": "sheet name" },
+        "props": { "kind": "json", "optional": true, "label": "sheet settings", "members": { "defaultColWidth": { "minimum": 0, "maximum": 1800 }, "defaultRowHeight": { "minimum": 0, "maximum": 546 } } },
+        "rows": { "kind": "list", "of": "Row" },
+        "cols": { "kind": "list", "of": "Col" },
+        "cells": { "kind": "map", "owns": true, "of": "Cell" },
+        "comments": { "kind": "map" },
+        "hyperlinks": { "kind": "map" },
+        "features": { "kind": "json", "optional": true },
+        "constraints": { "kind": "map", "readOnly": true, "sample": false },
+        "tableObjects": { "kind": "list", "of": "Table", "readOnly": true, "sample": false },
+        "pivotObjects": { "kind": "list", "of": "Pivot", "readOnly": true, "sample": false },
+        "groups": { "kind": "list", "of": "Group", "readOnly": true, "sample": false },
+        "images": { "kind": "list", "of": "Image", "sample": false },
+        "shapes": { "kind": "map", "owns": true, "readOnly": true, "sample": false },
+        "charts": { "kind": "map", "owns": true, "readOnly": true, "sample": false },
+        "sheetId": { "kind": "integer", "optional": true, "readOnly": true }
+      },
+      "toolId": { "field": "sheetId", "prefix": "sheet:" },
+      "derived": {
+        "axisOrder": { "premiseOnly": true, "description": "Structural axis anchors, excluding lazy empty padding" },
+        "arrays": { "premiseOnly": true, "description": "Digest of array formula anchor cells and covered ranges" },
+        "lastShape": { "premiseOnly": true, "description": "Identity of the last shape in stacking order" },
+        "chartStack": { "premiseOnly": true, "description": "Ordered chart identities read and replaced when moving a chart" },
+        "lastInk": { "premiseOnly": true, "description": "Identity of the last ink stroke in stacking order" },
+        "viewZoom": { "premiseOnly": true, "description": "Current saved sheet zoom read when recording a custom view" },
+        "editConnectors": { "premiseOnly": true, "description": "Connector definitions, endpoint geometry and coordinate axes read by shared edit rerouting" },
+        "freezeOrigin": { "premiseOnly": true, "description": "Saved top-left cell used when a frozen pane command defaults its origin" },
+        "filterScopes": { "premiseOnly": true, "description": "Digest of filter ranges and table identities used for scope discovery" },
+        "conditionalRanges": { "premiseOnly": true, "description": "Bounded numeric rule-area ranges used to compare conditional-format clear intersection decisions" },
+        "hiddenCount": { "description": "Number of hidden rows, as reported by filtering" },
+        "hiddenRows": { "premiseOnly": true, "description": "Digest of hidden row positions cleared by filter removal" },
+        "sortObjects": { "premiseOnly": true, "description": "Digest of floating object anchors that move with cells" },
+        "ink": { "description": "Ink strokes in sheet coordinates, derived from owned strokes and row/column geometry" }
+      }
+    },
+    "AxisFacts": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key", "prefix": "axis:" },
+      "derived": {
+        "contents": { "premiseOnly": true, "description": "Axis settings and derived reads, including normalized implicit empty defaults" },
+        "conditionalRanges": { "premiseOnly": true, "description": "Conditional clear coverage by sheet, independent of stored sheet edits" }
+      },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true, "sample": false }
+      }
+    },
+    "Cell": {
+      "batchOps": {
+        "set.input": { "command": "cell.set", "params": { "cell": "target", "input": "value" } },
+        "*": { "direct": true }
+      },
+      "toolId": { "field": "address", "prefix": "cell:" },
+      "label": "label",
+      "fields": {
+        "address": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
+        "label": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
+        "input": { "kind": "string", "optional": true, "label": "cell entry" },
+        "text": {
+          "kind": "text",
+          "label": "cell text",
+          "marks": {
+            "bold": { "expand": "after" },
+            "italic": { "expand": "after" },
+            "underline": { "expand": "after" },
+            "strike": { "expand": "after" },
+            "font": { "expand": "after" },
+            "size": { "expand": "after" },
+            "color": { "expand": "after" },
+            "vertAlign": { "expand": "after" },
+            "family": { "expand": "after" },
+            "charset": { "expand": "after" },
+            "scheme": { "expand": "after" },
+            "extra": { "expand": "after" }
+          }
+        },
+        "style": { "kind": "string", "optional": true },
+        "array": { "kind": "string", "optional": true },
+        "picture": { "kind": "json", "optional": true },
+        "by": { "kind": "string", "optional": true, "readOnly": true },
+        "key": { "kind": "string", "optional": true, "readOnly": true },
+        "merged": { "kind": "json", "optional": true }
+      }
+    },
+    "Row": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key", "prefix": "row:" },
+      "derived": {
+        "conditionalAreas": { "premiseOnly": true, "description": "Numeric rule ranges by persistent start row, held by clears under the same-field decision" },
+        "spellingInputs": { "premiseOnly": true, "description": "Bounded nonnumeric row inputs searched by spelling, indexed by column; numeric literals use the existing cell input journal" },
+        "spellingHeader": { "premiseOnly": true, "description": "Header table membership and names for this stable row" },
+        "layout": { "premiseOnly": true, "description": "Digest of this row's cells, effective styles, merge coverage and widths used by automatic row fitting" },
+        "fit": { "premiseOnly": true, "description": "Digest of non-default height contributions from base fonts, wrapping and line breaks" },
+        "insertFormat": { "premiseOnly": true, "description": "Digest of cell and line formats inherited when a neighbouring row is inserted" },
+        "insertBoundary": { "premiseOnly": true, "description": "Digest of conditional formats ending on this row that grow when rows are inserted after it" },
+        "style": { "premiseOnly": true, "description": "Optional inherited row style, independent of other line settings" },
+        "outline": { "premiseOnly": true, "description": "Normalized row outline level" },
+        "hidden": { "premiseOnly": true, "description": "Normalized row visibility" }
+      },
+      "fields": {
+        "key": { "kind": "string", "optional": true, "readOnly": true },
+        "index": { "kind": "integer", "optional": true, "readOnly": true, "position": true },
+        "info": { "kind": "json", "optional": true, "label": "row settings", "members": { "size": { "minimum": 0, "maximum": 546 } } },
+        "gone": { "kind": "boolean", "optional": true, "position": true }
+      }
+    },
+    "Col": {
+      "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "key", "prefix": "col:" },
+      "derived": {
+        "headerReferences": { "premiseOnly": true, "description": "Formula rewrite inputs for table headers on this stable column" },
+        "layout": { "premiseOnly": true, "description": "Digest of this column's cells, effective styles and merge coverage used by automatic width fitting" },
+        "insertFormat": { "premiseOnly": true, "description": "Digest of cell and line formats inherited when a neighbouring column is inserted" },
+        "insertBoundary": { "premiseOnly": true, "description": "Digest of conditional formats ending on this column that grow when columns are inserted after it" },
+        "style": { "premiseOnly": true, "description": "Optional inherited column style, independent of other line settings" },
+        "outline": { "premiseOnly": true, "description": "Normalized column outline level" },
+        "hidden": { "premiseOnly": true, "description": "Normalized column visibility" }
+      },
+      "fields": {
+        "key": { "kind": "string", "optional": true, "readOnly": true },
+        "index": { "kind": "integer", "optional": true, "readOnly": true, "position": true },
+        "info": { "kind": "json", "optional": true, "label": "column settings", "members": { "size": { "minimum": 0, "maximum": 1800 } } },
+        "gone": { "kind": "boolean", "optional": true, "position": true }
+      }
+    },
+    "Group": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "toolId": { "field": "key", "prefix": "drawing:" },
+      "fields": {
+        "key": { "kind": "integer", "readOnly": true },
+        "sheet": { "kind": "ref", "of": "Sheet", "readOnly": true, "position": true },
+        "members": { "kind": "json", "readOnly": true }
+      }
+    },
+    "Table": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "toolId": { "field": "key", "prefix": "table:" },
+      "label": "name",
+      "derived": {
+        "formulaInputs": { "premiseOnly": true, "description": "Digest of formula inputs referring to this table, including new references" },
+        "lookupName": { "premiseOnly": true, "description": "Digest of the case-insensitive table name used by explicit table-name uniqueness checks" }
+      },
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "readOnly": true },
+        "sheet": { "kind": "ref", "of": "Sheet", "readOnly": true, "position": true },
+        "range": { "kind": "string", "readOnly": true, "position": true },
+        "columns": { "kind": "json", "readOnly": true }
+      }
+    },
+    "Pivot": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "toolId": { "field": "key", "prefix": "pivot:" },
+      "label": "name",
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "readOnly": true },
+        "sheet": { "kind": "ref", "of": "Sheet", "readOnly": true, "position": true },
+        "anchor": { "kind": "string", "readOnly": true, "position": true },
+        "source": { "kind": "string", "readOnly": true }
+      }
+    },
+    "Style": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "toolId": { "field": "key", "prefix": "style:" },
+      "label": "name",
+      "fields": {
+        "key": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "optional": true, "readOnly": true },
+        "kind": { "kind": "string", "optional": true, "readOnly": true },
+        "value": { "kind": "json", "readOnly": true }
+      }
+    },
+    "Image": {
+      "batchOps": { "*": { "direct": true } },
+      "derived": {
+        "anchorMode": { "premiseOnly": true, "description": "Anchor mode held as replacement content without holding geometry" }
+      },
+      "fields": {
+        "props": { "kind": "json", "optional": true },
+        "blob": { "kind": "blob", "optional": true },
+        "key": { "kind": "integer", "optional": true, "readOnly": true }
+      },
+      "toolId": { "field": "key", "prefix": "drawing:" }
+    },
+    "Shape": {
+      "batchOps": { "*": { "direct": true } },
+      "derived": {
+        "anchorMode": { "premiseOnly": true, "description": "Anchor mode held as replacement content without holding geometry" }
+      },
+      "fields": {
+        "sheet": { "kind": "ref", "of": "Sheet", "position": true },
+        "z": { "kind": "number", "optional": true, "position": true, "sample": false },
+        "frame": { "kind": "json", "optional": true, "position": true, "label": "drawing anchor", "sample": false },
+        "props": { "kind": "json", "optional": true },
+        "look": { "kind": "map" },
+        "text": { "kind": "text" },
+        "key": { "kind": "integer", "optional": true, "readOnly": true }
+      },
+      "toolId": { "field": "key", "prefix": "drawing:" }
+    },
+    "Chart": {
+      "batchOps": { "*": { "direct": true } },
+      "derived": {
+        "anchorMode": { "premiseOnly": true, "description": "Anchor mode held as replacement content without holding geometry" },
+        "assignedFrame": { "premiseOnly": true, "description": "Chart anchor held as replacement content by absolute assignments under the same-field decision" }
+      },
+      "fields": {
+        "sheet": { "kind": "ref", "of": "Sheet", "position": true },
+        "z": { "kind": "number", "optional": true, "position": true, "sample": false },
+        "frame": { "kind": "json", "optional": true, "position": true, "label": "chart anchor", "sample": false },
+        "parts": { "kind": "map" },
+        "key": { "kind": "integer", "optional": true, "readOnly": true }
+      },
+      "toolId": { "field": "key", "prefix": "drawing:" }
+    }
+  }
+}

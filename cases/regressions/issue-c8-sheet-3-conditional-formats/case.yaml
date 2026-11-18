@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-conditional-formats
+feature: sheet.agent.precise-families
+intent: Conditional-format creation, range and sheet clearing, and priority edits refuse changed rules or relocated target windows while allowing cell values and rules on other sheets.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 conditional-format handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: conditional_format_writes_hold_rules_and_windows_without_cell_values
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

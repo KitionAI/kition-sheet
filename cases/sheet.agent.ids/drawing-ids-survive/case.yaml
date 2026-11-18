@@ -1,0 +1,23 @@
+format: 1
+id: sheet.agent.ids/drawing-ids-survive
+feature: sheet.agent.ids
+intent: >-
+  A drawing object (shape, picture, chart, smart graphic, group) keeps the file's id (`cNvPr id`) when
+  no other object of the workbook has it, and the writer saves each object's own id, so ids an
+  agent read survive a save and a reopen; ids a file repeats across sheets become distinct once
+  and then stay.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/formats/xlsx/src/tests/drawing_ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: drawing_ids
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

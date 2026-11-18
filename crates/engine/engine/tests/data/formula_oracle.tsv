@@ -1,0 +1,1444 @@
+# ---------------- fixture (Sheet1 H..X, Sheet2) ----------------
+@Sheet1!H1	n	10
+@Sheet1!H2	n	20
+@Sheet1!H3	n	30
+@Sheet1!H4	n	40
+@Sheet1!H5	n	50
+@Sheet1!H6	n	5
+@Sheet1!H7	n	15
+@Sheet1!H8	n	25
+@Sheet1!H9	n	35
+@Sheet1!H10	n	45
+@Sheet1!I1	s	苹果
+@Sheet1!I2	s	香蕉
+@Sheet1!I3	s	苹果
+@Sheet1!I4	s	橙子
+@Sheet1!I5	s	香蕉
+@Sheet1!I6	s	苹果
+@Sheet1!I7	s	梨
+@Sheet1!I8	s	橙子
+@Sheet1!I9	s	苹果
+@Sheet1!I10	s	香蕉
+@Sheet1!J1	n	1
+@Sheet1!J2	s	2
+@Sheet1!J3	b	TRUE
+@Sheet1!J5	s	abc
+@Sheet1!J6	n	3.5
+@Sheet1!J7	f	""
+@Sheet1!J9	n	-4
+@Sheet1!J10	n	0
+@Sheet1!K1	f	DATE(2026,1,15)
+@Sheet1!K2	f	DATE(2026,2,28)
+@Sheet1!K3	f	DATE(2026,3,31)
+@Sheet1!K4	f	DATE(2024,2,29)
+@Sheet1!K5	f	DATE(2026,11,10)
+@Sheet1!K6	f	DATE(2025,12,31)
+@Sheet1!K7	f	DATE(2026,7,4)
+@Sheet1!K8	f	DATE(2026,11,14)
+@Sheet1!K9	f	DATE(2026,11,15)
+@Sheet1!K10	f	DATE(2027,1,1)
+@Sheet1!L1	n	0
+@Sheet1!L2	n	60
+@Sheet1!L3	n	70
+@Sheet1!L4	n	80
+@Sheet1!L5	n	90
+@Sheet1!M1	s	不及格
+@Sheet1!M2	s	及格
+@Sheet1!M3	s	中
+@Sheet1!M4	s	良
+@Sheet1!M5	s	优
+@Sheet1!N1	s	  hello   world  
+@Sheet1!N2	s	abc def
+@Sheet1!N3	s	ABC
+@Sheet1!N4	s	中文字符串
+@Sheet1!N5	s	a*b?c
+@Sheet1!N6	s	Excel
+@Sheet1!O1	f	1/0
+@Sheet1!O2	f	NA()
+@Sheet1!O3	n	7
+@Sheet1!O4	f	SQRT(-1)
+@Sheet1!P1	f	DATE(2026,11,11)
+@Sheet1!P2	f	DATE(2026,12,25)
+@Sheet1!Q1	s	10
+@Sheet1!Q2	s	1,000
+@Sheet1!Q3	s	50%
+@Sheet1!Q4	s	$5
+@Sheet1!Q5	s	2026/11/10
+@Sheet1!Q6	s	2026年11月10日
+@Sheet1!Q7	s	 12 
+@Sheet1!R1	s	ID
+@Sheet1!S1	s	名称
+@Sheet1!T1	s	数量
+@Sheet1!R2	n	101
+@Sheet1!S2	s	甲
+@Sheet1!T2	n	5
+@Sheet1!R3	n	102
+@Sheet1!S3	s	乙
+@Sheet1!T3	n	8
+@Sheet1!R4	n	103
+@Sheet1!S4	s	丙
+@Sheet1!T4	n	2
+@Sheet1!R5	n	105
+@Sheet1!S5	s	丁
+@Sheet1!T5	n	9
+@Sheet1!U1	n	2
+@Sheet1!U2	n	4
+@Sheet1!U3	n	4
+@Sheet1!U4	n	4
+@Sheet1!U5	n	5
+@Sheet1!U6	n	5
+@Sheet1!U7	n	7
+@Sheet1!U8	n	9
+@Sheet1!V1	n	-1000
+@Sheet1!V2	n	300
+@Sheet1!V3	n	400
+@Sheet1!V4	n	500
+@Sheet1!W1	n	3
+@Sheet1!W2	n	1
+@Sheet1!W3	n	2
+@Sheet1!W4	n	3
+@Sheet1!X1	s	c
+@Sheet1!X2	s	a
+@Sheet1!X3	s	b
+@Sheet1!X4	s	d
+@Sheet2!A1	n	100
+@Sheet2!A2	n	200
+@Sheet2!B1	s	跨表
+@Rate	name	0.05
+@Data	name	Sheet1!$H$1:$H$10
+# ---------------- math / aggregation ----------------
+=SUM(H1:H10)	n:275
+=SUM(H:H)	n:275
+=SUM(J1:J10)	n:0.5
+=SUM(1,"2",TRUE)	n:4
+=SUM("abc")	e:#VALUE!
+=SUM(J2)	n:0
+=J2+1	n:3
+=J3+1	n:2
+=J5+1	e:#VALUE!
+=SUM(H1:H3,O3)	n:67
+=SUM(O1:O3)	e:#DIV/0!
+=SUMIF(I1:I10,"苹果",H1:H10)	n:80
+=SUMIF(I1:I10,"苹*",H1:H10)	n:80
+=SUMIF(H1:H10,">20")	n:225
+=SUMIF(H1:H10,">=20",H1:H10)	n:245
+=SUMIF(H1:H10,"<>10")	n:265
+=SUMIF(I1:I10,"<>苹果",H1:H10)	n:195
+=SUMIF(I1:I10,"?果",H1:H10)	n:80
+=SUMIF(J1:J10,"")	n:0
+=SUMIF(I1:I10,"苹果",H1)	n:80
+=SUMIF(H1:H10,20)	n:20
+=SUMIF(H1:H10,"20")	n:20
+=SUMIF(H1:H10,">"&O3)	n:270
+=SUMIFS(H1:H10,I1:I10,"苹果",H1:H10,">10")	n:65
+=SUMIFS(H1:H10,I1:I10,"香蕉",H1:H10,"<50")	n:65
+=SUMIFS(H1:H10,I1:I10,"none")	n:0
+=SUMPRODUCT(H1:H3,L2:L4)	n:4400
+=SUMPRODUCT((I1:I10="苹果")*H1:H10)	n:80
+=SUMPRODUCT(--(H1:H10>20))	n:6
+=SUMPRODUCT(H1:H3,L2:L5)	e:#VALUE!
+=SUMPRODUCT(J1:J6)	n:4.5
+=AVERAGE(H1:H10)	n:27.5
+=AVERAGE(J1:J10)	n:0.125
+=AVERAGE(J4)	e:#DIV/0!
+=AVERAGE(1,"2",TRUE)	n:1.33333333333333
+=AVERAGEA(J1:J10)	n:0.1875
+=AVERAGEIF(I1:I10,"苹果",H1:H10)	n:20
+=AVERAGEIF(I1:I10,"无",H1:H10)	e:#DIV/0!
+=AVERAGEIFS(H1:H10,I1:I10,"香蕉",H1:H10,">15")	n:38.3333333333333
+=COUNT(J1:J10)	n:4
+=COUNT(1,"2",TRUE,"abc")	n:3
+=COUNTA(J1:J10)	n:8
+=COUNTBLANK(J1:J10)	n:3
+=COUNTBLANK(J1:J20)	n:13
+=COUNTIF(I1:I10,"苹果")	n:4
+=COUNTIF(H1:H10,">=25")	n:6
+=COUNTIF(J1:J10,"")	n:3
+=COUNTIF(J1:J10,"<>")	n:8
+=COUNTIF(J1:J10,"*")	n:3
+=COUNTIF(J1:J10,2)	n:1
+=COUNTIF(Q1:Q7,10)	n:1
+=COUNTIF(N1:N6,"a~*b?c")	n:1
+=COUNTIF(N1:N6,"a*")	n:3
+=COUNTIF(J1:J10,TRUE)	n:1
+=COUNTIFS(I1:I10,"苹果",H1:H10,">10")	n:2
+=COUNTIFS(I1:I10,"<>梨")	n:9
+=MIN(H1:H10)	n:5
+=MAX(H1:H10)	n:50
+=MIN(J1:J10)	n:-4
+=MAX(J1:J10)	n:3.5
+=MINA(J1:J10)	n:-4
+=MAXA(J1:J10)	n:3.5
+=MIN(J4)	n:0
+=MAX("5",3)	n:5
+=MAXIFS(H1:H10,I1:I10,"苹果")	n:35
+=MINIFS(H1:H10,I1:I10,"香蕉")	n:20
+=MAXIFS(H1:H10,I1:I10,"无")	n:0
+=ROUND(2.5,0)	n:3
+=ROUND(-2.5,0)	n:-3
+=ROUND(1.005,2)	n:1.01
+=ROUND(2.675,2)	n:2.68
+=ROUND(1234.5678,-2)	n:1200
+=ROUND(0.285,2)	n:0.29
+=ROUNDUP(3.2,0)	n:4
+=ROUNDUP(-3.2,0)	n:-4
+=ROUNDDOWN(-3.7,0)	n:-3
+=ROUNDDOWN(3.14159,3)	n:3.141
+=MROUND(10,3)	n:9
+=MROUND(-10,-3)	n:-9
+=MROUND(10,-3)	e:#NUM!
+=CEILING(2.5,1)	n:3
+=CEILING(-2.5,-2)	n:-4
+=CEILING(-2.5,2)	n:-2
+=FLOOR(2.5,1)	n:2
+=FLOOR(-2.5,-2)	n:-2
+=CEILING.MATH(-2.5)	n:-2	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=FLOOR.MATH(-2.5)	n:-3	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=TRUNC(-8.9)	n:-8
+=INT(-8.9)	n:-9
+=INT(8.9)	n:8
+=MOD(10,3)	n:1
+=MOD(-10,3)	n:2
+=MOD(10,-3)	n:-2
+=MOD(5.5,2)	n:1.5
+=MOD(10,0)	e:#DIV/0!
+=ABS(-5)	n:5
+=SIGN(-0.5)	n:-1
+=POWER(2,10)	n:1024
+=2^-1	n:0.5
+=-2^2	n:4
+=SQRT(16)	n:4
+=SQRT(-1)	e:#NUM!
+=PRODUCT(H1:H3)	n:6000
+=PRODUCT(J1:J10)	n:0
+=QUOTIENT(-7,2)	n:-3
+=GCD(12,18)	n:6
+=LCM(4,6)	n:12
+=FACT(5)	n:120
+=COMBIN(5,2)	n:10
+=PI()	n:3.14159265358979
+=EXP(1)	n:2.71828182845904
+=LN(10)	n:2.30258509299405
+=LOG(100)	n:2
+=LOG(8,2)	n:3
+=LOG10(1000)	n:3
+=RANK(30,H1:H10)	n:5
+=RANK(30,H1:H10,1)	n:6
+=RANK.EQ(4,U1:U8)	n:5
+=RANK.AVG(4,U1:U8)	n:6
+=RANK(99,H1:H10)	e:#N/A
+=LARGE(H1:H10,2)	n:45
+=SMALL(H1:H10,3)	n:15
+=LARGE(H1:H10,11)	e:#NUM!
+=SMALL(U1:U8,0)	e:#NUM!
+=SUBTOTAL(9,H1:H10)	n:275
+=SUBTOTAL(1,H1:H10)	n:27.5
+=SUBTOTAL(2,J1:J10)	n:4
+=SUBTOTAL(3,J1:J10)	n:8
+=SUBTOTAL(4,H1:H10)	n:50
+=SUBTOTAL(109,H1:H10)	n:275
+=SUBTOTAL(12,H1:H10)	e:#VALUE!
+=AGGREGATE(9,6,O1:O3)	n:7
+=AGGREGATE(14,6,H1:H10,2)	n:45
+=AGGREGATE(4,6,O1:O4)	n:7
+=SUMSQ(1,2,3)	n:14
+=SUMX2MY2(H1:H3,L2:L4)	n:-13500
+=EVEN(3)	n:4
+=ODD(-2)	n:-3
+=RADIANS(180)	n:3.14159265358979
+=DEGREES(PI())	n:180
+=SIN(PI()/2)	n:1
+=ROUND(COS(PI()),10)	n:-1
+=ATAN2(1,1)	n:0.785398163397448
+=BASE(255,16)	s:FF
+=DECIMAL("FF",16)	n:255	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=ROMAN(1999)	s:MCMXCIX
+=ARABIC("MCMXCIX")	n:1999
+# ---------------- logical ----------------
+=IF(H1>5,"大","小")	s:大
+=IF(H1>50,"大")	b:FALSE
+=IF(J4,"真","假")	s:假
+=IF("abc",1,2)	e:#VALUE!
+=IF("TRUE",1,2)	n:1
+=IF(O1,1,2)	e:#DIV/0!
+=IF(1,,)	n:0
+=IF(0,1)	b:FALSE
+=IFS(H1>50,"A",H1>5,"B")	s:B
+=IFS(H1>50,"A")	e:#N/A
+=IFS(H1>50,"A",TRUE,"默认")	s:默认
+=IFERROR(1/0,"错误")	s:错误
+=IFERROR(O2,"无")	s:无
+=IFERROR(5,"x")	n:5
+=IFERROR(J4,"x")	n:0
+=IFNA(O2,"无")	s:无
+=IFNA(O1,"无")	e:#DIV/0!
+=AND(TRUE,1,"x")	e:#VALUE!
+=AND(J1:J10)	b:FALSE
+=OR(FALSE,0)	b:FALSE
+=OR(J5)	e:#VALUE!
+=NOT(0)	b:TRUE
+=NOT("abc")	e:#VALUE!
+=XOR(TRUE,TRUE,TRUE)	b:TRUE
+=XOR(1,0)	b:TRUE
+=SWITCH(2,1,"一",2,"二","其他")	s:二
+=SWITCH(9,1,"一",2,"二","其他")	s:其他
+=SWITCH(9,1,"一",2,"二")	e:#N/A
+=TRUE+TRUE	n:2
+=TRUE*5	n:5
+=-TRUE	n:-1
+=TRUE=1	b:FALSE
+=TRUE>1	b:TRUE
+="a"<"b"	b:TRUE
+="A"="a"	b:TRUE
+="abc">5	b:TRUE
+="10">9	b:TRUE
+=J4=0	b:TRUE
+=J4=""	b:TRUE
+=J7=""	b:TRUE
+=J7=0	b:FALSE
+=ISBLANK(J4)	b:TRUE
+=ISBLANK(J7)	b:FALSE
+=LEN(J4)	n:0
+=ISNUMBER(J2)	b:FALSE
+=ISTEXT(J2)	b:TRUE
+=ISERROR(O2)	b:TRUE
+=ISERR(O2)	b:FALSE
+=ISNA(O2)	b:TRUE
+=ISLOGICAL(J3)	b:TRUE
+=ISEVEN(4)	b:TRUE
+=ISODD(-3)	b:TRUE
+=N("abc")	n:0
+=N(TRUE)	n:1
+=T(123)	s:
+=TYPE(J5)	n:2
+=TYPE(O1)	n:16
+=ERROR.TYPE(O2)	n:7
+=ERROR.TYPE(O4)	n:6
+=NA()	e:#N/A
+# ---------------- errors ----------------
+=1/0	e:#DIV/0!
+=0/0	e:#DIV/0!
+=O1+1	e:#DIV/0!
+=O2*0	e:#N/A
+=SUM(O1,O2)	e:#DIV/0!
+=SUM(O2,O1)	e:#N/A
+="a"+1	e:#VALUE!
+=NOSUCHFUNC(1)	e:#NAME?
+=H1:H2 H3:H4	e:#NULL!
+=SQRT(-4)	e:#NUM!
+=DATE(10000,1,1)	e:#NUM!
+=CHOOSE(0,1,2)	e:#VALUE!
+=CHOOSE(3,1,2)	e:#VALUE!
+=INDEX(H1:H10,11)	e:#REF!
+=OFFSET(H1,-1,0)	e:#REF!
+=VLOOKUP(1,H1:H10,2,FALSE)	e:#N/A
+=LOG(0)	e:#NUM!
+=FACT(-1)	e:#NUM!
+=10^400	e:#NUM!
+=EXP(1000)	e:#NUM!
+# ---------------- lookup ----------------
+=VLOOKUP(102,R2:T5,2,FALSE)	s:乙
+=VLOOKUP(102,R2:T5,3,0)	n:8
+=VLOOKUP(104,R2:T5,2,FALSE)	e:#N/A
+=VLOOKUP(104,R2:T5,2,TRUE)	s:丙
+=VLOOKUP(104,R2:T5,2)	s:丙
+=VLOOKUP(100,R2:T5,2,TRUE)	e:#N/A
+=VLOOKUP(999,R2:T5,3,TRUE)	n:9
+=VLOOKUP(75,L1:M5,2,TRUE)	s:中
+=VLOOKUP(90,L1:M5,2)	s:优
+=VLOOKUP(-1,L1:M5,2)	e:#N/A
+=VLOOKUP("乙",S2:T5,2,FALSE)	n:8
+=VLOOKUP("?",S2:T5,2,FALSE)	n:5
+=VLOOKUP("名*",S1:T5,2,FALSE)	s:数量
+=VLOOKUP(102,R2:T5,4,FALSE)	e:#REF!
+=VLOOKUP(102,R2:T5,0,FALSE)	e:#VALUE!
+=VLOOKUP("102",R2:T5,2,FALSE)	e:#N/A
+=HLOOKUP("名称",R1:T5,3,FALSE)	s:乙
+=HLOOKUP("数量",R1:T5,5,FALSE)	n:9
+=HLOOKUP("Z",R1:T5,2,TRUE)	n:101
+=INDEX(R2:T5,2,3)	n:8
+=SUM(INDEX(R2:T5,0,3))	n:24
+=SUM(INDEX(R2:T5,2,0))	n:110
+=INDEX(H1:H10,3)	n:30
+=INDEX(H1:H10,3,1)	n:30
+=INDEX(R2:T5,5,1)	e:#REF!
+=MATCH(103,R2:R5,0)	n:3
+=MATCH(104,R2:R5,1)	n:3
+=MATCH(104,R2:R5)	n:3
+=MATCH(100,R2:R5,1)	e:#N/A
+=MATCH("丙",S2:S5,0)	n:3
+=MATCH("丙*",S2:S5,0)	n:3
+=MATCH(30,H1:H10,0)	n:3
+=MATCH(30,{50,40,30,20},-1)	n:3
+=MATCH(35,{50,40,30,20},-1)	n:2
+=MATCH("b",{"a","B","c"},0)	n:2
+=INDEX(S2:S5,MATCH(105,R2:R5,0))	s:丁
+=XLOOKUP(103,R2:R5,S2:S5)	s:丙
+=XLOOKUP(104,R2:R5,S2:S5)	e:#N/A
+=XLOOKUP(104,R2:R5,S2:S5,"没有")	s:没有
+=XLOOKUP(104,R2:R5,S2:S5,,-1)	s:丙
+=XLOOKUP(104,R2:R5,S2:S5,,1)	s:丁
+=XLOOKUP("丙*",S2:S5,R2:R5,,2)	n:103
+=XLOOKUP(30,H1:H10,I1:I10,,0,-1)	s:苹果
+=XLOOKUP("苹果",I1:I10,H1:H10,,0,-1)	n:35
+=SUM(XLOOKUP(102,R2:R5,R2:T5))	n:110
+=XMATCH(103,R2:R5)	n:3
+=XMATCH(104,R2:R5,1)	n:4
+=XMATCH(104,R2:R5,-1)	n:3
+=XMATCH("苹果",I1:I10,0,-1)	n:9
+=LOOKUP(104,R2:R5,S2:S5)	s:丙
+=LOOKUP(75,L1:L5,M1:M5)	s:中
+=LOOKUP(2,1/(I1:I10="橙子"),H1:H10)	n:25
+=LOOKUP("香蕉",I1:I10)	s:香蕉
+=LOOKUP(1000,H1:H10)	n:45
+=SUM(OFFSET(H1,1,0,3,1))	n:90
+=OFFSET(H1,2,1)	s:苹果
+=SUM(OFFSET(H1:H2,1,0))	n:50
+=INDIRECT("H3")	n:30
+=INDIRECT("Sheet2!A2")	n:200
+=SUM(INDIRECT("H1:H"&3))	n:60
+=INDIRECT("R3C8",FALSE)	n:30
+=INDIRECT("nope!A1")	e:#REF!
+=INDIRECT("abc")	e:#REF!
+=CHOOSE(2,"一","二","三")	s:二
+=SUM(CHOOSE(2,H1:H2,H3:H4))	n:70
+=ROW(H5)	n:5
+=COLUMN(H5)	n:8
+=ROWS(H1:H10)	n:10
+=COLUMNS(R1:T5)	n:3
+=ROW()	n:297
+=COLUMN()	n:1
+=ADDRESS(2,3)	s:$C$2
+=ADDRESS(2,3,4)	s:C2
+=ADDRESS(2,3,1,FALSE)	s:R2C3
+=ADDRESS(2,3,1,TRUE,"Sheet2")	s:Sheet2!$C$2
+=AREAS((H1:H2,H5))	n:2
+=Sheet2!A1+Sheet2!A2	n:300
+=SUM(Sheet2!A1:A2)	n:300
+=Sheet2!B1&"引用"	s:跨表引用
+=SUM(Sheet1:Sheet2!H1)	n:10
+=Rate*100	n:5
+=SUM(Data)	n:275
+=MAX(Data)	n:50
+=FORMULATEXT(H1)	e:#N/A
+=ISFORMULA(K1)	b:TRUE
+# ---------------- text ----------------
+=LEFT("中文字符串",2)	s:中文
+=RIGHT("中文字符串",3)	s:字符串
+=MID("中文字符串",2,2)	s:文字
+=LEFT("abc")	s:a
+=LEFT("abc",0)	s:
+=LEFT("abc",10)	s:abc
+=LEFT("abc",-1)	e:#VALUE!
+=MID("abc",5,1)	s:
+=MID("abc",0,1)	e:#VALUE!
+=LEFTB("中文abc",2)	s:中
+=LEFTB("中文abc",3)	s:中 
+=RIGHTB("abc中文",4)	s:中文
+=MIDB("中文abc",3,2)	s:文
+=LEN("中文abc")	n:5
+=LENB("中文abc")	n:7
+=LEN(123.45)	n:6
+=LEN(H1)	n:2
+=LEN(K1)	n:5
+=LEN(TRUE)	n:4
+=FIND("文","中文字符串")	n:2
+=FIND("A","abcA")	n:4
+=FIND("a","abcA",2)	e:#VALUE!
+=FIND("z","abc")	e:#VALUE!
+=FIND("","abc")	n:1
+=FIND("b","abc",5)	e:#VALUE!
+=SEARCH("A","abcA")	n:1
+=SEARCH("b*d","abcd")	n:2
+=SEARCH("?c","abcd")	n:2
+=SEARCH("~*","a*b")	n:2
+=SEARCH("字符","中文字符串")	n:3
+=FINDB("文","中文字")	n:3
+=SEARCHB("字","中文字")	n:5
+=SUBSTITUTE("aaa","a","b")	s:bbb
+=SUBSTITUTE("aaa","a","b",2)	s:aba
+=SUBSTITUTE("中文中文","中","英")	s:英文英文
+=SUBSTITUTE("abc","","x")	s:abc
+=REPLACE("abcdef",2,3,"X")	s:aXef
+=REPLACE("中文字符串",2,2,"英")	s:中英符串
+=REPLACEB("中文字",3,2,"X")	s:中X字
+=TRIM(N1)	s:hello world
+=LEN(TRIM(N1))	n:11
+=TRIM("　全角　空格　")	s:全角　空格
+=CLEAN("a"&CHAR(9)&"b")	s:ab
+=UPPER("abc中")	s:ABC中
+=LOWER("ABC")	s:abc
+=PROPER("hello WORLD o'neil")	s:Hello World O'Neil
+=PROPER("abc-def ghi2jkl")	s:Abc-Def Ghi2Jkl
+=REPT("ab",3)	s:ababab
+=REPT("中",0)	s:
+=REPT("x",-1)	e:#VALUE!
+=CONCAT("a",1,TRUE)	s:a1TRUE
+=CONCAT(H1:H3)	s:102030
+=CONCATENATE("a","b","c")	s:abc
+=CONCATENATE(H1,"-",I1)	s:10-苹果
+=TEXTJOIN(",",TRUE,J1:J10)	s:1,2,TRUE,abc,3.5,-4,0
+=TEXTJOIN(",",FALSE,J1:J8)	s:1,2,TRUE,,abc,3.5,,
+=TEXTJOIN("、",TRUE,I1:I3)	s:苹果、香蕉、苹果
+="a"&1&TRUE	s:a1TRUE
+=1&2	s:12
+=0.1+0.2&""	s:0.3
+=1/3&""	s:0.333333333333333
+=123456789012345678&""	s:123456789012345000
+=1E+20&""	s:1E+20
+=1E-10&""	s:0.0000000001
+=-0&""	s:0
+=EXACT("a","A")	b:FALSE
+=CHAR(65)	s:A
+=CODE("A")	n:65
+=UNICHAR(20013)	s:中
+=UNICODE("中")	n:20013
+=VALUE("123")	n:123
+=VALUE("1,000")	n:1000
+=VALUE("50%")	n:0.5
+=VALUE(" 12 ")	n:12
+=VALUE("abc")	e:#VALUE!
+=VALUE("1e3")	n:1000
+=VALUE("2026/11/10")	n:46336
+=VALUE("2026-11-10")	n:46336
+=VALUE("2026年11月10日")	n:46336	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=VALUE("12:30")	n:0.520833333333333
+=VALUE("(5)")	n:-5
+=VALUE("")	e:#VALUE!
+=Q1+0	n:10
+=Q2+0	n:1000
+=Q3+0	n:0.5
+=Q5+0	n:46336
+=Q6+0	n:46336	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=Q7*1	n:12
+="2026/11/10"+0	n:46336
+="2026年11月10日"+1	n:46337	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+="2026-2-30"+0	e:#VALUE!
+=NUMBERVALUE("1.234,5",",",".")	n:1234.5
+=NUMBERVALUE("12%")	n:0.12
+=NUMBERVALUE("1 000")	n:1000
+=TEXT(1234.5,"#,##0.00")	s:1,234.50
+=TEXT(1234.5,"0")	s:1235
+=TEXT(0.25,"0%")	s:25%
+=TEXT(0.256,"0.0%")	s:25.6%
+=TEXT(K5,"yyyy-mm-dd")	s:2026-11-10
+=TEXT(K5,"yyyy年m月d日")	s:2026年11月10日
+=TEXT(K5,"yyyy/m/d")	s:2026/11/10
+=TEXT(K5,"mm/dd/yyyy")	s:11/10/2026
+=TEXT(K5,"dddd")	s:Tuesday
+=TEXT(K5,"ddd")	s:Tue
+=TEXT(K5,"aaaa")	s:星期二	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=TEXT(K5,"aaa")	s:二	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=TEXT(K5,"mmmm")	s:November
+=TEXT(K5,"mmm")	s:Nov
+=TEXT(K5,"m月")	s:11月
+=TEXT(0.5,"hh:mm:ss")	s:12:00:00
+=TEXT(1.75,"[h]:mm")	s:42:00
+=TEXT(0.5,"h:mm AM/PM")	s:12:00 PM
+=TEXT(-5,"0;(0)")	s:(5)
+=TEXT(0,"0;-0;零")	s:零
+=TEXT(5,"000")	s:005
+=TEXT(3.14159,"0.00")	s:3.14
+=TEXT(1234567,"0.00E+00")	s:1.23E+06
+=TEXT(12,"@元")	s:12元
+=TEXT("abc","@@")	s:abcabc
+=TEXT(1234.5,"¥#,##0.00")	s:¥1,234.50
+=TEXT(1234,"[DBNum1]")	s:一千二百三十四	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=TEXT(1234,"[DBNum2]")	s:壹仟贰佰叁拾肆	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=TEXT(0.5,"# ?/?")	s: 1/2
+=TEXT(1234.5,"G/通用格式")	s:1234.5
+=TEXT(-1234.5,"#,##0.00;[Red]-#,##0.00")	s:-1,234.50
+=FIXED(1234.567,1)	s:1,234.6
+=FIXED(1234.567,-1,TRUE)	s:1230
+=RMB(1234.567,2)	e:#NAME?
+=TEXTBEFORE("a-b-c","-")	s:a
+=TEXTAFTER("a-b-c","-",-1)	s:c
+=TEXTJOIN("|",,TEXTSPLIT("a,b,c",","))	s:a|b|c
+=LEFT(H1)	s:1
+=MID(12345,2,3)	s:234
+=ASC("ＡＢＣ１２３")	s:ABC123
+=WIDECHAR("ABC123")	e:#NAME?
+# ---------------- date & time ----------------
+=DATE(2026,11,10)	n:46336
+=DATE(2026,13,1)	n:46388
+=DATE(2026,1,0)	n:46022
+=DATE(2026,2,29)	n:46082
+=DATE(1900,1,1)	n:1
+=DATE(1900,2,28)	n:59
+=DATE(1900,2,29)	n:60
+=DATE(1900,3,1)	n:61
+=DATE(99,1,1)	n:36161
+=DATE(1899,12,31)	n:693962
+=DATE(-1,1,1)	e:#NUM!
+=YEAR(K5)	n:2026
+=MONTH(K5)	n:11
+=DAY(K5)	n:10
+=YEAR(60)	n:1900
+=MONTH(60)	n:2
+=DAY(60)	n:29
+=DAY(0)	n:0
+=YEAR("2026/11/10")	n:2026
+=MONTH("2026年11月10日")	n:11	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=DAY("abc")	e:#VALUE!
+=YEAR(-1)	e:#NUM!
+=WEEKDAY(K5)	n:3
+=WEEKDAY(K5,2)	n:2
+=WEEKDAY(K5,3)	n:1
+=WEEKDAY(K5,11)	n:2
+=WEEKDAY(K5,17)	n:3
+=WEEKDAY(K5,4)	e:#NUM!
+=WEEKNUM(K5)	n:46
+=WEEKNUM(K5,2)	n:46
+=WEEKNUM(K5,21)	n:46	# doc: return type 21 is ISO weeks (Microsoft); WPS for Mac 7.5 answers #NUM!
+=ISOWEEKNUM(K10)	n:53	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=WEEKNUM(DATE(2027,1,1))	n:1
+=DATEDIF(K1,K5,"y")	n:0
+=DATEDIF(K1,K5,"m")	n:9
+=DATEDIF(K1,K5,"d")	n:299
+=DATEDIF(K1,K5,"ym")	n:9
+=DATEDIF(K1,K5,"md")	n:26
+=DATEDIF(K1,K5,"yd")	n:299
+=DATEDIF(K5,K1,"d")	n:-299
+=DATEDIF(K4,DATE(2025,2,28),"y")	n:0
+=DATEDIF(DATE(2026,1,31),DATE(2026,3,1),"md")	n:-2
+=DATEDIF(K1,K5,"x")	e:#NUM!
+=EDATE(K3,1)	n:46142
+=EDATE(K4,12)	n:45716
+=EDATE(K3,-1)	n:46081
+=EOMONTH(K1,0)	n:46053
+=EOMONTH(K1,1)	n:46081
+=EOMONTH(K4,-12)	n:44985
+=EOMONTH("2026/2/10",0)	n:46081
+=DAYS(K5,K1)	n:299
+=DAYS360(K1,K5)	n:295
+=K5-K1	n:299
+=YEARFRAC(K1,K5)	n:0.819444444444444
+=YEARFRAC(K1,K5,1)	n:0.819178082191781
+=NETWORKDAYS(K5,K10)	n:39
+=NETWORKDAYS(K5,K10,P1:P2)	n:37
+=NETWORKDAYS(K10,K5)	n:-39
+=NETWORKDAYS.INTL(K5,K10,11)	n:46
+=NETWORKDAYS.INTL(K5,K10,"0000011")	n:39
+=WORKDAY(K5,5)	n:46343
+=WORKDAY(K5,5,P1:P2)	n:46344
+=WORKDAY(K5,-3)	n:46331
+=WORKDAY(K8,1)	n:46342
+=WORKDAY.INTL(K5,5,7)	n:46343
+=TIME(12,30,0)	n:0.520833333333333
+=TIME(25,0,0)	n:0.0416666666666667
+=TIME(0,-1,0)	e:#NUM!
+=HOUR(0.75)	n:18
+=MINUTE("12:45")	n:45
+=SECOND(0.5+1/86400)	n:1
+=TIMEVALUE("6:00 PM")	n:0.75
+=DATEVALUE("2026/11/10")	n:46336
+=DATEVALUE("2026-11-10")	n:46336
+=DATEVALUE("2026年11月10日")	n:46336	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=DATEVALUE("10-Nov-2026")	n:46336
+=DATEVALUE("2026/2/30")	e:#VALUE!
+=DATEVALUE("11月10日")-DATE(YEAR(TODAY()),11,10)	n:0	# zh-CN: what WPS and Excel show in a Chinese locale; this WPS ran in an English (UK) region
+=TODAY()=INT(NOW())	b:TRUE
+=NOW()>=TODAY()	b:TRUE
+=TODAY()-TODAY()	n:0
+=DATE(2026,11,10)+TIME(6,0,0)	n:46336.25
+=INT(K5+0.75)	n:46336
+# ---------------- statistics ----------------
+=STDEV(U1:U8)	n:2.1380899352994
+=STDEV.S(U1:U8)	n:2.1380899352994
+=STDEV.P(U1:U8)	n:2
+=STDEVP(U1:U8)	n:2
+=STDEVA(J1:J10)	n:2.06911816965586
+=VAR(U1:U8)	n:4.57142857142857
+=VAR.P(U1:U8)	n:4
+=VAR.S(H1:H10)	n:229.166666666667
+=STDEV(5)	e:#DIV/0!
+=MEDIAN(U1:U8)	n:4.5
+=MEDIAN(H1:H10)	n:27.5
+=MEDIAN(1,2,3)	n:2
+=MODE(U1:U8)	n:4
+=MODE.SNGL(H1:H10)	e:#N/A	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=PERCENTILE(U1:U8,0.25)	n:4
+=PERCENTILE.INC(H1:H10,0.9)	n:45.5
+=PERCENTILE.EXC(H1:H10,0.9)	n:49.5
+=PERCENTILE(U1:U8,1.5)	e:#NUM!
+=QUARTILE(U1:U8,1)	n:4
+=QUARTILE.INC(U1:U8,3)	n:5.5	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=QUARTILE.EXC(U1:U8,1)	n:4	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=PERCENTRANK(H1:H10,30)	n:0.555
+=PERCENTRANK.INC(H1:H10,33)	n:0.622
+=CORREL(H1:H4,L2:L5)	n:1
+=SLOPE(H1:H4,L2:L5)	n:1
+=INTERCEPT(H1:H4,L2:L5)	n:-50
+=FORECAST(100,H1:H4,L2:L5)	n:50
+=GEOMEAN(U1:U8)	n:4.60321559604674
+=HARMEAN(U1:U8)	n:4.20175072947061
+=AVEDEV(U1:U8)	n:1.5
+=DEVSQ(U1:U8)	n:32
+=KURT(U1:U8)	n:0.940625
+=SKEW(U1:U8)	n:0.8184875533568
+=NORM.DIST(1,0,1,TRUE)	n:0.841344746068543
+=NORM.S.INV(0.975)	n:1.95996398454005
+=NORMSDIST(1.96)	n:0.97500210485178
+=T.INV.2T(0.05,10)	n:2.228138852	~1e-9 # doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=BINOM.DIST(3,10,0.5,FALSE)	n:0.1171875
+=POISSON.DIST(2,3,TRUE)	n:0.423190081	~1e-8 # doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=CHISQ.DIST.RT(3.84,1)	n:0.050043521	~1e-8 # doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=COUNT(U1:U8)	n:8
+=TRIMMEAN(H1:H10,0.2)	n:27.5
+=STANDARDIZE(42,40,1.5)	n:1.33333333333333
+=SUM(FREQUENCY(H1:H10,{20,40}))	n:10
+# ---------------- financial ----------------
+=PMT(0.05/12,360,200000)	n:-1073.64324602428
+=PMT(0,12,1200)	n:-100
+=PMT(0.06/12,60,-30000,0,1)	n:577.098553117262
+=FV(0.05/12,120,-100)	n:15528.2279445667
+=FV(0.06,10,-1000,-5000,1)	n:22925.881121638
+=PV(0.08/12,240,-500)	n:59777.1458511878
+=PV(0,10,-100)	n:1000
+=NPV(0.1,V2:V4)+V1	n:-21.0368144252443
+=NPV(0.08,1000,2000,3000)	n:5022.10028959
+=IRR(V1:V4)	n:0.0889633946933499	~1e-12 # iterative solver
+=IRR({-100,10,10})	n:-0.629843788128358	~1e-12 # iterative solver
+=IRR({100,200})	e:#NUM!	~1e-12 # iterative solver
+=RATE(36,-300,10000)	n:0.00422066754538397	~1e-12 # iterative solver: WPS stops a few units short of the last digit
+=RATE(10,-100,1000,0,0,0.1)	n:0	# exact: no interest; WPS answers #NUM!
+=NPER(0.01,-100,1000)	n:10.5886444594232
+=IPMT(0.1/12,1,36,8000)	n:-66.6666666666666
+=PPMT(0.1/12,1,36,8000)	n:-191.470830884034
+=CUMIPMT(0.09/12,360,125000,1,12,0)	n:-11215.3428811283
+=SLN(30000,7500,10)	n:2250
+=DB(1000000,100000,6,1,7)	n:186083.333333333
+=DDB(2400,300,10,1)	n:480
+=SYD(30000,7500,10,1)	n:4090.90909090909
+=EFFECT(0.0525,4)	n:0.053542667	~1e-8 # doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=NOMINAL(0.053543,4)	n:0.05250032	~1e-7 # doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+=XNPV(0.09,{-10000,2750,4250},{46023,46204,46388})	n:-3465.96212968693
+=XIRR({-10000,2750,4250,3250,2750},{39448,39508,39751,39859,39904})	n:0.373362533518832	~1e-12 # iterative solver
+=MIRR(V1:V4,0.1,0.12)	n:0.0981566924463153
+=FVSCHEDULE(1,{0.09,0.11,0.1})	n:1.33089	# doc: Microsoft documents this; WPS for Mac 7.5 lacks the function
+# ---------------- dynamic arrays (aggregated) ----------------
+=SUM(FILTER(H1:H10,I1:I10="苹果"))	n:80
+=ROWS(FILTER(H1:H10,H1:H10>20))	n:6
+=FILTER(H1:H10,H1:H10>100)	e:#CALC!	# doc: an empty FILTER is #CALC! (Microsoft); WPS for Mac 7.5 answers #VALUE!
+=FILTER(H1:H10,H1:H10>100,"无")	s:无
+=INDEX(SORT(H1:H10),1)	n:5
+=INDEX(SORT(H1:H10,1,-1),1)	n:50
+=TEXTJOIN(",",,SORT(X1:X4))	s:a,b,c,d
+=TEXTJOIN(",",,SORTBY(X1:X4,W1:W4))	s:a,b,c,d
+=TEXTJOIN(",",,SORTBY(X1:X4,W1:W4,-1))	s:c,d,b,a
+=ROWS(UNIQUE(I1:I10))	n:4
+=TEXTJOIN(",",,UNIQUE(I1:I10))	s:苹果,香蕉,橙子,梨
+=TEXTJOIN(",",,UNIQUE(W1:W4,,TRUE))	s:1,2
+=SUM(SEQUENCE(10))	n:55
+=TEXTJOIN(",",,SEQUENCE(3,1,10,5))	s:10,15,20
+=SUM(SEQUENCE(2,3))	n:21
+=COUNT(SEQUENCE(0))	n:0
+=SUM(TAKE(H1:H10,3))	n:60
+=SUM(DROP(H1:H10,8))	n:80
+=SUM(VSTACK(H1:H2,H3:H4))	n:100
+=SUM(TOCOL(R2:T3))	n:216
+=COUNTA(TEXTSPLIT("a,b,,c",","))	n:4
+=LET(x,5,y,x*2,x+y)	n:15
+=LET(a,H1:H10,SUM(a)/COUNT(a))	n:27.5
+=LAMBDA(x,x*2)(21)	n:42
+=SUM(MAP(SEQUENCE(3),LAMBDA(v,v*v)))	n:14
+=REDUCE(0,H1:H3,LAMBDA(a,b,a+b))	n:60
+=SUM(BYROW(R2:T3,LAMBDA(r,SUM(r))))	n:216
+# ---------------- coercion & precision ----------------
+=0.1+0.2	n:0.3
+=0.1+0.2=0.3	b:TRUE
+=0.1+0.2-0.3	n:0
+=1-0.9	n:0.1
+=(1-0.9)=0.1	b:TRUE
+=1E+15+1	n:1000000000000000
+=123456789.123456789	n:123456789.123456
+=1/3*3	n:1
+=1/3*3=1	b:TRUE
+=10%	n:0.1
+=50%*10	n:5
+="10%"*2	n:0.2
+="1,000"+1	n:1001
+="1e2"+0	n:100
+=" 5 "+0	n:5
+="TRUE"+0	e:#VALUE!
+=--"3"	n:3
+=J4+1	n:1
+=J4&"x"	s:x
+=J7+1	e:#VALUE!
+=J7&"x"	s:x
+=SUM(J4,J7)	n:0
+=J4*"2"	n:0
+=-J4	n:0
+=2^0.5	n:1.4142135623731
+=0^0	e:#NUM!
+=ROUND(1E+15/7,0)	n:142857142857143
+=9.99999999999999E+307*10	e:#NUM!
+=MOD(12345678901,7)	n:3
+=FACT(170)	n:7.25741561530799e+306
+=FACT(171)	e:#NUM!
+=ROUND(-0.5,0)	n:-1
+=INT(-0.5)	n:-1
+# ---------------- more (probe2.tsv) ----------------
+=12345678901234567&""	s:12345678901234500
+# ---------------- more (probe2.tsv) ----------------
+=1234567890123456&""	s:1234567890123450
+# ---------------- more (probe2.tsv) ----------------
+=123456789012345&""	s:123456789012345
+# ---------------- more (probe2.tsv) ----------------
+=1E+21&""	s:1E+21
+# ---------------- more (probe2.tsv) ----------------
+=1E+16&""	s:10000000000000000
+# ---------------- more (probe2.tsv) ----------------
+=99999999999999999999&""	s:9.99999999999999E+19
+# ---------------- more (probe2.tsv) ----------------
+=0.000001&""	s:0.000001
+# ---------------- more (probe2.tsv) ----------------
+=0.0000001&""	s:0.0000001
+# ---------------- more (probe2.tsv) ----------------
+=1.23456789012345E-05&""	s:1.23456789012345E-05
+# ---------------- more (probe2.tsv) ----------------
+=1E-15&""	s:0.000000000000001
+# ---------------- more (probe2.tsv) ----------------
+=1E-20&""	s:1E-20
+# ---------------- more (probe2.tsv) ----------------
+=-1E-10&""	s:-0.0000000001
+# ---------------- more (probe2.tsv) ----------------
+=2/3&""	s:0.666666666666667
+# ---------------- more (probe2.tsv) ----------------
+=1E+15&""	s:1000000000000000
+# ---------------- more (probe2.tsv) ----------------
+=123456.789012345678&""	s:123456.789012345
+# ---------------- more (probe2.tsv) ----------------
+=CONCAT(1E-10)	s:0.0000000001
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(1E-10,"General")	s:1E-10
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(123456789012345678,"General")	s:1.23457E+17
+# ---------------- more (probe2.tsv) ----------------
+=TRIM("a　　b")	s:a　b
+# ---------------- more (probe2.tsv) ----------------
+=TRIM("a 　 b")	s:a b
+# ---------------- more (probe2.tsv) ----------------
+=TRIM("　a")	s:a
+# ---------------- more (probe2.tsv) ----------------
+=TRIM(" 　a　 ")	s:a
+# ---------------- more (probe2.tsv) ----------------
+=LEN(TRIM("　　"))	n:0
+# ---------------- more (probe2.tsv) ----------------
+=DATEDIF(K5,K1,"y")	n:0
+# ---------------- more (probe2.tsv) ----------------
+=DATEDIF(K5,K1,"m")	n:-9
+# ---------------- more (probe2.tsv) ----------------
+=DATEDIF(K5,K1,"md")	n:-26
+# ---------------- more (probe2.tsv) ----------------
+=DATEDIF(K5,K1,"yd")	n:-299
+# ---------------- more (probe2.tsv) ----------------
+=DATEDIF(K5,K1,"ym")	n:-9
+# ---------------- more (probe2.tsv) ----------------
+=MIDB("中文abc",2,2)	s:  
+# ---------------- more (probe2.tsv) ----------------
+=MIDB("中文abc",2,3)	s: 文
+# ---------------- more (probe2.tsv) ----------------
+=LEFTB("中文",1)	s: 
+# ---------------- more (probe2.tsv) ----------------
+=RIGHTB("中文",1)	s: 
+# ---------------- more (probe2.tsv) ----------------
+=RIGHTB("中文",3)	s: 文
+# ---------------- more (probe2.tsv) ----------------
+=LENB("é")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=LENB("ｱ")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=LENB("€")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=LENB("—")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=FINDB("c","中文abc")	n:7
+# ---------------- more (probe2.tsv) ----------------
+=REPLACEB("中文字",2,2,"X")	s: X 字
+# ---------------- more (probe2.tsv) ----------------
+=REPLACEB("中文字",2,1,"X")	s: X文字
+# ---------------- more (probe2.tsv) ----------------
+=VLOOKUP(999,H1:H10,2,FALSE)	e:#N/A
+# ---------------- more (probe2.tsv) ----------------
+=VLOOKUP(10,H1:H10,2,FALSE)	e:#REF!
+# ---------------- more (probe2.tsv) ----------------
+=VLOOKUP(10,H1:H10,0,FALSE)	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=VLOOKUP(999,H1:H10,0,FALSE)	e:#N/A
+# ---------------- more (probe2.tsv) ----------------
+=HLOOKUP(999,H1:H10,5,FALSE)	e:#N/A
+# ---------------- more (probe2.tsv) ----------------
+=INDEX(H1:H10,0,2)	e:#REF!
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"?*")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"<>*")	n:7
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"=")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"=*")	n:3
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,">0")	n:2
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"<5")	n:4
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,">a")	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(Q1:Q7,"10")	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(Q1:Q7,">5")	n:0
+# ---------------- more (probe2.tsv) ----------------
+=SUMIF(Q1:Q7,"10",H1:H7)	n:10
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(I1:I10,"苹果*")	n:4
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(K1:K10,">"&DATE(2026,6,1))	n:5
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(K1:K10,">2026/6/1")	n:5
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(K1:K10,">2026-6-1")	n:5
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"TRUE")	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(J1:J10,"<>2")	n:10
+# ---------------- more (probe2.tsv) ----------------
+=COUNTIF(O1:O4,"#DIV/0!")	n:1
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(12,"@")	s:12
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(12.5,"@\元")	s:12.5元
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(-12,"@元")	s:-12元
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(12,"0;@")	s:12
+# ---------------- more (probe2.tsv) ----------------
+=TEXT("abc","0")	s:abc
+# ---------------- more (probe2.tsv) ----------------
+=TEXT("12","0.00")	s:12.00
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(TRUE,"0")	s:TRUE
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(K5,"e年m月d日")	s:2026年11月10日
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(K5,"yyyy\年")	s:2026年
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(1234567.891,"#,##0.00,,")	s:1.23
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(-0.5,"0")	s:-1
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(-0.4,"0")	s:0
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(1/3,"0.000")	s:0.333
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(45000.75,"yyyy-mm-dd hh:mm")	s:2023-03-15 18:00
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(1234.5,"#,##0.00 ;(#,##0.00)")	s:1,234.50 
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(-1234.5,"#,##0.00 ;(#,##0.00)")	s:(1,234.50)
+# ---------------- more (probe2.tsv) ----------------
+=0.5-0.4-0.1	n:0
+# ---------------- more (probe2.tsv) ----------------
+=1*(0.5-0.4-0.1)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=(0.5-0.4-0.1)*1	n:0
+# ---------------- more (probe2.tsv) ----------------
+=0.3-0.2-0.1	n:0
+# ---------------- more (probe2.tsv) ----------------
+=0.1*3-0.3	n:0
+# ---------------- more (probe2.tsv) ----------------
+=SUM(0.1,0.2,-0.3)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=SUM(0.1,0.2)-0.3	n:0
+# ---------------- more (probe2.tsv) ----------------
+=10.1-10	n:0.0999999999999996
+# ---------------- more (probe2.tsv) ----------------
+=100.1-100	n:0.0999999999999943
+# ---------------- more (probe2.tsv) ----------------
+=1.1+2.2	n:3.3
+# ---------------- more (probe2.tsv) ----------------
+=1.1+2.2=3.3	b:TRUE
+# ---------------- more (probe2.tsv) ----------------
+=4.35*100	n:435
+# ---------------- more (probe2.tsv) ----------------
+=INT(4.35*100)	n:435
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(4.35*100,0)	n:435
+# ---------------- more (probe2.tsv) ----------------
+=MOD(4.35*100,1)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=9.1-9	n:0.0999999999999996
+# ---------------- more (probe2.tsv) ----------------
+=(9.1-9)*10	n:0.999999999999996
+# ---------------- more (probe2.tsv) ----------------
+=0.1+0.7	n:0.8
+# ---------------- more (probe2.tsv) ----------------
+=(0.1+0.7)*10	n:8
+# ---------------- more (probe2.tsv) ----------------
+=INT((0.1+0.7)*10)	n:8
+# ---------------- more (probe2.tsv) ----------------
+=-(0.1+0.2-0.3)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=ABS(0.1+0.2-0.3)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=0.1+0.2-0.3=0	b:TRUE
+# ---------------- more (probe2.tsv) ----------------
+=IF(0.1+0.2-0.3=0,1,2)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=SUM(H1:H10)-275	n:0
+# ---------------- more (probe2.tsv) ----------------
+=1-1E-16	n:1
+# ---------------- more (probe2.tsv) ----------------
+=1+1E-15-1	n:0
+# ---------------- more (probe2.tsv) ----------------
+=RATE(10,-100,1000)	n:0	# exact: no interest; WPS answers #NUM!
+# ---------------- more (probe2.tsv) ----------------
+=RATE(12,-100,1200,0,0)	n:0	# exact: no interest; WPS answers #NUM!
+# ---------------- more (probe2.tsv) ----------------
+=RATE(48,-200,8000)	n:0.00770147248820179	~1e-12 # iterative solver: WPS stops a few units short of the last digit
+# ---------------- more (probe2.tsv) ----------------
+=RATE(360,-1000,150000)	n:0.00585025337675968	~1e-12 # iterative solver: WPS stops a few units short of the last digit
+# ---------------- more (probe2.tsv) ----------------
+=IRR({-1000,100,100,100,1200})	n:0.120895993781595	~1e-12 # iterative solver
+# ---------------- more (probe2.tsv) ----------------
+=IRR({-70000,12000,15000,18000,21000,26000})	n:0.0866309480365317	~1e-12 # iterative solver
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("1 1/2")	n:1.5
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("2026/11")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("Nov 10, 2026")	n:46336
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("10:30:15")	n:0.437673611111111
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("12:30 PM")	n:0.520833333333333
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("2026/11/10 12:00")	n:46336.5
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("-1.5E+2")	n:-150
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("+5")	n:5
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("5-")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("1,2,3")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("1,23")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=VALUE(".5")	n:0.5
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("5.")	n:5
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("%5")	n:0.05
+# ---------------- more (probe2.tsv) ----------------
+=VALUE("1000%")	n:10
+# ---------------- more (probe2.tsv) ----------------
+="2026/11/10">"2026/1/1"	b:TRUE
+# ---------------- more (probe2.tsv) ----------------
+=SUM("2026/11/10",1)	n:46337
+# ---------------- more (probe2.tsv) ----------------
+=DATE(2026,11,10)="2026/11/10"	b:FALSE
+# ---------------- more (probe2.tsv) ----------------
+=N("2026/11/10")	n:0
+# ---------------- more (probe2.tsv) ----------------
+=ISNUMBER("2026/11/10")	b:FALSE
+# ---------------- more (probe2.tsv) ----------------
+=ISNUMBER(--"2026/11/10")	b:TRUE
+# ---------------- more (probe2.tsv) ----------------
+=YEAR("2026-2-29")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=DAY("2024-2-29")	n:29
+# ---------------- more (probe2.tsv) ----------------
+=MONTH("2026/13/1")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=DATEVALUE("2026/1/1 10:00")	n:46023
+# ---------------- more (probe2.tsv) ----------------
+=TIMEVALUE("2026/1/1 10:00")	n:0.416666666664241
+# ---------------- more (probe2.tsv) ----------------
+=DATEVALUE("1900/2/29")	n:60
+# ---------------- more (probe2.tsv) ----------------
+=DATEVALUE("1900/1/1")	n:1
+# ---------------- more (probe2.tsv) ----------------
+=DATEVALUE("1899/12/31")	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=DATEVALUE("9999/12/31")	n:2958465
+# ---------------- more (probe2.tsv) ----------------
+=WEEKDAY(0)	n:7
+# ---------------- more (probe2.tsv) ----------------
+=WEEKDAY(60)	n:4
+# ---------------- more (probe2.tsv) ----------------
+=WEEKDAY(61)	n:5
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(60,"yyyy-mm-dd")	s:1900-02-29
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(0,"yyyy-mm-dd")	s:1900-01-00
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(0,"dddd")	s:Saturday
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(59,"dddd")	s:Tuesday
+# ---------------- more (probe2.tsv) ----------------
+=TEXT(61,"dddd")	s:Thursday
+# ---------------- more (probe2.tsv) ----------------
+=EOMONTH(59,0)	n:60	# excel: Excel lands on the fictitious 29 Feb 1900 (serial 60); WPS answers 59
+# ---------------- more (probe2.tsv) ----------------
+=EDATE(31,1)	n:60	# excel: Excel lands on the fictitious 29 Feb 1900 (serial 60); WPS answers 59
+# ---------------- more (probe2.tsv) ----------------
+=DATEDIF(1,61,"d")	n:60
+# ---------------- more (probe2.tsv) ----------------
+=DAYS(61,59)	n:2
+# ---------------- more (probe2.tsv) ----------------
+=NETWORKDAYS(DATE(2026,11,14),DATE(2026,11,15))	n:0
+# ---------------- more (probe2.tsv) ----------------
+=WORKDAY(DATE(2026,11,14),0)	n:46340
+# ---------------- more (probe2.tsv) ----------------
+=WEEKNUM(DATE(2026,1,1))	n:1
+# ---------------- more (probe2.tsv) ----------------
+=WEEKNUM(DATE(2026,12,31),2)	n:53
+# ---------------- more (probe2.tsv) ----------------
+=YEARFRAC(DATE(2024,2,29),DATE(2025,2,28),1)	n:0.997267759562842
+# ---------------- more (probe2.tsv) ----------------
+=YEARFRAC(DATE(2026,1,31),DATE(2026,3,31),0)	n:0.166666666666667
+# ---------------- more (probe2.tsv) ----------------
+=DAYS360(DATE(2026,1,31),DATE(2026,2,28))	n:28
+# ---------------- more (probe2.tsv) ----------------
+=DAYS360(DATE(2026,2,28),DATE(2026,3,31))	n:30
+# ---------------- more (probe2.tsv) ----------------
+=DAYS360(DATE(2026,2,28),DATE(2026,3,31),TRUE)	n:32
+# ---------------- more (probe2.tsv) ----------------
+=SUBTOTAL(9,H1:H10,O3)	n:282
+# ---------------- more (probe2.tsv) ----------------
+=SUBTOTAL(0,H1:H10)	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=AGGREGATE(9,4,O1:O3)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=AGGREGATE(1,6,O1:O4,H1)	n:8.5
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(I1:I10="苹果")	n:0
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(--(I1:I10="苹果"))	n:4
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT((I1:I10="苹果")+0)	n:4
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(H1:H10*(I1:I10="苹果"))	n:80
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(H1:H10,--(I1:I10="苹果"))	n:80
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(H1:H10,I1:I10)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(O1:O3)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT(1,2)	n:2
+# ---------------- more (probe2.tsv) ----------------
+=SUMPRODUCT({1,2},{3;4})	e:#VALUE!
+# ---------------- more (probe2.tsv) ----------------
+=RANK(J2,J1:J10)	e:#N/A
+# ---------------- more (probe2.tsv) ----------------
+=RANK(1,J1:J10)	n:2
+# ---------------- more (probe2.tsv) ----------------
+=RANK(3.5,J1:J10)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=LARGE(J1:J10,1)	n:3.5
+# ---------------- more (probe2.tsv) ----------------
+=SMALL({3,"1",2},1)	n:2
+# ---------------- more (probe2.tsv) ----------------
+=MEDIAN(J1:J10)	n:0.5
+# ---------------- more (probe2.tsv) ----------------
+=MODE({1,2,3})	e:#N/A
+# ---------------- more (probe2.tsv) ----------------
+=MODE({1,1,2,2})	n:1
+# ---------------- more (probe2.tsv) ----------------
+=AVERAGE(O1:O3)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=AVERAGEIF(J1:J10,">0")	n:2.25
+# ---------------- more (probe2.tsv) ----------------
+=AVERAGEIF(H1:H10,">100")	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=MAX(O1:O3)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=MAXIFS(H1:H10,I1:I10,"苹果",H1:H10,"<30")	n:10
+# ---------------- more (probe2.tsv) ----------------
+=COUNTA(J7)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNTA("",J4)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNTBLANK(J7)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNT(O1:O4)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=COUNTA(O1:O4)	n:4
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(2.345,2)	n:2.35
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(-1.005,2)	n:-1.01
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(1.0049999999999999,2)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(123.455,2)	n:123.46
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(8.575,2)	n:8.58
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(0.5,0)	n:1
+# ---------------- more (probe2.tsv) ----------------
+=ROUND(1.5,0)	n:2
+# ---------------- more (probe2.tsv) ----------------
+=ROUNDUP(1.1-1,1)	n:0.1
+# ---------------- more (probe2.tsv) ----------------
+=ROUNDUP(0.1+0.2,1)	n:0.3
+# ---------------- more (probe2.tsv) ----------------
+=ROUNDDOWN(0.3-0.1,1)	n:0.2
+# ---------------- more (probe2.tsv) ----------------
+=ROUNDUP(2.01-2,2)	n:0.01
+# ---------------- more (probe2.tsv) ----------------
+=CEILING(0.1+0.2,0.1)	n:0.3
+# ---------------- more (probe2.tsv) ----------------
+=FLOOR(0.3,0.1)	n:0.3
+# ---------------- more (probe2.tsv) ----------------
+=MROUND(0.3,0.1)	n:0.3
+# ---------------- more (probe2.tsv) ----------------
+=INT(0.1+0.2)*10	n:0
+# ---------------- more (probe2.tsv) ----------------
+=TRUNC(0.29*100)	n:29
+# ---------------- more (probe2.tsv) ----------------
+=INT(0.29*100)	n:29
+# ---------------- more (probe2.tsv) ----------------
+=INT(1.15*100)	n:115
+# ---------------- more (probe2.tsv) ----------------
+=MOD(0.3,0.1)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=MOD(1,0.1)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=MOD(3,1.5)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=QUOTIENT(5,0)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=MOD(1E+20,3)	n:0
+# ---------------- more (probe2.tsv) ----------------
+=FACT(2.9)	n:2
+# ---------------- more (probe2.tsv) ----------------
+=COMBIN(5,6)	e:#NUM!
+# ---------------- more (probe2.tsv) ----------------
+=SQRT(1E+300*1E+10)	e:#NUM!
+# ---------------- more (probe2.tsv) ----------------
+=POWER(-8,1/3)	n:-2
+# ---------------- more (probe2.tsv) ----------------
+=POWER(0,-1)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=POWER(-2,0.5)	e:#NUM!
+# ---------------- more (probe2.tsv) ----------------
+=(-8)^(1/3)	n:-2
+# ---------------- more (probe2.tsv) ----------------
+=LOG(-1)	e:#NUM!
+# ---------------- more (probe2.tsv) ----------------
+=LN(0)	e:#NUM!
+# ---------------- more (probe2.tsv) ----------------
+=ATAN2(0,0)	e:#DIV/0!
+# ---------------- more (probe2.tsv) ----------------
+=ACOS(2)	e:#NUM!
+# ---------------- more (probe2.tsv) ----------------
+=EXP(709)	n:8.21840746155497e+307
+# ---------------- more (probe2.tsv) ----------------
+=EXP(710)	e:#NUM!
+# ---------------- more (probe3.tsv) ----------------
+=1234567890123456789&""	s:1234567890123450000
+# ---------------- more (probe3.tsv) ----------------
+=1.5E+19&""	s:1.5E+19
+# ---------------- more (probe3.tsv) ----------------
+=1E+19&""	s:10000000000000000000
+# ---------------- more (probe3.tsv) ----------------
+=1.5E+20&""	s:1.5E+20
+# ---------------- more (probe3.tsv) ----------------
+=12345678901234567890&""	s:1.23456789012345E+19
+# ---------------- more (probe3.tsv) ----------------
+=1.5E-15&""	s:0.0000000000000015
+# ---------------- more (probe3.tsv) ----------------
+=1.5E-14&""	s:0.000000000000015
+# ---------------- more (probe3.tsv) ----------------
+=1.2345E-11&""	s:0.000000000012345
+# ---------------- more (probe3.tsv) ----------------
+=1.23456789E-08&""	s:0.0000000123456789
+# ---------------- more (probe3.tsv) ----------------
+=0.00001234&""	s:0.00001234
+# ---------------- more (probe3.tsv) ----------------
+=1.5E-16&""	s:0.00000000000000015
+# ---------------- more (probe3.tsv) ----------------
+=1.23456789012345E-06&""	s:1.23456789012345E-06
+# ---------------- more (probe3.tsv) ----------------
+=1.2345678901234E-05&""	s:0.000012345678901234
+# ---------------- more (probe3.tsv) ----------------
+=0.000123456789012345&""	s:0.000123456789012345
+# ---------------- more (probe3.tsv) ----------------
+=-123456789012345678&""	s:-123456789012345000
+# ---------------- more (probe3.tsv) ----------------
+=1/7*1E-5&""	s:1.42857142857143E-06
+# ---------------- more (probe3.tsv) ----------------
+=1/7*1E+16&""	s:1428571428571430
+# ---------------- more (probe3.tsv) ----------------
+=TEXT(1/7,"General")	s:0.142857
+# ---------------- more (probe3.tsv) ----------------
+=TEXT(1234567890123,"General")	s:1.23457E+12
+# ---------------- more (probe3.tsv) ----------------
+=TEXT(12345678901,"G/通用格式")	s:12345678901
+# ---------------- more (probe3.tsv) ----------------
+=1+1E-14-1	n:9.99200722162641e-15
+# ---------------- more (probe3.tsv) ----------------
+=1+2E-15-1	n:1.99840144432528e-15
+# ---------------- more (probe3.tsv) ----------------
+=1+5E-15-1	n:5.10702591327572e-15
+# ---------------- more (probe3.tsv) ----------------
+=1+9E-15-1	n:9.10382880192628e-15
+# ---------------- more (probe3.tsv) ----------------
+=100+1E-13-100	n:0
+# ---------------- more (probe3.tsv) ----------------
+=1E+15+0.3-1E+15	n:0
+# ---------------- more (probe3.tsv) ----------------
+=1-0.9-0.1	n:0
+# ---------------- more (probe3.tsv) ----------------
+=0.1*3=0.3	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=0.7+0.1=0.8	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=SUM(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1)-1	n:0
+# ---------------- more (probe3.tsv) ----------------
+=SUM(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1)=1	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=0.1*3	n:0.3
+# ---------------- more (probe3.tsv) ----------------
+=0.1*3-0.3=0	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=3*1.1	n:3.3
+# ---------------- more (probe3.tsv) ----------------
+=INT(-0.29*100)	n:-29
+# ---------------- more (probe3.tsv) ----------------
+=TRUNC(0.57*100)	n:57
+# ---------------- more (probe3.tsv) ----------------
+=ROUNDDOWN(0.29*100,0)	n:29
+# ---------------- more (probe3.tsv) ----------------
+=FLOOR(0.29*100,1)	n:29
+# ---------------- more (probe3.tsv) ----------------
+=CEILING(0.1*3,0.1)	n:0.3
+# ---------------- more (probe3.tsv) ----------------
+=EVEN(1.0000000000000002)	n:2
+# ---------------- more (probe3.tsv) ----------------
+=ROUNDUP(0.1*3,1)	n:0.3
+# ---------------- more (probe3.tsv) ----------------
+=ROUND(1.005*1000,0)	n:1005
+# ---------------- more (probe3.tsv) ----------------
+=MOD(0.7,0.1)	n:0
+# ---------------- more (probe3.tsv) ----------------
+=MOD(5,0.2)	n:0
+# ---------------- more (probe3.tsv) ----------------
+=MOD(-0.3,0.1)	n:0
+# ---------------- more (probe3.tsv) ----------------
+=MOD(2.3,1)	n:0.3
+# ---------------- more (probe3.tsv) ----------------
+=MOD(10.1,1)	n:0.0999999999999996
+# ---------------- more (probe3.tsv) ----------------
+=MOD(1E+15+0.5,1)	n:0
+# ---------------- more (probe3.tsv) ----------------
+=QUOTIENT(0.3,0.1)	n:3
+# ---------------- more (probe3.tsv) ----------------
+=TRUNC(0.3/0.1)	n:3
+# ---------------- more (probe3.tsv) ----------------
+=INT(0.3/0.1)	n:3
+# ---------------- more (probe3.tsv) ----------------
+=ROUND(0.3/0.1,0)	n:3
+# ---------------- more (probe3.tsv) ----------------
+=0.3/0.1	n:3
+# ---------------- more (probe3.tsv) ----------------
+=0.3/0.1=3	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=INT(1/3*3)	n:1
+# ---------------- more (probe3.tsv) ----------------
+=INT(0.7*10)	n:7
+# ---------------- more (probe3.tsv) ----------------
+=INT(0.07*100)	n:7
+# ---------------- more (probe3.tsv) ----------------
+=INT(2.03*100)	n:203
+# ---------------- more (probe3.tsv) ----------------
+=INT(1.1*1.1*100)	n:121
+# ---------------- more (probe3.tsv) ----------------
+=12345678901234567+0	n:1.23456789012345e+16
+# ---------------- more (probe3.tsv) ----------------
+=123456789012345.67	n:123456789012345
+# ---------------- more (probe3.tsv) ----------------
+=SUMPRODUCT({0.1,0.2,-0.3},{1,1,1})	n:5.55111512312578e-17
+# ---------------- more (probe3.tsv) ----------------
+=AVERAGE(0.1,0.2,-0.3)	n:0
+# ---------------- more (probe3.tsv) ----------------
+=0.1+0.2>0.3	b:FALSE
+# ---------------- more (probe3.tsv) ----------------
+=0.1+0.2<0.30000000000001	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=MATCH(0.3,{0.1,0.3},0)	n:2
+# ---------------- more (probe3.tsv) ----------------
+=MATCH(0.1+0.2,{0.1,0.3},0)	n:2
+# ---------------- more (probe3.tsv) ----------------
+=VLOOKUP(0.1+0.2,{0.3,"ok"},2,FALSE)	s:ok
+# ---------------- more (probe3.tsv) ----------------
+=COUNTIF(H1:H10,10.0000000000000001)	n:1
+# ---------------- more (probe3.tsv) ----------------
+=SUMIF(H1:H10,">="&(0.1+0.2)*100)	n:200
+# ---------------- more (probe3.tsv) ----------------
+=(0.1+0.2)*100	n:30
+# ---------------- more (probe3.tsv) ----------------
+=(0.1+0.2)*100=30	b:TRUE
+# ---------------- more (probe3.tsv) ----------------
+=TEXT(0.1+0.2-0.3,"0.0E+00")	s:0.0E+00
+# ---------------- more (probe3.tsv) ----------------
+=POWER(-27,1/3)	n:-3
+# ---------------- more (probe3.tsv) ----------------
+=POWER(-8,2/3)	e:#NUM!
+# ---------------- more (probe3.tsv) ----------------
+=POWER(-32,0.2)	n:-2
+# ---------------- more (probe3.tsv) ----------------
+=POWER(-8,0.333)	e:#NUM!
+# ---------------- more (probe3.tsv) ----------------
+=(-2)^-1	n:-0.5
+# ---------------- more (probe3.tsv) ----------------
+=MID(1/3,1,20)	s:0.333333333333333
+# ---------------- more (probe3.tsv) ----------------
+=LEN(1/3)	n:17
+# ---------------- more (probe3.tsv) ----------------
+=LEN(2/3)	n:17
+# ---------------- more (probe3.tsv) ----------------
+=LEN(1E+16)	n:17
+# ---------------- more (probe3.tsv) ----------------
+=VALUE("12345678901234567")	n:1.23456789012345e+16
+# ---------------- more (probe3.tsv) ----------------
+=VALUE("0.1")+VALUE("0.2")=0.3	b:TRUE
+# ---------------- more (probe4.tsv) ----------------
+=VALUE(" ")	e:#VALUE!
+# ---------------- more (probe4.tsv) ----------------
+=VALUE(J4)	n:0
+# ---------------- more (probe4.tsv) ----------------
+=VALUE(J7)	e:#VALUE!
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(123.456789,"General")	s:123.4568
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(1234567.891,"General")	s:1234568
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(0.001234567,"General")	s:0.001235
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(2/3*1000,"General")	s:666.6667
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(12345678901,"General")	s:12345678901
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(123456789012,"General")	s:1.23457E+11
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(-1/7,"General")	s:-0.14286
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(1/7,"G/通用格式")	s:0.142857
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(1/7,"0.00;General")	s:0.14
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(0.1+0.2,"General")	s:0.3
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(1E+100,"General")	s:1E+100
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(12.5,"General")	s:12.5
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(123456.7,"General")	s:123456.7
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(1234567.8,"General")	s:1234568
+# ---------------- more (probe4.tsv) ----------------
+=TEXT(0.00001,"General")	s:0.00001

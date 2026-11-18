@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.context/saved-person-view
+feature: sheet.agent.context
+intent: >-
+  A run that edits two sheets by id (target, at.part, on) lands each step on its sheet, a sheet the agent creates takes the next unnamed steps, and the saved file still opens on the person's sheet and active cell.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: premise
+      filter: a_run_edits_two_sheets_by_id_and_the_saved_file_keeps
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+tags: [headless]

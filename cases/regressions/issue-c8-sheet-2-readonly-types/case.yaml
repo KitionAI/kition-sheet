@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-readonly-types
+feature: sheet.agent.readonly-types
+intent: Feature identity indexes declare the read-only contract their batch operations enforce, preventing the environment from sampling impossible direct deletions.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 environment discard audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: feature_ids
+      filter: feature_identity_types_declare_their_read_only_contract
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

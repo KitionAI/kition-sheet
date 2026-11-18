@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-clear-receipts
+feature: sheet.agent.clear-metadata
+intent: All four clear modes produce saved-reopen-equivalent receipts for selected linked cells, sparse notes and merges, and preserve an unrelated cell.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 sparse metadata persistence audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: sparse_metadata_clear_receipts_match_saved_reopen
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

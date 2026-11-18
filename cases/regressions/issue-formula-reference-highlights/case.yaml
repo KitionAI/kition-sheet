@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-formula-reference-highlights
+feature: sheet.editor.formula-references
+intent: Formula edits color reference text and outline the referenced cells with matching colors without entering the draft.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: User report of missing formula reference highlights
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: formula_reference
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

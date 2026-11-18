@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-2-formula-fill
+feature: sheet.agent.formula-fill
+intent: Formula fills hold each translated relative source and each absolute source, with positional windows, while allowing unrelated cells and insertion after all held windows.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-2
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: formula_fill_holds_every_translated_source_and_its_windows
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,18 @@
+[package]
+name = "kition-sheet-model"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Sheet document model: workbooks, sheets, cells, styles, tables, charts"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-sheet-core = { workspace = true }
+kition-sheet-formula = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

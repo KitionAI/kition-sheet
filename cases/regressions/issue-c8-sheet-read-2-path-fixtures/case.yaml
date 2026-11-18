@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-2-path-fixtures
+feature: sheet.agent.independent-reading
+intent: Every blind write row invokes its handler with valid data, including handler-supported parameters missing from public schemas.
+layer: unit
+dimension: function
+source:
+  kind: issue
+  from: C8-sheet-read-2
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: declarations_independent
+      filter: blind_paths_have_distinct_invocations_and_report_unreached_samples
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-border-merge
+feature: sheet.agent.format-premises
+intent: Borders hold written styles and facing edges while merge commands hold overlapping metadata and only the cell content they read or erase.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 border and merge handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: borders_and_merges_hold_only_their_style_or_content_footprints
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

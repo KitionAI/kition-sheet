@@ -1,0 +1,20 @@
+format: 1
+id: sheet.agent.context/reads-declared
+feature: sheet.agent.context
+intent: >-
+  Every command declares the editor state it reads (x-khp-reads: selection, part, mode) as the engine's code reads it: a scan follows each command's enabled and run code through the engine to the accessors of the selection, the active sheet and the modes, and fails on any difference; the binding's own commands are declared by hand and listed.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/acts.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: acts
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,17 @@
+[package]
+name = "kition-sheet-calc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Sheet calculation engine: dependency graph, recalculation, evaluator, dynamic arrays"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-sheet-core = { workspace = true }
+kition-sheet-formula = { workspace = true }
+kition-sheet-functions = { workspace = true }
+kition-sheet-numfmt = { workspace = true }
+kition-sheet-model = { workspace = true }
+log = { workspace = true }

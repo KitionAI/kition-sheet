@@ -1,0 +1,33 @@
+[package]
+name = "kition-sheet-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Sheet engine: sessions, commands, history, clipboard, fill, sort, filter"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-office-core = { workspace = true }
+kition-sheet-core = { workspace = true }
+kition-sheet-numfmt = { workspace = true }
+kition-sheet-formula = { workspace = true }
+kition-sheet-functions = { workspace = true }
+kition-sheet-model = { workspace = true }
+kition-sheet-calc = { workspace = true }
+kdm-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+kition-sheet-xlsx = { workspace = true }
+kition-sheet-chart = { workspace = true }
+kition-sheet-pdf = { workspace = true }
+image = { workspace = true }
+# Art text printed as outlines: the face the page draws shape text with (egui's default), outlined by ab_glyph.
+epaint_default_fonts = "0.36"
+ab_glyph = "0.2"
+
+[dev-dependencies]
+zip = { workspace = true }

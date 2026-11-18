@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-auxiliary-writes
+feature: sheet.agent.auxiliary-writes
+intent: Commands that store custom views, split panes, watch lists and recorded scripts declare writes and report state identical to saved rereads.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: persisted_auxiliary_commands_declare_writes_and_survive_save
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

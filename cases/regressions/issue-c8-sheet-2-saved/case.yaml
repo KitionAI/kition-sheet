@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-2-saved
+feature: sheet.agent.ids
+intent: >-
+  Receipts describe the model that the saved file reopens as, including direct cell inputs,
+  encoded formula references, provenance, fractional geometry and every conformance workbook.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 item 5
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

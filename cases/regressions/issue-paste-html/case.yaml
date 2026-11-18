@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-paste-html
+feature: sheet.edit.clipboard
+intent: >-
+  Pasting another spreadsheet's table from the system clipboard pastes its HTML table: merged
+  cells stay merged, a cell's line breaks stay in that cell (which then wraps and its row grows),
+  and its bold, fills, alignment, borders, font sizes and column widths come along. Before, only
+  the tab-separated text was read, where a cell with a line break is unquoted, so each of its
+  lines became a row of its own and every merge and format was lost.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: crates/engine/engine/tests/paste_html.rs, crates/engine/engine/src/html_table.rs
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-sheet-engine, test: paste_html }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

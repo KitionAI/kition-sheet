@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-fit-scale
+feature: sheet.agent.independent-reading
+intent: Setting fit width holds the previous fit settings and permits an independent change to the preserved percentage scale.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent scale-to-fit path
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: fit_width_holds_fit_settings_without_holding_preserved_scale
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-heading-selection-merges
+feature: sheet.editor.rows-columns
+intent: >-
+  Selecting row 1 under a merge of A1:B2 grew the selection to rows 1 and 2, so Delete took both
+  and the merge with them; the grid's corner selected only the region around the active cell.
+  Now a heading's rows or columns stay as selected (deleting row 1 leaves A1:B1 merged, as WPS
+  does; golden DEL-C36) and the corner selects the whole sheet (DEL-C30).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: golden case table 删除行列 rows 30 and 36
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: rows_columns
+      filter: merged_cells_formulas_and_charts_follow_a_delete
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_right_click_selects_what_it_presses_and_names_its_menu
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

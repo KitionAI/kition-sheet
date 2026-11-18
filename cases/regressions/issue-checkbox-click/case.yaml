@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-checkbox-click
+feature: sheet.editor.insert-content
+intent: >-
+  A click on a checkbox's box only selected the cell (ticking needed Space), and typing,
+  a double-click, F2 or the formula bar replaced the checkbox with text. A press on the box now
+  ticks or clears it, a press beside it only selects, and the cell is not typed in, with WPS's
+  notice 「复选框不可直接编辑，请删除后再插入」 (INSC-C59 to INSC-C65, INSC-C173, INSC-C253).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M8 (INSC-C59, INSC-C64, INSC-C173, INSC-C253)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: checkbox_cells_toggle_on_their_box_and_refuse_typing
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,5566 @@
+{
+ "file.render": {
+  "description": "Answers a picture of one sheet's range with its row and column headings, the agent's preview: `target.sheet` (a name or `sheet:<id>`; default the first sheet, never the active one) and `target.range` (A1; default the used range, cut to 5000 cells and said so in `capped`), `scale` pixels per point (default 1, at most 4) brought down to `maxSize`. Changes nothing; the same call answers the same bytes.",
+  "output": {
+   "type": "object",
+   "additionalProperties": true,
+   "properties": {
+    "png": {
+     "type": "string"
+    },
+    "mimeType": {
+     "type": "string"
+    },
+    "width": {
+     "type": "integer"
+    },
+    "height": {
+     "type": "integer"
+    },
+    "scale": {
+     "type": "number"
+    },
+    "sheet": {
+     "type": "string"
+    },
+    "sheetId": {
+     "type": "string"
+    },
+    "range": {
+     "type": "string"
+    },
+    "cells": {
+     "type": "integer"
+    },
+    "maxCells": {
+     "type": "integer"
+    },
+    "capped": {
+     "type": "boolean"
+    },
+    "usedRange": {
+     "type": "string"
+    }
+   }
+  },
+  "params": {
+   "target": {
+    "type": "object",
+    "description": "the view to draw: `sheet` and `range`",
+    "additionalProperties": false,
+    "properties": {
+     "sheet": {
+      "type": "string",
+      "description": "a sheet's name or its tool id `sheet:<id>` as sheet_inspect lists it (default: the first sheet)"
+     },
+     "range": {
+      "type": "string",
+      "description": "a range in A1 notation, like `A1:D20` (default: the sheet's used range, cut to 5000 cells)"
+     }
+    }
+   },
+   "scale": {
+    "type": "number",
+    "description": "pixels per point, more than 0 and at most 4 (default 1)"
+   },
+   "maxSize": {
+    "type": "integer",
+    "description": "the longest side in pixels, 16 to 8192; a larger picture is brought down to it"
+   }
+  }
+ },
+ "data.filterValues": {
+  "description": "Answers what a filter button's list shows for its column (the sheet's AutoFilter or a table's): the distinct values in sort order with how many rows hold each and whether they show, the blanks apart, the kind of values (text, number, date) and the column's criterion. Changes nothing.",
+  "output": {
+   "type": "object",
+   "additionalProperties": true,
+   "properties": {
+    "range": {
+     "type": "string"
+    },
+    "column": {
+     "type": "string"
+    },
+    "kind": {
+     "type": "string",
+     "enum": [
+      "text",
+      "number",
+      "date"
+     ]
+    },
+    "values": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+       "text": {
+        "type": "string"
+       },
+       "count": {
+        "type": "integer"
+       },
+       "checked": {
+        "type": "boolean"
+       }
+      }
+     }
+    }
+   }
+  },
+  "params": {
+   "cell": {
+    "description": "a filter's header cell in A1 notation such as B3 (or a cell under it); default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "edit.moveCells": {
+  "description": "Moves (or copies) a block of cells to a new top-left cell, as dragging the selection's border does in WPS and Excel: values, formulas, formats, merged areas, notes, links, conditional formats, validation and tables go with the cells, and formulas that refer to them follow. With insert the cells at the destination make room (down or right) and the place left behind closes up; whole rows and columns move as rows and columns. Answers the range where the block landed (it is selected).",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "range": {
+     "type": "string"
+    }
+   }
+  },
+  "params": {
+   "from": {
+    "description": "the block in A1 notation such as B2:C4, whole rows such as 3:4 or columns such as C:D; default: the selection",
+    "type": "string"
+   },
+   "to": {
+    "description": "the block's new top-left cell such as E5 (a row's or a column's first cell for whole lines)",
+    "type": "string"
+   },
+   "copy": {
+    "description": "leave the block where it is and paste a copy (a drag with Cmd/Ctrl held)",
+    "type": "boolean"
+   },
+   "insert": {
+    "description": "make room at `to` instead of overwriting (a drag with Shift held): down moves the cells there down, right moves them right",
+    "type": "string",
+    "enum": [
+     "down",
+     "right"
+    ]
+   }
+  }
+ },
+ "editor.validation": {
+  "description": "The person's answer to the editor's data validation message for what they typed: retry keeps the cell open with its text selected, cancel drops what was typed, accept (a Warning or an Information rule only) enters it and moves on as Enter would have. Answers whether the cell is still being typed.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "editing": {
+     "type": "boolean"
+    }
+   }
+  },
+  "params": {
+   "answer": {
+    "description": "retry, accept or cancel",
+    "type": "string",
+    "enum": [
+     "retry",
+     "accept",
+     "cancel"
+    ]
+   }
+  }
+ },
+ "editor.insertText": {
+  "description": "Types text at the caret of what is being typed (the cell, or a shape's text); with nothing typed, after the selected shape's text, else in the active cell: after what it holds with the cell left open (append, as WPS inserts a symbol), or in its place. A checkbox cell refuses it. Answers where the text went.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "editing": {
+     "type": "boolean"
+    },
+    "shape": {
+     "type": "boolean"
+    },
+    "refused": {
+     "type": "string"
+    }
+   }
+  },
+  "params": {
+   "text": {
+    "description": "the text, 1 to 256 characters without control characters",
+    "type": "string"
+   },
+   "append": {
+    "description": "with nothing typed: after the active cell's text, the cell left open (default: in its place)",
+    "type": "boolean"
+   }
+  }
+ },
+ "editor.contextMenu": {
+  "description": "A right-click on the grid at document point (x, y), as the editor's right-click menus do: enters what is being typed, then selects the cell, row or column heading pressed (unless it is already selected) or the whole sheet (the corner). Answers which menu shows: cell, rows, cols, all, or null (an outline button).",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "target": {
+     "oneOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "string",
+       "enum": [
+        "cell",
+        "rows",
+        "cols",
+        "all"
+       ]
+      }
+     ]
+    }
+   }
+  }
+ },
+ "editor.commentAnchor": {
+  "description": "Answers the comment anchor of the selected range on the active sheet (Kit UI protocol comment.create): ids naming its sheet, rows and columns by object, so it follows inserted and deleted rows and columns and sheet renames, and a label. Changes nothing.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "anchor": {
+     "type": "object",
+     "additionalProperties": false,
+     "properties": {
+      "ids": { "type": "array", "items": { "type": "string" } },
+      "label": { "type": "string" }
+     }
+    }
+   }
+  }
+ },
+ "editor.commentPlaces": {
+  "description": "Finds comment anchors that editor.commentAnchor answered: for each, whether it is still in the workbook, its sheet and range now, and on the active sheet its rectangle in document pixels. Changes nothing.",
+  "params": {
+   "anchors": {
+    "type": "array",
+    "items": { "type": "object", "additionalProperties": false, "properties": { "ids": { "type": "array", "items": { "type": "string" } } } },
+    "description": "Anchors as { ids }, at most 1000."
+   }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "places": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "found": { "type": "boolean" },
+       "sheet": { "type": "string" },
+       "range": { "type": "string" },
+       "active": { "type": "boolean" },
+       "rect": { "type": "array", "items": { "type": "number" } }
+      }
+     }
+    }
+   }
+  }
+ },
+ "editor.freezePreview": {
+  "description": "Shows (or with no rows and cols, takes away) the preview of a freeze the editor's Freeze Panes menu points at: the rows and columns that would freeze, tinted, and the line under and right of them. Changes nothing.",
+  "params": {
+   "rows": { "description": "rows that would freeze", "type": "integer" },
+   "cols": { "description": "columns that would freeze", "type": "integer" }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": { "preview": { "oneOf": [{ "type": "null" }, { "type": "array", "items": { "type": "integer" } }] } }
+  }
+ },
+ "editor.wording": {
+  "description": "Sets the generic name tables give columns with empty headers, numbered (Column1; \u52171 in a Chinese editor), without editing or saving the workbook; answers it.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "columnPrefix": {
+     "type": "string"
+    }
+   }
+  }
+ },
+ "editor.viewport": {
+  "description": "Extends the visible grid to the viewport's right and bottom edges in document pixels without editing or saving the workbook.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "width": { "type": "number" },
+    "height": { "type": "number" }
+   }
+  }
+ },
+ "editor.acceptFunction": {
+  "description": "Puts the named function and its opening parenthesis in place of the function name being typed in the cell editor (a choice in the function list). Answers whether a cell is being typed and its text.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "editing": { "type": "boolean" },
+    "text": { "oneOf": [{ "type": "null" }, { "type": "string" }] }
+   }
+  }
+ },
+ "editor.cycleReference": {
+  "description": "F4 for a formula being typed: the reference at the caret cycles A1, $A$1, A$1, $A1. With text (start..end, UTF-16 offsets), for a formula typed outside the grid (the formula bar); without, in the cell being typed. Answers the new text and caret; changes no cell.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "text": { "type": "string" },
+    "start": { "type": "number" },
+    "end": { "type": "number" }
+   }
+  }
+ },
+ "editor.formula": {
+  "description": "Types in the formula bar: the text becomes the active cell's typing (started from what the cell holds), so the cell shows it and pointing at cells inserts their references at the caret. With enter, enters it as Enter (down), Shift+Enter (up), Tab (right), Shift+Tab (left) or the check button (stay) do. With peek, changes nothing. With no params, drops the typing as Escape does. Answers the typing, its selection, its references and the function list and argument hint at the caret. Offsets are UTF-16.",
+  "params": {
+   "text": { "type": "string", "description": "The formula bar's text" },
+   "start": { "type": "number", "description": "Start of the selection (UTF-16 offset); default the end of the text" },
+   "end": { "type": "number", "description": "End of the selection (UTF-16 offset); default the end of the text" },
+   "enter": { "type": "string", "enum": ["down", "up", "right", "left", "stay"], "description": "Enters the typing and moves the active cell" },
+   "peek": { "type": "boolean", "description": "true answers the typing without changing anything" }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "editing": { "type": "boolean" },
+    "pointing": { "type": "boolean" },
+    "text": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+    "start": { "type": "number" },
+    "end": { "type": "number" },
+    "hint": { "oneOf": [{ "type": "null" }, { "type": "object", "additionalProperties": true }] },
+    "references": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+       "text": { "type": "string" },
+       "start": { "type": "number" },
+       "end": { "type": "number" },
+       "color": { "type": "array", "items": { "type": "number" } }
+      }
+     }
+    }
+   }
+  }
+ },
+ "app.commands": {
+  "description": "Lists the sheet's commands with their ids, labels and parameter notes, optionally filtered by a search word.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "disabled_reason": {
+      "type": "string"
+     },
+     "enabled": {
+      "type": "boolean"
+     },
+     "id": {
+      "type": "string"
+     },
+     "label": {
+      "type": "string"
+     },
+     "menu": {
+      "type": "json"
+     },
+     "params": {
+      "type": "string"
+     },
+     "shortcut": {
+      "type": "json"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  },
+  "params": {
+   "search": {
+    "type": "string"
+   }
+  }
+ },
+ "arrange.align": {
+  "description": "Aligns several objects of one kind by their left, centre, right, top, middle or bottom edges."
+ },
+ "arrange.bringForward": {
+  "description": "Brings a chart, image or shape one step forward, or to the front, in the stacking order."
+ },
+ "arrange.group": {
+  "description": "Moves several objects so their anchors align to the first, so they move together.",
+  "params": {
+   "kind": {
+    "enum": [
+     "chart",
+     "image",
+     "shape"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "arrange.rotate": {
+  "description": "Rotates a shape by 90 degrees or flips it horizontally or vertically.",
+  "params": {
+   "kind": {
+    "enum": [
+     "shape"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "arrange.selectionPane": {
+  "description": "Lists the objects on the active sheet (charts, images, shapes) in stacking order with their ids.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "arrange.sendBackward": {
+  "description": "Sends a chart, image or shape one step backward, or to the back, in the stacking order."
+ },
+ "automate.allScripts": {
+  "description": "Lists the saved scripts with their names and steps.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "automate.deleteScript": {
+  "description": "Deletes a saved script by name."
+ },
+ "automate.newScript": {
+  "description": "Saves a script: a named list of commands with their parameters, to run later with automate.runScript."
+ },
+ "automate.recordActions": {
+  "description": "Starts recording actions into a script, or stops and saves the recording under a name; answers whether it is recording.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "recording": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "name": {
+    "type": "string"
+   }
+  }
+ },
+ "automate.runScript": {
+  "description": "Runs a saved script's commands in order, as one undo step."
+ },
+ "cell.formatText": {
+  "description": "Formats characters inside one text cell (bold, italic, strike, underline, font, size, colour) from start to end, leaving the rest of the cell's text as it was.",
+  "params": {
+   "bold": {
+    "type": "boolean"
+   },
+   "color": {
+    "description": "a colour such as #C00000",
+    "type": "string"
+   },
+   "italic": {
+    "type": "boolean"
+   },
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   },
+   "strike": {
+    "type": "boolean"
+   },
+   "underline": {
+    "oneOf": [
+     {
+      "type": "boolean"
+     },
+     {
+      "description": "double, singleAccounting or doubleAccounting",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "cell.get": {
+  "description": "Answers everything about one cell: its value, formula, display text, style, merge, comment, note and link.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "cell": {
+     "type": "string"
+    },
+    "comment": {
+     "type": "json"
+    },
+    "formula": {
+     "type": "json"
+    },
+    "hyperlink": {
+     "type": "json"
+    },
+    "input": {
+     "type": "string"
+    },
+    "merge": {
+     "type": "json"
+    },
+    "picture": {
+     "type": "json"
+    },
+    "runs": {
+     "type": "json"
+    },
+    "spill": {
+     "type": "json"
+    },
+    "spilledFrom": {
+     "type": "json"
+    },
+    "style": {
+     "additionalProperties": true,
+     "properties": {
+      "align": {
+       "additionalProperties": true,
+       "properties": {
+        "h": {
+         "type": "string"
+        },
+        "indent": {
+         "type": "number"
+        },
+        "rotation": {
+         "type": "number"
+        },
+        "shrink": {
+         "type": "boolean"
+        },
+        "v": {
+         "type": "string"
+        },
+        "wrap": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      },
+      "borders": {
+       "additionalProperties": true,
+       "properties": {
+        "bottom": {
+         "additionalProperties": true,
+         "properties": {
+          "color": {
+           "type": "string"
+          },
+          "style": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "diag_down": {
+         "additionalProperties": true,
+         "properties": {
+          "color": {
+           "type": "string"
+          },
+          "style": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "diag_up": {
+         "additionalProperties": true,
+         "properties": {
+          "color": {
+           "type": "string"
+          },
+          "style": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "left": {
+         "additionalProperties": true,
+         "properties": {
+          "color": {
+           "type": "string"
+          },
+          "style": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "right": {
+         "additionalProperties": true,
+         "properties": {
+          "color": {
+           "type": "string"
+          },
+          "style": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        },
+        "top": {
+         "additionalProperties": true,
+         "properties": {
+          "color": {
+           "type": "string"
+          },
+          "style": {
+           "type": "string"
+          }
+         },
+         "type": "object"
+        }
+       },
+       "type": "object"
+      },
+      "fill": {
+       "additionalProperties": true,
+       "properties": {
+        "bg": {
+         "type": "string"
+        },
+        "fg": {
+         "type": "string"
+        },
+        "pattern": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "font": {
+       "additionalProperties": true,
+       "properties": {
+        "bold": {
+         "type": "boolean"
+        },
+        "color": {
+         "type": "string"
+        },
+        "italic": {
+         "type": "boolean"
+        },
+        "name": {
+         "type": "string"
+        },
+        "size": {
+         "type": "number"
+        },
+        "strike": {
+         "type": "boolean"
+        },
+        "underline": {
+         "type": "string"
+        },
+        "vert": {
+         "type": "string"
+        }
+       },
+       "type": "object"
+      },
+      "num_fmt": {
+       "type": "string"
+      },
+      "protection": {
+       "additionalProperties": true,
+       "properties": {
+        "hidden": {
+         "type": "boolean"
+        },
+        "locked": {
+         "type": "boolean"
+        }
+       },
+       "type": "object"
+      }
+     },
+     "type": "object"
+    },
+    "text": {
+     "type": "string"
+    },
+    "type": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   },
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "cell.set": {
+  "description": "Enters text, a number or a =formula into one cell, addressed by A1 cell or a static single-cell defined name in name, as typing would; use range.setValues for many cells at once.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "cell.toggleCheckbox": {
+  "description": "Ticks or clears a checkbox cell (default: every checkbox of the selection), as a click on its box and Space do; cells without a checkbox are left alone. Answers how many were toggled.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: every checkbox of the selection",
+    "type": "string"
+   }
+  }
+ },
+ "chart.addElement": {
+  "description": "Adds or removes a chart element (title, legend, data labels, gridlines, axis titles, smooth lines) with its position.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.changeColors": {
+  "description": "Recolours a chart from a palette (colourful, monochrome, an accent) or a list of hex colours: its series in turn, or a pie's or doughnut's slices.",
+  "params": {
+   "colors": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    },
+    "description": "hex colours such as #4472C4, given to the series (or slices) in turn; instead of palette"
+   },
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   },
+   "palette": {
+    "description": "colorful, monochrome or accent1 to accent6",
+    "type": "string"
+   }
+  }
+ },
+ "chart.changeType": {
+  "description": "Changes a chart's type (column, line, pie…) and subtype, keeping its data.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   },
+   "subtype": {
+    "type": "string"
+   },
+   "type": {
+    "description": "a chart type such as column, bar, line, pie",
+    "type": "string"
+   }
+  }
+ },
+ "chart.delete": {
+  "description": "Deletes a chart (default: the selected one).",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.formatSelection": {
+  "description": "Sets the colour of one series of a chart, by its 0-based index.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.move": {
+  "description": "Moves a chart to another sheet or to a cell position.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.quickLayout": {
+  "description": "Applies one of the six quick layouts to a chart (which elements it shows and where).",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.selectData": {
+  "description": "Changes the data range a chart plots, optionally with series by rows.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.set": {
+  "description": "Changes a chart's properties in one call: type, title, legend, data labels, gridlines, style, axis titles, position and size, and a waterfall's totals.",
+  "params": {
+   "style": {
+    "type": "integer",
+    "description": "a chart style number, clamped to 1 through 16"
+   },
+   "totals": {
+    "type": "array",
+    "items": {
+     "type": "integer"
+    },
+    "description": "a waterfall's points (by index from 0) set as totals; [] sets none"
+   },
+   "at": {
+    "description": "the top-left cell in A1 notation such as C3",
+    "type": "string"
+   },
+   "type": {
+    "description": "a chart type such as column, bar, line, pie",
+    "type": "string"
+   },
+   "xTitle": {
+    "type": "string"
+   },
+   "yTitle": {
+    "type": "string"
+   }
+  }
+ },
+ "chart.shapeFill": {
+  "description": "Sets the fill colour of a chart (or a series of it) or of a shape.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   },
+   "kind": {
+    "enum": [
+     "shape"
+    ],
+    "type": "string"
+   },
+   "series": {
+    "description": "a series counted from 0",
+    "type": "integer"
+   }
+  }
+ },
+ "chart.shapeOutline": {
+  "description": "Sets the outline colour of a shape.",
+  "params": {
+   "kind": {
+    "enum": [
+     "shape"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "chart.switchRowColumn": {
+  "description": "Swaps which of a chart's data runs as series and which as categories.",
+  "params": {
+   "chart": {
+    "description": "a chart id from document.inspect; default: the selected chart",
+    "type": "integer"
+   }
+  }
+ },
+ "commandLine": {
+  "description": "Enters text into the active cell as if typed there and confirmed with Enter."
+ },
+ "data.advancedFilter": {
+  "description": "Filters a list in place, or copies matching rows elsewhere, using a criteria range of headers and conditions.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.circleInvalid": {
+  "description": "Lists the cells on the active sheet whose values break their data validation rule.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "invalid": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "data.clearFilter": {
+  "description": "Clears the criteria of the sheet's AutoFilter, or of a table's own filter when the call names it (cell, table) or the active cell's table when the sheet has no filter, so all its rows show again; the filter buttons stay."
+ },
+ "data.consolidate": {
+  "description": "Combines several source ranges into one at a destination with a function (sum, average, count…), matching by top row and left column labels when asked.",
+  "params": {
+   "function": {
+    "type": "string"
+   }
+  }
+ },
+ "data.dataTable": {
+  "description": "Fills a one- or two-variable data table: formulas evaluated for each input value down a column or across a row."
+ },
+ "data.filter": {
+  "description": "Turns AutoFilter on or off for the current region (or range).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.filterBy": {
+  "description": "Filters one column of the sheet's AutoFilter or of a table's own filter (its header's buttons) by values, blanks, a custom comparison or top/bottom items; rows that do not match are hidden."
+ },
+ "data.smartFill": {
+  "description": "Fills the empty cells of a column from the pattern of the examples above them (same as edit.smartFill).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.fromTableRange": {
+  "description": "Copies a table or range (default: the current region) to a new sheet as a table.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.fromTextCsv": {
+  "description": "Imports CSV or delimited text (from a path or inline text) into a new sheet as a table.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "data.getData": {
+  "description": "Imports CSV, TSV or a JSON array of objects (from a path or inline text) into a new sheet as a table."
+ },
+ "data.goalSeek": {
+  "description": "Finds the value of a constant cell that makes a formula cell reach a target and writes it; answers the value, result and whether it converged."
+ },
+ "data.group": {
+  "description": "Groups rows (2:5) or columns (B:C) into an outline level that can be collapsed.",
+  "params": {
+   "rows": {
+    "description": "a row span such as 2:5; default: the selection's rows",
+    "type": "string"
+   }
+  }
+ },
+ "data.hideDetail": {
+  "description": "Collapses a group of rows or columns in the outline.",
+  "params": {
+   "rows": {
+    "type": "string",
+    "description": "a row span such as 2:5; default: the selection's rows"
+   }
+  }
+ },
+ "data.queriesConnections": {
+  "description": "Lists the tables imported from text or files, with their sources.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "data.reapply": {
+  "description": "Applies the active AutoFilter's criteria again after the data changed."
+ },
+ "data.refreshAll": {
+  "description": "Refreshes every pivot table in the workbook from its source and answers which refreshed and which failed.",
+  "params": {
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "data.removeDuplicates": {
+  "description": "Deletes rows of a range that repeat earlier rows in the chosen columns; answers how many were removed.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.scenarioAdd": {
+  "description": "Saves a what-if scenario: a name, up to 32 changing cells and their values (default: the current values).",
+  "params": {
+   "changing": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1)",
+    "type": "string"
+   },
+   "comment": {
+    "type": "string"
+   }
+  }
+ },
+ "data.scenarioDelete": {
+  "description": "Deletes a scenario by name."
+ },
+ "data.scenarioManager": {
+  "description": "Lists the what-if scenarios of the active sheet (or every sheet with *) with their changing cells and values.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "scenarios": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "data.scenarioShow": {
+  "description": "Writes a scenario's values into its changing cells."
+ },
+ "data.scenarioSummary": {
+  "description": "Inserts a Scenario Summary sheet comparing each scenario's changing cells and the given result cells.",
+  "params": {
+   "resultCells": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1)",
+    "type": "string"
+   }
+  }
+ },
+ "data.showDetail": {
+  "description": "Expands a collapsed group of rows or columns in the outline.",
+  "params": {
+   "rows": {
+    "type": "string",
+    "description": "a row span such as 2:5; default: the selection's rows"
+   }
+  }
+ },
+ "data.sort": {
+  "description": "Sorts a range by several keys, each a column with an order, by values or by cell or font colour, optionally by rows instead of columns.",
+  "params": {
+   "matchCase": {
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.sortAscending": {
+  "description": "Sorts the current region (or range) ascending by one column (default: the active cell's column), keeping rows together.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.sortDescending": {
+  "description": "Sorts the current region (or range) descending by one column, keeping rows together.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.subtotal": {
+  "description": "Inserts subtotal rows into a sorted list at each change in the groupBy column, summarising the given columns with a function.",
+  "params": {
+   "function": {
+    "type": "string"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "data.textToColumns": {
+  "description": "Splits the text of a one-column range into several columns at delimiters or fixed widths."
+ },
+ "data.ungroup": {
+  "description": "Removes an outline grouping from rows or columns.",
+  "params": {
+   "rows": {
+    "type": "string",
+    "description": "a row span such as 2:5; default: the selection's rows"
+   }
+  }
+ },
+ "data.validate": {
+  "description": "Checks whether an input would pass a cell's data validation rule, without entering it; answers ok and the error message.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "ok": {
+     "type": "boolean"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   },
+   "input": {
+    "description": "text, a number, or a =formula",
+    "type": "string"
+   }
+  }
+ },
+ "data.validation": {
+  "description": "Sets a data validation rule on a range (whole number, decimal, list, date, time, text length or custom formula) with input and error messages.",
+  "params": {
+   "dropdown": {
+    "type": "boolean"
+   },
+   "errorMessage": {
+    "type": "string"
+   },
+   "errorTitle": {
+    "type": "string"
+   },
+   "formula1": {
+    "oneOf": [
+     {
+      "description": "a value, a list such as a,b,c, or a =formula",
+      "type": "string"
+     },
+     {
+      "type": "number"
+     }
+    ]
+   },
+   "formula2": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "number"
+     }
+    ]
+   },
+   "ignoreBlank": {
+    "type": "boolean"
+   },
+   "inputMessage": {
+    "type": "string"
+   },
+   "inputTitle": {
+    "type": "string"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "type": {
+    "enum": [
+     "any",
+     "whole",
+     "decimal",
+     "list",
+     "date",
+     "time",
+     "textLength",
+     "custom"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "document.inspect": {
+  "description": "Answers the workbook's structure: sheets, active sheet and cell, selection, defined names, tables, charts, calculation mode, unsaved state and undo history. Use sheet.read or cell.get for cell contents.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "activeCell": {
+     "type": "string"
+    },
+    "activeSheet": {
+     "type": "number"
+    },
+    "calcMode": {
+     "type": "string"
+    },
+    "dirty": {
+     "type": "boolean"
+    },
+    "mode": {
+     "type": "string"
+    },
+    "names": {
+     "type": "array"
+    },
+    "path": {
+     "type": "json"
+    },
+    "redo": {
+     "type": "array"
+    },
+    "selection": {
+     "type": "string"
+    },
+    "sheets": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "autofilter": {
+        "type": "json"
+       },
+       "cells": {
+        "type": "number"
+       },
+       "charts": {
+        "type": "array"
+       },
+       "comments": {
+        "type": "number"
+       },
+       "conditionalFormats": {
+        "type": "number"
+       },
+       "freeze": {
+        "type": "json"
+       },
+       "images": {
+        "type": "number"
+       },
+       "merges": {
+        "type": "array"
+       },
+       "name": {
+        "type": "string"
+       },
+       "protected": {
+        "type": "boolean"
+       },
+       "shapes": {
+        "type": "number"
+       },
+       "tabColor": {
+        "type": "json"
+       },
+       "tables": {
+        "type": "array"
+       },
+       "usedRange": {
+        "type": "string"
+       },
+       "validations": {
+        "type": "number"
+       },
+       "visibility": {
+        "type": "string"
+       },
+       "zoom": {
+        "type": "number"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "theme": {
+     "type": "string"
+    },
+    "title": {
+     "type": "string"
+    },
+    "undo": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.eraser": {
+  "description": "Selects the ink eraser tool in the editor; answers the tool state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "tool": {
+     "type": "string"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.highlighter": {
+  "description": "Selects the highlighter ink tool in the editor with a colour and width; answers the tool state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "tool": {
+     "type": "string"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.inkToShape": {
+  "description": "Converts an ink stroke (default: the last one) into the rectangle, ellipse, triangle or line it resembles."
+ },
+ "draw.lasso": {
+  "description": "Selects the lasso tool for picking ink strokes in the editor."
+ },
+ "draw.pen": {
+  "description": "Selects the pen ink tool in the editor with a colour and width, or turns it off; answers the tool state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "tool": {
+     "type": "string"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.pencil": {
+  "description": "Selects the pencil ink tool in the editor with a colour and width; answers the tool state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "tool": {
+     "type": "string"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.select": {
+  "description": "Switches the editor back to selecting objects; answers the tool state.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "tool": {
+     "type": "string"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.shape": {
+  "description": "Selects a DrawingML shape preset to draw next in the editor, or none; answers it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "shape": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "preset": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   }
+  }
+ },
+ "draw.state": {
+  "description": "Answers the editor's current ink tool, colour and width.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "color": {
+     "type": "string"
+    },
+    "tool": {
+     "type": "string"
+    },
+    "width": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "draw.stroke": {
+  "description": "Adds one ink stroke through points given in sheet points, with a colour and width.",
+  "params": {
+   "points": {
+    "description": "[x, y] points in sheet points",
+    "items": {
+     "items": {
+      "type": "number"
+     },
+     "type": "array"
+    },
+    "type": "array"
+   }
+  }
+ },
+ "drawing.arrange": {
+  "description": "Moves drawing objects to the front, back, or one step in the stacking order; charts stay above shapes."
+ },
+ "drawing.chart": {
+  "description": "Changes a chart drawing object: its kind, title, legend, data labels, gridlines, axis titles and series, and each series' format (seriesFormat).",
+  "params": {
+   "seriesFormat": {
+    "type": "array",
+    "items": {
+     "type": "json"
+    },
+    "description": "per series, by index from 0: {index, kind?: column|stackedColumn|bar|line|lineMarkers|area|scatter (a series of another type than the chart's makes it a combination; null: the chart's), secondary?: bool (the second value axis), color?: \"#RRGGBB\", lineWidth?: points, marker?: none|circle|square|diamond|triangle|x|star|dash|dot|plus, smooth?: bool, trendline?: linear|exp|log|poly|power|movingAvg or {kind, order?, period?, forward?, backward?}|null, errorBars?: {kind: fixedVal|percentage|stdDev|stdErr, value?}|null}"
+   },
+   "kind": {
+    "description": "a chart kind such as column, bar, line, pie",
+    "type": "string"
+   },
+   "legend": {
+    "oneOf": [
+     {
+      "enum": [
+       "top",
+       "bottom",
+       "left",
+       "right"
+      ],
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "title": {
+    "oneOf": [
+     {
+      "type": "string"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   },
+   "xTitle": {
+    "type": "string"
+   },
+   "yTitle": {
+    "type": "string"
+   }
+  }
+ },
+ "drawing.connect": {
+  "description": "Draws a connector between two objects, straight, bent or curved, attached to their connection sites.",
+  "params": {
+   "from": {
+    "description": "an object id from drawing.describe",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "fromSite": {
+    "type": "integer"
+   },
+   "to": {
+    "description": "an object id from drawing.describe",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   },
+   "toSite": {
+    "type": "integer"
+   }
+  }
+ },
+ "drawing.delete": {
+  "description": "Deletes drawing objects by their ids from drawing.describe."
+ },
+ "drawing.describe": {
+  "description": "Answers the sheet's drawing objects (shapes, text boxes, charts, ink, groups) with ids, geometry, fill, stroke and text; default: the selected object or every shape.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "objects": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "drawing.erase": {
+  "description": "Deletes the ink strokes that a path or a circle touches.",
+  "params": {
+   "path": {
+    "type": "string"
+   }
+  }
+ },
+ "drawing.format": {
+  "description": "Changes the fill, stroke or geometry of drawing objects by id."
+ },
+ "drawing.group": {
+  "description": "Groups two or more top-level drawing objects into one group."
+ },
+ "drawing.ink": {
+  "description": "Adds ink strokes (pen, pencil or highlighter) through points in sheet points; use drawing.describe to read them back."
+ },
+ "drawing.insert": {
+  "description": "Inserts a drawing object (shape, text box or chart) with geometry, a frame in sheet points, placement, fill, stroke and text; answers its id.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "drawing.reconnect": {
+  "description": "Moves one end of a connector to another object's connection site or to a point."
+ },
+ "drawing.text": {
+  "description": "Replaces the text of a drawing object, as plain text or as formatted paragraphs."
+ },
+ "drawing.transform": {
+  "description": "Moves, resizes, rotates or flips drawing objects by id, to a frame or by offsets.",
+  "params": {
+   "frame": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "x": { "type": "number" },
+     "y": { "type": "number" },
+     "w": { "type": "number" },
+     "h": { "type": "number" },
+     "rot": { "type": "number" },
+     "flipH": { "type": "boolean" },
+     "flipV": { "type": "boolean" }
+    }
+   },
+   "flipH": {
+    "type": "boolean"
+   },
+   "flipV": {
+    "type": "boolean"
+   },
+   "rotateBy": {
+    "description": "degrees",
+    "type": "number"
+   }
+  }
+ },
+ "drawing.ungroup": {
+  "description": "Splits groups back into their objects."
+ },
+ "edit.autoFill": {
+  "description": "Extends a source range over a target range as the fill handle does: continues series (1, 2, 3…; months), or copies values or formats only."
+ },
+ "edit.beginEdit": {
+  "description": "Puts the active cell into edit mode in the editor (F2); for agents, use cell.set to change a cell."
+ },
+ "edit.clearAll": {
+  "description": "Clears contents, formats, comments and links from a range (default: the selection).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.clearClipboard": {
+  "description": "Cancels the pending copy or cut so a later paste does nothing; changes no cells."
+ },
+ "edit.clearComments": {
+  "description": "Removes comments and notes from the cells of a range (default: the selection).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.clearContents": {
+  "description": "Deletes the values and formulas in a range (default: the selection) and keeps its formatting, like the Delete key.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.clearFormats": {
+  "description": "Removes formatting from a range (default: the selection) and keeps its values and formulas.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.clearHyperlinks": {
+  "description": "Removes hyperlinks from the cells of a range (default: the selection) and keeps their text.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.copy": {
+  "description": "Copies a range (default: the selection) to the clipboard and answers it as tab-separated text, plus styled HTML when asked; paste it with edit.paste.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "range": {
+     "type": "string"
+    },
+    "text": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.cut": {
+  "description": "Marks a range for moving and answers its text; the cells move when edit.paste runs.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "range": {
+     "type": "string"
+    },
+    "text": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.fillDown": {
+  "description": "Copies the top row of a range into the rows below it (Ctrl+D); formulas adjust their relative references.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.fillLeft": {
+  "description": "Copies the rightmost column of a range into the columns to its left; formulas adjust.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.fillRight": {
+  "description": "Copies the leftmost column of a range into the columns to its right (Ctrl+R); formulas adjust.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.fillSeries": {
+  "description": "Fills a range with a linear, growth or date series from its first cell, with a step and optional stop value.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "stop": {
+    "description": "the value the series stops at",
+    "type": "number"
+   }
+  }
+ },
+ "edit.fillUp": {
+  "description": "Copies the bottom row of a range into the rows above it; formulas adjust.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.find": {
+  "description": "Finds cells whose formulas or values contain (or equal) a text and answers their addresses; nothing is changed. Use all to list every match.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "count": {
+     "type": "number"
+    },
+    "results": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "cell": {
+        "type": "string"
+       },
+       "sheet": {
+        "type": "string"
+       },
+       "value": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "byColumns": {
+    "type": "boolean"
+   },
+   "matchCase": {
+    "type": "boolean"
+   },
+   "what": {
+    "type": "string"
+   },
+   "wholeCell": {
+    "type": "boolean"
+   }
+  }
+ },
+ "edit.smartFill": {
+  "description": "Fills the empty cells of a column from the pattern of the examples typed above them (for example first names split from full names).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "edit.formatPainter": {
+  "description": "Picks up the selection's formats on the first call; a call with apply pastes those formats onto another range."
+ },
+ "edit.goTo": {
+  "description": "Moves to and selects a reference: a cell or range (B5, Sheet2!A1:C3) or a defined name; answers the new selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "active": {
+     "type": "string"
+    },
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.goToSpecial": {
+  "description": "Selects every cell of a kind (blanks, constants, formulas, comments, errors, numbers, text and more) in the selection or sheet; fails when no cell matches.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "count": {
+     "type": "number"
+    },
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "kind": {
+    "enum": [
+     "blanks",
+     "constants",
+     "formulas",
+     "comments",
+     "lastCell",
+     "currentRegion",
+     "visible",
+     "conditionalFormats",
+     "dataValidation",
+     "errors",
+     "numbers",
+     "text"
+    ],
+    "type": "string"
+   }
+  }
+ },
+ "edit.paste": {
+  "description": "Pastes the copied or cut cells at a cell (default: the active cell), or pastes the given tab-separated text."
+ },
+ "edit.pasteSpecial": {
+  "description": "Pastes only part of the copied cells (values, formulas, formats, comments, validation…), optionally combining with an arithmetic operation, skipping blanks or transposing.",
+  "params": {
+   "link": {
+    "type": "boolean"
+   },
+   "skipBlanks": {
+    "type": "boolean"
+   },
+   "transpose": {
+    "type": "boolean"
+   }
+  }
+ },
+ "edit.redo": {
+  "description": "Redoes steps undone in the caller's own scope; steps sets how many."
+ },
+ "edit.replace": {
+  "description": "Replaces text in cell contents across the sheet or workbook (all matches by default) and answers how many cells changed.",
+  "params": {
+   "matchCase": {
+    "type": "boolean"
+   },
+   "what": {
+    "type": "string"
+   },
+   "wholeCell": {
+    "type": "boolean"
+   },
+   "with": {
+    "type": "string"
+   }
+  }
+ },
+ "edit.selectAll": {
+  "description": "Selects the current region around the active cell, or the whole sheet when the region is already selected; answers the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "edit.undo": {
+  "description": "Undoes the last steps of the caller's own scope (an agent undoes its own edits, not the person's); steps sets how many."
+ },
+ "file.close": {
+  "description": "Closes the workbook; refuses when there are unsaved changes unless force is true."
+ },
+ "file.exportCsv": {
+  "description": "Writes one sheet (the active one by default) as CSV to a path, leaving the workbook and its path unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "bytes": {
+     "type": "number"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "file.exportHtml": {
+  "description": "Writes the workbook as an HTML web page to a path, leaving the workbook and its path unchanged.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "bytes": {
+     "type": "number"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.exportPdf": {
+  "description": "Renders the active sheet, all sheets, or a range to PDF and writes it to a path or answers it as base64, with the page count.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "base64": {
+     "type": "string"
+    },
+    "bytes": {
+     "type": "number"
+    },
+    "pages": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.new": {
+  "description": "Replaces the open workbook with a new one, empty or built from a sample (budget, sales, grades); use file.open to load an existing file instead."
+ },
+ "file.open": {
+  "description": "Opens a workbook from a path or from base64 bytes (xlsx, xlsm, xlsb, ods, csv, tsv, txt, json) in place of the current one."
+ },
+ "file.print": {
+  "description": "Renders what would print (the active sheet, all sheets, or a range) as PDF and answers it as base64 with the page count.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "base64": {
+     "type": "string"
+    },
+    "bytes": {
+     "type": "number"
+    },
+    "pages": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "file.printPreview": {
+  "description": "Answers the printed pages (sheet, range, rows, columns, scale, paper) and, for one page, its picture, without printing.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "pageList": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "columns": {
+        "type": "string"
+       },
+       "height": {
+        "type": "number"
+       },
+       "orientation": {
+        "type": "string"
+       },
+       "page": {
+        "type": "number"
+       },
+       "paper": {
+        "type": "string"
+       },
+       "range": {
+        "type": "string"
+       },
+       "rows": {
+        "type": "string"
+       },
+       "scale": {
+        "type": "number"
+       },
+       "sheet": {
+        "type": "string"
+       },
+       "width": {
+        "type": "number"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "pages": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "fitToPage": {
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "file.properties": {
+  "description": "Sets the workbook's document properties (title, subject, author, company, keywords, description) that are saved with the file.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "company": {
+    "type": "string"
+   },
+   "description": {
+    "type": "string"
+   },
+   "keywords": {
+    "type": "string"
+   },
+   "subject": {
+    "type": "string"
+   }
+  }
+ },
+ "file.export": {
+  "description": "Answers the workbook as a PDF laid out as Print lays it out (the active sheet or all sheets, a range, fit to page), or one sheet as CSV or a web page (HTML), as base64 for the host to write as a new file; nothing is written and the workbook does not change.",
+  "output": {
+   "additionalProperties": false,
+   "properties": {
+    "bytes": {
+     "type": "number"
+    },
+    "data": {
+     "description": "The file's bytes, base64",
+     "type": "string"
+    },
+    "extension": {
+     "type": "string"
+    },
+    "format": {
+     "enum": [
+      "pdf",
+      "csv",
+      "html"
+     ],
+     "type": "string"
+    },
+    "mime": {
+     "type": "string"
+    },
+    "pages": {
+     "description": "PDF only: pages",
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "file.save": {
+  "description": "Saves the workbook to its path, or to the given path; the format follows the extension (xlsx by default, also csv, tsv, json, html)."
+ },
+ "file.saveAs": {
+  "description": "Saves the workbook under a new path and makes that the workbook's path; the extension picks the format."
+ },
+ "file.saveBytes": {
+  "description": "Encodes the workbook without writing a file and answers it as base64 in the chosen format (xlsx, csv, tsv, json or html).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "base64": {
+     "type": "string"
+    },
+    "bytes": {
+     "type": "number"
+    },
+    "name": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "format": {
+    "type": "string"
+   }
+  }
+ },
+ "formulas.autoSum": {
+  "description": "Inserts a SUM (or AVERAGE, COUNT, MAX, MIN) formula below or beside the selected numbers, guessing the range when none is given.",
+  "params": {
+   "function": {
+    "type": "string"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.calculateNow": {
+  "description": "Recalculates every formula in the workbook now (F9) and answers how many cells were calculated; needed in manual calculation mode.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "cells": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "formulas.calculateSheet": {
+  "description": "Recalculates the formulas of the active sheet only and answers how many cells were calculated.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "cells": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "formulas.calculationOptions": {
+  "description": "Sets the workbook's calculation mode (automatic, automatic except tables, manual) and iterative calculation limits.",
+  "params": {
+   "iterative": {
+    "type": "boolean"
+   },
+   "maxChange": {
+    "type": "number"
+   },
+   "maxIterations": {
+    "type": "integer"
+   }
+  }
+ },
+ "formulas.createFromSelection": {
+  "description": "Creates names for the rows or columns of a range from its top row or left column labels; existing names are kept unless replace is true.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.dateTime": {
+  "description": "Lists the date and time worksheet functions with their signatures and descriptions.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.defineName": {
+  "description": "Defines a named range or constant (default: the selection) at workbook or sheet scope, usable in formulas.",
+  "params": {
+   "comment": {
+    "type": "string"
+   },
+   "scope": {
+    "description": "Workbook or a sheet name",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.deleteName": {
+  "description": "Deletes a defined name in one scope, or in every scope when none is given; formulas that used it show #NAME?.",
+  "params": {
+   "scope": {
+    "description": "Workbook or a sheet name",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.errorChecking": {
+  "description": "Lists cells whose formulas end in errors (#DIV/0!, #REF!, #NAME?…) and circular references on the active sheet.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "circular": {
+     "type": "array"
+    },
+    "errors": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "formulas.evaluate": {
+  "description": "Calculates a formula as if it were in a cell (default: the active cell) and answers its value without writing anything to the sheet.",
+  "output": {
+   "type": "number"
+  },
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.evaluateFormula": {
+  "description": "Evaluates a cell's formula (or a given formula) step by step and answers each intermediate step.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "formula": {
+     "type": "string"
+    },
+    "result": {
+     "type": "number"
+    },
+    "steps": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "expression": {
+        "type": "string"
+       },
+       "value": {
+        "type": "number"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   },
+   "formula": {
+    "description": "a formula starting with =",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.financial": {
+  "description": "Lists the financial worksheet functions with their signatures and descriptions.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.functions": {
+  "description": "Lists the worksheet functions this sheet supports with their category, signature and description, optionally filtered by category or a search word.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  },
+  "params": {
+   "category": {
+    "type": "string"
+   },
+   "search": {
+    "type": "string"
+   }
+  }
+ },
+ "formulas.insertFunction": {
+  "description": "Starts a formula with a function name in the active cell, as the Insert Function dialog would."
+ },
+ "formulas.logical": {
+  "description": "Lists the logical worksheet functions (IF, AND, OR…) with their signatures and descriptions.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.lookupReference": {
+  "description": "Lists the lookup and reference worksheet functions (XLOOKUP, INDEX, MATCH…) with their signatures and descriptions.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.mathTrig": {
+  "description": "Lists the math and trigonometry worksheet functions with their signatures and descriptions.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.moreFunctions": {
+  "description": "Lists the worksheet functions of another category (Statistical, Engineering, Information, Database…).",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.nameManager": {
+  "description": "Lists every defined name with its scope, what it refers to and its current value.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "formulas.recentlyUsed": {
+  "description": "Lists the functions used most recently in this workbook's formulas.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "formulas.removeArrows": {
+  "description": "Hides the trace arrows drawn by trace precedents and dependents."
+ },
+ "formulas.showFormulas": {
+  "description": "Shows formulas instead of their results in the cells of the sheet, or turns that off.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "formulas.text": {
+  "description": "Lists the text worksheet functions with their signatures and descriptions.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "category": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "signature": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "formulas.traceDependents": {
+  "description": "Answers the cells whose formulas read a cell (default: the active cell), without changing the sheet.",
+  "output": {
+   "type": "array"
+  },
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.tracePrecedents": {
+  "description": "Answers the cells and ranges a cell's formula reads (default: the active cell), without changing the sheet.",
+  "output": {
+   "type": "array"
+  },
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "formulas.useInFormula": {
+  "description": "Inserts a defined name into the formula being edited in the active cell."
+ },
+ "formulas.watchWindow": {
+  "description": "Adds or removes a cell from the watch window and answers the watched cells with their current values.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "history.list": {
+  "description": "Answers the labels of the undo and redo steps.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "redo": {
+     "type": "array"
+    },
+    "undo": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "home.accounting": {
+  "description": "Applies the accounting number format to a range, with a currency symbol ($ by default).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.addIns": {
+  "description": "Answers that the sheet has no add-ins and points to the agent and scripts instead.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "addIns": {
+     "type": "array"
+    },
+    "hint": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "home.alignBottom": {
+  "description": "Aligns the text of a range to the bottom of its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.alignCenter": {
+  "description": "Centres the text of a range horizontally in its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.alignLeft": {
+  "description": "Aligns the text of a range (default: the selection) to the left of its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.alignMiddle": {
+  "description": "Centres the text of a range vertically in its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.alignRight": {
+  "description": "Aligns the text of a range to the right of its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.alignTop": {
+  "description": "Aligns the text of a range to the top of its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.autofitColumnWidth": {
+  "description": "Fits the width of columns to their widest content (default: the selection's columns).",
+  "params": {
+   "cols": {
+    "description": "a column span such as B:D; default: the selection's columns",
+    "type": "string"
+   }
+  }
+ },
+ "home.autofitRowHeight": {
+  "description": "Fits the height of rows to their content (default: the selection's rows).",
+  "params": {
+   "rows": {
+    "description": "row spans such as 2:5 or Data!7, or a one-based row number; default: the selection's rows",
+    "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 1, "maximum": 1048576 }]
+   }
+  }
+ },
+ "home.bold": {
+  "description": "Turns bold on or off for a range (default: the selection); without on it toggles from the first cell.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.borders": {
+  "description": "Applies a border preset (bottom, all, outside, thick box, none…) to a range, optionally with a line style and colour.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "style": {
+    "type": "string"
+   }
+  }
+ },
+ "home.cellStyle": {
+  "description": "Applies a named cell style (Good, Bad, Heading 1, Title, Total, Accent1…) to a range.",
+  "params": {
+   "name": {
+    "type": "string"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.clearRules": {
+  "description": "Removes conditional formatting rules from a range, or from the whole sheet.",
+  "params": {
+   "range": {
+    "type": "string",
+    "description": "cells in A1 notation, optionally sheet-qualified; default: the selection"
+   },
+   "sheet": {
+    "type": "boolean",
+    "description": "clear every conditional formatting rule on the active sheet"
+   }
+  }
+ },
+ "home.columnWidth": {
+  "description": "Sets the width of columns given as a column span such as B:D, one column such as C, or a list such as A,C:D (default: the selection's columns), in points or in characters.",
+  "params": {
+   "cols": {
+    "description": "columns: a span such as B:D, one column such as C, or a list such as A,C:D; default: the selection's columns",
+    "type": "string"
+   },
+   "width": {
+    "description": "points",
+    "type": "number"
+   }
+  }
+ },
+ "home.comma": {
+  "description": "Applies the comma style (thousands separator, two decimals) to a range.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.conditionalFormat": {
+  "description": "Adds a conditional formatting rule to a range (cell value with an operator, formula, text, duplicates, top/bottom, dates, data bar, colour scale, icon set) with its format; Excel's names and defaults (icon sets cut at percent of the min–max span).",
+  "params": {
+   "rule": {
+    "description": "the rule; it refuses keys its type does not read. Newer rules take precedence (their fill wins over an older colour scale's, and the other way round).",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "type": {
+      "type": "string",
+      "enum": [
+       "cellIs",
+       "expression",
+       "containsText",
+       "notContainsText",
+       "beginsWith",
+       "endsWith",
+       "blanks",
+       "noBlanks",
+       "errors",
+       "noErrors",
+       "duplicate",
+       "unique",
+       "top10",
+       "aboveAverage",
+       "timePeriod",
+       "colorScale",
+       "dataBar",
+       "iconSet"
+      ],
+      "description": "default: cellIs"
+     },
+     "operator": {
+      "type": "string",
+      "enum": [
+       "greaterThan",
+       "lessThan",
+       "greaterThanOrEqual",
+       "lessThanOrEqual",
+       "equal",
+       "notEqual",
+       "between",
+       "notBetween"
+      ],
+      "description": "cellIs: how the cell compares with value (and value2 for between); default: greaterThan"
+     },
+     "value": {
+      "type": "json",
+      "description": "cellIs: a number, text, or a =formula (relative to the range's first cell)"
+     },
+     "value2": {
+      "type": "json",
+      "description": "cellIs between and notBetween: the other end"
+     },
+     "formula": {
+      "type": "string",
+      "description": "expression: a formula true for the cells to format, written for the range's first cell (=$B2>100)"
+     },
+     "text": {
+      "type": "string",
+      "description": "containsText, notContainsText, beginsWith, endsWith: the text (any case)"
+     },
+     "rank": {
+      "type": "integer",
+      "description": "top10: how many (or what percent with percent: true); default 10"
+     },
+     "bottom": {
+      "type": "boolean",
+      "description": "top10: the lowest instead of the highest"
+     },
+     "percent": {
+      "type": "boolean",
+      "description": "top10: rank is a percent"
+     },
+     "below": {
+      "type": "boolean",
+      "description": "aboveAverage: below the average instead"
+     },
+     "period": {
+      "type": "string",
+      "enum": [
+       "yesterday",
+       "today",
+       "tomorrow",
+       "last7Days",
+       "lastWeek",
+       "thisWeek",
+       "nextWeek",
+       "lastMonth",
+       "thisMonth",
+       "nextMonth"
+      ],
+      "description": "timePeriod: the dates to format"
+     },
+     "colors": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "colorScale: two or three hex colours, lowest to highest (the middle at the 50th percentile)"
+     },
+     "color": {
+      "type": "string",
+      "description": "dataBar: the bar's hex colour"
+     },
+     "min": {
+      "type": "json",
+      "description": "dataBar: the shortest bar's value: a number or {type: number|percent|percentile|formula|min, value}; default: the lowest value"
+     },
+     "max": {
+      "type": "json",
+      "description": "dataBar: the longest bar's value, as min; default: the highest value"
+     },
+     "gradient": {
+      "type": "boolean",
+      "description": "dataBar: fade the bar (default true)"
+     },
+     "set": {
+      "type": "string",
+      "enum": [
+       "3Arrows",
+       "3ArrowsGray",
+       "3Flags",
+       "3TrafficLights1",
+       "3TrafficLights2",
+       "3Signs",
+       "3Symbols",
+       "3Symbols2",
+       "3Stars",
+       "3Triangles",
+       "4Arrows",
+       "4ArrowsGray",
+       "4RedToBlack",
+       "4Rating",
+       "4TrafficLights",
+       "5Arrows",
+       "5ArrowsGray",
+       "5Rating",
+       "5Quarters",
+       "5Boxes"
+      ],
+      "description": "iconSet: the icons (the digit is how many); default 3TrafficLights1"
+     },
+     "thresholds": {
+      "type": "array",
+      "items": {
+       "type": "json"
+      },
+      "description": "iconSet: the boundaries between icons, ascending, one fewer than the icons; each a number (percent of the span from the lowest value to the highest, as in Excel) or {type: number|percent|percentile|formula, value}. Default: percent at equal steps (33 and 67 for three icons)"
+     },
+     "reverse": {
+      "type": "boolean",
+      "description": "iconSet: the icons in reverse order"
+     },
+     "showValue": {
+      "type": "boolean",
+      "description": "iconSet, dataBar: false shows the icon or bar alone"
+     },
+     "style": {
+      "type": "json",
+      "description": "the format of a formatted rule (not colorScale, dataBar, iconSet): {fill: \"#RRGGBB\", font: {color: \"#RRGGBB\", bold, italic, strike, underline}, borders: {top|bottom|left|right: {style: Thin, color: \"#RRGGBB\"}}}"
+     },
+     "preset": {
+      "type": "string",
+      "enum": [
+       "lightRedFillDarkRedText",
+       "lightRedFill",
+       "redText",
+       "yellowFill",
+       "yellowFillDarkYellowText",
+       "greenFill",
+       "greenFillDarkGreenText",
+       "redBorder"
+      ],
+      "description": "a ready format instead of style; default lightRedFillDarkRedText"
+     }
+    }
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.decreaseDecimal": {
+  "description": "Shows one fewer decimal place in a range's number format.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.decreaseFontSize": {
+  "description": "Steps a range's font size down to the previous size in the size list.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.decreaseIndent": {
+  "description": "Decreases the indent level of a range's text by one.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.defaultWidth": {
+  "description": "Sets the default column width of the sheet for columns without their own width."
+ },
+ "home.deleteCells": {
+  "description": "Deletes the cells of a range, shifting the cells beside them left or up, or deleting entire rows or columns.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.deleteColumns": {
+  "description": "Deletes whole columns (default: the selection's columns), shifting the others left; formulas that pointed into them become #REF!.",
+  "params": {
+   "cols": {
+    "description": "a column span such as B:D; default: the selection's columns",
+    "type": "string"
+   }
+  }
+ },
+ "home.deleteRows": {
+  "description": "Deletes whole rows (default: the selection's rows), shifting the rows below up; formulas that pointed into them become #REF!."
+ },
+ "home.deleteSheet": {
+  "description": "Deletes a sheet (default: the active one) with all its data; the last remaining sheet cannot be deleted.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "home.doubleUnderline": {
+  "description": "Toggles a double underline on a range (default: the selection).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.drawBorder": {
+  "description": "Draws a border on one edge (top, bottom, left, right) or as a grid on a range, with a line style and colour.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.fillColor": {
+  "description": "Sets the background fill of a range: a #rrggbb hex, none, or a theme colour with tint.",
+  "params": {
+   "color": {
+    "oneOf": [
+     {
+      "description": "#rrggbb or none",
+      "type": "string"
+     },
+     {
+      "additionalProperties": false,
+      "properties": {
+       "theme": {
+        "type": "integer"
+       },
+       "tint": {
+        "type": "number"
+       }
+      },
+      "type": "object"
+     }
+    ]
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.fontColor": {
+  "description": "Sets the text colour of a range: a #rrggbb hex, auto, or a theme colour with tint.",
+  "params": {
+   "color": {
+    "oneOf": [
+     {
+      "description": "#rrggbb or auto",
+      "type": "string"
+     },
+     {
+      "additionalProperties": false,
+      "properties": {
+       "theme": {
+        "type": "integer"
+       },
+       "tint": {
+        "type": "number"
+       }
+      },
+      "type": "object"
+     }
+    ]
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.fontName": {
+  "description": "Sets the font family of a range (default: the selection).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.fontSize": {
+  "description": "Sets the font size in points for a range (default: the selection).",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.formatAsTable": {
+  "description": "Formats a range (default: the selection, or the data around the active cell) with a table style: as a table (mode table, the default), or only its look written into the cells (mode format, WPS's Only Format As Table, with titleRows header rows).",
+  "params": {
+   "header": {
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "style": {
+    "description": "a table style name: TableStyleLight1\u202621, TableStyleMedium1\u202628, TableStyleDark1\u202611, or one the workbook defines; default: the workbook's default table style",
+    "type": "string"
+   },
+   "mode": {
+    "description": "table (a table with a header row, filter buttons and bands) or format (only the look, written into the cells)",
+    "enum": [
+     "table",
+     "format"
+    ],
+    "type": "string"
+   },
+   "titleRows": {
+    "description": "with mode format: how many rows on top take the header's format (0 for none)",
+    "type": "integer"
+   },
+   "filter": {
+    "description": "with mode table: whether the header shows filter buttons (default true)",
+    "type": "boolean"
+   },
+   "columnPrefix": {
+    "description": "the generic name for empty headers, numbered (Column1, \u52171)",
+    "type": "string"
+   }
+  }
+ },
+ "home.formatCells": {
+  "description": "Merges a partial Style object (font, fill, borders, alignment, number format, protection) into every cell of a range, with border presets (edges) and Merge Cells (merge) in the same step: the Format Cells dialog. Colours are hex (\"#C00000\"), \"auto\" or {theme, tint}; fill: \"#RRGGBB\" is a solid fill. Run from a menu without any of them, it opens the dialog.",
+  "params": {
+   "style": {
+    "description": "a partial Style, such as {font: {bold: true, color: \"#1F3864\"}, fill: \"#DDEBF7\", borders: {bottom: {style: Thin, color: \"#808080\"}}, numFmt: \"0.0%\"}",
+    "type": "json"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "edges": {
+    "description": "border presets as home.borders takes them: [{preset: outside|inside|top|bottom|left|right|insideHorizontal|insideVertical|diagonalDown|diagonalUp|none, style, color}]",
+    "type": "json"
+   },
+   "merge": {
+    "description": "true merges the range, false unmerges it",
+    "type": "boolean"
+   }
+  }
+ },
+ "home.hideColumns": {
+  "description": "Hides columns given as a span such as B:C (default: the selection's columns); their data is kept.",
+  "params": {
+   "cols": {
+    "description": "a column span such as B:D; default: the selection's columns",
+    "type": "string"
+   }
+  }
+ },
+ "home.hideRows": {
+  "description": "Hides rows given as a span such as 3:5 (default: the selection's rows); their data is kept.",
+  "params": {
+   "rows": {
+    "description": "row spans such as 3:5 or Data!3:5, or a single row number; default: the selection's rows",
+    "oneOf": [{"type": "string"}, {"type": "integer"}]
+   }
+  }
+ },
+ "home.increaseDecimal": {
+  "description": "Shows one more decimal place in a range's number format.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.increaseFontSize": {
+  "description": "Steps a range's font size up to the next size in the size list.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.increaseIndent": {
+  "description": "Increases the indent level of a range's text by one.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.insertCells": {
+  "description": "Inserts blank cells at a range, shifting existing cells right or down, or inserting entire rows or columns.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.insertColumns": {
+  "description": "Inserts whole columns left of the given columns, or count columns left of (right: true, right of) each area of the selection, shifting the columns after them right and adjusting formulas. The new columns take the formats of the column before them (left) or after them (right), and are selected."
+ },
+ "home.insertRows": {
+  "description": "Inserts whole rows above the given rows, or count rows above (below: true, under) each area of the selection, shifting the rows after them down and adjusting formulas. The new rows take the formats of the row before them (above) or after them (below), and are selected."
+ },
+ "home.insertSheet": {
+  "description": "Adds a new worksheet, optionally named and placed before the sheet at a 0-based index."
+ },
+ "home.italic": {
+  "description": "Turns italic on or off for a range (default: the selection); without on it toggles.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.justify": {
+  "description": "Justifies the text of a range across the width of its cells.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.lockCell": {
+  "description": "Locks or unlocks cells for sheet protection; locking takes effect only once the sheet is protected.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.manageRules": {
+  "description": "Deletes a conditional formatting rule or moves it up or down in priority, by its index in the sheet's rule list."
+ },
+ "home.mergeAcross": {
+  "description": "Merges each row of a range into one cell per row; only each row's leftmost value is kept.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.mergeCells": {
+  "description": "Merges a range into one cell without changing alignment; only the top-left value is kept.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.mergeCenter": {
+  "description": "Merges a range into one cell and centres its text; only the top-left value is kept.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.newCellStyle": {
+  "description": "Creates a named cell style from a cell's formatting (default: the active cell) for use with home.cellStyle."
+ },
+ "home.numberFormat": {
+  "description": "Sets how numbers in a range display: a named format (Currency, Percentage, Short Date, Text…) or a custom format code such as 0.00%.",
+  "params": {
+   "format": {
+    "type": "string"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.orientation": {
+  "description": "Rotates a range's text by an angle from -90 to 90 degrees, or stacks it vertically.",
+  "params": {
+   "angle": {
+    "oneOf": [
+     {
+      "description": "degrees from -90 to 90",
+      "type": "number"
+     },
+     {
+      "enum": [
+       "vertical",
+       "counterclockwise",
+       "clockwise",
+       "up",
+       "down"
+      ],
+      "type": "string"
+     }
+    ]
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.percent": {
+  "description": "Formats a range as a percentage without decimals (0.25 shows as 25%); the values stay as they are.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.rowHeight": {
+  "description": "Sets the height in points of rows given as a row span such as 2:5, one row such as 9, or a list such as 2:3,7 (default: the selection's rows).",
+  "params": {
+   "rows": {
+    "description": "rows: a span such as 2:5, one row such as 9, or a list such as 2:3,7; default: the selection's rows",
+    "type": "string"
+   }
+  }
+ },
+ "home.shrinkToFit": {
+  "description": "Turns shrink-to-fit on or off for a range so text shrinks to fit the column width instead of overflowing.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.strikethrough": {
+  "description": "Turns strikethrough on or off for a range (default: the selection).",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.subscript": {
+  "description": "Turns subscript on or off for a range's text (default: the selection).",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.superscript": {
+  "description": "Turns superscript on or off for a range's text (default: the selection).",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.underline": {
+  "description": "Sets or toggles underline on a range, with a single, double or accounting style.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.unhideColumns": {
+  "description": "Shows hidden columns within a span (default: the selection's columns).",
+  "params": {
+   "cols": {
+    "description": "a column span such as B:D; default: the selection's columns",
+    "type": "string"
+   }
+  }
+ },
+ "home.unhideRows": {
+  "description": "Shows hidden rows within a span (default: the selection's rows).",
+  "params": {
+   "rows": {
+    "description": "row spans such as 3:5 or Data!3:5, or a single row number; default: the selection's rows",
+    "oneOf": [{"type": "string"}, {"type": "integer"}]
+   }
+  }
+ },
+ "home.unmergeCells": {
+  "description": "Splits merged cells in a range back into separate cells; the value stays in the top-left cell.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "home.wrapText": {
+  "description": "Turns text wrapping on or off for a range so long text breaks onto several lines inside the cell.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "insert.chart": {
+  "description": "Inserts a chart of a range (default: the current region; several areas side by side, such as A1:A5,C1:D5, chart together) with a type, title and position, and answers the new chart's id for chart.* commands. As in Excel, the first row names the series and the first column holds the categories when it is text, when the corner cell is blank, or when it holds dates; a scatter chart takes the first column as X. A combo chart is clustered columns and lines (the first series columns, the others lines) unless seriesTypes says otherwise; a waterfall marks as totals only the points listed in totals.",
+  "params": {
+   "seriesTypes": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    },
+    "description": "type: combo: each series' type in order (column, stackedColumn, bar, line, lineMarkers, area, scatter); series not listed: the first column, the others line"
+   },
+   "secondary": {
+    "type": "array",
+    "items": {
+     "type": "integer"
+    },
+    "description": "type: combo: the series (by index from 0) drawn against a second value axis"
+   },
+   "totals": {
+    "type": "array",
+    "items": {
+     "type": "integer"
+    },
+    "description": "type: waterfall: the points (by index from 0) set as totals, drawn from the axis with their own value, such as [0, 8] for an opening and a closing balance"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "insert.checkbox": {
+  "description": "Turns the cells of a range (a merged area's first cell) into checkboxes: each holds FALSE unless it held TRUE or FALSE, and what else was in it (text, a formula, a picture) goes. Refused across part of an array formula. A checkbox is the cell's content: Clear Contents removes it; Clear Formats, the format painter and Paste Special › Formats leave it.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "insert.icons": {
+  "description": "Inserts a built-in icon (chart, table, sum, filter, lock, check…) at a cell, with size and colour.",
+  "params": {
+   "at": {
+    "description": "the top-left cell in A1 notation such as C3",
+    "type": "string"
+   },
+   "name": {
+    "type": "string"
+   }
+  }
+ },
+ "insert.link": {
+  "description": "Adds a hyperlink to a cell (to a web address, a place in the workbook, or an email address) or removes it.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   },
+   "tooltip": {
+    "type": "string"
+   }
+  }
+ },
+ "insert.picture": {
+  "description": "Inserts a picture from a file path or base64 bytes at a cell, with size, alternative text and how it moves with cells.",
+  "params": {
+   "alt": {
+    "type": "string"
+   },
+   "mime": {
+    "type": "string"
+   }
+  }
+ },
+ "insert.pivotTable": {
+  "description": "Creates a pivot table from a source range or table (default: around the selection) on a new sheet or at a destination, optionally with rows, columns and values.",
+  "params": {
+   "source": {
+    "description": "a range in A1 notation such as Sheet1!$A$1:$E$200, or a table name",
+    "type": "string"
+   }
+  }
+ },
+ "insert.recommendedCharts": {
+  "description": "Inserts the chart type that best fits a range's data shape, as Recommended Charts suggests.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "insert.recommendedPivotTables": {
+  "description": "Suggests pivot table layouts for a source and answers them; with apply, creates the suggestion at that index.",
+  "params": {
+   "destination": {
+    "description": "a cell in A1 notation, or \"new\" for a new sheet",
+    "type": "string"
+   },
+   "source": {
+    "description": "a range in A1 notation such as Sheet1!$A$1:$E$200, or a table name",
+    "type": "string"
+   }
+  }
+ },
+ "insert.shape": {
+  "description": "Inserts a shape (rectangle, rounded rectangle, ellipse, triangle, line, arrow or text box) at a cell, with size, text, fill and line.",
+  "params": {
+   "at": {
+    "description": "the top-left cell in A1 notation such as C3",
+    "type": "string"
+   }
+  }
+ },
+ "insert.sparkline": {
+  "description": "Adds sparklines (tiny line, column or win/loss charts) for a data range into location cells.",
+  "params": {
+   "markers": {
+    "type": "boolean"
+   }
+  }
+ },
+ "insert.symbol": {
+  "description": "Appends a character such as € to the end of the active cell's text (in the editor: at the caret of what is being typed, else after the cell's text with the cell left open, as WPS does)."
+ },
+ "insert.table": {
+  "description": "Turns a range (default: the current region) into a structured table with a style, a header row and a name.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "filter": {
+    "description": "with mode table: whether the header shows filter buttons (default true)",
+    "type": "boolean"
+   },
+   "columnPrefix": {
+    "description": "the generic name for empty headers, numbered (Column1, \u52171)",
+    "type": "string"
+   }
+  }
+ },
+ "insert.textBox": {
+  "description": "Inserts a text box at a cell with a size and text.",
+  "params": {
+   "at": {
+    "description": "the top-left cell in A1 notation such as C3",
+    "type": "string"
+   }
+  }
+ },
+ "insert.artText": {
+  "description": "Inserts decorative art text, optionally warped by a preset such as textArchUp.",
+  "params": {
+   "warp": {
+    "description": "a warp preset such as textArchUp",
+    "type": "string"
+   }
+  }
+ },
+ "object.delete": {
+  "description": "Deletes a chart, image or shape by kind and id."
+ },
+ "object.move": {
+  "description": "Moves or resizes a chart, image or shape: to a cell, by an offset, or to a width and height."
+ },
+ "object.setAnchorMode": {
+  "description": "Sets how a chart, image or shape follows its cells: move and size with them, move only, or stay fixed."
+ },
+ "pageLayout.background": {
+  "description": "Sets a picture file as the active sheet's background, or clears it."
+ },
+ "pageLayout.breaks": {
+  "description": "Inserts or removes a manual page break at a cell, or resets all page breaks of the sheet.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "pageLayout.headerFooter": {
+  "description": "Sets the printed header and footer using codes such as &C&P (page number, centred) and &N (page count)."
+ },
+ "pageLayout.margins": {
+  "description": "Sets the active sheet's page margins from a preset or in inches per side, including header and footer distance.",
+  "params": {
+   "footer": {
+    "description": "inches",
+    "type": "number"
+   },
+   "header": {
+    "description": "inches",
+    "type": "number"
+   }
+  }
+ },
+ "pageLayout.orientation": {
+  "description": "Sets the active sheet's printed page orientation to portrait or landscape."
+ },
+ "pageLayout.pageSetup": {
+  "description": "Sets a sheet's page setup in one call: orientation, paper size, margins, scaling and print options.",
+  "params": {
+   "centerH": {
+    "type": "boolean"
+   },
+   "centerV": {
+    "type": "boolean"
+   },
+   "fitHeight": {
+    "type": "integer"
+   },
+   "fitWidth": {
+    "type": "integer"
+   },
+   "footer": {
+    "type": "string"
+   },
+   "gridlines": {
+    "type": "boolean"
+   },
+   "headings": {
+    "type": "boolean"
+   },
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "pageLayout.printArea": {
+  "description": "Sets the range that prints for the active sheet (default: the selection), or clears it.",
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "pageLayout.printGridlines": {
+  "description": "Turns printing of gridlines on or off for the active sheet.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "pageLayout.printHeadings": {
+  "description": "Turns printing of row and column headings on or off for the active sheet.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "pageLayout.printTitles": {
+  "description": "Sets rows (such as 1:1) and columns (such as A:A) that repeat on every printed page."
+ },
+ "pageLayout.scaleToFit": {
+  "description": "Scales printing by a percentage, or fits the sheet to a number of pages wide and tall.",
+  "params": {
+   "height": {
+    "description": "pages tall",
+    "type": "integer"
+   },
+   "width": {
+    "description": "pages wide",
+    "type": "integer"
+   }
+  }
+ },
+ "pageLayout.size": {
+  "description": "Sets the active sheet's paper size (Letter, Legal, A4, A3…)."
+ },
+ "pageLayout.theme": {
+  "description": "Applies a document theme (colours and fonts), by name or with custom colours and fonts; styles that use theme colours change with it.",
+  "params": {
+   "majorFont": {
+    "type": "string"
+   },
+   "minorFont": {
+    "type": "string"
+   }
+  }
+ },
+ "pageLayout.themeColors": {
+  "description": "Sets the theme's colour scheme by name or as twelve hex colours.",
+  "params": {
+   "name": {
+    "type": "string"
+   }
+  }
+ },
+ "pageLayout.themeEffects": {
+  "description": "Sets the theme's chart effects preset by name."
+ },
+ "pageLayout.themeFonts": {
+  "description": "Sets the theme's heading (major) and body (minor) fonts.",
+  "params": {
+   "major": {
+    "type": "string"
+   },
+   "minor": {
+    "type": "string"
+   }
+  }
+ },
+ "pivot.addField": {
+  "description": "Adds a source field to a pivot table's rows, columns, values or filters, with the summary function for values.",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "func": {
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.changeSource": {
+  "description": "Points a pivot table at a new source range or table; fields missing from the new source are removed.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   },
+   "source": {
+    "description": "a range in A1 notation such as Sheet1!$A$1:$E$200, or a table name",
+    "type": "string"
+   }
+  }
+ },
+ "pivot.collapse": {
+  "description": "Collapses or expands items of a pivot table field (default: all items).",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.delete": {
+  "description": "Deletes a pivot table and clears the cells it occupied.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.fieldList": {
+  "description": "Answers a pivot table's fields and layout (same as pivot.fields).",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "anchor": {
+     "type": "string"
+    },
+    "columns": {
+     "type": "array"
+    },
+    "fields": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "areas": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "date": {
+        "type": "boolean"
+       },
+       "name": {
+        "type": "string"
+       },
+       "numeric": {
+        "type": "boolean"
+       },
+       "samples": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "filters": {
+     "type": "array"
+    },
+    "grandTotalsCols": {
+     "type": "boolean"
+    },
+    "grandTotalsRows": {
+     "type": "boolean"
+    },
+    "id": {
+     "type": "number"
+    },
+    "layout": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "range": {
+     "type": "string"
+    },
+    "records": {
+     "type": "number"
+    },
+    "rows": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "collapsed": {
+        "type": "array"
+       },
+       "field": {
+        "type": "string"
+       },
+       "group": {
+        "type": "string"
+       },
+       "sort": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "sheet": {
+     "type": "string"
+    },
+    "showHeaders": {
+     "type": "boolean"
+    },
+    "source": {
+     "type": "string"
+    },
+    "style": {
+     "type": "string"
+    },
+    "subtotals": {
+     "type": "string"
+    },
+    "values": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "field": {
+        "type": "string"
+       },
+       "func": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       },
+       "numberFormat": {
+        "type": "json"
+       },
+       "showAs": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.fields": {
+  "description": "Answers a pivot table's source fields (name, numeric, date, sample values) and its current layout; select a cell in the pivot table or name it.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "anchor": {
+     "type": "string"
+    },
+    "columns": {
+     "type": "array"
+    },
+    "fields": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "areas": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "date": {
+        "type": "boolean"
+       },
+       "name": {
+        "type": "string"
+       },
+       "numeric": {
+        "type": "boolean"
+       },
+       "samples": {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "filters": {
+     "type": "array"
+    },
+    "grandTotalsCols": {
+     "type": "boolean"
+    },
+    "grandTotalsRows": {
+     "type": "boolean"
+    },
+    "id": {
+     "type": "number"
+    },
+    "layout": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "range": {
+     "type": "string"
+    },
+    "records": {
+     "type": "number"
+    },
+    "rows": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "collapsed": {
+        "type": "array"
+       },
+       "field": {
+        "type": "string"
+       },
+       "group": {
+        "type": "string"
+       },
+       "sort": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    },
+    "sheet": {
+     "type": "string"
+    },
+    "showHeaders": {
+     "type": "boolean"
+    },
+    "source": {
+     "type": "string"
+    },
+    "style": {
+     "type": "string"
+    },
+    "subtotals": {
+     "type": "string"
+    },
+    "values": {
+     "items": {
+      "additionalProperties": true,
+      "properties": {
+       "field": {
+        "type": "string"
+       },
+       "func": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       },
+       "numberFormat": {
+        "type": "json"
+       },
+       "showAs": {
+        "type": "string"
+       }
+      },
+      "type": "object"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.filter": {
+  "description": "Shows only the chosen items of a pivot table field, or all items with null.",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   },
+   "selected": {
+    "oneOf": [
+     {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     {
+      "type": "null"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.grandTotals": {
+  "description": "Turns a pivot table's grand totals off or on, for rows, columns or both.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.group": {
+  "description": "Groups a pivot table date field by years, quarters, months or days, or ungroups it.",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.layout": {
+  "description": "Sets a pivot table's layout form, grand totals, subtotals and style in one call.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   },
+   "subtotals": {
+    "oneOf": [
+     {
+      "type": "boolean"
+     },
+     {
+      "enum": [
+       "top",
+       "bottom",
+       "none"
+      ],
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.list": {
+  "description": "Lists every pivot table in the workbook with its name, sheet, location and source.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "pivot.moveField": {
+  "description": "Moves a field between pivot table areas or to a position within one.",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.refresh": {
+  "description": "Recalculates a pivot table from its source data.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.removeField": {
+  "description": "Removes a field (or a value caption) from a pivot table area.",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.reportLayout": {
+  "description": "Sets a pivot table's report layout to compact, outline or tabular form.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.sort": {
+  "description": "Sorts a pivot table field's items ascending or descending, or back to source order.",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "pivot.style": {
+  "description": "Applies a pivot table style such as PivotStyleMedium9.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.subtotals": {
+  "description": "Shows a pivot table's subtotals at the top or bottom of each group, or hides them.",
+  "params": {
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   }
+  }
+ },
+ "pivot.valueSettings": {
+  "description": "Changes a pivot table value field's summary function, caption or show-as calculation (percent of total, running total…).",
+  "params": {
+   "field": {
+    "description": "a source field name or a value field caption",
+    "type": "string"
+   },
+   "func": {
+    "type": "string"
+   },
+   "numberFormat": {
+    "description": "a number format code such as #,##0",
+    "type": "string"
+   },
+   "pivot": {
+    "description": "default: the pivot table at the active cell",
+    "oneOf": [
+     {
+      "description": "a pivot table name",
+      "type": "string"
+     },
+     {
+      "description": "a pivot table id",
+      "type": "integer"
+     }
+    ]
+   },
+   "replace": {
+    "description": "replace the existing pivot table output in place",
+    "type": "boolean"
+   }
+  }
+ },
+ "range.fill": {
+  "description": "Enters the same input in every cell of the range (default: the selection). A formula is written as for the range's first cell (for the active cell when it fills the selection, like Ctrl+Enter), and its relative references move per cell: =A10+1 into A11:A69 gives =A10+1 in A11 and =A68+1 in A69.",
+  "params": {
+   "input": {
+    "description": "text, a number, or a =formula",
+    "type": "string"
+   },
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   }
+  }
+ },
+ "range.setValues": {
+  "description": "Writes a block of values starting at the range's top-left cell, one inner list per row; strings starting with = become formulas. The fastest way to fill a table."
+ },
+ "review.addToDictionary": {
+  "description": "Adds a word to the dictionary so spelling no longer reports it.",
+  "params": {
+   "word": {
+    "type": "string"
+   }
+  }
+ },
+ "review.changeSpelling": {
+  "description": "Replaces a misspelled word in a cell, or in every cell when all is true.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   },
+   "to": {
+    "type": "string"
+   },
+   "word": {
+    "type": "string"
+   }
+  }
+ },
+ "review.checkAccessibility": {
+  "description": "Lists accessibility issues in the workbook, such as pictures without alternative text or merged cells, with where they are.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "review.deleteComment": {
+  "description": "Deletes the comment thread or note on a cell.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "review.newComment": {
+  "description": "Starts a threaded comment on a cell; use review.replyComment to answer an existing thread.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "review.newNote": {
+  "description": "Adds a note (a plain, unthreaded annotation) to a cell.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "review.protectSheet": {
+  "description": "Protects the active sheet so locked cells cannot be edited, with an optional password and the actions still allowed (formatting, inserting rows, sorting…).",
+  "params": {
+   "autofilter": {
+    "type": "boolean"
+   },
+   "deleteColumns": {
+    "type": "boolean"
+   },
+   "deleteRows": {
+    "type": "boolean"
+   },
+   "formatCells": {
+    "type": "boolean"
+   },
+   "formatColumns": {
+    "type": "boolean"
+   },
+   "formatRows": {
+    "type": "boolean"
+   },
+   "insertColumns": {
+    "type": "boolean"
+   },
+   "insertRows": {
+    "type": "boolean"
+   },
+   "password": {
+    "type": "string"
+   },
+   "sort": {
+    "type": "boolean"
+   }
+  }
+ },
+ "review.protectWorkbook": {
+  "description": "Protects or unprotects the workbook's structure so sheets cannot be added, deleted, moved or renamed."
+ },
+ "review.replyComment": {
+  "description": "Adds a reply to the comment thread on a cell.",
+  "params": {
+   "author": {
+    "type": "string"
+   },
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "review.resolveComment": {
+  "description": "Marks the comment thread on a cell as resolved, or reopens it.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "review.showNote": {
+  "description": "Shows or hides a cell's note on the sheet.",
+  "params": {
+   "cell": {
+    "description": "one cell in A1 notation such as B2; default: the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "review.spelling": {
+  "description": "Checks spelling in a range or sheet and answers misspelled words with their cells and suggestions; changes nothing.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "done": {
+     "type": "boolean"
+    },
+    "issues": {
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "review.thesaurus": {
+  "description": "Answers words related to a word from the dictionary (sharing its stem).",
+  "output": {
+   "type": "array"
+  },
+  "params": {
+   "word": {
+    "type": "string"
+   }
+  }
+ },
+ "review.unprotectSheet": {
+  "description": "Removes protection from the active sheet, with its password when it has one.",
+  "params": {
+   "password": {
+    "type": "string"
+   }
+  }
+ },
+ "review.workbookStatistics": {
+  "description": "Answers counts for the active sheet and workbook: cells with data, formulas, sheets, tables, charts, comments and the last used cell.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "sheet": {
+     "additionalProperties": true,
+     "properties": {
+      "cellsWithData": {
+       "type": "number"
+      },
+      "charts": {
+       "type": "number"
+      },
+      "comments": {
+       "type": "number"
+      },
+      "endOfSheet": {
+       "type": "string"
+      },
+      "formulas": {
+       "type": "number"
+      },
+      "name": {
+       "type": "string"
+      },
+      "tables": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    },
+    "workbook": {
+     "additionalProperties": true,
+     "properties": {
+      "cellsWithData": {
+       "type": "number"
+      },
+      "charts": {
+       "type": "number"
+      },
+      "names": {
+       "type": "number"
+      },
+      "sheets": {
+       "type": "number"
+      },
+      "tables": {
+       "type": "number"
+      }
+     },
+     "type": "object"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.column": {
+  "description": "Selects the entire columns of the current selection; answers the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.currentRegion": {
+  "description": "Selects the block of non-empty cells around the active cell, bounded by empty rows and columns; answers the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.move": {
+  "description": "Moves the active cell by rows and columns, optionally extending the selection or jumping to the data edge like Ctrl+arrow; answers the new selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "active": {
+     "type": "string"
+    },
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "dc": {
+    "description": "columns to move, negative moves left",
+    "type": "integer"
+   },
+   "dr": {
+    "description": "rows to move, negative moves up",
+    "type": "integer"
+   }
+  }
+ },
+ "selection.next": {
+  "description": "Moves the active cell to the next (or previous) cell inside the current selection, as Enter or Tab does; answers the new active cell.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "active": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.row": {
+  "description": "Selects the entire rows of the current selection; answers the selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "selection.set": {
+  "description": "Selects cells (one range or several separated by commas) and optionally sets the active cell and sheet; answers the new selection.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "active": {
+     "type": "string"
+    },
+    "selection": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "range": {
+    "description": "cells in A1 notation such as B2 or B2:D10, optionally with a sheet (Sheet2!A1); default: the selection",
+    "type": "string"
+   },
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "selection.stats": {
+  "description": "Answers count, numeric count, sum, average, minimum and maximum of the selected cells, as the status bar shows.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "average": {
+     "type": "json"
+    },
+    "count": {
+     "type": "number"
+    },
+    "max": {
+     "type": "number"
+    },
+    "min": {
+     "type": "number"
+    },
+    "numeric": {
+     "type": "number"
+    },
+    "sum": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "shape.setText": {
+  "description": "Replaces the text of a text box or shape by its id.",
+  "params": {
+   "id": {
+    "description": "the text box's id",
+    "oneOf": [
+     {
+      "type": "integer"
+     },
+     {
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.activate": {
+  "description": "Makes the sheet with the given 0-based index or name the active sheet; answers its name and index.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "sheet": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.hide": {
+  "description": "Hides a sheet (default: the active one); at least one sheet stays visible.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.move": {
+  "description": "Moves a sheet to a new 0-based position, or copies it there when copy is true (the copy is named as WPS names one, Sheet1(2), and answers its name).",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.next": {
+  "description": "Activates the next sheet tab."
+ },
+ "sheet.previous": {
+  "description": "Activates the previous sheet tab."
+ },
+ "sheet.read": {
+  "description": "Answers the values of a range (default: the sheet's used range) as rows, with formulas or display text instead of values when asked; the way to read data.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "range": {
+     "type": "string"
+    },
+    "sheet": {
+     "type": "string"
+    },
+    "values": {
+     "items": {
+      "items": {
+       "type": "json"
+      },
+      "type": "array"
+     },
+     "type": "array"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.rename": {
+  "description": "Renames a sheet (default: the active one); formulas that refer to it follow the new name.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.tabColor": {
+  "description": "Sets or clears the colour of a sheet's tab.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "sheet.unhide": {
+  "description": "Shows a hidden sheet by name or index, and shows it in view unless activate is false.",
+  "params": {
+   "sheet": {
+    "oneOf": [
+     {
+      "description": "a sheet position counted from 0",
+      "type": "integer"
+     },
+     {
+      "description": "a sheet name",
+      "type": "string"
+     }
+    ]
+   }
+  }
+ },
+ "table.bandedColumns": {
+  "description": "Turns banded columns on or off for a table.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.bandedRows": {
+  "description": "Turns banded (striped) rows on or off for a table.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.convertToRange": {
+  "description": "Converts a table back to a normal range, keeping its values and formatting.",
+  "params": {
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.firstColumn": {
+  "description": "Turns special formatting of a table's first column on or off.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.headerRow": {
+  "description": "Shows or hides the header row of a table: hidden, the header's cells leave the table; shown again, the row above the data takes the column names.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.lastColumn": {
+  "description": "Turns special formatting of a table's last column on or off.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.removeDuplicates": {
+  "description": "Deletes table rows that repeat earlier rows in the chosen columns (default: all columns).",
+  "params": {
+   "columns": {
+    "type": "array",
+    "items": { "oneOf": [{ "type": "string" }, { "type": "integer", "minimum": 0 }] },
+    "description": "Absolute column letters or zero-based offsets from the table's first column."
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.rename": {
+  "description": "Renames a table; structured references to it follow the new name.",
+  "params": {
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.resize": {
+  "description": "Resizes a table to a new range that keeps the same header row.",
+  "params": {
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.filterButton": {
+  "description": "Shows or hides the filter buttons in a table's header row.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.newStyle": {
+  "description": "Defines a table style of the workbook's own (New Table Style), saved with the file: each part (whole table, header row, total row, first or last column, row or column stripes) with its fill, text colour, bold, italic, border and inside lines; or modifies one (replace).",
+  "params": {
+   "name": {
+    "description": "the style's name",
+    "type": "string"
+   },
+   "elements": {
+    "description": "by part (wholeTable, headerRow, totalRow, firstColumn, lastColumn, firstRowStripe, secondRowStripe, firstColumnStripe, secondColumnStripe): {fill, color, bold, italic, border, lines, size}, colours as \"#RRGGBB\"",
+    "type": "json"
+   },
+   "replace": {
+    "description": "the name of the workbook's style to modify",
+    "type": "string"
+   },
+   "default": {
+    "description": "make it the workbook's default table style",
+    "type": "boolean"
+   }
+  }
+ },
+ "table.deleteStyle": {
+  "description": "Deletes a table style the workbook defines; tables that used it take the default style.",
+  "params": {
+   "name": {
+    "description": "the style's name",
+    "type": "string"
+   }
+  }
+ },
+ "table.setDefaultStyle": {
+  "description": "Makes a table style the workbook's default, the one Format as Table and new tables take (\"\" goes back to Kition Sheet's).",
+  "params": {
+   "name": {
+    "description": "a table style name, or \"\"",
+    "type": "string"
+   }
+  }
+ },
+ "table.styles": {
+  "description": "Answers the table style gallery: the theme colours (Text 1, Accent 1\u20136), the built-in styles in light, medium and dark groups for one of them with a 5\u00d75 preview each, the workbook's own styles, the default style, the active table's style, and the range Format as Table would take.",
+  "params": {
+   "slot": {
+    "description": "the gallery's theme colour: 0 Text 1, 1\u20136 Accent 1\u20136; default: the active table's, else Accent 1",
+    "type": "integer"
+   }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": true,
+   "properties": {
+    "slot": {
+     "type": "integer"
+    },
+    "colors": {
+     "type": "array"
+    },
+    "groups": {
+     "type": "array"
+    },
+    "custom": {
+     "type": "array"
+    },
+    "default": {
+     "type": "string"
+    },
+    "current": {
+     "oneOf": [{ "type": "null" }, { "type": "string" }]
+    },
+    "table": {
+     "oneOf": [{ "type": "null" }, { "type": "string" }]
+    },
+    "range": {
+     "oneOf": [{ "type": "null" }, { "type": "string" }]
+    }
+   }
+  }
+ },
+ "table.style": {
+  "description": "Applies a table style to a table: a built-in one (TableStyleLight1\u202621, TableStyleMedium1\u202628, TableStyleDark1\u202611), one the workbook defines, or None for no style.",
+  "params": {
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.summarizePivot": {
+  "description": "Creates a pivot table from a table (default: the table at the active cell).",
+  "params": {
+   "destination": {
+    "description": "a cell in A1 notation, or \"new\" for a new sheet",
+    "type": "string"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.totalFunction": {
+  "description": "Sets the function shown in a table column's total row (sum, average, count, max, min…) or removes it with none.",
+  "params": {
+   "function": {
+    "type": "string"
+   },
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "table.totalRow": {
+  "description": "Shows or hides the total row of a table (default: the table at the active cell).",
+  "params": {
+   "table": {
+    "description": "a table name; default: the table at the active cell",
+    "type": "string"
+   }
+  }
+ },
+ "view.arrangeAll": {
+  "description": "Arranges the open windows side by side in the editor."
+ },
+ "view.customViews": {
+  "description": "Saves, shows or deletes a named custom view of the sheet (zoom, frozen panes, filters) and answers the list of saved views.",
+  "output": {
+   "additionalProperties": true,
+   "type": "object"
+  }
+ },
+ "view.freezeRows": {
+  "description": "Freezes the rows above a cell (default: the active cell) and no columns, replacing any frozen panes (WPS's Freeze to Row). Fails on the first row."
+ },
+ "view.freezeColumns": {
+  "description": "Freezes the columns left of a cell (default: the active cell) and no rows, replacing any frozen panes (WPS's Freeze to Column). Fails on the first column."
+ },
+ "view.gridlineColor": {
+  "description": "Sets the colour of the active sheet's gridlines on screen and on printed pages, or back to the automatic grey with \"auto\". Saved with the sheet.",
+  "params": {
+   "color": { "description": "#RRGGBB, or auto", "type": "string" }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": { "color": { "oneOf": [{ "type": "null" }, { "type": "string" }] } }
+  }
+ },
+ "view.focusCell": {
+  "description": "Highlights the rows and columns of the selection across the grid in a colour (WPS's Highlight Rows and Columns, Excel's Focus Cell). It is the person's view, as the formula bar is: the workbook does not change (no undo step, nothing to save).",
+  "params": {
+   "on": { "description": "true turns it on, false off; left out with no color, it toggles", "type": "boolean" },
+   "color": { "description": "the highlight colour, #RRGGBB", "type": "string" }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": { "on": { "type": "boolean" }, "color": { "type": "string" } }
+  }
+ },
+ "view.freezeFirstColumn": {
+  "description": "Freezes the first column of the active sheet so it stays visible while scrolling."
+ },
+ "view.freezePanes": {
+  "description": "Freezes the rows above and the columns to the left of a cell (default: the active cell) so they stay visible while scrolling."
+ },
+ "view.freezeTopRow": {
+  "description": "Freezes the first row of the active sheet so it stays visible while scrolling."
+ },
+ "view.gridlines": {
+  "description": "Shows or hides the cell gridlines of the active sheet on screen; use pageLayout.printGridlines for printing.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "view.formulaBar": {
+  "description": "Shows or hides the formula bar. It is the person's view of every workbook, as in Excel and WPS: the workbook does not change (no undo step, nothing to save).",
+  "params": {
+   "on": {
+    "description": "true shows it, false hides it; left out, it toggles",
+    "type": "boolean"
+   }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": { "on": { "type": "boolean" } }
+  }
+ },
+ "view.headings": {
+  "description": "Shows or hides the row and column headings of the active sheet.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "view.hideWindow": {
+  "description": "Hides the current workbook window."
+ },
+ "view.macros": {
+  "description": "Lists the saved automation scripts that can run as macros.",
+  "output": {
+   "type": "array"
+  }
+ },
+ "view.newWindow": {
+  "description": "Opens a second window on the same workbook."
+ },
+ "view.normal": {
+  "description": "Switches the view to Normal; answers the view.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "view": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.pageBreakPreview": {
+  "description": "Switches the view to Page Break Preview, which shows where pages break; answers the view.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "view": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.pageLayout": {
+  "description": "Switches the view to Page Layout, which shows pages as they print; answers the view.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "view": {
+     "type": "string"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.rightToLeft": {
+  "description": "Lays out the active sheet from right to left (column A on the right), or back.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "view.ruler": {
+  "description": "Shows or hides the ruler in Page Layout view.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "view.showZeros": {
+  "description": "Shows zero values as 0 or as empty cells on the active sheet.",
+  "params": {
+   "on": {
+    "description": "true turns it on, false off; left out, it toggles",
+    "type": "boolean"
+   }
+  }
+ },
+ "view.split": {
+  "description": "Toggles a split of the window at the active cell (shown as frozen panes) and answers the frozen cell.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "freeze": {
+     "type": "json"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.switchWindows": {
+  "description": "Lists the open windows with their index, title and whether each is active or hidden.",
+  "output": {
+   "items": {
+    "additionalProperties": true,
+    "properties": {
+     "active": {
+      "type": "boolean"
+     },
+     "hidden": {
+      "type": "boolean"
+     },
+     "index": {
+      "type": "number"
+     },
+     "title": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "type": "array"
+  }
+ },
+ "view.unfreezePanes": {
+  "description": "Removes frozen panes from the active sheet."
+ },
+ "view.unhideWindow": {
+  "description": "Shows a hidden window by index."
+ },
+ "view.zoom": {
+  "description": "Sets the zoom of the view to a percentage from 10 to 400; changes nothing in the workbook.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "zoom": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  }
+ },
+ "view.zoomToSelection": {
+  "description": "Zooms the view so the selection fills the window and answers the zoom percentage.",
+  "output": {
+   "additionalProperties": true,
+   "properties": {
+    "zoom": {
+     "type": "number"
+    }
+   },
+   "type": "object"
+  },
+  "params": {
+   "viewHeight": {
+    "type": "number"
+   },
+   "viewWidth": {
+    "type": "number"
+   }
+  }
+ },
+ "window.activate": {
+  "description": "Brings the open window with the given index (from view.switchWindows) to the front."
+ }
+}

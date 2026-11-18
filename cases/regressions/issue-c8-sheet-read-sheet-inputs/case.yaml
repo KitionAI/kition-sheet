@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-sheet-inputs
+feature: sheet.agent.independent-reading
+intent: Sheet insertion, renaming, copying, deletion and hiding hold consumed source cells and other tabs' name or visibility facts while permitting another sheet's unrelated constant.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent tab-name and visibility readings
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_sheet_inputs
+      filter: sheet_commands_hold_other_tabs_names_and_visibility
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-4
+feature: sheet.cells.entry
+intent: >-
+  `range.fill {range, input}` writes a formula as for the range's first cell, so `=A10+1` into
+  A11:A69 counts on from A10 instead of turning circular (it moved references from the active
+  cell); filling the selection still moves them from the active cell, like Ctrl+Enter. The row
+  height and column width commands take one row or column (`"9"`, `"C"`) and lists (`"2:3,7"`).
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: issue_4
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

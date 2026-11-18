@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-clear-premises
+feature: sheet.agent.precise-families
+intent: Clear writes refuse edits to their selected metadata or cell inputs and relocated address windows while allowing unrelated cells and metadata kinds they preserve.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 clear premise audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: clear_families_hold_the_metadata_or_cells_they_actually_clear
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-sheet-delete-references
+feature: sheet.editor.sheet-menu
+intent: >-
+  Deleting a sheet turns the references to it into #REF! and leaves every other formula's text
+  as it was typed; a name qualified by the deleted sheet (`Sheet3!Rate`) is #REF! too; a copy and
+  its sheet outlive each other; Undo brings the sheet back with its content; and an array formula
+  stays one when the sheet it names is renamed. Before, deleting a sheet reprinted every formula
+  in the workbook, a qualified name kept naming the deleted sheet, and renaming or deleting a
+  sheet turned array formulas into ordinary ones.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M2 (Delete)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: deleting_a_sheet_turns_references_to_it_into_ref_errors
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-command-dialogs-dropped
+feature: sheet.editor.table-styles
+intent: >-
+  A menu item run without the values it needs (Home › Format › Format Cells, the cell menu's Format Cells, Cmd+1) made its command ask for a dialog that the editor's engine dropped, so nothing opened. The request now reaches the editor through inspect (each once, by count) and opens Format Cells, Insert Function, Unhide Sheet or the command's parameters dialog; an agent's call still opens none (FC-X1).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M7 (FC-X1)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_command_without_its_values_asks_the_editor_for_its_dialog
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

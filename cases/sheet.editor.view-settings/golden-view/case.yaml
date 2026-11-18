@@ -1,0 +1,30 @@
+format: 1
+id: sheet.editor.view-settings/golden-view
+feature: sheet.editor.view-settings
+intent: >-
+  Frozen panes, gridlines and the highlight of the selection's rows and columns against the
+  golden WPS cases (module M5 冻结, 网格线, 高亮所在行列, and the formula bar's BAR-C19, BAR-C23,
+  BAR-C24), in Chromium (`pnpm test:golden-view` runs WebKit as well): Home and View › 冻结窗格
+  with WPS's choices for the active cell (冻结至第 5 行 C 列, 第 5 行, 第 C 列, 首行, 首列, and
+  取消冻结 while frozen), the preview while pointing at one, scrolling under the frozen rows and
+  columns, the view following a key that moves the active cell past the edge, undo and redo,
+  inserting and filtering, save and reopen, 10 000 rows, 50% and 200%; 显示网格线 with fills,
+  borders, the selection, the formula bar, frozen panes, the zoom and Focus, saved with the
+  sheet, and the gridline colour; 高亮行列 from the View tab and the status bar, its 12 colours,
+  following the selection, with frozen panes, the zoom and Focus, kept for the next time and never
+  changing the workbook.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/golden-view.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/golden-view.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

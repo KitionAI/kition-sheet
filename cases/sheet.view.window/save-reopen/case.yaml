@@ -1,0 +1,21 @@
+format: 1
+id: sheet.view.window/save-reopen
+feature: sheet.view.window
+intent: Frozen panes and hidden gridlines set by command survive saving as .xlsx and opening it again.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/roundtrip.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: roundtrip
+      filter: frozen_panes_and_gridlines_survive_save_and_reopen
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,31 @@
+format: 1
+id: sheet.editor.formula-input/cell-editor
+feature: sheet.editor.formula-input
+intent: >-
+  The cell editor's tool: a press, a drag, Shift and the arrows point at cells and headings and
+  insert their references (a dashed frame round the range), another sheet's cells with its quoted
+  name; F4 cycles the reference at the caret; the function list and the argument hint follow the
+  caret, Up and Down choose, Tab and editor.acceptFunction take a function; the formula bar's F4
+  and hint come from editor.cycleReference and editor.formula.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: task F1
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: pointing_at_cells_while_typing_a_formula_inserts_their_references
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: pointing_at_another_sheets_cells
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: f4_function_list_and_argument_hint_in_the_cell_editor
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

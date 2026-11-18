@@ -1,0 +1,18 @@
+{
+  "editor.commentPlaces": { "params": { "anchors": [{ "ids": ["not-a-sheet", "r", "c"] }] } },
+  "editor.insertText": { "params": { "text": "±" } },
+  "file.export": { "params": { "format": "csv" } },
+  "file.exportCsv": { "params": { "path": "$tmp/out.csv" } },
+  "file.exportHtml": { "params": { "path": "$tmp/out.html" } },
+  "window.activate": { "params": { "index": 0 } },
+  "edit.goTo": { "params": { "reference": "B2" } },
+  "edit.goToSpecial": { "params": { "kind": "constants" } },
+  "edit.find": { "params": { "what": "North", "all": true } },
+  "formulas.evaluateFormula": { "params": { "formula": "=1+2" } },
+  "formulas.evaluate": { "params": { "formula": "=SUM(B2:B5)" } },
+  "view.zoom": { "params": { "percent": 120 } },
+  "review.addToDictionary": { "params": { "word": "Kition" } },
+  "pivot.fields": { "setup": [["insert.pivotTable", { "source": "A1:B5", "rows": ["Region"], "values": [{ "field": "Sales" }] }]], "params": {} },
+  "data.filterValues": { "setup": [["data.filter", { "range": "A1:B5" }]], "params": { "cell": "A1" } },
+  "pivot.fieldList": { "setup": [["insert.pivotTable", { "source": "A1:B5", "rows": ["Region"], "values": [{ "field": "Sales" }] }]], "params": {} }
+}

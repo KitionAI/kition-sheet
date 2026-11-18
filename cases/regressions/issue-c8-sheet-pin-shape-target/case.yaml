@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-shape-target
+feature: sheet.agent.independent-reading
+intent: A shape-fill call names one shape or refuses before writing, preserving the other shape and outside edits.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-pin
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: pin_shape_target
+      filter: shape_fill_on_changes_the_named_shape_or_refuses_without_writing
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

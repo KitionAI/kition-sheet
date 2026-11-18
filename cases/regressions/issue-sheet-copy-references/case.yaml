@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-sheet-copy-references
+feature: sheet.editor.sheet-menu
+intent: >-
+  A copied sheet refers to itself where its sheet referred to itself (cell formulas,
+  sheet-qualified names, conditional formats, validations, chart series) and to the other sheets
+  as before; its tables are copied under names of their own, which its formulas follow; its
+  tables, charts and pictures get ids of their own; a 3-D span takes in a copy placed inside it.
+  Before, a copy's formulas and rules still pointed at the sheet it was copied from, its tables
+  were dropped (formulas naming them broke), and its objects shared ids with the original's.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M2 (Create a Copy)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: a_copied_sheet_refers_to_itself_and_keeps_other_references
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

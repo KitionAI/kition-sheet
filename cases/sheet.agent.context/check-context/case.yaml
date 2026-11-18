@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/check-context
+feature: sheet.agent.context
+intent: >-
+  The editor-state hooks pass kition-sdk's check_context with a context that moves the editor to another sheet and a selection there: no revision, dirty state, undo step or content changes, and the state comes back exactly.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: context
+      filter: the_editor_state_hooks_pass_the_sdks_contract_check
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

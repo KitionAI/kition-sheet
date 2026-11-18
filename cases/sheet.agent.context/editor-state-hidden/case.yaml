@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/editor-state-hidden
+feature: sheet.agent.context
+intent: >-
+  What an agent reads of a workbook (view.describe) leaves out the editor's state, declared once as JSON Pointers (EDITOR_STATE): moving to another sheet and selecting there change nothing in it, so no answer depends on where the person is.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: context
+      filter: what_an_agent_reads_of_the_workbook_leaves_out_the_editors_state
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

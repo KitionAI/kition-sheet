@@ -1,0 +1,22 @@
+format: 1
+id: sheet.editor.filter-buttons/golden-cleanup
+feature: sheet.editor.filter-buttons
+intent: >-
+  A table's and a range's filter buttons in the editor (module M10, CLN-X7 to CLN-X9): the list
+  of values with counts, a search, unticking values, 数字筛选 and 文本筛选 conditions, 升序 and
+  降序 with the filter kept, 清空条件, Escape.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/golden-cleanup.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/golden-cleanup.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

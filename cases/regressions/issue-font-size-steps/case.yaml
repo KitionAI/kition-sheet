@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-font-size-steps
+feature: sheet.editor.format-font
+intent: >-
+  Increase Font Size skipped 22 and 26 (20 went to 24) and went past 72 to 96 and 409; Decrease
+  Font Size went below 6. Both now step through WPS's list (6 to 72), a size between two of them
+  going to the next, and are greyed at the ends (FONT-C83, FONT-C85, FONT-C88).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M6 (FONT-C88)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: format_painter
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-c8-sheet-3-cell-labels
+feature: sheet.agent.env-cells
+intent: Sheet rename leaves cell labels and loaded cells unchanged, including after save and reopen.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 environment rename audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: cell_labels
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

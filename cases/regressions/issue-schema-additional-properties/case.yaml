@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-schema-additional-properties
+feature: sheet.agent.act
+intent: >-
+  Every object in every command's parameter schema, however deep (a property, an array's items, a
+  oneOf branch), states additionalProperties, so an agent and the host know whether it takes keys
+  the schema does not name (KHP E7, A5; kition-sdk schema::validate). Kition's check:kit-modules
+  refused the engine: the items of `editor.commentPlaces`'s `anchors` stated nothing.
+layer: gate
+source:
+  kind: probe
+  from: kition scripts/check-kit-module.mjs (pnpm check:kit-modules)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: parameter_schemas
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

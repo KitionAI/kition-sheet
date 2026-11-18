@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-freeze-follows-lines
+feature: sheet.editor.rows-columns
+intent: >-
+  Inserting or deleting rows and columns left the frozen panes where they were: a row inserted
+  above the frozen row 1 scrolled away under it. Now lines inserted inside the frozen part freeze
+  with it and deleting frozen lines shrinks it, never to nothing (WPS for Mac; golden INS-C85 to
+  INS-C88, DEL-C35).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: golden case tables 插入行列 rows 85–88, 删除行列 row 35
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: rows_columns
+      filter: frozen_panes_grow_and_shrink_but_stay_frozen
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

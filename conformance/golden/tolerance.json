@@ -1,0 +1,5 @@
+{
+  "maxChannelDelta": 2,
+  "maxDifferentPixels": 1200,
+  "note": "The engine's own renderer draws the preview; anti-aliased glyph and grid edges may differ by a step between platforms and SIMD paths."
+}

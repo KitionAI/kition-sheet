@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-drawing-frame
+feature: sheet.agent.independent-reading
+intent: Public drawing insertion and transformation accept the frame objects consumed by their shared drawing operations.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: C8-sheet-read declaration comparison
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_parameters
+      filter: drawing_frames_accept_the_objects_used_by_the_engine
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

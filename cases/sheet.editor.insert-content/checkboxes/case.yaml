@@ -1,0 +1,40 @@
+format: 1
+id: sheet.editor.insert-content/checkboxes
+feature: sheet.editor.insert-content
+intent: >-
+  The engine side of inserting content: checkbox cells (inserted over text, formulas and pictures,
+  one per merged area, refused across array formulas; ticked and cleared; TRUE and FALSE typed or
+  replaced in; kept as content through Clear Formats, the format painter and Paste Special ›
+  Formats, taken by Clear Contents and Clear All, carried by copy and cut, not spread to inserted
+  lines or merged-away cells; sorted, deduplicated, links refused; written as Excel's cell
+  controls and read back, a form control's checkbox left behind); a table's header pictures
+  refused until they may go; and in the editor's engine, clicks, Space, typing and the formula
+  bar on a checkbox, symbols at the caret, and fonts for a selected text box.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M8
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: checkboxes
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: checkbox
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: checkbox_cells_toggle_on_their_box_and_refuse_typing
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: symbols_go_in_at_the_caret_or_after_the_text
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: font_commands_and_symbols_reach_a_selected_text_box
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

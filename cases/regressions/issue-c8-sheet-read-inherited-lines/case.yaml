@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-inherited-lines
+feature: sheet.agent.precise-families
+intent: An insertion based on an observed workbook refuses when another writer changes the neighbouring formats or conditional-format boundary it inherits, while unrelated distant edits still apply.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read blind reading of sheet.rs format_inserted
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_edit
+      filter: inserted_rows_hold_
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

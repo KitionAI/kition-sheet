@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-c8-sheet-read-2-background
+feature: sheet.agent.independent-reading
+intent: A background picture always uses A1, so its editor declaration must not inherit the general picture command's selection default.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read-2 fixed-origin projection audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: background_selection
+  - cargo-test:
+      package: kition-sheet-kit
+      test: background_reads
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

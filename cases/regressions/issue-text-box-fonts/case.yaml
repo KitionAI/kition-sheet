@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-text-box-fonts
+feature: sheet.editor.insert-content
+intent: >-
+  With a text box selected, Home › Bold, Italic, Underline, Font, Font Size and Font Color changed
+  the active cell and left the text box as it was. They now format all of the selected text box's
+  text, as Excel and WPS do, and leave the cells alone (FONT-C54, FONT-C111, FONT-C123).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M8 (FONT-C111, FONT-C123)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: font_commands_and_symbols_reach_a_selected_text_box
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

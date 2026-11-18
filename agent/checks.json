@@ -1,0 +1,56 @@
+[
+  {
+    "code": "sheet.formula-error",
+    "severity": "error",
+    "summary": "A formula ends in an error value (#DIV/0!, #VALUE!, #REF!, \u2026); #N/A is reported as a warning.",
+    "fixture": "check-formula-error.xlsx"
+  },
+  {
+    "code": "sheet.circular-reference",
+    "severity": "error",
+    "summary": "A formula refers to itself, directly or through other cells.",
+    "fixture": "check-circular-reference.xlsx"
+  },
+  {
+    "code": "sheet.broken-name",
+    "severity": "error",
+    "summary": "A defined name points nowhere: #REF!, a missing sheet, or a scope sheet that does not exist.",
+    "fixture": "check-broken-name.xlsx"
+  },
+  {
+    "code": "sheet.overlapping-merges",
+    "severity": "error",
+    "summary": "Two merged ranges overlap, which Excel refuses to open cleanly.",
+    "fixture": "check-overlapping-merges.xlsx"
+  },
+  {
+    "code": "sheet.merge-hides-data",
+    "severity": "warning",
+    "summary": "A merged range covers cells with values that only its top-left cell shows.",
+    "fixture": "check-merge-hides-data.xlsx"
+  },
+  {
+    "code": "sheet.reference-outside-data",
+    "severity": "warning",
+    "summary": "A formula reads a single empty cell beyond its sheet's data, often a typo in a reference.",
+    "fixture": "check-reference-outside-data.xlsx"
+  },
+  {
+    "code": "sheet.font-substituted",
+    "severity": "info",
+    "summary": "Cells are set in a font the renderer has no face for, so they are drawn in its built-in face and take other widths than in Excel: add the font, or for an Office font its metric-compatible stand-in (Carlito for Calibri). An Office font drawn in the built-in face while the host has added no fonts at all is the kit's own fallback and is not reported.",
+    "fixture": "check-font-substituted.xlsx"
+  },
+  {
+    "code": "sheet.missing-glyph",
+    "severity": "warning",
+    "summary": "A cell's text has characters no face the renderer has draws (such as \u2713 or \u2717 in Carlito); they show as empty boxes.",
+    "fixture": "check-missing-glyph.xlsx"
+  },
+  {
+    "code": "sheet.truncated",
+    "severity": "info",
+    "summary": "A code was found more than 100 times; the rest are counted, not listed.",
+    "fixture": "check-truncated.xlsx"
+  }
+]

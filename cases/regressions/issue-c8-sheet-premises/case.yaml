@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-premises
+feature: sheet.agent.premises
+intent: >-
+  Cell addresses hold both positional axes and their stored entry. Drawing property writes
+  hold their properties independently of movement, and all drawings are root-reachable.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-land-13-sheet failing places and independent-writer scenarios
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: places
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-2-projections
+feature: sheet.agent.independent-reading
+intent: Editor and object-type declarations preserve source handler semantics for copied windows, spelling replacements, and concrete object operations.
+layer: unit
+dimension: function
+source:
+  kind: issue
+  from: C8-sheet-read-2
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: projection_audit
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

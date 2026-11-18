@@ -1,0 +1,23 @@
+format: 1
+id: sheet.insert.smart-graphic/kept-on-save
+feature: sheet.insert.smart-graphic
+intent: >-
+  A smart graphic in an opened workbook is kept with its data, layout, style, colour and
+  drawing parts and the drawing's pictures, and written back under new names with the data part
+  naming the drawing's new relationship, so saving does not drop it.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: crates/formats/xlsx/src/tests/diagram_tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: a_smartart_diagram_is_kept_with_its_drawing_and_pictures
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

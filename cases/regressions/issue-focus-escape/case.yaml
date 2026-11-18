@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-focus-escape
+feature: sheet.editor.display-modes
+intent: In Focus, Escape while a cell is being typed drops the typing and stays in Focus, and Escape with nothing to cancel leaves Focus (the select tool took every Escape, so Focus could not be left by key).
+layer: gate
+source:
+  kind: probe
+  from: web/tests/focus-escape.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/focus-escape.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 60
+since: "2026-11-17"

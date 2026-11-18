@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-table-inputs
+feature: sheet.agent.precise-families
+intent: Table insertion, rename and duplicate removal hold headers, formula membership or source cells rather than unrelated literal cells.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 remaining table handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: table_creation_rename_and_duplicates_hold_their_actual_inputs
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

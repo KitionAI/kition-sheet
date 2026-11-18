@@ -1,0 +1,15 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-private-coverage
+feature: sheet.agent.independent-reading
+intent: Private conditional-rule coverage retains departed recipients after an outside axis shift, while unrelated shifts and unremoved rules remain allowed.
+layer: gate
+dimension: collab
+source: {kind: synthetic, from: C8-sheet-pin, license: Apache-2.0}
+input: []
+steps:
+  - cargo-test: {package: kition-sheet, test: independent_cf_necessity}
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

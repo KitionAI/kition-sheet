@@ -1,0 +1,40 @@
+format: 1
+id: sheet.agent.observe/best-region
+feature: sheet.agent.observe
+intent: >-
+  The agent reads a small table through the kit and answers in the file: the best-selling region
+  goes into D1, and nothing else in the sheet changes.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.xlsx
+  license: Apache-2.0
+  note: A copy of the conformance fixture the sheet engine writes (KITION_WRITE_CONFORMANCE=1).
+input: [input/sales.xlsx]
+steps:
+  - task:
+      prompt: >-
+        In sales.xlsx, which region sold the most? Write just that region's name into cell D1 of
+        the Data sheet, and change nothing else.
+      max_turns: 20
+  - inspect: { path: sales.xlsx, as: after }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      content.rows.0.4: North
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      content.rows.1.1: North
+      content.rows.1.2: 120
+      content.rows.2.2: 80
+      content.rows.3.2: 100
+      content.rows.4.1: Total
+      content.rows.4.2: 300
+solution:
+  - tool: sheet_run
+    args: { path: sales.xlsx, steps: [{ command: cell.set, params: { cell: D1, input: North } }] }
+since: "2026-11-17"
+timeout_s: 600

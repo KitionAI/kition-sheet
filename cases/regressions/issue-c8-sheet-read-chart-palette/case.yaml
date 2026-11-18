@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-chart-palette
+feature: sheet.agent.independent-reading
+intent: Generated chart palettes apply to 200 series without overflowing their tint arithmetic and retain the existing tint bounds.
+layer: gate
+dimension: robustness
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: chart_palette_overflow
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

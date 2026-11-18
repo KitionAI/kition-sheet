@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-axis-properties
+feature: sheet.agent.axis-premises
+intent: Fixed row and column properties hold only the affected fields and positional windows, including the neighbours that a single-axis unhide also reveals.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 fixed axis handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: fixed_axis_properties_hold_their_fields_and_address_windows
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

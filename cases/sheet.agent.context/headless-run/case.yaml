@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/headless-run
+feature: sheet.agent.context
+intent: >-
+  A run over the Kit Process Protocol sets each step's sheet (part) and cells (on), lands every edit on the sheet it names, and puts the person's active sheet and selection back afterwards.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/headless/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: context
+      filter: a_run_sets_each_steps_sheet_and_selection_and_puts_the_editor_back
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

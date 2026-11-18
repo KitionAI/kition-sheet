@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-2-axes
+feature: sheet.agent.premises
+intent: >-
+  Inserted blank rows and columns have persistent distinct identities, so independent reads
+  detect shifted address windows and insertion gaps rather than pairing equal blank axes.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 item 2; fixed mixed table insert-before wrong applications
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: axis_ids
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

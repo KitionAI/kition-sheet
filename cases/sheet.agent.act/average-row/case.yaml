@@ -1,0 +1,49 @@
+format: 1
+id: sheet.agent.act/average-row
+feature: sheet.agent.act
+intent: >-
+  The agent adds a computed row: an Average row under Total whose value is a formula over the three
+  regions, without disturbing the existing rows or adding formula errors.
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.xlsx
+  license: Apache-2.0
+  note: A copy of the conformance fixture the sheet engine writes (KITION_WRITE_CONFORMANCE=1).
+input: [input/sales.xlsx]
+steps:
+  - task:
+      prompt: >-
+        In sales.xlsx, add a row directly below Total labelled Average, whose Sales cell is a
+        formula that averages the three regions' sales.
+      max_turns: 20
+  - inspect: { path: sales.xlsx, as: after }
+  - check: { path: sales.xlsx, as: diagnostics }
+expected:
+  - actual: out:after
+    compare: values
+    value:
+      content.rows.5.1: Average
+      content.rows.5.2: { approx: 100, tol: 0.001 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      content.rows.1.1: North
+      content.rows.1.2: 120
+      content.rows.2.2: 80
+      content.rows.3.2: 100
+      content.rows.4.1: Total
+      content.rows.4.2: 300
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { max_errors: 0 }
+solution:
+  - tool: sheet_run
+    args:
+      path: sales.xlsx
+      steps:
+        - { command: cell.set, params: { cell: A6, input: Average } }
+        - { command: cell.set, params: { cell: B6, input: "=AVERAGE(B2:B4)" } }
+since: "2026-11-17"
+timeout_s: 600

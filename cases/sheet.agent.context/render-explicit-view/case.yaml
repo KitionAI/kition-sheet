@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/render-explicit-view
+feature: sheet.agent.context
+intent: >-
+  The agent's preview (file.render) draws the named sheet's range with headings as a function of the workbook and the call: the active sheet, selection, zoom and viewport neither change the bytes nor are changed by it, and the same call answers the same bytes.
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: render
+      filter: it_never_reads_or_moves_the_editor_and_answers_the_same_bytes
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

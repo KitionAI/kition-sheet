@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-checkbox-toggle
+feature: sheet.agent.independent-reading
+intent: Checkbox toggles hold their selected literal values and merge anchors while preserving another writer's unrelated plain cell changes.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent primitive handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_primitive_reads
+      filter: checkbox_toggle
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

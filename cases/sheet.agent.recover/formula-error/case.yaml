@@ -1,0 +1,40 @@
+format: 1
+id: sheet.agent.recover/formula-error
+feature: sheet.agent.recover
+intent: >-
+  The agent uses the kit's check to find a formula error and repairs it, leaving the sales figures
+  as they were: the check-then-fix loop agents rely on (KHP Verify).
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/check-formula-error.xlsx
+  license: Apache-2.0
+  note: A copy of the conformance fixture for sheet.formula-error (C2 is =B2/0), written by the sheet engine.
+input: [input/broken.xlsx]
+steps:
+  - task:
+      prompt: >-
+        Run the kit's check on broken.xlsx and fix every error it reports. Keep the numbers in
+        column B exactly as they are.
+      max_turns: 20
+  - inspect: { path: broken.xlsx, as: after }
+  - check: { path: broken.xlsx, as: diagnostics }
+expected:
+  - actual: out:diagnostics
+    compare: diagnostics
+    value: { absent: [sheet.formula-error], max_errors: 0 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      content.rows.1.1: North
+      content.rows.1.2: 120
+      content.rows.2.2: 80
+      content.rows.3.2: 100
+      content.rows.4.1: Total
+      content.rows.4.2: 300
+solution:
+  - tool: sheet_run
+    args: { path: broken.xlsx, steps: [{ command: cell.set, params: { cell: C2, input: "=B2/B5" } }] }
+since: "2026-11-17"
+timeout_s: 600

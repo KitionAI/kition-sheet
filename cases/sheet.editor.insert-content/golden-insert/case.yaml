@@ -1,0 +1,29 @@
+format: 1
+id: sheet.editor.insert-content/golden-insert
+feature: sheet.editor.insert-content
+intent: >-
+  Inserting content against the golden WPS cases (module M8 插入内容, its generic part), in Chromium
+  (`pnpm test:golden-insert` runs WebKit as well): Insert › 符号's panel (recent and common
+  symbols, closing on a second click or outside) and Symbol dialog (符号 and 特殊字符 tabs, name
+  search, font, subset, code), symbols going in at the caret of what is typed, after a cell's text
+  with the cell open, into a text box and a merged area, undone, saved and reopened; Insert ›
+  复选框's checkbox cells ticked by a click on the box or Space, not typed in, through fonts,
+  fills, alignment, Text format, clearing, copy, cut, paste special, the format painter, merging,
+  sorting, filtering, duplicates, text to columns, find and replace, inserted lines, array
+  formulas, save and reopen and a viewer; and the cases M6 and M7 left (text box fonts, picture
+  cells' formats, inserting beside a table, a table's header pictures).
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/golden-insert.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/golden-insert.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

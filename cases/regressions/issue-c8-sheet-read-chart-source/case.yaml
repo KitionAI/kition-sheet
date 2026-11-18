@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-chart-source
+feature: sheet.agent.independent-reading
+intent: Drawing transforms retain explicit chart formula-source premises before replica initialization and allow an unrelated cell edit after the host initializes the replica.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read integration regression
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: chart_source_holds_allow_unrelated_cells_and_follow_formula_dependencies
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

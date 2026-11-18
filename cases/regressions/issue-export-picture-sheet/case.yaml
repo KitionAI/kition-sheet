@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-export-picture-sheet
+feature: sheet.file.export-print
+intent: >-
+  Export as Picture of a range written with its sheet (`Notes!A1:B2`) draws that sheet's cells and
+  refuses a sheet the workbook lacks: the sheet was dropped and the active sheet's cells at the same
+  address were drawn (task card C4/C5/C6-sheet).
+layer: gate
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/export_sheet.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: export_sheet
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

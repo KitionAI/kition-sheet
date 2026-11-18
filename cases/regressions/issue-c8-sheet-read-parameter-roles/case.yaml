@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-c8-sheet-read-parameter-roles
+feature: sheet.agent.independent-reading
+intent: Creation names stay literal in declarations, file import commands retain their exact disabled response, and alignment IDs follow the object kind with changed anchors refusing and unrelated cells applying.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_parameters
+  - cargo-test:
+      package: kition-sheet-kit
+      test: declarations_independent
+      filter: objects::tests::reviewed_parameter_roles_distinguish_creation_names_and_typed_alignment_ids
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

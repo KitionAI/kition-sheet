@@ -1,0 +1,23 @@
+format: 1
+id: sheet.insert.smart-graphic/drawn
+feature: sheet.insert.smart-graphic
+intent: >-
+  A kept smart graphic is drawn from the drawing saved beside its data, through the shared
+  reader in kition-office-core: outlines in the workbook theme's colours, text at its size,
+  picture boxes, and the prompts of empty nodes in the editor only.
+layer: unit
+dimension: fidelity
+source:
+  kind: synthetic
+  from: crates/engine/chart/src/diagram.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-chart
+      filter: a_diagram_draws_its_kept_drawing_in_the_sheet_theme
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

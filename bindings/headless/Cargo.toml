@@ -1,0 +1,24 @@
+[package]
+name = "kition-sheet"
+description = "The Sheet kit for Kition's agent: the Kition SDK document served headless over the Kit Protocol."
+version.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-sheet-kit = { path = "../wasm" }
+kition-headless = { workspace = true }
+
+[dev-dependencies]
+kition-env = { workspace = true }
+kition-kit = { workspace = true, features = ["session"] }
+kition-kit-server = { workspace = true }
+serde_json = { workspace = true }
+kition-kits = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tempfile = "3"
+kition-sheet-engine = { workspace = true }

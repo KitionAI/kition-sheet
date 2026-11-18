@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-gbk-csv
+feature: sheet.editor.workbook-files
+intent: >-
+  A CSV saved by Chinese Windows applications (GBK) opened as garbled text. Files that are not
+  UTF-8 are now read as GB18030 (IMP-C36).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C36)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: gbk_csv_reads_as_chinese
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-cell-styles
+feature: sheet.agent.format-premises
+intent: Named cell style application and redefinition hold their chosen definitions and written styles, allowing unrelated cells and other style definitions.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 cell style handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: named_cell_styles_hold_the_chosen_definition_and_written_styles
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

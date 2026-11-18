@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-view-zoom
+feature: sheet.editor.formula-bar
+intent: >-
+  View › Zoom set the sheet's zoom but the editor's view stayed as it was. The editor now reads the
+  zoom and how many times it was set (`zoom`, `zoomAsked`) and zooms the view each time.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M3 (BAR-C19, BAR-C26)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: inspect_gives_the_show_settings
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

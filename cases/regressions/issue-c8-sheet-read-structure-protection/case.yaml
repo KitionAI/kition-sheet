@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-structure-protection
+feature: sheet.agent.precise-families
+intent: Sheet insert, delete and move calls refuse at the premise guard when another writer protects workbook structure, while unrelated cell edits still apply.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read blind reading of sheet.rs structure commands
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_edit
+      filter: sheet_structure_commands_declare_workbook_protection
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

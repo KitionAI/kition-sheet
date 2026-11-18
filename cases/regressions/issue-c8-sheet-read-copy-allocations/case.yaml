@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-copy-allocations
+feature: sheet.agent.independent-reading
+intent: Copying a sheet holds workbook-wide drawing-ID and copied-table-name allocations while allowing an unrelated cell on another sheet to change.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent sheet-copy allocation reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_copy_allocations
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

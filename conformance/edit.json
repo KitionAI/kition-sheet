@@ -1,0 +1,5 @@
+{
+  "steps": [
+    { "command": "range.setValues", "params": { "range": "C1", "values": [["Target"], [100], [100], [100], ["=SUM(C2:C4)"]] } }
+  ]
+}

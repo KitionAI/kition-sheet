@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-reread
+feature: sheet.agent.independent-reading
+intent: File rereads retain editor and undo state without losing persisted row identities or overwriting outside edits.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-pin
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: pin_adoption
+      filter: reread_keeps_agent_undo_and_outside_cell_values
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: positional_view_writes_refuse_shifted_addresses_and_allow_other_cells
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

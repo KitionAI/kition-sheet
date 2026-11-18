@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-duplicate-keys
+feature: sheet.agent.independent-reading
+intent: Table duplicate removal refuses stale external comparison columns while allowing unrelated edits on another sheet.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_duplicate_keys
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

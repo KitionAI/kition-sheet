@@ -1,0 +1,48 @@
+format: 1
+id: sheet.agent.draft/east-update
+feature: sheet.agent.draft
+intent: >-
+  In a two-message conversation the agent prepares a change as a draft for the person to review:
+  the draft has the new figure and a total that still adds up, and the file itself is untouched
+  (KHP Recover, A12–A14).
+layer: eval
+source:
+  kind: synthetic
+  from: repo:conformance/basic.xlsx
+  license: Apache-2.0
+  note: A copy of the conformance fixture the sheet engine writes (KITION_WRITE_CONFORMANCE=1).
+input: [input/sales.xlsx]
+steps:
+  - task:
+      turns:
+        - >-
+          Prepare a change to sales.xlsx as a draft for me to review; do not change the file
+          itself. East's sales are now 150.
+        - In the same draft, make sure the Total still adds up.
+      max_turns: 20
+  - inspect: { path: sales.xlsx, args: { draft: true }, as: draft, missing_ok: true }
+  - inspect: { path: sales.xlsx, as: after }
+expected:
+  - actual: out:draft
+    compare: values
+    value:
+      content.rows.3.1: East
+      content.rows.3.2: 150
+      content.rows.4.2: { approx: 350, tol: 0.001 }
+  - actual: out:after
+    compare: values
+    collateral: true
+    value:
+      content.rows.1.1: North
+      content.rows.1.2: 120
+      content.rows.2.2: 80
+      content.rows.3.2: 100
+      content.rows.4.1: Total
+      content.rows.4.2: 300
+solution:
+  - tool: sheet_run
+    args: { path: sales.xlsx, draft: true, steps: [{ command: cell.set, params: { cell: B4, input: "150" } }] }
+  - tool: sheet_run
+    args: { path: sales.xlsx, draft: true, steps: [{ command: cell.set, params: { cell: B5, input: "=SUM(B2:B4)" } }] }
+since: "2026-11-17"
+timeout_s: 600

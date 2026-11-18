@@ -1,0 +1,12 @@
+[package]
+name = "kition-sheet-numfmt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Sheet number formats: Excel format codes, General display, TEXT()"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-sheet-core = { workspace = true }

@@ -1,0 +1,20 @@
+format: 1
+id: sheet.insert.smart-graphic/printed
+feature: sheet.insert.smart-graphic
+intent: A kept smart graphic prints its drawing and text at their sizes, without the prompts of empty nodes.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: crates/engine/engine/src/cmd/print.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: smartart_diagrams_print_their_drawing_without_prompts
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

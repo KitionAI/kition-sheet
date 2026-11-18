@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-spelling-header-membership
+feature: sheet.agent.independent-reading
+intent: All-match spelling holds table-header membership for its matching cells while allowing a colleague to create an unrelated table.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read spelling replacement and shared header synchronization
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view_precision
+      filter: supported_all_spelling_holds_covering_header_membership_and_allows_unrelated_table_creation
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

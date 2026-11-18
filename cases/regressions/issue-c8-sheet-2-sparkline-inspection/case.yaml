@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-sparkline-inspection
+feature: sheet.agent.sparkline-source
+intent: Canonical stored sparkline sources retain the inspector's established local A1 display, as specified by the unchanged November 9 regression test.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 full binding rerun
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: issue_3
+      filter: sparklines_are_drawn_and_inspected
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

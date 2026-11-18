@@ -1,0 +1,35 @@
+format: 1
+id: sheet.editor.view-settings/view-commands
+feature: sheet.editor.view-settings
+intent: >-
+  The engine side of the view settings: `view.freezeRows` and `view.freezeColumns` (WPS's
+  冻结至第 4 行 and 冻结至第 B 列, refused on the first row or column) and every freeze choice
+  replacing the frozen panes, undone and redone; `view.gridlineColor` saved with the sheet as the
+  nearest colour of the legacy palette; `view.focusCell` as the person's view (no undo step,
+  nothing to save); and in the editor's engine the highlight and the freeze preview as overlays,
+  never in the document's pixels, and the gridlines drawn in the sheet's colour.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M5
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: view_settings
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_highlight_tints_the_selections_rows_and_columns_as_overlays
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_freeze_menu_previews_its_choice
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: gridlines_take_the_sheets_colour
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

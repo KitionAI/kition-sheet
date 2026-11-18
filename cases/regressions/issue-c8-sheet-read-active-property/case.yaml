@@ -1,0 +1,47 @@
+format: 1
+id: regressions/issue-c8-sheet-read-active-property
+feature: sheet.agent.independent-reading
+intent: View and print writes hold the sheet their handlers actually change, stored row or column positions, and a frozen view origin used as the default top, allowing unrelated edits and explicit top overrides.
+# The pinned SDK still refuses an insertion immediately after an address; the
+# unchanged desired success is waiting_for_sdk_view_addresses_allow_a_new_line_after_the_address.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read blind view handlers
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: active_only_property_holds_the_sheet_the_handler_actually_writes
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: qualified_print_area_holds_the_sheet_selected_by_agent_dispatch
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: view_coordinate_parsing_holds_only_the_positions_the_handler_uses
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: zero_scroll_freeze_origin_does_not_read_leading_line_geometry
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: default_freeze_origin_refuses_a_changed_persisted_origin
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: positional_view_writes_refuse_shifted_addresses_and_allow_other_cells
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: view_addresses_refuse_a_new_line_at_the_address
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

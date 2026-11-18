@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-geometry
+feature: sheet.agent.independent-reading
+intent: Alignment, connector creation and connector-following transforms refuse when another file writer changes the axis sizes used to compute coordinates, while another sheet's cell edit remains valid.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_geometry
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

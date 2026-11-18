@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-spelling-cell-id
+feature: sheet.agent.independent-reading
+intent: A cell tool ID selects the spelling source on its owning sheet; a changed named source refuses while changes on the previously active sheet apply.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read public cell tool ID resolution
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view_precision
+      filter: supported_cell_tool_id_spelling_targets_its_named_sheet_and_holds_that_source
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

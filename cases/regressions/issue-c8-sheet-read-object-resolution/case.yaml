@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-c8-sheet-read-object-resolution
+feature: sheet.agent.independent-reading
+intent: Every object command declares its actual object types and coordinate parameters, and chart shape fill applies on the named chart while preserving unrelated chart edits.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: declarations_independent
+      filter: objects::tests::every_object_write_has_exact_reviewed_parameter_roles
+  - cargo-test:
+      package: kition-sheet
+      test: independent_chart_fields
+      filter: chart_shape_fill_on_targets_the_named_chart_instead_of_the_last_chart
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

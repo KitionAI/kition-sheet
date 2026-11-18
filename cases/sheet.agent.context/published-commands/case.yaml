@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/published-commands
+feature: sheet.agent.context
+intent: >-
+  What the kit publishes for the agent says what each command reads (x-khp-reads), which parameter on fills (x-khp-role targets on range, cell, ids, id or chart where kition-sdk's check_targets takes it), and the view file.render draws (target.sheet, target.range).
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: context
+      filter: the_agents_commands_say_what_they_read
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

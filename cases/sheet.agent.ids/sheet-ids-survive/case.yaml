@@ -1,0 +1,23 @@
+format: 1
+id: sheet.agent.ids/sheet-ids-survive
+feature: sheet.agent.ids
+intent: >-
+  Every sheet has the workbook's own id for it (`sheetId`), from 1 and unique, kept through a
+  rename, a move, a save and a reopen, and a file's ids are read as written; a new sheet and a
+  copy get an id no other sheet has. An agent that read a sheet's id once names it by that id
+  whatever else changed.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/sheet_ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: sheet_ids
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

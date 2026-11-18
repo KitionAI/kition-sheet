@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-image-sampling
+feature: sheet.agent.env-cells
+intent: Pin the SDK creation sampler ignoring an image container's sample false declaration and the required content-byte refusal.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 pinned SDK environment sampling audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: env
+      filter: image_creation_sampling_honors_container_sample_false
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

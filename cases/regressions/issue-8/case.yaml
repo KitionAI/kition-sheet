@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-8
+feature: sheet.data.tools
+intent: >-
+  Grouped rows and columns get Excel's outline gutter beside the headings, a 16 px slot per level
+  plus one, with each group's bracket, a minus (plus once collapsed) button at its summary row or
+  column that collapses and expands it, and the level buttons in the corner; the cells move over
+  to make room, and clicks land on the cells where they are drawn.
+layer: gate
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-sheet-kit, test: outline_gutter }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-table-filter-buttons
+feature: sheet.editor.filter-buttons
+intent: >-
+  A table's header buttons did nothing (module M7, TS-C102): `data.filterBy` only knew the
+  sheet's AutoFilter, so a table could not be filtered from its header and pressing a button
+  opened nothing. A table now keeps its own criteria and the button opens the editor's list.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M7 (TS-C102)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: table_filter
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

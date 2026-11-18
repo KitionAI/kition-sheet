@@ -1,0 +1,30 @@
+format: 1
+id: sheet.editor.sheet-menu/golden-sheet-menu
+feature: sheet.editor.sheet-menu
+intent: >-
+  The golden "工作表右键菜单" cases (module M2) in Chromium (`pnpm test:golden-sheet-menu` runs
+  WebKit as well): the sheet menu from a right-click and from the active tab's arrow (New Sheet
+  before or after, Rename, Move Left/Right by the real order, Create a Copy, Tab Color, Hide,
+  Delete), the copy named as WPS names one and opened to rename, landing right of its sheet with
+  its content, formats, rules, objects, frozen panes, filter and colour; the tab colour panel (No
+  Fill and ten columns of five colours) and the sheet list's colour bars; renaming that refuses a
+  bad name with a notice and keeps the field open; Delete asking first; hiding, and unhiding from
+  the sheet list or Home › Format; Undo, saving and opening again, an imported workbook, and a
+  viewer who gets no menu. Each step names its row of the case table (MENU-C12 is row 12).
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/golden-sheet-menu.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/golden-sheet-menu.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 600
+since: "2026-11-17"

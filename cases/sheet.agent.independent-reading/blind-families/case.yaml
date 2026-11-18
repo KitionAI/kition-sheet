@@ -1,0 +1,20 @@
+format: 1
+id: sheet.agent.independent-reading/blind-families
+feature: sheet.agent.independent-reading
+intent: Independent engine readings preserve parameter resolution, workbook facts, editor reads and write effects before comparing the binding declarations.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: declarations_independent
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

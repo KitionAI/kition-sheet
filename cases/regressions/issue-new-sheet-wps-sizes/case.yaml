@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-new-sheet-wps-sizes
+feature: sheet.editor.workbook-files
+intent: >-
+  A new sheet's columns were 64 pixels and its rows 20; WPS for Mac's new workbook shows 69 by 19
+  (51.75 by 14.25 points). A new sheet now has WPS's sizes and keeps them through .xlsx.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 note, measured on WPS for Mac 7.5.1 in module M10
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: a_new_sheet_has_wps_default_column_width_and_row_height
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

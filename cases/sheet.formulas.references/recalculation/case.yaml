@@ -1,0 +1,33 @@
+format: 1
+id: sheet.formulas.references/recalculation
+feature: sheet.formulas.references
+intent: >-
+  Recalculation: INDIRECT and OFFSET, chains across sheets and names (redefined, or defined after
+  the formula) recalculate; iterative calculation settles circular references within the maximum
+  iterations and change and is saved with the workbook; manual calculation waits for Calculate
+  Now; deep nesting, whole-column and huge ranges and long chains never crash.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: task F1
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: volatile_and_cross_sheet_dependencies_recalculate
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: iterative_calculation_resolves_circular_references
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: manual_calculation_waits_for_calculate_now
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: deep_nesting_huge_ranges_and_whole_columns_never_panic
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

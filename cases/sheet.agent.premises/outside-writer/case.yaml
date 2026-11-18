@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.premises/outside-writer
+feature: sheet.agent.premises
+intent: >-
+  An independent engine really rewrites XLSX between observation and writing. Fixed necessity
+  rules require zero wrong writes and false refusals in the seeded mixed table.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-land-13-sheet independent-writer tests, currently exposing structural and map failures
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

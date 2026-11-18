@@ -1,0 +1,23 @@
+format: 1
+id: sheet.editor.data-validation/validation-messages
+feature: sheet.editor.data-validation
+intent: >-
+  A value its cell's rule refuses is held in the cell and the editor is asked to show the rule's
+  message by its style; Yes on a Warning enters it and moves on; a Stop never lets it in; the
+  active cell's list entries, input message and rule reach the editor.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_refused_value_waits_for_the_answer_to_the_rules_message
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

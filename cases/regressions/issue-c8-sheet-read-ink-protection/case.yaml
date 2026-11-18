@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-c8-sheet-read-ink-protection
+feature: sheet.agent.independent-reading
+intent: Ink creation and conversion refuse protected sheets without changing their shapes and continue to apply on unprotected sheets.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: ink_protection
+  - cargo-test:
+      package: kition-sheet
+      test: independent_objects
+      filter: ink_creation_holds_protection_without_holding_another_sheets_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-custom-view-freeze
+feature: sheet.agent.independent-reading
+intent: Showing a saved custom view restores its frozen or unfrozen pane counts after the workbook is saved and reopened.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: c8_read_engine
+      filter: custom_view_show_restores_saved_frozen_or_unfrozen_panes_after_reopen
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

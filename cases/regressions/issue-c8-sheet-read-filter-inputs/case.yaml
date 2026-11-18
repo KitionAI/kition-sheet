@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-filter-inputs
+feature: sheet.agent.independent-reading
+intent: Reapplying filters holds the first table criterion added or removed by another writer while the active cell is outside filters, and permits another sheet's unrelated constant.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent empty-table-filter branch
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_filter_inputs
+      filter: reapply_holds_first_table_criterion_added_or_removed_outside_the_selection
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

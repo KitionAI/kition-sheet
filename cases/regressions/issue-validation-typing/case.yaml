@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-validation-typing
+feature: sheet.editor.workbook-files
+intent: >-
+  A value typed into a cell with data validation was accepted whatever it was. Typed values are
+  now checked: a Stop rule keeps the cell open with WPS's message, Warning and Information rules
+  say so (IMP-C41).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C41)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: typed_values_are_checked_against_data_validation
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

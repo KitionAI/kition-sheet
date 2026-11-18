@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-dimensions
+feature: sheet.agent.premises
+intent: Direct fractional drawing and axis dimensions have their saved values before the receipt.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 direct dimension audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: direct_fractional_dimensions_are_quantized_before_the_receipt
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

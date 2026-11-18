@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-table-necessity
+feature: sheet.agent.independent-reading
+intent: Table header and totals commands accept a changed destination input they overwrite, retaining other effects of the outside edit in the saved workbook.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read maintainer-approved necessity review
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: structural_table_controls_hold_their_table_and_written_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

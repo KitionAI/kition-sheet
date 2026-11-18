@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-2-legacy
+feature: sheet.agent.premises
+intent: >-
+  Drawing ownership and structured anchors must preserve the October version-2 replica
+  migration tests, including their B2 anchor, concurrent migration, and undo behavior.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 item 1; drawing_shapes migration tests reproduced failing before the fix
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kdm-model
+      test: drawing_shapes
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

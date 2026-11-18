@@ -1,0 +1,21 @@
+format: 1
+id: sheet.sheets.manage/save-reopen
+feature: sheet.sheets.manage
+intent: Sheets inserted, renamed, given a tab colour, moved and hidden by command keep their order and state after saving as .xlsx and opening it again.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/roundtrip.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: roundtrip
+      filter: sheet_management_survives_save_and_reopen
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

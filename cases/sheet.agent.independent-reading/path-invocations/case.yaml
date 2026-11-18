@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.independent-reading/path-invocations
+feature: sheet.agent.independent-reading
+intent: Enumerate the 425 original readings plus five labelled same-field branch additions, distinguish non-writes, and expose samples that cannot execute through the public binding. Successful invocation is not a complete comparison of the handler's read facts.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read-2 blind path invocation inventory
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: declarations_independent
+      filter: "paths::"
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+timeout_s: 60

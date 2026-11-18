@@ -1,0 +1,23 @@
+format: 1
+id: sheet.editor.workbook-files/workbook-files
+feature: sheet.editor.workbook-files
+intent: >-
+  Opening, exporting and copying workbooks through the engine: refusals that say what a file is,
+  a web page named .xls, rows sized as WPS sizes them, templates and workbook copies, a copy
+  pasted into another workbook, CSV of what cells show, A4 PDFs.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/workbook_files.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: workbook_files
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-copy-formats
+feature: sheet.editor.workbook-files
+intent: >-
+  A copy put only plain text on the system clipboard, so pasting into another workbook lost
+  formats, merges and checkboxes. The copy now also puts HTML carrying Kition Sheet's own copy
+  of the cells, and paste reads it first (IMP-C55, M8 leftover).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C55)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: a_copy_pastes_into_another_workbook_with_its_formats
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

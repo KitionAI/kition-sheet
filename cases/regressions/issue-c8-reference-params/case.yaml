@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-reference-params
+feature: sheet.agent.premises
+intent: >-
+  Object and name resolvers declare the noun they resolve. Literal cell text that spells
+  a tool id is never converted, and numeric drawing handlers accept their published ids.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-land-13-sheet source audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: object_params
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

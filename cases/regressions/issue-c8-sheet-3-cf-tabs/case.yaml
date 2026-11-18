@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-cf-tabs
+feature: sheet.agent.precise-families
+intent: A conditional-format priority write addressed by numeric sheet index refuses a moved target tab and permits an unrelated cell edit.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 numeric sheet targeting audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: conditional_format_numeric_sheet_holds_its_tab_position
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

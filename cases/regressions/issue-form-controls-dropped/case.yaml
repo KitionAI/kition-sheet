@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-form-controls-dropped
+feature: sheet.editor.workbook-files
+intent: >-
+  Form controls (check boxes, option buttons, lists drawn by the legacy VML layer) were dropped
+  when an imported workbook was saved. They are kept and written back with their properties
+  (IMP-C44, M8 leftover).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C44)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: form_controls_are_kept_on_save
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

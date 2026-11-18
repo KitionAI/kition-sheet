@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-sheet-rename-references
+feature: sheet.editor.sheet-tabs
+intent: >-
+  Renaming a sheet rewrites every reference to it, quoting the new name where a formula needs it
+  (a number, a space) and not otherwise (Chinese): cell formulas, 3-D spans, defined names,
+  sheet-qualified names written with quotes, conditional formats, validations and links to places
+  in the workbook; each formula keeps its value. Before, conditional formats, validations,
+  sparklines, pivot table sources and links kept the old name, and a quoted sheet-qualified name
+  was missed.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: module M1 (references follow a renamed sheet)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: renaming_a_sheet_rewrites
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-target-roles
+feature: sheet.agent.premises
+intent: >-
+  Typed additional object references must not overwrite a target parameter's role.
+  The agent's on value must continue filling drawing command targets.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-land-13-sheet existing headless premise failures
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: object_params
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

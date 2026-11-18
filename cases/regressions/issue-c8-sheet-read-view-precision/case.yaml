@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-view-precision
+feature: sheet.agent.independent-reading
+intent: Spelling holds its selected source or all-match source membership and formula precedents, while unrelated sheet inputs and unmatched styles apply; new-workbook creation and the exact host-file refusal preserve an outside writer's file. Forced close returns success before the pinned SDK requests an impossible post-close workbook description.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read reviewed binding and blind file and spelling handlers
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view_precision
+      filter: supported_
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

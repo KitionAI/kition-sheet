@@ -1,0 +1,18 @@
+[package]
+name = "kition-sheet-chart"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Kition Sheet charts: data resolution, layout into toolkit-free primitives, sparklines and a small rasteriser"
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-office-core = { workspace = true }
+kurbo = { workspace = true }
+kition-sheet-core = { workspace = true }
+kition-sheet-model = { workspace = true }
+kition-sheet-calc = { workspace = true }
+kition-sheet-numfmt = { workspace = true }
+serde = { workspace = true }

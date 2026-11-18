@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-wps-column-units
+feature: sheet.editor.workbook-files
+intent: >-
+  Column widths were converted with a fixed 7 px character, so every golden workbook's columns
+  were narrower or wider than in WPS. A width in characters now follows the Normal font's digit
+  as WPS for Mac measures it (steps of 0.4 pt; IMP-C30, 样章渲染对照).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C30)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-model
+      filter: character_units_match_wps
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: widths
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

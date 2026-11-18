@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-unknown-params
+feature: sheet.agent.recover
+intent: >-
+  Every command with a parameter schema refuses a key its schema does not name, saying which and
+  the parameter it resembles, before it changes anything (engine rule E7a, kit requirement AX15):
+  220 commands ran with a misspelled key and ignored it. The target helpers' other spellings
+  (`cell` beside `range`, `sheet`) stay valid calls.
+layer: gate
+source:
+  kind: probe
+  from: unknown-parameter sweep (the pinned engines)
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: unknown_params
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

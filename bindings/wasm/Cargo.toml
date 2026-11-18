@@ -1,0 +1,35 @@
+[package]
+name = "kition-sheet-kit"
+description = "The Sheet engine for Kition's in-page editor: open, edit, and save Kition Sheet workbooks (Excel .xlsx) from JavaScript (WebAssembly), on the Kition SDK."
+version.workspace = true
+edition.workspace = true
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kdm-model = { workspace = true }
+kition-office-core = { workspace = true }
+kition-sheet-engine = { workspace = true }
+kition-sheet-chart = { workspace = true }
+# The faces Kition Sheet's own web build draws cells with (egui's defaults), rasterised by ab_glyph.
+epaint_default_fonts = "0.36"
+ab_glyph = "0.2"
+# Font files' family names, to draw cells set in Office fonts in their stand-ins (decision F1).
+ttf-parser = "0.25"
+# PNG encoding for File › Export as Picture (already in the build through the engine).
+image = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# The conformance fixture writer (examples/checks.rs) saves its previews.
+image = { workspace = true }
+# The Kition platform convergence suite (L6), on the same kition-sdk revision.
+kition-convergence = { workspace = true }

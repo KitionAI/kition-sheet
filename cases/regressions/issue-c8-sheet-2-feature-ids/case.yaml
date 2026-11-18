@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-c8-sheet-2-feature-ids
+feature: sheet.agent.premises
+intent: Groups, tables, pivots and immutable styles have discoverable tool identities that survive sheet renaming and saved reread.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 feature identity audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: feature_ids
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

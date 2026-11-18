@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-shape-text-escape
+feature: sheet.editor.insert-content
+intent: >-
+  Text typed on a shape just clicked, then Escape, sometimes stayed unentered (about half the runs
+  of the drawing e2e in Chromium): the editor decided whether Escape had something to cancel from
+  the engine's state read before the click was answered, and left the Escape to the page. Until
+  the state after a click or typing arrives, Escape now goes to the engine.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/drawing.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/drawing.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

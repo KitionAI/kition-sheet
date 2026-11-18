@@ -1,0 +1,27 @@
+format: 1
+id: sheet.formulas.results/wps-oracle
+feature: sheet.formulas.results
+intent: >-
+  994 formulas over the functions people use (aggregation, conditional sums and counts, rounding,
+  logic, lookups, text with Chinese and the byte functions, dates, statistics, finance, dynamic
+  arrays aggregated, LET/LAMBDA) and the coercion, precision and error rules give the results WPS
+  for Mac computes: each was written to a workbook without cached values, recalculated and saved
+  by WPS, and its cached value read back as this case's data. Functions WPS for Mac 7.5 lacks, and
+  results that depend on the Chinese locale (this WPS ran in an English region), carry the result
+  Microsoft documents or the zh-CN one, marked in the data.
+layer: gate
+dimension: fidelity
+source:
+  kind: synthetic
+  from: task F1 (WPS for Mac 7.5.1 as a black-box calculator)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: formulas_match_the_reference_application
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-mixed-families
+feature: sheet.agent.named-destination
+intent: Four added write forms use predeclared necessity rules with the original fixed mixed-table seed and colleague changes.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 mixed family audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: fifty_rounds_added_families_with_fixed_necessity_rules
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

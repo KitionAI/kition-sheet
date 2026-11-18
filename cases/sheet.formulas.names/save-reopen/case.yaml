@@ -1,0 +1,21 @@
+format: 1
+id: sheet.formulas.names/save-reopen
+feature: sheet.formulas.names
+intent: A name defined by command and used in a formula survives saving as .xlsx and opening it again.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/roundtrip.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: roundtrip
+      filter: defined_names_survive_save_and_reopen
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

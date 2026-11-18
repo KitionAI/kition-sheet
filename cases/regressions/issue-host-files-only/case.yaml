@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-host-files-only
+feature: sheet.security.workspace
+intent: >-
+  An engine session a host runs (Session::set_hosted, engine contract E22; KHP A29, A42, A58,
+  section 10.6) reads a file a command names only through its host (kition_kit::host), by a path
+  in the workspace, and nothing by an absolute path, `..`, or a `file:` URL; writes no file by path
+  (file.save, file.saveAs, file.exportCsv, file.exportHtml, file.exportPdf, file.print; not even a
+  bare name into the current folder), while what the host writes still comes back as bytes; and
+  reads no system word list. automate.runScript asks the host's gate
+  (kition_kit::dispatch::may_run) for every step before any runs, so a refused step fails the
+  script and nothing of it runs.
+layer: gate
+tags: [security]
+source:
+  kind: probe
+  from: workspace escape audit (sheet section)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: hosted
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+timeout_s: 300
+since: "2026-11-17"

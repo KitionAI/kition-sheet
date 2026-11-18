@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-env-replay
+feature: sheet.agent.env-replay
+intent: Reproduce the pinned SDK environment's fresh creation identities and inverse replay not-found error until its replay binds created objects.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 complete seed-7 discard audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: env
+      filter: environment_replay_binds_created_identities
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

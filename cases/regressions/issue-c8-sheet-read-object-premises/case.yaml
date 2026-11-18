@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-object-premises
+feature: sheet.agent.independent-reading
+intent: Outside file writers invalidate shape defaults, stacking order, connector geometry and global group-ID allocation while unrelated cells or shape fills remain valid for script metadata, theme fonts, ink geometry and checkbox destinations.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_objects
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

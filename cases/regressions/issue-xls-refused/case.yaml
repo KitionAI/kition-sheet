@@ -1,0 +1,32 @@
+format: 1
+id: regressions/issue-xls-refused
+feature: sheet.editor.workbook-files
+intent: >-
+  An Excel 97-2003 workbook (.xls) was refused. Its values, formulas, styles, sizes, merges,
+  panes and links are now read (BIFF8 in a compound file, from the published format), and
+  damaged files are refused without a crash (IMP-C31, INS-C50, INS-C51, DEL-C26).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (IMP-C31, INS-C50, INS-C51, DEL-C26)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: reads_values_strings_and_sheets
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: reads_formulas_with_their_results
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: reads_styles_sizes_merges_panes_and_links
+  - cargo-test:
+      package: kition-sheet-xlsx
+      filter: hostile_files_never_panic
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

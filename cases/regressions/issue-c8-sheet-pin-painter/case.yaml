@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-painter
+feature: sheet.agent.independent-reading
+intent: Premise planning retains Format Painter's captured source and applies the same format as the live editor.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-pin
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: pin_reread
+      filter: premise_fork_retains_the_format_painter_snapshot
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

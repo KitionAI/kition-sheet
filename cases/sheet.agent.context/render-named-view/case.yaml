@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.context/render-named-view
+feature: sheet.agent.context
+intent: >-
+  A preview draws what the call names: another range or another sheet is another picture, a sheet by its tool id is the same picture as by its name, and without a sheet the first sheet in the workbook's order is drawn, never the active one.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/render.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: render
+      filter: another_range_or_another_sheet_is_another_picture
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

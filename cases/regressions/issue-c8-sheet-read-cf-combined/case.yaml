@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-cf-combined
+feature: sheet.agent.independent-reading
+intent: Deleting and moving conditional-format rules in one call checks indices after deletion and returns without an escaped panic.
+layer: gate
+dimension: robustness
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: combined_conditional_format_delete_and_move_survives
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

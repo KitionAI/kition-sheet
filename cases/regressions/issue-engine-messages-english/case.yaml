@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-engine-messages-english
+feature: sheet.editor.workbook-files
+intent: >-
+  The engine's refusals and a workbook's open failure reached a Chinese editor in English (「A
+  table can't overlap another table.」, 「'x.xlsx' is empty (0 bytes)…」). The editor now
+  translates them through its catalogs, the open failure before the host hears it.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: modules M7 and M9 notes
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [node, --test, web/src/localizeError.test.mjs]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

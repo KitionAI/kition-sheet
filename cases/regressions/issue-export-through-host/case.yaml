@@ -1,0 +1,30 @@
+format: 1
+id: regressions/issue-export-through-host
+feature: sheet.file.export-print
+intent: >-
+  File › Export as PDF, Export as CSV and Export as Web Page write a new file beside the workbook
+  through the host (Kit UI protocol `host/write` mode `export`): the engine answers the bytes
+  (`file.export`), the editor says it exported only when the host answers and names the file the
+  host wrote, and shows the host's error when it refuses. Before, the PDF was thrown away and CSV
+  and HTML failed in the desktop app.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/export.mjs, web/src/exportFile.test.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, --test, src/exportFile.test.mjs]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/export.mjs, chromium]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/export.mjs, webkit]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium, webkit]
+timeout_s: 120
+since: "2026-11-17"

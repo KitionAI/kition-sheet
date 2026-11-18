@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-formula-precision
+feature: sheet.formulas.results
+intent: >-
+  Binary noise no longer shows: `=0.1+0.2-0.3` and `=SUM(0.1,0.2,-0.3)` are 0, `=INT(4.35*100)` is
+  435 (was 434), `=MOD(0.3,0.1)` is 0, typed numbers keep 15 digits, and `&` writes numbers as
+  WPS does (`1E-10` as 0.0000000001). Also fixed by the WPS comparison: COUNTIF "*" counting
+  blanks, VLOOKUP's error for a missing value, DBCS byte functions, TRIM of full-width spaces,
+  DATEDIF backwards, Chinese dates in text, TEXT with `@` sections, `aaaa`, `[DBNum1]` and
+  `G/通用格式`.
+layer: gate
+dimension: fidelity
+source:
+  kind: synthetic
+  from: task F1
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: formulas_match_the_reference_application
+  - cargo-test:
+      package: kition-sheet-core
+      filter: number_text
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

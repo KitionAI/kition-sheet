@@ -1,0 +1,15 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-fit-reads
+feature: sheet.agent.independent-reading
+intent: Automatic fitting ignores unrelated plain row contents and retains height inputs and same-field destination conflicts.
+layer: gate
+dimension: collab
+source: {kind: synthetic, from: C8-sheet-pin, license: Apache-2.0}
+input: []
+steps:
+  - cargo-test: {package: kition-sheet, test: pin_fit_reads}
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

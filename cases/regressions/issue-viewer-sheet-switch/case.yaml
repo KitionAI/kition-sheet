@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-viewer-sheet-switch
+feature: sheet.editor.sheet-tabs
+intent: >-
+  Switching sheets is view state: it makes no replica and leaves the workbook saved. Before, the
+  first switch made the replica, which a viewer's read-only session takes for an edit: the first
+  click on another tab was refused with "view only" (golden UI-C69).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: golden case table 工作表 UI 交互, row 69
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: switching_sheets_makes_no_replica_and_no_change
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

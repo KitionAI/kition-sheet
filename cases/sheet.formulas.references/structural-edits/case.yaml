@@ -1,0 +1,45 @@
+format: 1
+id: sheet.formulas.references/structural-edits
+feature: sheet.formulas.references
+intent: >-
+  References follow structural edits as in WPS: inserting rows moves references from every sheet,
+  names, conditional formats and validations (whole columns stay, ranges grow); deleting rows
+  shrinks a range and turns a reference to a deleted cell #REF!; columns alike; copying, filling
+  and cutting move what they should; sorting keeps each row's formula on its row; deleting a sheet
+  turns chart series, conditional formats, validations, names and tables' calculated columns that
+  refer to it into #REF!, renaming renames it there, and a copy's calculated column names the
+  copy's table.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: task F1
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: inserting_rows_moves_references_from_every_sheet_names_cf_and_validation
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: inserting_and_deleting_columns_moves_references
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: copying_and_filling_formulas_moves_relative_references_only
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: cutting_cells_moves_their_dependents_references
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: sorting_rows_keeps_each_rows_formula_on_its_row
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: renaming_a_sheet_renames_it_in_every_feature_formula
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: a_tables_calculated_column_follows_sheet_rename_copy_and_delete
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,23 @@
+format: 1
+id: sheet.agent.ids/kdm-tool-ids
+feature: sheet.agent.ids
+intent: >-
+  The object model names a sheet `sheet:<sheetId>` and a shape, chart or picture
+  `drawing:<id>` (KitObjectModel OM9 tool ids, read-only fields the kit's own write path keeps),
+  so receipts, queries and batches speak the ids the kit's inspect lists, through a read, a
+  rewrite and a new replica made from the saved file.
+layer: gate
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/tool_ids.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kdm-model
+      test: tool_ids
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

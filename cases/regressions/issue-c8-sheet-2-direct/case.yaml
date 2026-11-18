@@ -1,0 +1,33 @@
+format: 1
+id: regressions/issue-c8-sheet-2-direct
+feature: sheet.agent.premises
+intent: >-
+  Direct axis and sheet edits assign positions, identities, defaults and cell labels before
+  their receipt. Images without content are refused instead of disappearing on save.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 environment receipt audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: direct_axis_and_sheet_writes_are_canonical_before_the_receipt
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: an_image_without_content_is_refused_before_a_receipt
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: direct_name_creation_and_last_drawing_axis_deletion_survive_save
+  - cargo-test:
+      package: kdm-model
+      test: identity_fields
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

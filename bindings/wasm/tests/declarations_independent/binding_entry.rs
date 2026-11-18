@@ -1,0 +1,8 @@
+//! C8-sheet-pin source-only supplement, committed before the new fact comparator.
+//! The previous commandLine record was reviewed after declarations; it is not
+//! retroactively blind. These additional paths come from execute and step only.
+
+pub const READINGS: &str = r##"
+ROW commandLine | params={"text":"42"} | resolves=active sheet and selection.active; explicit cell passed to cell.set; then selection.move dr=1 dc=0 | holds=ENTRY(active,active-cell);FIT(active,active-row);HEADERS(active,active-cell);CONNECTORS(active);navigation source/destination merges and traversed hidden row/column flags and address windows | reads=part,selection,mode | writes=active cell entry, clears editing, moves selection down | note=bindings/wasm/src/lib.rs execute commandLine branch and step; cmd/edit.rs cell_set and move_selection
+ROW commandLine | params={} | resolves=missing/non-string text defaults empty; active sheet and selection.active; then selection.move dr=1 dc=0 | holds=ENTRY(active,active-cell);FIT(active,active-row);HEADERS(active,active-cell);CONNECTORS(active);navigation source/destination merges and traversed hidden row/column flags and address windows | reads=part,selection,mode | writes=clears active cell entry, clears editing, moves selection down | note=bindings/wasm/src/lib.rs execute commandLine branch and step; cmd/edit.rs cell_set and move_selection
+"##;

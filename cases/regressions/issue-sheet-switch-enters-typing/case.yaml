@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-sheet-switch-enters-typing
+feature: sheet.editor.sheet-tabs
+intent: >-
+  Clicking another sheet's tab while a cell is being typed enters the typing on the sheet it was
+  typed on; a formula the cell refuses is dropped, never left half-typed. Before, the typing went
+  with the person to the other sheet and landed in its active cell on Enter (golden UI-C86, UI-C87).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: golden case table 工作表 UI 交互, rows 86 and 87
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: switching_sheets_enters_the_typing_on_its_own_sheet
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

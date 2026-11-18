@@ -1,0 +1,18 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-narrow-controls
+feature: sheet.agent.independent-reading
+intent: Narrowed premises retain external duplicate keys, image anchors, and the established multi-cell formatting row guard, refusing changed inputs without writing.
+layer: gate
+dimension: collab
+source: {kind: synthetic, from: C8-sheet-pin, license: Apache-2.0}
+input: []
+steps:
+  - cargo-test: {package: kition-sheet, test: pin_narrow_controls}
+  - cargo-test: {package: kition-sheet, test: independent_duplicate_keys, filter: table_duplicate_removal_holds_external_comparison_keys}
+  - cargo-test: {package: kition-sheet, test: independent_parameters, filter: arrange_group_ids_follow_kind_for_chart_and_image_anchors}
+  - cargo-test: {package: kition-sheet, test: land13, filter: formatting_holds_destination_and_fitted_rows_but_allows_other_rows}
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

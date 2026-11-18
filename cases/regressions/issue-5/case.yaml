@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-5
+feature: sheet.formulas.functions
+intent: >-
+  GROUPBY and PIVOTBY take their function as Excel writes it: a bare function name (`SUM`, an
+  eta-reduced LAMBDA) or a LAMBDA, besides a name in quotes; the bare name answered #NAME?. The
+  bare name is saved as `_xleta.SUM` (with `_xlfn.GROUPBY`) and read back, and BYROW, MAP, REDUCE,
+  SCAN and MAKEARRAY take one too.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: issue_5
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

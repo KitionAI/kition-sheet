@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-1
+feature: sheet.format.conditional
+intent: >-
+  Conditional formatting follows Excel: a cellIs rule honours its operator (`lessThan` had
+  highlighted values greater than 0) and refuses one it does not know; a rule refuses keys it
+  does not read (`values`, `format`) instead of ignoring them; `style` takes hex colours; the rule
+  of higher priority wins the fill whether it is a colour scale or a formatted rule; icon sets cut
+  at percent of the min–max span by default, take `thresholds`, keep them through .xlsx, and draw
+  their own icons (arrows, symbols, flags…) instead of one coloured dot.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: issue_1
+  - cargo-test:
+      package: kition-sheet-kit
+      test: issue_1
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

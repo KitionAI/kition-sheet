@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-text-too-small
+feature: sheet.editor.workbook-files
+intent: >-
+  Cell text was drawn about a fifth smaller than its point size (the font's scale was taken as
+  its ascent-to-descent height, not its em), so 11 pt text looked like 9 pt next to WPS. Text is
+  now drawn at its point size (样章渲染对照, every golden workbook).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (PRV-C1, fidelity comparison)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: text_is_drawn_at_its_point_size
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-size-command-sheet
+feature: sheet.cells.rows-columns
+intent: >-
+  Row Height and Column Width given a sheet (`sheet`, or `Data!2:5` in their rows or columns) set
+  that sheet's lines, not the active sheet's: they had no `sheet` and always sized the active
+  sheet, so an agent naming another sheet changed the wrong one (task card C4/C5/C6-sheet).
+layer: gate
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/explicit_sheet.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: explicit_sheet
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

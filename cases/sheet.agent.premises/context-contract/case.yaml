@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.premises/context-contract
+feature: sheet.agent.premises
+intent: >-
+  Cell, drawing and sheet contexts pass the SDK contract with the binding's full editor-state
+  list; each temporary context restores the person's editor without changing the workbook.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-land-13-sheet
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: context_contract
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

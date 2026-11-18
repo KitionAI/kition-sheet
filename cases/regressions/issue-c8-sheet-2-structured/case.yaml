@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-structured
+feature: sheet.agent.premises
+intent: Structured formulas hold their source column and table definition while allowing unrelated cell and drawing edits.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 structured formula premise audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: structured_formula_allows_changes_outside_its_source_column
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

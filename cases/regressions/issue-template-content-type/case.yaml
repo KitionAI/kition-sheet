@@ -1,0 +1,22 @@
+format: 1
+id: regressions/issue-template-content-type
+feature: sheet.editor.workbook-files
+intent: >-
+  Save as Template wrote an .xltx with the workbook's content type, so Excel and WPS opened it
+  as a workbook, not a template. It is now a template package (TPL-C5).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (TPL-C5)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: templates_and_workbook_copies_export
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,15 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-legacy-fixture
+feature: sheet.agent.independent-reading
+intent: The version-1 inline-cell fixture omits the later Cell type and its map schema reference, preserving migration and old-peer refusal assertions.
+layer: gate
+dimension: conversion
+source: {kind: synthetic, from: C8-sheet-pin, license: Apache-2.0}
+input: []
+steps:
+  - cargo-test: {package: kdm-model, test: text_merge}
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,19 @@
+format: 1
+id: regressions/issue-c8-sheet-3-clear-metadata
+feature: sheet.agent.clear-metadata
+intent: Clearing comments, hyperlinks, formats or everything applies to selected sparse metadata outside the used cell extent and preserves unrelated cells and metadata kinds.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 clear handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: clear_metadata
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-2-sparkline-source
+feature: sheet.agent.sparkline-source
+intent: Sparkline sources are sheet-qualified on entry so the saved workbook reopens with the exact source represented by the receipt. All conformance workbooks exercise this alongside the other write families.
+layer: gate
+dimension: conversion
+source:
+  kind: synthetic
+  from: C8-sheet-2 expanded saved-receipt audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: saved_receipts
+      filter: every_conformance_workbook_keeps_write_family_receipts_on_save
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

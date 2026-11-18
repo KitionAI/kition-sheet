@@ -1,0 +1,33 @@
+format: 1
+id: sheet.editor.table-styles/table-styles
+feature: sheet.editor.table-styles
+intent: >-
+  The engine side of table styles and Format Cells: Format as Table as a table or only its look,
+  the range it takes, header names, merged cells and array formulas, the gallery by theme colour,
+  styles composed part by part with their priorities, hidden rows keeping bands alternate, a cell's
+  own format winning, AutoExpand, rows and columns inserted and deleted, clearing, merging, the
+  format painter, the workbook's own styles saved to .xlsx and read back, Resize Table's ranges;
+  Format Cells' formats, borders and merge in one undo step; and in the editor's engine, dialogs a
+  command asks for reaching the editor (never for an agent) and the active table's options.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M7
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: table_styles
+  - cargo-test:
+      package: kition-sheet-engine
+      test: format_cells
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_command_without_its_values_asks_the_editor_for_its_dialog
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

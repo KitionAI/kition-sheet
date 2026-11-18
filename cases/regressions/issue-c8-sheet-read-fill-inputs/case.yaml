@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-fill-inputs
+feature: sheet.agent.independent-reading
+intent: Bounded directional fills of constant source cells refuse a stale copied edge while accepting and preserving an unrelated outside cell edit.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent cmd/edit.rs fill_dir and fill.rs Copy reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_fill_reads
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

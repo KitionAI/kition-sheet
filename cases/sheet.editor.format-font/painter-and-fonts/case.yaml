@@ -1,0 +1,38 @@
+format: 1
+id: sheet.editor.format-font/painter-and-fonts
+feature: sheet.editor.format-font
+intent: >-
+  The engine side of the format painter and the font controls: `edit.formatPainter` picking up
+  once or sticky, a second call or `cancel` putting it down, painting cell styles and merged areas
+  (a single cell takes the source's size, larger ranges repeat it, smaller ones take their part,
+  whole rows and columns set the lines' format) while values, formulas, links, validation,
+  conditional formats and sizes stay, across sheets, in one undo step; WPS's font size list for
+  Increase and Decrease Font Size; formatting leaving rows a filter hides; fonts and rich text
+  saved and reopened; and in the editor's engine the painter following presses, drags and
+  headings with the brush pointer and Esc, the ribbon showing the selected characters' font, and
+  Cmd/Ctrl+click adding areas.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M6
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: format_painter
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_format_painter_paints_what_is_pressed_and_esc_puts_it_down
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_ribbon_shows_the_selected_characters_font
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_command_click_adds_a_cell_to_the_selection
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

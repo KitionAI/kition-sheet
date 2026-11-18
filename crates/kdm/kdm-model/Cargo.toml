@@ -1,0 +1,21 @@
+[package]
+name = "kdm-model"
+description = "Bridges Kition Sheet's Workbook to a kit.sheet KDM replica (kition-sdk session)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+kition-kit = { workspace = true, features = ["session"] }
+kition-sheet-calc = { workspace = true }
+kition-sheet-core = { workspace = true }
+kition-sheet-formula = { workspace = true }
+kition-sheet-model = { workspace = true }
+kition-sheet-xlsx = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

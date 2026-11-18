@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-3-outline
+feature: sheet.agent.precise-families
+intent: Outline controls hold selected levels and overwritten visibility, and detail controls also hold discovered group boundaries, allowing unrelated cells and sheet renames.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-3 outline handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: outline_controls_hold_selected_levels_and_discovered_boundaries
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

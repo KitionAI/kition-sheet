@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.context/failed-run
+feature: sheet.agent.context
+intent: >-
+  A run whose later step fails is rolled back whole: the file is unchanged and the person's sheet and cell are where they were.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: premise
+      filter: a_failing_later_step_changes_nothing
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+tags: [headless]

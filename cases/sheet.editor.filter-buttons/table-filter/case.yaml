@@ -1,0 +1,23 @@
+format: 1
+id: sheet.editor.filter-buttons/table-filter
+feature: sheet.editor.filter-buttons
+intent: >-
+  A table's header filter in the engine: the column's values with counts and kinds, values and
+  conditions combined across columns, clearing, undo, a sort with a filter on, and the table's
+  criteria kept in the .xlsx.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: crates/engine/engine/tests/table_filter.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: table_filter
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

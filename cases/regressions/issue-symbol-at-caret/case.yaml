@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-symbol-at-caret
+feature: sheet.editor.insert-content
+intent: >-
+  Insert › Symbol entered the active cell's old text plus the symbol, dropping what was being typed
+  and ignoring the caret. In the editor a symbol now goes in at the caret of the cell being typed
+  (or of a text box); with nothing typed, after the cell's text with the cell left open, as WPS
+  does; an agent's call still enters it at once (INSC-C93, INSC-C99, INSC-C107, INSC-C108).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M8 (INSC-C107, INSC-C108)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: symbols_go_in_at_the_caret_or_after_the_text
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-sort-key-row
+feature: sheet.agent.independent-reading
+intent: A zero one-based row in a column-sort key returns a parameter error without panicking or changing the workbook.
+layer: gate
+dimension: robustness
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: zero_sort_key_row_is_a_parameter_error
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

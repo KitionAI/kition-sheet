@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-c8-sheet-2-formula-metadata
+feature: sheet.agent.formula-metadata
+intent: Formula premises include visibility, dimensions and sheet metadata read by SUBTOTAL, AGGREGATE, CELL, SHEET and SHEETS, without holding unrelated cell values.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 formula evaluator metadata audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: formula_metadata
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: formula_metadata_changes_refuse_stale_meaning_but_allow_unrelated_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

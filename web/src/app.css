@@ -1,0 +1,1278 @@
+/* The Sheet editor's own layout; colors and shapes come from @kition/kit-editor's tokens. */
+
+.sheet-formula-bar {
+  gap: 4px;
+  height: 34px;
+  padding: 0 8px;
+}
+
+/* Expanded, the field shows several lines and the bar grows with it (the grid moves down). */
+.sheet-formula-bar[data-expanded='true'] {
+  height: auto;
+  align-items: flex-start;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.sheet-name-box {
+  width: 96px;
+  font-family: var(--kit-font-mono);
+  font-size: 12px;
+}
+
+.sheet-formula-field {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+}
+
+/* The field and its coloured copy share font, line height, padding and border, line for line. */
+.sheet-formula,
+.sheet-formula-colors {
+  font: 12px/18px var(--kit-font-mono);
+  padding: 4px 8px;
+  border-width: 1px;
+}
+
+.sheet-formula {
+  width: 100%;
+  height: 28px;
+  resize: none;
+  overflow: auto;
+  scrollbar-width: none;
+  white-space: pre;
+}
+
+.sheet-formula::-webkit-scrollbar {
+  display: none;
+}
+
+.sheet-formula-bar[data-expanded='true'] .sheet-formula {
+  height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sheet-formula-colors {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-style: solid;
+  border-color: transparent;
+  white-space: pre;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.sheet-formula-bar[data-expanded='true'] .sheet-formula-colors {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sheet-formula-colors > span {
+  display: block;
+}
+
+.sheet-formula-field[data-colored='true'] .sheet-formula-colors {
+  visibility: visible;
+}
+
+.sheet-formula-field[data-colored='true'] .sheet-formula {
+  color: transparent;
+  caret-color: var(--kit-text);
+  background: transparent;
+}
+
+.sheet-formula::selection {
+  color: var(--kit-text);
+  background: color-mix(in srgb, var(--kit-primary) 24%, var(--kit-surface));
+}
+
+.sheet-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  height: 30px;
+  padding: 0 8px;
+  border-top: 1px solid var(--kit-border);
+  background: var(--kit-surface-muted);
+}
+
+/* The tabs themselves: they scroll sideways (by the arrows, the wheel, or a tab dragged to an end). */
+.sheet-strip {
+  position: relative;
+  display: flex;
+  align-self: stretch;
+  align-items: stretch;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.sheet-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.sheet-tab {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  padding: 0 12px;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--kit-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  touch-action: none;
+}
+
+.sheet-tab:hover {
+  color: var(--kit-text);
+}
+
+.sheet-tab[aria-selected='true'] {
+  border-bottom-color: var(--kit-primary);
+  background: var(--kit-surface);
+  color: var(--kit-text);
+  font-weight: 600;
+}
+
+/* A tab colour: a band along the tab's foot. */
+.sheet-tab[data-color]::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: var(--sheet-tab-color);
+}
+
+.sheet-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet-tab-lock {
+  display: inline-flex;
+  color: var(--kit-text-muted);
+}
+
+.sheet-tab-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--kit-text-muted);
+  cursor: pointer;
+}
+
+.sheet-tab-arrow:hover {
+  background: var(--kit-surface-muted);
+  color: var(--kit-text);
+}
+
+/* The tab being dragged: its place stays faint while a raised copy follows the pointer. */
+.sheet-tab[data-dragging] {
+  opacity: 0.35;
+  cursor: grabbing;
+}
+
+.sheet-tab-ghost {
+  position: fixed;
+  z-index: 10;
+  border-bottom-color: var(--kit-primary);
+  background: var(--kit-surface);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kit-text) 28%, transparent);
+  color: var(--kit-text);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* Where the dragged tab will land. */
+.sheet-drop-mark {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--kit-primary);
+  pointer-events: none;
+}
+
+/* Dragged away from the tabs: it cannot be dropped there. */
+.sheet-tabs[data-drop='none'] .sheet-tab[data-dragging] {
+  cursor: not-allowed;
+}
+
+.sheet-tabs[data-drop='none'] .sheet-tab-ghost {
+  opacity: 0.5;
+}
+
+.sheet-tab-rename {
+  align-self: center;
+  min-width: 48px;
+  max-width: 260px;
+  height: 24px;
+}
+
+.sheet-list {
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+}
+
+/* A sheet list row: the tab colour as a bar at its start, the sheet, and a hidden sheet's Unhide. */
+.sheet-list-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.sheet-list-row > .kui-menu-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sheet-list-color {
+  flex: none;
+  width: 3px;
+  margin: 3px 0;
+  border-radius: 2px;
+}
+
+.sheet-list-row[data-hidden] > .kui-menu-item {
+  color: var(--kit-text-muted);
+}
+
+.sheet-list-unhide {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--kit-text-muted);
+  cursor: pointer;
+}
+
+.sheet-list-unhide:hover {
+  background: var(--kit-surface-muted);
+  color: var(--kit-text);
+}
+
+/* A greyed menu row that says why on hover. */
+.sheet-menu-hint {
+  display: block;
+}
+
+.sheet-menu-hint > .kui-menu-item {
+  width: 100%;
+}
+
+/* Unhide's list of hidden sheets. */
+.sheet-unhide-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  margin-top: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--kit-border);
+  border-radius: 6px;
+}
+
+.sheet-unhide-option {
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--kit-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sheet-unhide-option[aria-selected='true'] {
+  background: var(--kit-primary-soft);
+  color: var(--kit-text);
+}
+
+/* A dialog's buttons: the main one first, at the right. */
+.sheet-dialog-actions {
+  justify-content: flex-end;
+}
+
+.sheet-figures {
+  display: inline-flex;
+  gap: 16px;
+  margin-left: 16px;
+}
+
+/* Home › 套用表格样式: the gallery (WPS's layout: preset styles, the theme colours, groups of
+   thumbnails that scroll, the actions fixed under them). Thumbnails are drawn from the engine's
+   previews, cell by cell. */
+.sheet-table-gallery {
+  display: flex;
+  flex-direction: column;
+  width: 316px;
+  max-height: min(560px, calc(100vh - 140px));
+  position: relative;
+}
+
+.sheet-table-scroll {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  padding: 4px 6px;
+}
+
+.sheet-table-title {
+  font-weight: 600;
+  padding: 4px 2px 6px;
+}
+
+.sheet-table-colors {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 6px;
+}
+
+.sheet-table-swatches {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.sheet-table-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
+}
+
+.sheet-table-swatch:hover {
+  outline: 2px solid var(--kit-border);
+}
+
+.sheet-table-swatch[aria-checked='true'] {
+  outline: 2px solid var(--kit-primary);
+  outline-offset: 1px;
+}
+
+.sheet-table-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 68px);
+  gap: 6px;
+  padding: 2px;
+}
+
+.sheet-table-item {
+  position: relative;
+  display: inline-flex;
+}
+
+.sheet-table-style {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  background: var(--kit-surface);
+  cursor: pointer;
+}
+
+.sheet-table-style:hover {
+  border-color: var(--kit-primary);
+}
+
+.sheet-table-style[aria-pressed='true'] {
+  border-color: var(--kit-primary);
+  box-shadow: 0 0 0 1px var(--kit-primary);
+}
+
+.sheet-table-thumb {
+  display: grid;
+  grid-template-columns: repeat(5, 11px);
+  grid-auto-rows: 8px;
+}
+
+.sheet-table-thumb > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.sheet-table-thumb > span > i {
+  display: block;
+  width: 5px;
+  height: 1px;
+}
+
+.sheet-table-default {
+  position: absolute;
+  left: 2px;
+  top: 0;
+  font-size: 10px;
+  color: var(--kit-primary);
+}
+
+.sheet-table-delete {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  display: none;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--kit-border);
+  border-radius: 50%;
+  background: var(--kit-surface);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sheet-table-item:hover .sheet-table-delete,
+.sheet-table-delete:focus-visible {
+  display: inline-flex;
+}
+
+.sheet-table-menu {
+  position: absolute;
+  left: 40px;
+  top: 80px;
+  z-index: 3;
+}
+
+.sheet-table-actions {
+  border-top: 1px solid var(--kit-border);
+  padding: 4px 0 0;
+}
+
+.sheet-danger:hover,
+.sheet-danger:hover * {
+  color: #d93025;
+}
+
+.sheet-table-options {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 2px 12px;
+  align-items: center;
+}
+
+.sheet-table-option {
+  white-space: nowrap;
+}
+
+/* The kit's own dialogs: rows of a label and a field, choices, colours. */
+.sheet-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sheet-dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sheet-dialog-row > span:first-child {
+  min-width: 96px;
+}
+
+.sheet-dialog-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sheet-dialog-indent {
+  padding-left: 22px;
+}
+
+.sheet-color-field {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.sheet-color-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 112px;
+  padding: 2px 6px;
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  background: var(--kit-surface);
+  color: inherit;
+  cursor: pointer;
+}
+
+.sheet-color-value > span {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--kit-border);
+}
+
+.sheet-color-empty {
+  background: linear-gradient(135deg, transparent 45%, #d93025 45%, #d93025 55%, transparent 55%) !important;
+}
+
+.sheet-color-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--kit-border);
+  border-radius: 6px;
+  background: var(--kit-surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 18%);
+}
+
+.sheet-nts-body {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
+  gap: 12px;
+}
+
+.sheet-nts-parts li[data-set='true'] {
+  font-weight: 600;
+}
+
+.sheet-nts-format {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Format Cells. */
+.sheet-fc-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--kit-border);
+  margin-bottom: 10px;
+}
+
+.sheet-fc-tabs > button {
+  padding: 4px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.sheet-fc-tabs > button[aria-selected='true'] {
+  border-bottom-color: var(--kit-primary);
+  color: var(--kit-primary);
+}
+
+.sheet-fc-page {
+  min-height: 300px;
+}
+
+.sheet-fc-number {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+}
+
+.sheet-fc-categories {
+  height: 290px;
+}
+
+.sheet-fc-list {
+  height: 140px;
+}
+
+.sheet-fc-sample {
+  min-width: 140px;
+  padding: 2px 6px;
+  border: 1px solid var(--kit-border);
+}
+
+.sheet-fc-note {
+  color: var(--kit-text-muted, #666);
+  font-size: 12px;
+}
+
+.sheet-fc-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  border: 1px solid var(--kit-border);
+  overflow: hidden;
+}
+
+.sheet-fc-edges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sheet-fc-border-preview {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.sheet-fc-border-preview > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 64px;
+  border: 1px dashed var(--kit-border);
+}
+
+.sheet-fc-swatch {
+  display: inline-block;
+  width: 140px;
+  height: 32px;
+  border: 1px solid var(--kit-border);
+}
+
+/* A host comment thread's marker (the triangle is drawn on the canvas): its click target. */
+.sheet-comment-marker {
+  position: absolute;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.sheet-comment-marker:focus-visible {
+  outline: 2px solid var(--kit-primary);
+  outline-offset: -2px;
+}
+
+/* The function list and argument hint while a formula is typed (under the cell or the formula bar). */
+.sheet-cell-hints {
+  position: absolute;
+  z-index: 3;
+}
+.sheet-formula-field > .sheet-formula-hints {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 20;
+}
+.sheet-formula-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 12px var(--kit-font-ui, inherit);
+  color: var(--kit-text);
+}
+.sheet-formula-call,
+.sheet-formula-list,
+.sheet-formula-doc {
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  background: var(--kit-surface);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kit-text) 16%, transparent);
+}
+.sheet-formula-call {
+  align-self: flex-start;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.sheet-formula-list-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.sheet-formula-list {
+  min-width: 140px;
+  max-height: 180px;
+  margin: 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  list-style: none;
+  font-family: var(--kit-font-mono);
+}
+.sheet-formula-list li {
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.sheet-formula-list li[aria-selected='true'] {
+  background: color-mix(in srgb, var(--kit-primary) 18%, var(--kit-surface));
+}
+.sheet-formula-doc {
+  max-width: 280px;
+  padding: 4px 8px;
+}
+.sheet-formula-doc-syntax {
+  margin-bottom: 2px;
+  font-family: var(--kit-font-mono);
+}
+
+/* View › Show: check boxes with a hover background and the pointer, as WPS's. */
+.sheet-show-option .kui-checkbox {
+  padding: 1px 6px;
+  border-radius: var(--kit-radius-control);
+  cursor: pointer;
+}
+.sheet-show-option .kui-checkbox:hover {
+  background: var(--kit-surface-muted);
+}
+.sheet-show-option .kui-checkbox[data-disabled] {
+  cursor: default;
+  background: transparent;
+}
+
+/* Insert Function (fx). */
+.sheet-function-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 380px;
+}
+.sheet-function-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sheet-function-row > span {
+  flex: none;
+  min-width: 96px;
+}
+.sheet-function-row > .kui-field {
+  flex: 1;
+}
+.sheet-function-list {
+  height: 180px;
+  margin: 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--kit-border);
+  border-radius: 6px;
+  font-family: var(--kit-font-mono);
+}
+.sheet-function-list li {
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.sheet-function-list li[aria-selected='true'] {
+  background: var(--kit-primary-soft);
+}
+.sheet-function-about {
+  min-height: 48px;
+}
+.sheet-function-about b {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--kit-font-mono);
+}
+
+/* A menu row with a count box (Insert › 向上插入 [1] 行). */
+.sheet-count-item {
+  cursor: default;
+}
+.sheet-count-item[data-disabled] {
+  opacity: 0.45;
+}
+.sheet-count-field {
+  width: 48px;
+  height: 20px;
+  padding: 0 4px;
+  border: 1px solid var(--kui-border, rgba(0, 0, 0, 0.2));
+  border-radius: 3px;
+  background: var(--kui-surface, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: right;
+}
+
+/* View › 高亮行列: a split button (on and off above, the colours below) in the View tab, and the
+   same in the status bar left of the zoom. */
+.sheet-focus-split {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.sheet-focus-split .sheet-focus-arrow {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.sheet-focus-arrow,
+.sheet-focus-icon {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.sheet-focus-arrow:hover,
+.sheet-focus-icon:hover {
+  background: var(--kit-surface-muted);
+}
+.sheet-focus-status {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 6px;
+  margin-right: 6px;
+  border-right: 1px solid var(--kit-border);
+}
+.sheet-focus-icon[aria-pressed='true'] {
+  background: var(--kit-primary-soft);
+  color: var(--kit-primary);
+}
+.sheet-focus-palette {
+  display: grid;
+  grid-template-columns: repeat(6, 20px);
+  gap: 6px;
+  padding: 8px;
+}
+.sheet-focus-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid var(--kit-border);
+  cursor: pointer;
+  padding: 0;
+}
+.sheet-focus-swatch:hover {
+  outline: 2px solid var(--kit-text-muted);
+  outline-offset: 1px;
+}
+.sheet-focus-swatch[data-selected] {
+  outline: 2px solid var(--kit-primary);
+  outline-offset: 1px;
+}
+
+/* Home › Font: the font and size boxes with their lists, and the colour split buttons (module M6). */
+.sheet-combo,
+.sheet-split {
+  display: inline-flex;
+  align-items: center;
+}
+.sheet-combo-field {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.sheet-combo-arrow,
+.sheet-split-arrow {
+  min-width: 14px;
+  padding: 0 2px;
+}
+.sheet-font-panel {
+  display: flex;
+  flex-direction: column;
+  width: 236px;
+  max-height: min(520px, calc(100vh - 140px));
+}
+.sheet-font-search {
+  flex: none;
+  padding: 4px;
+  border-bottom: 1px solid var(--kit-border);
+}
+.sheet-font-search input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.sheet-font-list {
+  flex: 1;
+  min-height: 232px;
+  overflow-y: auto;
+}
+.sheet-size-list {
+  width: 72px;
+}
+.sheet-font-heading {
+  padding: 4px 8px 2px;
+  color: var(--kit-text-muted);
+  font-size: 11px;
+}
+.sheet-font-row {
+  font-size: 14px;
+}
+.sheet-font-check {
+  display: inline-block;
+  width: 16px;
+}
+.sheet-font-empty {
+  padding: 24px 8px;
+  color: var(--kit-text-muted);
+  text-align: center;
+}
+.sheet-color-more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+}
+.sheet-color-more input[type='color'] {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+.kui-ribbon-button.sheet-combo-arrow,
+.kui-ribbon-button.sheet-split-arrow {
+  min-width: 0;
+  width: 14px;
+  padding: 0;
+}
+
+/* Insert › 符号: the panel and the Symbol dialog. */
+.sheet-symbol-panel {
+  display: flex;
+  flex-direction: column;
+  width: 264px;
+  padding: 2px 0;
+}
+.sheet-symbol-heading {
+  padding: 6px 8px 2px;
+  color: var(--kit-text-muted);
+  font-size: 11px;
+}
+.sheet-symbol-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  padding: 2px 8px;
+}
+/* The recent symbols keep their row while empty, so the groups below stay in place. */
+.sheet-symbol-recent {
+  min-height: 30px;
+}
+.sheet-symbol-cell {
+  height: 28px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--kit-radius-control, 4px);
+  background: none;
+  color: var(--kit-text);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sheet-symbol-cell:hover,
+.sheet-symbol-cell:focus-visible {
+  border-color: var(--kit-border);
+  background: var(--kit-surface-muted);
+}
+.sheet-symbol-cell[aria-selected='true'] {
+  border-color: var(--kit-primary);
+  background: var(--kit-primary-soft);
+}
+.sheet-symbol-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sheet-symbol-search {
+  flex: 1 1 200px;
+}
+.sheet-symbol-dialog-grid {
+  display: grid;
+  gap: 1px;
+  max-height: 248px;
+  overflow-y: auto;
+  border: 1px solid var(--kit-border);
+  background: var(--kit-surface);
+}
+.sheet-symbol-dialog-grid.sheet-symbol-recent {
+  min-height: 30px;
+  max-height: 64px;
+}
+.sheet-symbol-dialog-grid .sheet-symbol-cell {
+  border-radius: 0;
+}
+.sheet-symbol-special {
+  display: flex;
+  flex-direction: column;
+  height: 248px;
+  overflow-y: auto;
+  border: 1px solid var(--kit-border);
+}
+.sheet-symbol-special-row {
+  display: flex;
+  gap: 16px;
+  padding: 3px 8px;
+  border: 0;
+  background: none;
+  color: var(--kit-text);
+  text-align: left;
+  cursor: pointer;
+}
+.sheet-symbol-special-row:hover {
+  background: var(--kit-surface-muted);
+}
+.sheet-symbol-special-row[aria-selected='true'] {
+  background: var(--kit-primary-soft);
+}
+.sheet-symbol-special-char {
+  width: 24px;
+  text-align: center;
+}
+.sheet-symbol-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--kit-text-muted);
+  font-size: 12px;
+}
+
+/* Save as Template's name field (File › Template). */
+.sheet-template-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.sheet-template-field input {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--kit-border);
+  border-radius: var(--kit-radius-control);
+  background: var(--kit-surface);
+  color: var(--kit-text);
+  font: inherit;
+}
+.sheet-template-hint {
+  margin: 6px 0 0;
+  color: var(--kit-danger);
+  font-size: 12px;
+}
+
+/* A filter button's list (FilterMenu.tsx), under the button, as WPS shows it. */
+.sheet-filter-menu {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 260px;
+  padding: 8px;
+  border: 1px solid var(--kit-border);
+  border-radius: 6px;
+  background: var(--kit-surface);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--kit-text) 18%, transparent);
+  font: 12px var(--kit-font-ui, inherit);
+  color: var(--kit-text);
+}
+.sheet-filter-sort {
+  display: flex;
+  gap: 6px;
+}
+.sheet-filter-sort button,
+.sheet-filter-tab,
+.sheet-filter-conditions button,
+.sheet-filter-clear {
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  background: var(--kit-surface);
+  color: inherit;
+  font: inherit;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.sheet-filter-sort button {
+  flex: 1;
+}
+.sheet-filter-sort button:hover,
+.sheet-filter-tab:hover,
+.sheet-filter-conditions button:hover,
+.sheet-filter-clear:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--kit-accent, #3d7fe0) 10%, var(--kit-surface));
+}
+.sheet-filter-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--kit-border);
+  padding-bottom: 4px;
+}
+.sheet-filter-tab[aria-current='true'] {
+  border-color: transparent;
+  font-weight: 600;
+  cursor: default;
+}
+.sheet-filter-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sheet-filter-conditions button {
+  border: none;
+  text-align: left;
+}
+.sheet-filter-search {
+  padding: 3px 6px;
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  background: var(--kit-surface);
+  color: inherit;
+  font: inherit;
+}
+.sheet-filter-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  padding: 2px 0;
+}
+.sheet-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sheet-filter-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sheet-filter-count {
+  margin-left: auto;
+  color: var(--kit-text-muted, inherit);
+}
+.sheet-filter-none {
+  padding: 6px;
+  color: var(--kit-text-muted, inherit);
+}
+.sheet-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sheet-filter-spacer {
+  flex: 1;
+}
+.sheet-filter-custom-row {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0;
+}
+.sheet-filter-custom-row input {
+  flex: 1;
+  min-width: 0;
+}
+.sheet-filter-custom-join {
+  display: flex;
+  gap: 16px;
+}
+
+/* The active cell's data validation (Validation.tsx): a list's arrow, its entries, the input message. */
+.sheet-validation-arrow {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  padding: 0;
+  border: 1px solid var(--kit-border);
+  border-radius: 2px;
+  background: var(--kit-surface);
+  color: var(--kit-text);
+  cursor: pointer;
+}
+.sheet-validation-list {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 2px 0;
+  border: 1px solid var(--kit-border);
+  border-radius: 4px;
+  background: var(--kit-surface);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--kit-text) 16%, transparent);
+  font: 12px var(--kit-font-ui, inherit);
+}
+.sheet-validation-list button {
+  border: none;
+  background: none;
+  color: var(--kit-text);
+  font: inherit;
+  text-align: left;
+  padding: 3px 8px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sheet-validation-list button:hover,
+.sheet-validation-list button[aria-selected='true'] {
+  background: color-mix(in srgb, var(--kit-accent, #3d7fe0) 14%, var(--kit-surface));
+}
+.sheet-validation-prompt {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--kit-text) 30%, transparent);
+  background: var(--kit-surface);
+  color: var(--kit-text);
+  font: 12px var(--kit-font-ui, inherit);
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+.sheet-validation-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+.sheet-validation-heading {
+  margin: 0;
+  font-weight: 600;
+}
+.sheet-validation-field {
+  display: grid;
+  grid-template-columns: 9em 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.sheet-validation-field textarea {
+  resize: vertical;
+}
+.sheet-validation-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sheet-validation-message {
+  white-space: pre-wrap;
+}

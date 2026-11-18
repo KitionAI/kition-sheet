@@ -1,0 +1,25 @@
+format: 1
+id: sheet.review.host-comments/anchors-follow-edits
+feature: sheet.review.host-comments
+intent: >-
+  A comment anchor (Kit UI protocol 2.6 section 7k) names a cell or range by the replica's sheet,
+  row and column objects: it follows rows and columns inserted and deleted before it, a range
+  shrinks when its first or last row is deleted, a cell's anchor goes with its deleted row, and it
+  keeps its sheet through renames, moves and new sheets and on another replica of the workbook.
+  Anchoring and finding change nothing in the workbook.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/comment_anchors.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: comment_anchors
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

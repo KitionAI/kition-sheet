@@ -1,0 +1,21 @@
+format: 1
+id: sheet.format.font/save-reopen
+feature: sheet.format.font
+intent: Bold, italic, underline, strikethrough, font, size, colour, fill and borders set by command survive saving as .xlsx and opening it again, with the row height they cause.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/roundtrip.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: roundtrip
+      filter: font_fill_and_border_formatting_survives_save_and_reopen
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

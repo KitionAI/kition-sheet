@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-array-protection
+feature: sheet.agent.independent-reading
+intent: Array entry checks every selected destination's protection before changing any cells, including when the cell parameter names a different unlocked cell.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: array_protection
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

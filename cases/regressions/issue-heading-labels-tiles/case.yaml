@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-heading-labels-tiles
+feature: sheet.editor.view-settings
+intent: >-
+  A row heading's number could differ by one shade between the canvas tiles that draw it and the
+  whole (its baseline was half a pixel off, rounded differently per tile); with 19-pixel rows a
+  shape split across tiles no longer painted the same. Heading labels now sit on whole pixels.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M10
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_shape_split_across_tiles_paints_the_same
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

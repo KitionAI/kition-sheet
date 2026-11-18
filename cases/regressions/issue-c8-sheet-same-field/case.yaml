@@ -1,0 +1,38 @@
+format: 1
+id: regressions/issue-c8-sheet-same-field
+feature: sheet.agent.independent-reading
+intent: The same-field decision refuses a stale absolute assignment or removal with changed, preserving the colleague's replaced value; different-field controls still apply.
+layer: unit
+dimension: collab
+source:
+  kind: issue
+  from: C8-sheet-same-field
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: same_field
+  - cargo-test:
+      package: kition-sheet
+      test: chart_replacement_reads
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: structural_table_controls_hold_their_table_and_written_cells
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: conditional_format_writes_hold_rules_and_windows_without_cell_values
+  - cargo-test:
+      package: kition-sheet
+      test: independent_cf_necessity
+  - cargo-test:
+      package: kition-sheet
+      test: independent_view
+      filter: default_freeze_origin
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

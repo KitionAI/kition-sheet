@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-table-appearance
+feature: sheet.agent.table-appearance
+intent: Table appearance commands hold their chosen table definition while permitting unrelated cells and other table definitions to change.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 table handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: table_appearance_writes_hold_the_chosen_table
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

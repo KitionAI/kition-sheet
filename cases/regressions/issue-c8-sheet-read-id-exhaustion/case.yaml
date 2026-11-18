@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-id-exhaustion
+feature: sheet.agent.independent-reading
+intent: Imported maximum drawing or pivot IDs and multi-object sheet copies return explicit ID-exhaustion errors without panicking, reusing an ID or changing the workbook.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler finding
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: c8_read_id_exhaustion
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

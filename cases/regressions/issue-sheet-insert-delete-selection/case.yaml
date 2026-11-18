@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-sheet-insert-delete-selection
+feature: sheet.editor.sheet-tabs
+intent: >-
+  Adding a sheet keeps the selection of the sheet that was in view (switching back returns to
+  it); a hidden sheet can be deleted while a visible one is left; deleting or hiding the sheet in
+  view shows its right-hand neighbour (else its left) with that sheet's selection. Before, a new
+  sheet made the previous one forget its selection (golden UI-C14), any deletion reset the
+  selection, a hidden sheet could not be deleted beside a single visible one, and hiding the
+  active sheet jumped to the first sheet (golden UI-C102).
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: golden case table 工作表 UI 交互, rows 14 and 102
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: inserting_and_deleting_sheets_keep_each_selection
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: hiding_the_active_sheet_activates_its_neighbour
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

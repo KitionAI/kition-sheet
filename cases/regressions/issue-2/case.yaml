@@ -1,0 +1,30 @@
+format: 1
+id: regressions/issue-2
+feature: sheet.charts.design
+intent: >-
+  Charts are made from cells as Excel makes them: a scatter chart takes its first column as X
+  (points had been placed at 1..n); a combo chart is clustered columns and lines and takes each
+  series' type and the secondary axis (`seriesTypes`, `secondary`) instead of plain columns; a
+  numeric first column under a blank corner, or a column of dates, is the categories; a
+  multi-area range (`A1:A4,C1:D4`) charts every area; `chart.changeColors {colors}` is taken and
+  recolours a pie's slices; the theme colours reach every doughnut slice; a forecast trendline
+  stays inside the plot; a waterfall draws only the totals it is given (`totals`), kept in .xlsx.
+layer: gate
+dimension: function
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: issue_2
+  - cargo-test:
+      package: kition-sheet-kit
+      test: issue_2
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

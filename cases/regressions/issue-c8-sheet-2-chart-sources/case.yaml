@@ -1,0 +1,24 @@
+format: 1
+id: regressions/issue-c8-sheet-2-chart-sources
+feature: sheet.agent.chart-premises
+intent: Chart commands that read source cells refuse an observed source changed by another writer, including cells reached through chart formulas and shared drawing descriptions.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 chart handler source audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: chart_handlers_hold_the_source_cells_they_read
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: chart_source_holds_allow_unrelated_cells_and_follow_formula_dependencies
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

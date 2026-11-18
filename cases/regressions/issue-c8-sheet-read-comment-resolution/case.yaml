@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-comment-resolution
+feature: sheet.agent.independent-reading
+intent: Comment deletion holds the supplied cell and its sheet prefix rather than the selected cell, allowing an unrelated change to the selected thread.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent comment cell resolution
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_comment_resolution
+      filter: delete_comment_holds_the_supplied_cell_instead_of_the_selection
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

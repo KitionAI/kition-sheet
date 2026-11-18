@@ -1,0 +1,24 @@
+format: 1
+id: sheet.editor.move-cells/drag-gestures
+feature: sheet.editor.move-cells
+intent: >-
+  The drag itself in the engine's select tool: the move cursor on the border (copy with Cmd), a
+  dashed frame and the target in the status while dragging, a drop that moves, a press released
+  in place that only clicks, the question before covering cells that hold something, and Shift's
+  line between the rows.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: drag
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

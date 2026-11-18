@@ -1,0 +1,21 @@
+format: 1
+id: sheet.agent.ids/inspect-lists-ids
+feature: sheet.agent.ids
+intent: >-
+  What an agent reads lists every sheet with its id, tool id, name and position, and sheet.read reads a sheet by its tool id without making it active.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/context.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: context
+      filter: every_sheet_is_listed_with_its_id_name_and_position
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

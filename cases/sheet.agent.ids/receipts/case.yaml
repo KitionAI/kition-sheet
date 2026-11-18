@@ -1,0 +1,22 @@
+format: 1
+id: sheet.agent.ids/receipts
+feature: sheet.agent.ids
+intent: >-
+  Through the agent tools with the real kition-sheet executable, a write's receipt names the sheets and drawing objects it changed or created by the tool ids sheet_inspect lists (sheet:<id>, drawing:<id>), with before and after.
+layer: unit
+source:
+  kind: synthetic
+  from: bindings/headless/tests/premise.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: premise
+      filter: a_receipt_names_the_sheets_and_drawing_objects
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"
+tags: [headless]

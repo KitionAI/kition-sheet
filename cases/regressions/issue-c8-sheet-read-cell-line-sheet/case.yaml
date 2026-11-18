@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-cell-line-sheet
+feature: sheet.agent.independent-reading
+intent: Inserting or deleting whole rows or columns through the cell commands changes the sheet named by the sheet parameter or qualified range, while preserving the active sheet.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: C8-sheet-read independent handler reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: cell_line_sheet_targets
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

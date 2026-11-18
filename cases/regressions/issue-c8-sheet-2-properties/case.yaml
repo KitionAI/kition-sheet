@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-2-properties
+feature: sheet.agent.premises
+intent: Property-only protection, display and print writes hold their properties and allow unrelated cell edits.
+layer: gate
+source:
+  kind: synthetic
+  from: C8-sheet-2 handler audit
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: land13
+      filter: property_commands_allow_cells_but_refuse_changes_to_the_held_property
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

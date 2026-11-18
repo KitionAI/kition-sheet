@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-pdf-chinese
+feature: sheet.editor.workbook-files
+intent: >-
+  Export as PDF wrote Chinese text with a standard Latin font, so every Chinese character was
+  missing from the PDF. A subset of the font the host added is now embedded (Type0, Identity-H,
+  with a ToUnicode map) and the text is there (EXP-C6, 样章渲染对照).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (EXP-C6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-pdf
+      filter: chinese_text_embeds_a_subset_of_an_added_font
+  - cargo-test:
+      package: kition-sheet-pdf
+      filter: malformed_fonts_are_refused
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

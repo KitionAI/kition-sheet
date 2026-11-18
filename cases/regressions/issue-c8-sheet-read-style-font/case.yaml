@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-c8-sheet-read-style-font
+feature: sheet.agent.independent-reading
+intent: Applying the builtin Title cell style refuses an independently changed major theme font and permits another sheet's unrelated constant.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read independent builtin cell-style font reading
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_sheet_inputs
+      filter: builtin_title_style_holds_the_theme_font_without_holding_other_sheet_cells
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

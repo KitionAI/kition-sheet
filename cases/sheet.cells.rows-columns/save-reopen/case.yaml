@@ -1,0 +1,21 @@
+format: 1
+id: sheet.cells.rows-columns/save-reopen
+feature: sheet.cells.rows-columns
+intent: Column width, row height, inserted rows and columns and a hidden column set by command survive saving as .xlsx and opening it again.
+layer: gate
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/tests/roundtrip.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: roundtrip
+      filter: row_and_column_changes_survive_save_and_reopen
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

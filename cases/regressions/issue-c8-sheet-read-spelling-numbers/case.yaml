@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-c8-sheet-read-spelling-numbers
+feature: sheet.agent.independent-reading
+intent: Numeric spelling replacement holds matching input history and new matches, preserves unrelated numeric edits, and refuses deletion of a matching source.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-read numeric input journal review
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet
+      test: independent_spelling_numbers
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

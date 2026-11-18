@@ -1,0 +1,31 @@
+format: 1
+id: sheet.review.host-comments/editor-and-host
+feature: sheet.review.host-comments
+intent: >-
+  In a host that keeps comment threads (Kition One, KitEmbed 1.7), Review › New Comment sends
+  comment.create with the selected cells' anchor, the host's thread shows as a marker at the
+  range's top-right corner that follows inserted rows and columns, and clicking it sends
+  comments/activated. Cancelling is no error, resolved threads and deleted cells have no marker, a
+  viewer sees and opens threads but makes none, a commenter makes them in a read-only workbook,
+  and without such a host New Comment stays the file's.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/comments.mjs, web/tests/comments-host.html, web/src/commentAnchors.test.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, --test, src/commentAnchors.test.mjs]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/comments.mjs, chromium]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/comments.mjs, webkit]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium, webkit]
+timeout_s: 180
+since: "2026-11-17"

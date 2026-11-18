@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-letter-paper
+feature: sheet.editor.workbook-files
+intent: >-
+  Sheets without page setup printed and exported on US Letter; WPS uses A4 (EXP-C6).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M9 (EXP-C6)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      filter: pdfs_are_a4_by_default
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

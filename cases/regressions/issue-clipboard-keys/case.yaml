@@ -1,0 +1,27 @@
+format: 1
+id: regressions/issue-clipboard-keys
+feature: sheet.edit.clipboard
+intent: >-
+  Cmd/Ctrl+C copies the selected cells to the system clipboard and Cmd/Ctrl+V pastes what it
+  holds, in Chromium and WebKit (the desktop app's web view): the paste comes from the browser's
+  own paste event, with the clipboard's HTML table before its text. Before, Cmd/Ctrl+V asked for
+  the clipboard by script, which WebKit refuses outside a paste, so the keys pasted nothing.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/clipboard-keys.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/clipboard-keys.mjs, chromium]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/clipboard-keys.mjs, webkit]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium, webkit]
+timeout_s: 120
+since: "2026-11-17"

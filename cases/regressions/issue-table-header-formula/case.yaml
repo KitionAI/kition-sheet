@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-table-header-formula
+feature: sheet.editor.table-styles
+intent: >-
+  A formula pasted or typed into a table's header showed as Column2: the header was named before the formula was calculated. The header now takes the value the formula shows, as text (Excel, WPS; TS-C84, TS-C85).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M7 (TS-C85)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: table_styles
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

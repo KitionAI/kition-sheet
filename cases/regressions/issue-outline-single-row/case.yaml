@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-outline-single-row
+feature: sheet.editor.table-styles
+intent: >-
+  data.group and Hide Detail given one row ("1") grouped the selection's row instead, as the single row did not parse as a span. One row or column alone is taken as itself, as home.insertRows does (TS-C105).
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: module M7 (TS-C105)
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-engine
+      test: table_styles
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-17"

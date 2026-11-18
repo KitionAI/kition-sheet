@@ -1,0 +1,23 @@
+format: 1
+id: regressions/issue-heading-resize
+feature: sheet.cells.rows-columns
+intent: >-
+  The line after a column's heading (under a row's) resizes it, as in Excel: the pointer there
+  shows the resize cursor, a drag moves a guide line and sets the new width or height in one undo
+  step (on every selected whole column or row the line belongs to), a press without moving
+  changes nothing, and a double-click fits the column to its contents. Before, a drag there
+  selected the column and its width could not be changed by hand.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: bindings/wasm/tests/heading_resize.rs
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-sheet-kit, test: heading_resize }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-17"

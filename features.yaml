@@ -1,0 +1,1108 @@
+format: 1
+kit: sheet
+updated: "2026-11-17"
+gate_budget_s: 600
+protected: []
+features:
+  - id: sheet.selection.checkbox-budget
+    title: Bound total checkbox selection traversal
+    dimension: [robustness, data-safety, function]
+    priority: P0
+    status: has
+    paths: [crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/tests/checkbox_budget.rs]
+    cases: [regressions/issue-c8-sheet-read-2-checkbox-budget]
+    since: "2026-11-17"
+  - id: sheet.agent.independent-reading
+    title: Independent handler readings gate premise declarations
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: partial
+    gap: Every registered write and retained handler-reading path has a bidirectional fact comparison with decreasing excess-hold limits; conservative excess holds still require review.
+    paths: [bindings/wasm/tests/declarations_independent.rs, bindings/wasm/tests/declarations_independent]
+    cases:
+      - regressions/issue-c8-sheet-pin-shape-target
+      - regressions/issue-c8-sheet-pin-fact-holder
+      - regressions/issue-c8-sheet-pin-painter
+      - regressions/issue-c8-sheet-pin-reread
+      - regressions/issue-c8-sheet-pin-raw-formula
+      - regressions/issue-c8-sheet-pin-logical-axes
+      - regressions/issue-c8-sheet-pin-prefix
+      - regressions/issue-c8-sheet-pin-path-facts
+      - regressions/issue-c8-sheet-pin-public-sdk
+      - regressions/issue-c8-sheet-pin-legacy-fixture
+      - regressions/issue-c8-sheet-pin-narrow
+      - regressions/issue-c8-sheet-pin-private-coverage
+      - regressions/issue-c8-sheet-pin-fit-reads
+      - regressions/issue-c8-sheet-pin-checkbox-address
+      - regressions/issue-c8-sheet-pin-alignment-reads
+      - regressions/issue-c8-sheet-pin-narrow-controls
+      - regressions/issue-c8-sheet-same-field
+      - sheet.agent.independent-reading/blind-families
+      - sheet.agent.independent-reading/path-invocations
+      - regressions/issue-c8-sheet-read-2-path-fixtures
+      - regressions/issue-c8-sheet-read-2-projections
+      - regressions/issue-c8-sheet-read-2-chart-projection
+      - regressions/issue-c8-sheet-read-2-creation
+      - regressions/issue-c8-sheet-read-2-background
+      - regressions/issue-c8-sheet-read-2-symbol
+      - regressions/issue-c8-sheet-read-active-property
+      - regressions/issue-c8-sheet-read-allocator
+      - regressions/issue-c8-sheet-read-array-protection
+      - regressions/issue-c8-sheet-read-autofill-dates
+      - regressions/issue-c8-sheet-read-cell-line-sheet
+      - regressions/issue-c8-sheet-read-cf-combined
+      - regressions/issue-c8-sheet-read-chart-fields
+      - regressions/issue-c8-sheet-read-chart-palette
+      - regressions/issue-c8-sheet-read-chart-protection
+      - regressions/issue-c8-sheet-read-chart-routing
+      - regressions/issue-c8-sheet-read-chart-source
+      - regressions/issue-c8-sheet-read-comment-resolution
+      - regressions/issue-c8-sheet-read-copied-connectors
+      - regressions/issue-c8-sheet-read-copy-allocations
+      - regressions/issue-c8-sheet-read-drawing-editor
+      - regressions/issue-c8-sheet-read-drawing-frame
+      - regressions/issue-c8-sheet-read-duplicate-keys
+      - regressions/issue-c8-sheet-read-editor-dispatch
+      - regressions/issue-c8-sheet-read-external-sort-input
+      - regressions/issue-c8-sheet-read-filter-inputs
+      - regressions/issue-c8-sheet-read-fit-scale
+      - regressions/issue-c8-sheet-read-geometry
+      - regressions/issue-c8-sheet-read-ink-protection
+      - regressions/issue-c8-sheet-read-object-premises
+      - regressions/issue-c8-sheet-read-object-precision
+      - regressions/issue-c8-sheet-read-object-resolution
+      - regressions/issue-c8-sheet-read-parameter-roles
+      - regressions/issue-c8-sheet-read-shared-commit
+      - regressions/issue-c8-sheet-read-sheet-inputs
+      - regressions/issue-c8-sheet-read-sort-key-row
+      - regressions/issue-c8-sheet-read-spelling-cell-id
+      - regressions/issue-c8-sheet-read-spelling-header-membership
+      - regressions/issue-c8-sheet-read-stored-references
+      - regressions/issue-c8-sheet-read-style-font
+      - regressions/issue-c8-sheet-read-view-precision
+      - regressions/issue-c8-sheet-read-arrange-flip
+      - regressions/issue-c8-sheet-read-cf-necessity
+      - regressions/issue-c8-sheet-read-checkbox-toggle
+      - regressions/issue-c8-sheet-read-custom-view-freeze
+      - regressions/issue-c8-sheet-read-direct-ink
+      - regressions/issue-c8-sheet-read-fill-inputs
+      - regressions/issue-c8-sheet-read-id-exhaustion
+      - regressions/issue-c8-sheet-read-registry-inputs
+      - regressions/issue-c8-sheet-read-spelling-numbers
+      - regressions/issue-c8-sheet-read-table-duplicates
+      - regressions/issue-c8-sheet-read-table-necessity
+      - regressions/issue-c8-sheet-read-table-import-sheet
+    since: "2026-11-17"
+  - id: sheet.agent.clear-metadata
+    title: Clear selected sparse metadata outside cell extents
+    dimension: [function, data-safety]
+    priority: P0
+    status: has
+    paths: [crates/engine/engine/src/cmd/edit.rs]
+    cases: [regressions/issue-c8-sheet-3-clear-metadata, regressions/issue-c8-sheet-3-clear-receipts]
+    since: "2026-11-17"
+  - id: sheet.agent.cf-priority
+    title: Exhausted conditional-format priorities return errors
+    dimension: [robustness, data-safety]
+    priority: P0
+    status: has
+    paths: [crates/engine/engine/src/cmd/insert.rs]
+    cases: [regressions/issue-c8-sheet-3-cf-priority]
+    since: "2026-11-17"
+  - id: sheet.agent.named-destination
+    title: Static single-cell names address cell entry
+    dimension: [ai, collab, conversion, data-safety]
+    priority: P0
+    status: partial
+    paths: [crates/engine/engine/src/cmd/formulas.rs, crates/engine/engine/src/cmd/edit.rs, bindings/wasm/src/place.rs]
+    cases: [regressions/issue-c8-sheet-3-named-destination, regressions/issue-c8-sheet-3-mixed-families]
+    since: "2026-11-17"
+  - id: sheet.agent.env-cells
+    title: Cell environment sampling declares ownership and stable labels
+    dimension: [ai, data-safety]
+    priority: P0
+    status: partial
+    gap: Owning cell maps and image-container exclusions are supported; environment sampling does not establish complete command conformance.
+    paths: [crates/kdm/kdm-model/model/schema.json, crates/kdm/kdm-model/src/settle.rs, bindings/headless/tests/env.rs]
+    cases: [regressions/issue-c8-sheet-3-cell-labels, regressions/issue-c8-sheet-3-image-sampling]
+    since: "2026-11-17"
+  - id: sheet.agent.precise-families
+    title: Bounded command families guard their read and write footprints
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: partial
+    paths: [bindings/wasm/src/place.rs, bindings/headless/tests/land13.rs]
+    cases: [regressions/issue-c8-sheet-3-families, regressions/issue-c8-sheet-3-filters, regressions/issue-c8-sheet-3-sizing-tables, regressions/issue-c8-sheet-3-table-inputs, regressions/issue-c8-sheet-3-outline, regressions/issue-c8-sheet-3-table-members, regressions/issue-c8-sheet-3-conditional-formats, regressions/issue-c8-sheet-3-cf-tabs, regressions/issue-c8-sheet-3-clear-premises, regressions/issue-c8-sheet-read-inherited-lines, regressions/issue-c8-sheet-read-structure-protection]
+    since: "2026-11-17"
+  - id: sheet.agent.format-premises
+    title: Formatting guards destinations and fitted rows
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: partial
+    paths: [bindings/wasm/src/place.rs, bindings/headless/tests/land13.rs]
+    cases: [regressions/issue-c8-sheet-3-formatting, regressions/issue-c8-sheet-3-format-inputs, regressions/issue-c8-sheet-3-border-merge, regressions/issue-c8-sheet-3-cell-styles, regressions/issue-c8-sheet-3-fitted-receipts, regressions/issue-c8-sheet-read-entry-row]
+    since: "2026-11-17"
+  - id: sheet.agent.env-replay
+    title: Environment replay binds newly created identities
+    dimension: [ai, data-safety]
+    priority: P0
+    status: partial
+    gap: Replay uses recorded identity bindings for fresh allocations; other command-family limitations remain independently tracked.
+    paths: [bindings/headless/tests/env.rs, bindings/wasm/examples/c8_env_audit.rs]
+    cases: [regressions/issue-c8-sheet-2-env-replay]
+    since: "2026-11-17"
+  - id: sheet.agent.auxiliary-writes
+    title: Persisted auxiliary commands declare saved writes
+    dimension: [ai, conversion, data-safety]
+    priority: P0
+    status: has
+    paths: [bindings/wasm/src/lib.rs, crates/engine/engine/src/cmd/extra.rs]
+    cases: [regressions/issue-c8-sheet-2-auxiliary-writes]
+    since: "2026-11-17"
+  - id: sheet.agent.readonly-types
+    title: Feature identity types declare their read-only contract
+    dimension: [ai, data-safety]
+    priority: P0
+    status: has
+    paths: [crates/kdm/kdm-model/model/schema.json]
+    cases: [regressions/issue-c8-sheet-2-readonly-types]
+    since: "2026-11-17"
+  - id: sheet.agent.sparkline-source
+    title: Sparkline sources match their saved references on entry
+    dimension: [conversion, data-safety]
+    priority: P0
+    status: has
+    paths: [crates/formats/xlsx/src/normalize.rs, bindings/wasm/tests/saved_receipts.rs]
+    cases: [regressions/issue-c8-sheet-2-sparkline-source, regressions/issue-c8-sheet-2-sparkline-inspection]
+    since: "2026-11-17"
+  - id: sheet.agent.table-appearance
+    title: Table appearance writes hold their table definition
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: has
+    paths: [bindings/wasm/src/place.rs, crates/engine/engine/src/cmd/insert.rs]
+    cases: [regressions/issue-c8-sheet-2-table-appearance]
+    since: "2026-11-17"
+  - id: sheet.agent.formula-fill
+    title: Formula fills guard translated sources
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: has
+    paths: [bindings/wasm/src/place.rs, crates/engine/engine/src/cmd/edit.rs]
+    cases: [regressions/issue-c8-sheet-2-formula-fill]
+    since: "2026-11-17"
+  - id: sheet.agent.workbook-properties
+    title: Workbook property writes use field premises
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: has
+    paths: [bindings/wasm/src/place.rs, crates/engine/engine/src/cmd/formulas.rs, crates/engine/engine/src/cmd/file.rs]
+    cases: [regressions/issue-c8-sheet-2-workbook-properties]
+    since: "2026-11-17"
+  - id: sheet.agent.chart-premises
+    title: Source-dependent chart writes guard the cells they read
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: partial
+    paths: [bindings/wasm/src/place.rs, bindings/wasm/src/references.rs, crates/engine/engine/src/cmd/chart_spec.rs, crates/engine/engine/src/cmd/drawing.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/insert.rs]
+    cases: [regressions/issue-c8-sheet-2-chart-sources]
+    since: "2026-11-17"
+  - id: sheet.agent.formula-metadata
+    title: Formula sources hold the visibility geometry and sheet metadata they read
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: partial
+    paths: [bindings/wasm/src/place.rs, bindings/wasm/tests/formula_metadata.rs, bindings/headless/tests/land13.rs, crates/kdm/kdm-model/model/schema.json]
+    cases: [regressions/issue-c8-sheet-2-formula-metadata]
+    since: "2026-11-17"
+  - id: sheet.agent.axis-premises
+    title: Fixed axis properties hold their fields and positional windows
+    dimension: [ai, collab, data-safety]
+    priority: P1
+    status: partial
+    paths: [bindings/wasm/src/place.rs, bindings/wasm/src/commands.json, crates/engine/engine/src/cmd/format.rs]
+    cases: [regressions/issue-c8-sheet-2-axis-properties]
+    since: "2026-11-17"
+  - id: sheet.agent.comment-premises
+    title: Comment writes hold the addressed thread and positional windows
+    dimension: [ai, collab, data-safety]
+    priority: P1
+    status: has
+    paths: [bindings/wasm/src/place.rs, crates/engine/engine/src/cmd/insert.rs]
+    cases: [regressions/issue-c8-sheet-2-comments]
+    since: "2026-11-17"
+  - id: sheet.agent.style-identities
+    title: Named style definitions keep tool identities through modification and saved reread
+    dimension: [ai, conversion]
+    priority: P1
+    status: has
+    paths: [crates/kdm/kdm-model/src/feature_ids.rs, crates/engine/engine/src/cmd/insert.rs, bindings/wasm/src/context.rs]
+    cases: [regressions/issue-c8-sheet-2-named-styles, regressions/issue-c8-sheet-2-style-names]
+    since: "2026-11-17"
+  - id: sheet.agent.premises
+    title: Writes hold observed addresses and the fields they replace
+    dimension: [ai, collab, data-safety]
+    priority: P0
+    status: partial
+    paths: [bindings/wasm/src/references.rs, bindings/wasm/src/place.rs, bindings/wasm/tests/object_params.rs, bindings/wasm/tests/saved_receipts.rs, bindings/wasm/examples/land13_env_fixtures.rs, bindings/headless/tests/land13.rs, crates/kdm/kdm-model/model/schema.json]
+    cases: [regressions/issue-c8-reference-params, sheet.agent.premises/context-contract, regressions/issue-c8-sheet-premises, regressions/issue-c8-sheet-saved-receipts, sheet.agent.premises/outside-writer, regressions/issue-c8-target-roles, regressions/issue-c8-sheet-2-legacy, regressions/issue-c8-sheet-2-axes, regressions/issue-c8-sheet-2-cells, regressions/issue-c8-sheet-2-formulas, regressions/issue-c8-sheet-2-saved, regressions/issue-c8-sheet-2-view, regressions/issue-c8-sheet-2-direct, regressions/issue-c8-sheet-2-dimensions, regressions/issue-c8-sheet-2-coverage, regressions/issue-c8-sheet-2-properties, regressions/issue-c8-sheet-2-formula-clear, regressions/issue-c8-sheet-2-feature-ids, regressions/issue-c8-sheet-2-formula-sources, regressions/issue-c8-sheet-2-structured, regressions/issue-c8-sheet-2-input-kind, regressions/issue-c8-sheet-2-formula-context]
+    since: "2026-11-17"
+  - id: sheet.editor.formula-references
+    title: Formula reference colors match grid outlines in both editors
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    paths:
+      - bindings/wasm/src/formula.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/tests.rs
+      - web/src/Formula*.tsx
+      - web/src/sheet.ts
+      - web/src/App.tsx
+      - web/src/app.css
+      - web/tests/formula-viewport.mjs
+    cases: [regressions/issue-formula-reference-highlights]
+    since: "2026-11-17"
+  - id: sheet.editor.viewport
+    title: Grid fills the visible viewport at every zoom and scroll position
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/tests.rs, web/src/App.tsx, web/tests/formula-viewport.mjs]
+    cases: [regressions/issue-grid-viewport-fill]
+    since: "2026-11-17"
+  - id: sheet.editor.display-modes
+    title: The editor in Menus, Single line, Classic and Focus; Escape in Focus cancels typing or a selected object first
+    dimension: [function]
+    priority: P1
+    status: has
+    paths:
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/objects.rs
+      - bindings/wasm/src/tests.rs
+      - web/src/App.tsx
+      - web/src/FormulaBar.tsx
+      - web/src/SheetTabs.tsx
+      - web/src/HostComments.tsx
+      - web/src/sheet.ts
+      - web/src/ribbon/HomeTab.tsx
+      - web/src/ribbon/ExportGroup.tsx
+      - web/tests/modes.mjs
+      - web/tests/focus-escape.mjs
+    cases: [sheet.editor.display-modes/mode-smoke, regressions/issue-focus-escape]
+    since: "2026-11-17"
+  - id: sheet.editor.sheet-tabs
+    title: "Sheet tab bar as in WPS: click, list, Ctrl+Page Up/Down, drag to reorder, move left/right, rename, tab colours and locks, scrolling tabs; each sheet keeps its selection and scroll"
+    dimension: [function]
+    priority: P1
+    status: has
+    paths:
+      - web/src/SheetTabs.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/src/strings.ts
+      - web/src/app.css
+      - web/tests/golden-sheet-ui.mjs
+      - web/tests/golden-harness.mjs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/tests.rs
+      - crates/engine/engine/src/cmd/sheet.rs
+      - crates/engine/engine/src/cmd/edit.rs
+      - crates/engine/formula/src/adjust.rs
+    target: "WPS Office for Mac (golden case table 工作表 UI 交互)"
+    gap: The cloud-only rows of the case table (collaboration, permissions, autosave status, version history, share links, merge/lock/download sheet) are deferred (docs/gaps.md).
+    cases:
+      - sheet.editor.sheet-tabs/golden-sheet-ui
+      - regressions/issue-sheet-move-keeps-active
+      - regressions/issue-sheet-switch-enters-typing
+      - regressions/issue-viewer-sheet-switch
+      - regressions/issue-sheet-rename-references
+      - regressions/issue-sheet-insert-delete-selection
+    since: "2026-11-17"
+  - id: sheet.editor.sheet-menu
+    title: "Sheet menu as in WPS: new sheet before or after, rename with name checks, move left/right by the real order, create a copy (named Sheet1(2) and opened to rename), tab colours, hide, delete after asking; unhide from the sheet list or Home › Format"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [home.insertSheet, home.deleteSheet, sheet.rename, sheet.move, sheet.tabColor, sheet.hide, sheet.unhide]
+    paths:
+      - web/src/SheetTabs.tsx
+      - web/src/SheetDialogs.tsx
+      - web/src/ribbon/HomeTab.tsx
+      - web/src/sheet.ts
+      - web/src/strings.ts
+      - web/src/app.css
+      - web/tests/golden-sheet-menu.mjs
+      - web/tests/golden-harness.mjs
+      - crates/engine/engine/src/cmd/sheet.rs
+      - crates/engine/formula/src/adjust.rs
+      - crates/engine/model/src/workbook.rs
+    target: "WPS Office for Mac (golden case table 工作表右键菜单)"
+    gap: The case table's cloud rows (merge sheets, per-visitor sheet locks, download, offline and autosave notices, collaborators, version history) are deferred (docs/gaps.md); a sheet name may hold a comma and the workbook has no fixed sheet limit, as in WPS and Excel.
+    cases:
+      - sheet.editor.sheet-menu/golden-sheet-menu
+      - sheet.editor.sheet-menu/copy-naming
+      - regressions/issue-sheet-copy-references
+      - regressions/issue-sheet-delete-references
+    since: "2026-11-17"
+  - id: sheet.editor.formula-input
+    title: "Formula entry as in WPS: point mode (click, drag, arrows, another sheet's cells), F4, the function list and argument hint in the cell and the formula bar"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [editor.formula, editor.cycleReference, editor.acceptFunction]
+    paths:
+      - bindings/wasm/src/point.rs
+      - bindings/wasm/src/pointing.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/formula.rs
+      - bindings/wasm/src/edit.rs
+      - web/src/FormulaBar.tsx
+      - web/src/FormulaHints.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/src/app.css
+      - web/tests/golden-formula-input.mjs
+    target: "WPS Office for Mac 7.5.1"
+    cases: [sheet.editor.formula-input/golden-formula-input, sheet.editor.formula-input/cell-editor]
+    since: "2026-11-17"
+  - id: sheet.editor.formula-bar
+    title: "The formula bar as in WPS: View › Show › 显示编辑栏 (kept for next time), Name Box, ✕ ✓ fx (Insert Function), typing there is typing in the cell (pointing, other sheets, Enter/Tab/Esc, Alt+Enter), expand"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [view.formulaBar, editor.formula, formulas.insertFunction, edit.beginEdit, view.zoom]
+    paths:
+      - crates/engine/engine/src/cmd/view.rs
+      - bindings/wasm/src/bar.rs
+      - bindings/wasm/src/lib.rs
+      - web/src/FormulaBar.tsx
+      - web/src/InsertFunction.tsx
+      - web/src/ribbon/ViewTab.tsx
+      - web/src/App.tsx
+      - web/src/strings.ts
+      - web/src/app.css
+      - web/tests/golden-formula-bar.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: WPS cloud's separate views (独立视图) are not planned.
+    cases: [sheet.editor.formula-bar/golden-formula-bar, sheet.editor.formula-bar/bar-editing, regressions/issue-insert-function-and-f2, regressions/issue-alt-enter-line-break, regressions/issue-view-zoom]
+    since: "2026-11-17"
+  - id: sheet.editor.rows-columns
+    title: "Inserting and deleting rows and columns as in WPS: Home › Insert/Delete with counts, the grid's right-click menus (cell, row and column headings), shortcuts, and what moves with the lines"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [home.insertRows, home.insertColumns, home.deleteRows, home.deleteColumns, home.insertCells, home.deleteCells, editor.contextMenu]
+    paths:
+      - crates/engine/engine/src/cmd/sheet.rs
+      - crates/engine/engine/src/cmd/inspect.rs
+      - crates/engine/engine/src/selection.rs
+      - bindings/wasm/src/lib.rs
+      - web/src/LineMenus.tsx
+      - web/src/ribbon/HomeTab.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/src/strings.ts
+      - web/src/app.css
+      - web/tests/golden-rows-cols.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: WPS cloud's add-rows-at-the-bottom bar and locked (permission) cells are not planned.
+    cases: [sheet.editor.rows-columns/golden-rows-cols, sheet.editor.rows-columns/structural-edits, regressions/issue-freeze-follows-lines, regressions/issue-filtered-rows-delete, regressions/issue-heading-selection-merges]
+    since: "2026-11-17"
+  - id: sheet.editor.view-settings
+    title: "Frozen panes, gridlines and the highlight of the selection's rows and columns as in WPS: Home and View › Freeze Panes with WPS's choices and their preview, Show Gridlines and the gridline colour, Highlight Rows and Columns with its colours in the View tab and the status bar"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [view.freezePanes, view.freezeRows, view.freezeColumns, view.freezeTopRow, view.freezeFirstColumn, view.unfreezePanes, view.gridlines, view.gridlineColor, view.focusCell, editor.freezePreview]
+    paths:
+      - crates/engine/engine/src/cmd/view.rs
+      - crates/engine/engine/src/lib.rs
+      - crates/engine/model/src/sheet.rs
+      - crates/formats/xlsx/src/sheet_read.rs
+      - crates/formats/xlsx/src/sheet_write.rs
+      - crates/kdm/kdm-model/src/features.rs
+      - bindings/wasm/src/lib.rs
+      - web/src/ViewControls.tsx
+      - web/src/ribbon/ViewTab.tsx
+      - web/src/ribbon/HomeTab.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/tests/golden-view.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: WPS cloud's own views (独立视图), collaborators and mobile are not planned; the highlight is kept for the next time (WPS for Mac turns it off when a file is opened again).
+    cases: [sheet.editor.view-settings/golden-view, sheet.editor.view-settings/view-commands, regressions/issue-freeze-line-zoomed-out, regressions/issue-freeze-scrolled-view, regressions/issue-heading-labels-tiles]
+    since: "2026-11-17"
+  - id: sheet.editor.format-font
+    title: "The format painter and the font controls as in WPS: Home › Format Painter (a click paints once, a double-click until Esc), the font box with its searchable list and Recently Used, the size box with WPS's sizes, Increase and Decrease Font Size, bold, italic, underline and strikethrough with their shortcuts, font and fill colour split buttons with Recent Colors and More Colors, characters of a cell formatted on their own, Cmd/Ctrl+click areas"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [edit.formatPainter, home.fontName, home.fontSize, home.increaseFontSize, home.decreaseFontSize, home.bold, home.italic, home.underline, home.strikethrough, home.fontColor, home.fillColor, cell.formatText]
+    paths:
+      - crates/engine/engine/src/cmd/edit.rs
+      - crates/engine/engine/src/cmd/format.rs
+      - crates/engine/engine/src/cmd/view.rs
+      - crates/formats/xlsx/src/sheet_write.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/edit.rs
+      - bindings/wasm/src/view.rs
+      - bindings/wasm/src/objects.rs
+      - bindings/wasm/src/resize.rs
+      - web/src/FontControls.tsx
+      - web/src/ribbon/HomeTab.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/tests/golden-format.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: Cloud font services (licensed fonts, downloads, uploads, weight submenus), collaborators, cell locks and mobile are not planned; 楷体 draws in Ma Shan Zheng, and the Song and FangSong fonts in Droid Sans Fallback (no open Song or FangSong face in kition-fonts); read-only shows no Home tab, so the font of a cell is not shown to a viewer.
+    cases: [sheet.editor.format-font/golden-format, sheet.editor.format-font/painter-and-fonts, regressions/issue-format-painter-never-painted, regressions/issue-font-size-steps, regressions/issue-command-click-selection]
+    since: "2026-11-17"
+  - id: sheet.editor.table-styles
+    title: "Table styles and Format Cells as in WPS: Home › 套用表格样式 with Preset Styles by theme colour (light, medium and dark designs of our own), the workbook's own styles (New Table Style, Modify, Delete, Set As Default), the Format As Table dialog (the data around one cell, Only Format As Table with title rows, or Convert to a table), the Table Design tab's options taking effect at once, Resize Table, Convert to Range and Clear; tables growing as entries are typed or pasted beside them, bands that skip hidden rows, a cell's own format over the style, the format painter carrying a table's look; the Format Cells dialog (Cmd/Ctrl+1, the cell menu, Home › Format) with Number, Alignment, Font, Border, Patterns and Protection; command dialogs reaching the editor"
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    commands: [table.styles, table.newStyle, table.deleteStyle, table.setDefaultStyle, table.filterButton]
+    paths:
+      - crates/engine/engine/src/tables.rs
+      - crates/engine/engine/src/cmd/insert.rs
+      - crates/engine/engine/src/cmd/extra.rs
+      - crates/engine/engine/src/cmd/edit.rs
+      - crates/engine/engine/src/cmd/format.rs
+      - crates/engine/engine/src/cmd/data.rs
+      - crates/engine/engine/src/cmd/mod.rs
+      - crates/formats/xlsx/src/sheet_write.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/commands.json
+      - web/src/TableStyles.tsx
+      - web/src/FormatCells.tsx
+      - web/src/ribbon/HomeTab.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/src/strings.ts
+      - web/tests/golden-table-style.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "WPS's online “more tablestyles” and New Pivot Table Style are not offered; cloud-only cases (date reminders, attachments, history, collaborators, mobile) are not planned."
+    cases: [sheet.editor.table-styles/golden-table-style, sheet.editor.table-styles/table-styles, regressions/issue-command-dialogs-dropped, regressions/issue-format-cells-number-format, regressions/issue-table-header-formula, regressions/issue-outline-single-row]
+    since: "2026-11-17"
+  - id: sheet.editor.insert-content
+    title: "Inserting content as in WPS and Excel: Insert › 符号 with the recent and common symbols and the Symbol dialog (符号 and 特殊字符 tabs, a name search, the font and the Unicode subset), a symbol going in at the caret of what is typed or after the active cell's text with the cell open, into a selected text box too; Insert › 复选框, Excel's checkbox cells (a click on the box or Space ticks them, they are not typed in, they stay through Clear Formats, the format painter and Paste Special › Formats, are saved as Excel's cell controls); the cell menu's Paste Special, Clear, Sort, Merge (asking first), Insert Comment and Hyperlink; Ctrl+; and Ctrl+Shift+; for the date and time; Home's font commands on a selected text box; a table's header row clearing its pictures"
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    commands: [insert.checkbox, cell.toggleCheckbox, insert.symbol, editor.insertText]
+    paths:
+      - crates/engine/model/src/style.rs
+      - crates/engine/engine/src/cmd/extra.rs
+      - crates/engine/engine/src/cmd/edit.rs
+      - crates/engine/engine/src/cmd/format.rs
+      - crates/engine/engine/src/cmd/sheet.rs
+      - crates/engine/engine/src/cmd/insert.rs
+      - crates/engine/engine/src/cmd/formulas.rs
+      - crates/formats/xlsx/src/styles.rs
+      - crates/formats/xlsx/src/read.rs
+      - crates/formats/xlsx/src/write.rs
+      - bindings/wasm/src/controls.rs
+      - bindings/wasm/src/objects.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/bar.rs
+      - bindings/wasm/src/commands.json
+      - web/src/Symbols.tsx
+      - web/src/symbolNames.ts
+      - web/src/LineMenus.tsx
+      - web/src/SheetDialogs.tsx
+      - web/src/FormulaBar.tsx
+      - web/src/TableStyles.tsx
+      - web/src/App.tsx
+      - web/src/sheet.ts
+      - web/src/strings.ts
+      - web/tests/golden-insert.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "WPS cloud's cell components are not planned: ratings (评星), progress bars (进度), task lists (任务清单), date reminders (日期提醒), @mentions, attachments and cloud files. The Symbol dialog has no help entry and does not put the chosen font on the symbol it inserts; rich text in notes (备注) is not offered; cells can't be dragged to move them."
+    cases: [sheet.editor.insert-content/golden-insert, sheet.editor.insert-content/checkboxes, regressions/issue-checkbox-number-format, regressions/issue-checkbox-click, regressions/issue-symbol-at-caret, regressions/issue-text-box-fonts, regressions/issue-shape-text-escape]
+    since: "2026-11-17"
+  - id: sheet.editor.workbook-files
+    title: "Workbook files as in WPS: open xlsx, xlsm, templates, Excel 97-2003 .xls, .xlsb, ODS, CSV (UTF-8 or GBK) and web pages named .xls, sized as WPS sizes columns and rows; refuse empty, damaged and non-spreadsheet files saying what they are; File › Export as PDF (Chinese text embedded, A4), picture, Excel workbook, CSV of what cells show and web page; Save as Template (.xltx); a read-only preview; copy and paste between workbooks with formats; form controls kept on save"
+    dimension: [function, conversion, fidelity]
+    priority: P1
+    status: has
+    commands: [file.export, file.exportPdf, file.open, edit.copy, edit.paste, document.inspect]
+    paths:
+      - crates/engine/model/src/units.rs
+      - crates/engine/model/src/features.rs
+      - crates/engine/engine/src/io.rs
+      - crates/engine/engine/src/text_layout.rs
+      - crates/engine/engine/src/metrics.rs
+      - crates/engine/engine/src/cmd/file.rs
+      - crates/engine/engine/src/cmd/edit.rs
+      - crates/engine/engine/src/cmd/print.rs
+      - crates/engine/engine/src/cmd/mod.rs
+      - crates/engine/engine/tests/workbook_files.rs
+      - crates/formats/xlsx/src/xls.rs
+      - crates/formats/xlsx/src/cfb.rs
+      - crates/formats/xlsx/src/controls.rs
+      - crates/formats/xlsx/src/csv.rs
+      - crates/formats/xlsx/src/sheet_read.rs
+      - crates/formats/xlsx/src/sheet_write.rs
+      - crates/formats/pdf/src/truetype.rs
+      - crates/formats/pdf/src/lib.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/draw.rs
+      - bindings/wasm/examples/golden_render.rs
+      - bindings/wasm/examples/golden_compare.rs
+      - web/src/exportFile.ts
+      - web/src/ribbon/ExportGroup.tsx
+      - web/src/App.tsx
+      - web/src/strings.ts
+      - web/tests/golden-file.mjs
+      - web/tests/file-builders.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "WPS cloud's file features are not planned: upload, sharing, collaboration, version history, permissions, H5 and WeChat preview, the cloud template library. Saving as .xls, .ods or .xlsb is not offered (they open read-only); form controls are kept but not drawn in PDFs and do not move with inserted rows; CSV from the editor carries a UTF-8 byte-order mark (agents choose); Latin text inside Chinese fonts is measured with Arial's widths, so a few wrapped lines break one word differently from WPS."
+    cases:
+      - sheet.editor.workbook-files/golden-file
+      - sheet.editor.workbook-files/workbook-files
+      - regressions/issue-text-too-small
+      - regressions/issue-pdf-chinese
+      - regressions/issue-wps-column-units
+      - regressions/issue-rows-not-refit
+      - regressions/issue-validation-typing
+      - regressions/issue-copy-formats
+      - regressions/issue-form-controls-dropped
+      - regressions/issue-csv-raw-values
+      - regressions/issue-gbk-csv
+      - regressions/issue-letter-paper
+      - regressions/issue-xls-refused
+      - regressions/issue-template-content-type
+      - regressions/issue-engine-messages-english
+      - regressions/issue-new-sheet-wps-sizes
+    since: "2026-11-17"
+  - id: sheet.editor.move-cells
+    title: "Drag the selection's border to move cells as in WPS: the move cursor on the border, a dashed frame where the block lands, Cmd/Ctrl copies, Shift makes room between the cells, whole selected rows and columns move as lines; dropping onto cells that hold something asks 是否替换目标单元格内容？; formulas that refer to the cells follow; merged areas, notes, links, conditional formats, validation and tables go along; one undo step"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [edit.moveCells]
+    paths:
+      - crates/engine/engine/src/cmd/edit.rs
+      - crates/engine/engine/src/cmd/sheet.rs
+      - crates/engine/engine/tests/move_cells.rs
+      - bindings/wasm/src/moving.rs
+      - bindings/wasm/src/lib.rs
+      - web/src/App.tsx
+      - web/tests/golden-cleanup.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "A move onto another sheet by dragging (Alt+drag onto a tab) and a drag that scrolls the grid at its edge are not offered; conditional formats and validation that lie partly inside the block stay where they are (Excel splits them)."
+    cases: [sheet.editor.move-cells/golden-cleanup, sheet.editor.move-cells/move-cells, sheet.editor.move-cells/drag-gestures]
+    since: "2026-11-17"
+  - id: sheet.editor.filter-buttons
+    title: "Filter buttons as in WPS, on the sheet's AutoFilter and on a table's header: 升序 and 降序, 内容筛选 with the column's values and how many rows hold each, a search, 全选 and the blanks, 文本筛选 or 数字筛选 conditions (等于, 包含, 大于, 介于, 前十项, 高于平均值…) and 自定义筛选, 清空条件; a table keeps its own criteria, saved in the .xlsx; a sort keeps the filter on the rows it lets through"
+    dimension: [function, fidelity]
+    priority: P1
+    status: has
+    commands: [data.filterValues, data.filterBy, data.clearFilter, data.sort]
+    paths:
+      - crates/engine/engine/src/cmd/data.rs
+      - crates/engine/engine/src/display.rs
+      - crates/engine/model/src/features.rs
+      - crates/formats/xlsx/src/sheet_read.rs
+      - crates/formats/xlsx/src/sheet_write.rs
+      - crates/engine/engine/tests/table_filter.rs
+      - bindings/wasm/src/moving.rs
+      - web/src/FilterMenu.tsx
+      - web/src/App.tsx
+      - web/tests/golden-cleanup.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "颜色筛选 (by fill or font colour) is kept from files and offered to agents but not in the list; date filters by year, month and day (WPS's 日期筛选 tree) are not offered; columns inserted inside a table do not shift its criteria."
+    cases: [sheet.editor.filter-buttons/golden-cleanup, sheet.editor.filter-buttons/table-filter, regressions/issue-table-filter-buttons]
+    since: "2026-11-17"
+  - id: sheet.editor.data-validation
+    title: "Data validation in the editor as in WPS: a list's arrow at the right of the cell and its entries (Alt+↓), the input message beside the selected cell, a refused value held with the rule's Stop (重试, 取消), Warning (是否继续？ 是, 否, 取消) or Information (确定, 取消) message, and Data › 数据验证 with its 设置, 输入信息 and 出错警告 pages and 全部清除"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [data.validation, data.validate, editor.validation]
+    paths:
+      - crates/engine/engine/src/cmd/data.rs
+      - bindings/wasm/src/validation.rs
+      - bindings/wasm/src/lib.rs
+      - bindings/wasm/src/bar.rs
+      - web/src/Validation.tsx
+      - web/src/sheet.ts
+      - web/src/App.tsx
+      - web/tests/golden-cleanup.mjs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "圈释无效数据 draws no circles in the editor (the command lists the cells); a list from another sheet's range follows the engine's evaluation without WPS's refusal of whole-column sources."
+    cases: [sheet.editor.data-validation/golden-cleanup, sheet.editor.data-validation/validation-messages]
+    since: "2026-11-17"
+  - id: sheet.agent.observe
+    title: An agent reads the workbook and answers in it
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [formulas.functions, formulas.evaluate, document.inspect, sheet.read, cell.get, selection.stats, history.list, app.commands]
+    requirements: [AX13]
+    cases: [sheet.agent.observe/best-region, regressions/issue-6]
+    since: "2026-11-17"
+  - id: sheet.agent.act
+    title: An agent adds formulas and rows
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [sheet.agent.act/average-row, regressions/issue-schema-additional-properties]
+    since: "2026-11-17"
+  - id: sheet.agent.recover
+    title: An agent fixes what the check reports
+    dimension: [ai]
+    priority: P0
+    status: has
+    requirements: [AX13]
+    cases: [sheet.agent.recover/formula-error, regressions/issue-unknown-params]
+    since: "2026-11-17"
+  - id: sheet.agent.draft
+    title: An agent works in a draft over a conversation
+    dimension: [ai]
+    priority: P1
+    status: has
+    requirements: [AX13]
+    cases: [sheet.agent.draft/east-update]
+    since: "2026-11-17"
+  - id: sheet.agent.context
+    title: No agent call depends on or leaves behind the active sheet or the selection; previews draw a named view
+    dimension: [ai]
+    priority: P0
+    status: has
+    commands: [file.render, sheet.read, selection.set, sheet.activate]
+    paths: [bindings/wasm/src/context.rs, bindings/wasm/src/render.rs, bindings/wasm/src/acts.rs, crates/engine/engine/src/context.rs, bindings/headless/src/main.rs]
+    requirements: [AX13]
+    cases: [sheet.agent.context/check-context, sheet.agent.context/editor-state-hidden, sheet.agent.context/explicit-targets, sheet.agent.context/failed-run, sheet.agent.context/headless-run, sheet.agent.context/published-commands, sheet.agent.context/reads-declared, sheet.agent.context/refused-contexts, sheet.agent.context/render-explicit-view, sheet.agent.context/render-named-view, sheet.agent.context/saved-person-view, sheet.agent.context/tool-refusals, sheet.agent.context/two-sheets-one-run]
+    since: "2026-11-17"
+  - id: sheet.agent.ids
+    title: One id space for sheets and drawing objects that survives reopening
+    dimension: [ai, conversion]
+    priority: P0
+    status: has
+    paths: [bindings/wasm/src/ids.rs, crates/kdm/kdm-model/model/schema.json, crates/formats/xlsx/src/drawing.rs]
+    requirements: [AX13]
+    cases: [sheet.agent.ids/drawing-ids-survive, sheet.agent.ids/inserted-rows-receipt, sheet.agent.ids/inspect-lists-ids, sheet.agent.ids/kdm-tool-ids, sheet.agent.ids/new-server, sheet.agent.ids/receipts, sheet.agent.ids/sheet-ids-survive]
+    since: "2026-11-17"
+  - id: sheet.security.workspace
+    title: The kit reads and writes only its workspace's files, through its host, and starts no program
+    dimension: [security]
+    priority: P0
+    status: has
+    paths: [crates/engine/engine/src/lib.rs, crates/engine/engine/src/io.rs, crates/engine/engine/src/cmd/file.rs, crates/engine/engine/src/cmd/print.rs, crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/spelling.rs, crates/engine/engine/tests/hosted.rs, bindings/wasm/src/files.rs, bindings/wasm/src/lib.rs, bindings/headless/src/main.rs, bindings/headless/tests/workspace_only.rs]
+    requirements: [AX11, E4]
+    gap: A hosted workbook has no spelling (it reads no system word list and the kit bundles none), and no command reads a file of the workspace by path; links a workbook holds to other workbooks are dropped on open.
+    cases: [regressions/issue-host-files-only, regressions/issue-writes-outside-workspace]
+    since: "2026-11-17"
+  - id: sheet.file.workbooks
+    title: "New, open, save, save as, close and workbook properties"
+    dimension: [function, conversion, data-safety]
+    priority: P1
+    status: partial
+    commands: [file.new, file.open, file.save, file.saveAs, file.saveBytes, file.close, file.properties, window.activate]
+    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/files.rs, crates/engine/engine/examples/perf.rs, crates/engine/engine/src/cmd/drawing.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and open round trips are tested at the XLSX format level and for single values through the engine; no case reopens a whole workbook through the commands.
+    since: "2026-11-17"
+  - id: sheet.file.export-print
+    title: "Export to CSV, web page and PDF; print and print preview"
+    dimension: [conversion, function]
+    priority: P1
+    status: partial
+    commands: [file.export, file.exportCsv, file.exportHtml, file.exportPdf, file.print, file.printPreview]
+    paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/print.rs, crates/engine/engine/src/cmd/file.rs, web/src/exportFile.ts, web/src/ribbon/ExportGroup.tsx]
+    target: "Excel for Mac 16.113.4"
+    gap: Export as PDF, CSV and web page run in the editor through the host (regressions/issue-export-through-host); Print and Print Preview have no editor case, and no case reopens an exported file.
+    cases: [regressions/issue-export-bytes, regressions/issue-export-picture-sheet, regressions/issue-export-through-host]
+    since: "2026-11-17"
+  - id: sheet.cells.entry
+    title: "Enter, set and fill cell values, rich text and checkboxes"
+    dimension: [function]
+    priority: P0
+    status: has
+    commands: [cell.set, cell.formatText, range.setValues, range.fill, edit.beginEdit, cell.toggleCheckbox, commandLine]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/extra.rs, bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for text, numbers, booleans and formulas (arithmetic, SUM, IF, CONCAT); the feature's other commands are covered by engine tests only.
+    cases: [sheet.cells.entry/save-reopen, regressions/issue-4]
+    since: "2026-11-17"
+  - id: sheet.cells.selection
+    title: "Select cells, rows, columns and regions; go to"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [selection.set, selection.move, selection.next, edit.selectAll, selection.currentRegion, selection.row, selection.column, edit.goTo, edit.goToSpecial]
+    paths: [crates/engine/engine/src/cmd/edit.rs, bindings/wasm/src/lib.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/extra.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    cases: [regressions/issue-7]
+    since: "2026-11-17"
+  - id: sheet.edit.clipboard
+    title: "Undo, redo, cut, copy, paste and paste special"
+    dimension: [function, data-safety]
+    priority: P1
+    status: partial
+    commands: [edit.undo, edit.redo, edit.copy, edit.cut, edit.paste, edit.pasteSpecial, edit.clearClipboard, edit.formatPainter]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/html_table.rs, bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/cmd/drawing.rs, web/src/App.tsx]
+    target: "Excel for Mac 16.113.4"
+    gap: Copy and paste by key, and pasting another spreadsheet's HTML table, are shown in the editor; undo, redo and paste special are not, and no case reopens a pasted table after saving.
+    cases: [regressions/issue-paste-html, regressions/issue-clipboard-keys]
+    since: "2026-11-17"
+  - id: sheet.edit.fill-clear
+    title: "Fill down, right, up, left, series, AutoFill and smart fill; clear contents, formats, comments and links"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [edit.clearAll, edit.clearFormats, edit.clearContents, edit.clearComments, edit.clearHyperlinks, edit.fillDown, edit.fillRight, edit.fillUp, edit.fillLeft, edit.autoFill, edit.fillSeries, edit.smartFill]
+    paths: [crates/engine/engine/src/cmd/edit.rs, web/src/ribbon/HomeTab.tsx, bindings/wasm/src/lib.rs, crates/engine/engine/examples/perf.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.edit.find-replace
+    title: "Find and replace"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [edit.find, edit.replace]
+    paths: [crates/engine/engine/src/cmd/edit.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/spelling.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.format.font
+    title: "Font, size, colour, fill, borders and character styles"
+    dimension: [function, fidelity]
+    priority: P0
+    status: has
+    commands: [home.bold, home.italic, home.underline, home.doubleUnderline, home.strikethrough, home.superscript, home.subscript, home.fontName, home.fontSize, home.increaseFontSize, home.decreaseFontSize, home.fontColor, home.fillColor, home.borders, home.formatCells, home.cellStyle, home.drawBorder, home.newCellStyle]
+    paths: [crates/engine/engine/src/cmd/format.rs, web/src/ribbon/HomeTab.tsx, bindings/wasm/src/edit.rs, crates/engine/engine/src/sample.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for bold, italic, double underline, strikethrough, font, size, font colour, fill and borders; the feature's other commands are covered by engine tests only.
+    cases: [sheet.format.font/save-reopen]
+    since: "2026-11-17"
+  - id: sheet.format.conditional
+    title: "Conditional formatting rules"
+    dimension: [function, fidelity]
+    priority: P1
+    status: partial
+    commands: [home.conditionalFormat, home.clearRules, home.manageRules]
+    paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cf.rs, bindings/wasm/src/icons.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/sample.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    cases: [regressions/issue-1]
+    since: "2026-11-17"
+  - id: sheet.format.alignment
+    title: "Alignment, wrapping, indent, orientation and merging"
+    dimension: [function, fidelity]
+    priority: P0
+    status: has
+    commands: [home.alignLeft, home.alignCenter, home.alignRight, home.justify, home.alignTop, home.alignMiddle, home.alignBottom, home.wrapText, home.shrinkToFit, home.increaseIndent, home.decreaseIndent, home.orientation, home.mergeCenter, home.mergeAcross, home.mergeCells, home.unmergeCells]
+    paths: [crates/engine/engine/src/cmd/format.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/print.rs, bindings/wasm/src/check.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for merge and centre, horizontal and vertical alignment, wrap, indent and rotation; the feature's other commands are covered by engine tests only.
+    cases: [sheet.format.alignment/save-reopen, regressions/issue-3]
+    since: "2026-11-17"
+  - id: sheet.format.number
+    title: "Number formats, accounting, percent, comma and decimals"
+    dimension: [function, fidelity]
+    priority: P0
+    status: has
+    commands: [home.numberFormat, home.accounting, home.percent, home.comma, home.increaseDecimal, home.decreaseDecimal]
+    paths: [crates/engine/engine/src/cmd/format.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/sample.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for accounting, percent, comma and custom number and date formats; the feature's other commands are covered by engine tests only.
+    cases: [sheet.format.number/save-reopen]
+    since: "2026-11-17"
+  - id: sheet.cells.rows-columns
+    title: "Insert, delete, size, hide and unhide rows, columns and cells"
+    dimension: [function]
+    priority: P0
+    status: has
+    commands: [home.rowHeight, home.columnWidth, home.autofitRowHeight, home.autofitColumnWidth, home.defaultWidth, home.hideRows, home.hideColumns, home.unhideRows, home.unhideColumns, home.insertRows, home.insertColumns, home.deleteRows, home.deleteColumns, home.insertCells, home.deleteCells]
+    paths: [web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/format.rs, crates/engine/engine/src/cmd/sheet.rs, crates/engine/engine/src/cmd/print.rs, bindings/wasm/src/resize.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for column width, row height, inserting rows and columns, and hiding columns; the feature's other commands are covered by engine tests only.
+    cases: [sheet.cells.rows-columns/save-reopen, regressions/issue-row-height-precision, regressions/issue-heading-resize, regressions/issue-size-command-sheet]
+    since: "2026-11-17"
+  - id: sheet.sheets.manage
+    title: "Insert, delete, rename, move, colour, hide and switch sheets"
+    dimension: [function]
+    priority: P0
+    status: has
+    commands: [home.insertSheet, home.deleteSheet, sheet.rename, sheet.move, sheet.tabColor, sheet.hide, sheet.unhide, sheet.activate, sheet.next, sheet.previous]
+    paths: [crates/engine/engine/src/cmd/sheet.rs, crates/engine/engine/src/cmd/whatif.rs, bindings/wasm/src/describe.rs, crates/engine/engine/src/cmd/extra.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for inserting, renaming, colouring, moving and hiding sheets; the feature's other commands are covered by engine tests only.
+    cases: [sheet.sheets.manage/save-reopen]
+    since: "2026-11-17"
+  - id: sheet.insert.objects
+    title: "Insert tables, charts, sparklines, pictures, shapes, icons, text boxes, art text, links, symbols and checkboxes"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [insert.table, insert.chart, insert.recommendedCharts, insert.sparkline, insert.picture, insert.shape, insert.icons, insert.textBox, insert.artText, shape.setText, object.delete, object.move, object.setAnchorMode, insert.link, insert.symbol, insert.checkbox, insert.pivotTable, insert.recommendedPivotTables]
+    paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cmd/drawing.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/pivot.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.tables.design
+    title: "Table styles, style options, totals, resizing and conversion"
+    dimension: [function, fidelity]
+    priority: P1
+    status: partial
+    commands: [home.formatAsTable, table.totalRow, table.bandedRows, table.bandedColumns, table.headerRow, table.firstColumn, table.lastColumn, table.style, table.rename, table.convertToRange, table.totalFunction, table.resize, table.removeDuplicates, table.summarizePivot]
+    paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/sample.rs, crates/engine/engine/src/cmd/pivot.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.charts.design
+    title: "Chart type, data, layout, elements, colours and formatting"
+    dimension: [function, fidelity]
+    priority: P1
+    status: partial
+    commands: [chart.set, chart.switchRowColumn, chart.delete, chart.addElement, chart.quickLayout, chart.changeColors, chart.selectData, chart.changeType, chart.move, chart.formatSelection, chart.shapeFill, chart.shapeOutline]
+    paths: [crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/insert.rs, crates/engine/chart/src/*.rs, crates/formats/xlsx/src/chart*.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    cases: [regressions/issue-2]
+    since: "2026-11-17"
+  - id: sheet.pivot.tables
+    title: "Pivot table fields, layout, totals, grouping, filtering, styles and refresh"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [pivot.fields, pivot.fieldList, pivot.list, pivot.addField, pivot.removeField, pivot.moveField, pivot.valueSettings, pivot.filter, pivot.sort, pivot.group, pivot.collapse, pivot.layout, pivot.grandTotals, pivot.subtotals, pivot.reportLayout, pivot.style, pivot.refresh, pivot.changeSource, pivot.delete]
+    paths: [crates/engine/engine/src/cmd/pivot.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.review.comments
+    title: "Notes and threaded comments"
+    dimension: [function, collab]
+    priority: P1
+    status: partial
+    commands: [review.newNote, review.newComment, review.replyComment, review.resolveComment, review.deleteComment, review.showNote]
+    paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/sample.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.review.host-comments
+    title: "Comment on cells in a host that keeps comment threads (Kition One)"
+    dimension: [function, collab]
+    priority: P1
+    status: has
+    commands: [editor.commentAnchor, editor.commentPlaces]
+    paths:
+      - crates/kdm/kdm-model/src/anchors.rs
+      - bindings/wasm/src/comments.rs
+      - bindings/wasm/tests/comment_anchors.rs
+      - web/src/commentAnchors.ts
+      - web/src/HostComments.tsx
+      - web/src/App.tsx
+      - web/tests/comments.mjs
+      - web/tests/comments-host.html
+      - web/tests/commentsHost.ts
+    gap: An empty cell below or right of everything the sheet holds has no row or column object, so rows or columns inserted between the data's end and it do not move its anchor.
+    cases: [sheet.review.host-comments/anchors-follow-edits, sheet.review.host-comments/editor-and-host]
+    since: "2026-11-17"
+  - id: sheet.review.protect-proof
+    title: "Cell locking, sheet and workbook protection, statistics, accessibility and spelling"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [home.lockCell, review.protectSheet, review.unprotectSheet, review.protectWorkbook, review.workbookStatistics, review.checkAccessibility, review.spelling, review.addToDictionary, review.changeSpelling, review.thesaurus]
+    paths: [crates/engine/engine/src/cmd/review.rs, crates/engine/engine/src/cmd/spelling.rs, bindings/wasm/src/describe.rs, crates/engine/engine/src/cmd/format.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.data.sort-filter
+    title: "Sort, filter, advanced filter and remove duplicates"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [data.sortAscending, data.sortDescending, data.sort, data.filter, data.filterBy, data.clearFilter, data.reapply, data.removeDuplicates, data.advancedFilter]
+    paths: [crates/engine/engine/src/cmd/data.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/examples/perf.rs, crates/engine/engine/src/cmd/extra.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.data.tools
+    title: "Text to columns, data validation, outline, subtotals and consolidate"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [data.textToColumns, data.validation, data.validate, data.circleInvalid, data.group, data.ungroup, data.hideDetail, data.showDetail, data.subtotal, data.smartFill, data.consolidate]
+    paths: [crates/engine/engine/src/cmd/data.rs, crates/engine/engine/src/cmd/whatif.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    cases: [regressions/issue-8]
+    since: "2026-11-17"
+  - id: sheet.data.import
+    title: "Import from text and CSV, tables and ranges; queries and refresh"
+    dimension: [function, conversion]
+    priority: P1
+    status: partial
+    commands: [data.fromTextCsv, data.getData, data.fromTableRange, data.queriesConnections, data.refreshAll]
+    paths: [crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/lib.rs, crates/engine/engine/src/cmd/pivot.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.data.what-if
+    title: "Goal Seek, scenarios and data tables"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [data.goalSeek, data.scenarioManager, data.scenarioAdd, data.scenarioShow, data.scenarioDelete, data.scenarioSummary, data.dataTable]
+    paths: [crates/engine/engine/src/cmd/whatif.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.formulas.functions
+    title: "AutoSum, function library and recently used functions"
+    dimension: [function, fidelity]
+    priority: P1
+    status: partial
+    commands: [formulas.autoSum, formulas.insertFunction, formulas.recentlyUsed, formulas.financial, formulas.logical, formulas.text, formulas.dateTime, formulas.lookupReference, formulas.mathTrig, formulas.moreFunctions]
+    paths: [crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/formulas.rs, web/src/ribbon/HomeTab.tsx]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    cases: [regressions/issue-5]
+    since: "2026-11-17"
+  - id: sheet.formulas.results
+    title: "Formula results as WPS computes them: common functions, coercion, 15-digit precision, errors"
+    dimension: [fidelity]
+    priority: P0
+    status: has
+    paths:
+      - crates/engine/functions/src/math.rs
+      - crates/engine/functions/src/text.rs
+      - crates/engine/functions/src/date.rs
+      - crates/engine/functions/src/criteria.rs
+      - crates/engine/functions/src/lookup.rs
+      - crates/engine/functions/src/financial.rs
+      - crates/engine/calc/src/eval.rs
+      - crates/engine/core/src/value.rs
+      - crates/engine/core/src/parse.rs
+      - crates/engine/numfmt/src/lib.rs
+      - crates/engine/numfmt/src/chinese.rs
+      - crates/engine/engine/tests/formula_oracle.rs
+      - crates/engine/engine/tests/data/formula_oracle.tsv
+    target: "WPS Office for Mac 7.5.1"
+    gap: Results that depend on the locale (currency signs, d/m order, weekday and month names) follow Chinese and en-US conventions; the oracle's WPS ran in an English (UK) region, so those rows carry documented zh-CN results. The long tail of statistical and engineering functions is checked by engine tests, not against WPS.
+    cases: [sheet.formulas.results/wps-oracle, regressions/issue-formula-precision]
+    since: "2026-11-17"
+  - id: sheet.formulas.references
+    title: "References kept right through inserting, deleting, copying, cutting, sorting and sheet changes; recalculation, circular references and iterative calculation"
+    dimension: [function]
+    priority: P0
+    status: has
+    commands: [home.insertRows, home.deleteRows, home.insertColumns, home.deleteColumns, home.deleteSheet, sheet.rename, sheet.move, edit.copy, edit.cut, edit.paste, data.sort, formulas.calculationOptions, formulas.calculateNow]
+    paths:
+      - crates/engine/engine/src/cmd/sheet.rs
+      - crates/engine/engine/src/cmd/formulas.rs
+      - crates/engine/calc/src/recalc.rs
+      - crates/engine/model/src/sheet.rs
+      - crates/engine/engine/tests/reference_maintenance.rs
+      - bindings/wasm/src/check.rs
+    target: "WPS Office for Mac 7.5.1"
+    gap: WPS warns about a new circular reference with a dialog; Kition Sheet shows 0 and lists the cells in Error Checking and the workbook check, without a dialog. INDIRECT text naming a renamed sheet is not rewritten (as in WPS and Excel).
+    cases: [sheet.formulas.references/structural-edits, sheet.formulas.references/recalculation, regressions/issue-sheet-delete-feature-references, regressions/issue-circular-reference-shows-zero]
+    since: "2026-11-17"
+  - id: sheet.formulas.names
+    title: "Defined names"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [formulas.defineName, formulas.deleteName, formulas.nameManager, formulas.createFromSelection, formulas.useInFormula]
+    paths: [crates/engine/engine/src/cmd/formulas.rs, bindings/wasm/src/check.rs, crates/engine/engine/src/cmd/extra.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for defining a name and using it in a formula; the feature's other commands are covered by engine tests only.
+    cases: [sheet.formulas.names/save-reopen]
+    since: "2026-11-17"
+  - id: sheet.formulas.auditing
+    title: "Trace precedents and dependents, show formulas, error checking, evaluation, watch window and calculation"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [formulas.tracePrecedents, formulas.traceDependents, formulas.removeArrows, formulas.showFormulas, formulas.errorChecking, formulas.evaluateFormula, formulas.calculateNow, formulas.calculateSheet, formulas.calculationOptions, formulas.watchWindow]
+    paths: [crates/engine/engine/src/cmd/formulas.rs, bindings/wasm/src/describe.rs, crates/engine/engine/src/cmd/extra.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.view.window
+    title: "Freeze panes, gridlines, headings, zoom, workbook views, split and windows"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [view.freezePanes, view.freezeTopRow, view.freezeFirstColumn, view.unfreezePanes, view.gridlines, view.headings, view.showZeros, view.rightToLeft, view.zoom, view.zoomToSelection, view.normal, view.pageLayout, view.pageBreakPreview, view.customViews, view.split, view.newWindow, view.arrangeAll, view.hideWindow, view.unhideWindow, view.switchWindows, view.ruler, view.macros]
+    paths: [crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/view.rs, bindings/wasm/src/describe.rs, bindings/wasm/src/lib.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Save and reopen as .xlsx is proven by command for freezing panes and hiding gridlines; the feature's other commands are covered by engine tests only.
+    cases: [sheet.view.window/save-reopen]
+    since: "2026-11-17"
+  - id: sheet.page.setup
+    title: "Orientation, size, margins, print area and titles, scaling, breaks, header and footer"
+    dimension: [function, fidelity]
+    priority: P1
+    status: partial
+    commands: [pageLayout.orientation, pageLayout.size, pageLayout.margins, pageLayout.printArea, pageLayout.printTitles, pageLayout.scaleToFit, pageLayout.printGridlines, pageLayout.printHeadings, pageLayout.breaks, pageLayout.headerFooter, pageLayout.pageSetup]
+    paths: [crates/engine/engine/src/cmd/view.rs, crates/engine/engine/src/cmd/print.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.page.themes
+    title: "Themes, theme colours, fonts and effects; sheet background"
+    dimension: [function, fidelity]
+    priority: P2
+    status: partial
+    commands: [pageLayout.theme, pageLayout.themeColors, pageLayout.themeFonts, pageLayout.themeEffects, pageLayout.background]
+    paths: [crates/engine/engine/src/cmd/extra.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/view.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.drawing.objects
+    title: "Drawing objects: describe, insert, transform, format, connect, group, arrange; ink"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [arrange.bringForward, arrange.sendBackward, arrange.selectionPane, arrange.align, arrange.group, arrange.rotate, drawing.ink, drawing.erase, drawing.describe, drawing.insert, drawing.delete, drawing.transform, drawing.format, drawing.text, drawing.reconnect, drawing.connect, drawing.group, drawing.ungroup, drawing.arrange, drawing.chart]
+    paths: [crates/engine/engine/src/cmd/drawing.rs, bindings/wasm/src/objects.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/ink.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.insert.smart-graphic
+    title: "Smart graphics in opened workbooks: kept on save, drawn in the editor (with empty nodes' prompts) and printed"
+    dimension: [function, fidelity]
+    priority: P2
+    status: partial
+    paths:
+      - crates/engine/model/src/features.rs
+      - crates/formats/xlsx/src/drawing.rs
+      - crates/engine/chart/src/diagram.rs
+      - crates/engine/engine/src/cmd/print.rs
+      - bindings/wasm/src/lib.rs
+    target: "WPS Office for Mac 7.5.1"
+    gap: "Diagrams can't be inserted or edited (insert.smartGraphic), only kept, moved with inserted rows and columns, drawn and printed; the editor doesn't draw their pictures; text is drawn in the theme's body font, one line per paragraph as the shared reader lays it out."
+    cases: [sheet.insert.smart-graphic/kept-on-save, sheet.insert.smart-graphic/drawn, sheet.insert.smart-graphic/printed]
+    since: "2026-11-17"
+  - id: sheet.draw.ink-tools
+    title: "Draw tab pens, highlighter, eraser, lasso and ink to shape"
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [draw.pen, draw.pencil, draw.highlighter, draw.eraser, draw.select, draw.shape, draw.state, draw.lasso, draw.stroke, draw.inkToShape]
+    paths: [crates/engine/engine/src/cmd/draw.rs, bindings/wasm/src/objects.rs, crates/engine/engine/src/cmd/ink.rs, bindings/wasm/src/describe.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
+  - id: sheet.automate.scripts
+    title: "Record, create, run and delete scripts; add-ins"
+    dimension: [function]
+    priority: P2
+    status: partial
+    commands: [automate.recordActions, automate.newScript, automate.allScripts, automate.runScript, automate.deleteScript, home.addIns]
+    paths: [crates/engine/engine/src/cmd/extra.rs]
+    target: "Excel for Mac 16.113.4"
+    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    since: "2026-11-17"
