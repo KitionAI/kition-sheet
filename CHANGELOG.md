@@ -3,6 +3,10 @@
 Changes to Kition Sheet, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.1
+
+- The grid follows the host's dark scheme: in a dark host the cells, gridlines and headings are drawn dark, with automatic text and borders light (text at WCAG AA); the light scheme keeps exactly the colours it had.
+
 ## 0.1.0
 
 First public release of the source, under the Apache License 2.0. It contains:
