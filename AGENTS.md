@@ -42,7 +42,7 @@ still apply to the engine.
 - `bindings/wasm` compiles the engine to WebAssembly on the public
   `KitionAI/kition-sdk` crate; the editor runs it in a Web Worker. The contract and the Kition platform rules live in kition-sdk
   (`docs/platform/kits/engine.md`, `docs/platform/reference/ui-protocol.md`), the agent protocol
-  in KHP (`github.com/kitharness/khp`);
+  in KHP (`github.com/kitharness/kitharness`);
   change them there, never here. `kition-sheet-kit` must keep passing `kition_kit::testing::check_contract`,
   and `kit.json` must pass kition-sdk's `tools/check-manifest.mjs`.
 - Tools run in the engine (`KitTools`): clicks, drags, headings, typing, and keys select and enter cells through Kition Sheet's own commands (`selection.set`, `selection.move`, `cell.set`), and the selection and the cell being typed return as engine overlays. Never draw editor chrome into the rendered pixels.
