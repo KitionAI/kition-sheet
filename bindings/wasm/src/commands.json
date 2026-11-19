@@ -285,6 +285,17 @@
    "properties": { "preview": { "oneOf": [{ "type": "null" }, { "type": "array", "items": { "type": "integer" } }] } }
   }
  },
+ "editor.scheme": {
+  "description": "Draws the editor's grid in the host's color scheme (`scheme`: light or dark): empty cells, gridlines, headings and automatic text and borders follow it, colours the workbook sets stay as they are, and nothing moves. Neither edits nor saves the workbook; pictures and exports are always light. Answers whether it changed.",
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "changed": { "type": "boolean" },
+    "scheme": { "type": "string" }
+   }
+  }
+ },
  "editor.wording": {
   "description": "Sets the generic name tables give columns with empty headers, numbered (Column1; \u52171 in a Chinese editor), without editing or saving the workbook; answers it.",
   "output": {

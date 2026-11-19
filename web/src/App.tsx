@@ -46,6 +46,7 @@ import { CellFormulaHints } from './FormulaHints'
 import { GridMenu, showGridMenu } from './LineMenus'
 import { FocusCellButton } from './ViewControls'
 import { SymbolDialog, SymbolGroup } from './Symbols'
+import { useColorScheme } from './colorScheme'
 
 const TABS: Array<[string, string]> = [
   ['file', 'File'],
@@ -310,6 +311,15 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     if (doc) void editor.run('editor.wording', { columnPrefix: t('tableColumnPrefix') })
     // eslint-disable-next-line react-hooks/exhaustive-deps -- per workbook
   }, [doc])
+
+  // The host's color scheme: the engine draws the grid in it (dark cells, gridlines and headings,
+  // automatic text light; the workbook's own colours kept), at open and whenever the host changes
+  // it, without a reload. A view setting: never saved, never a change of the workbook.
+  const scheme = useColorScheme()
+  useEffect(() => {
+    if (doc) void editor.run('editor.scheme', { scheme }).catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- per workbook and scheme
+  }, [doc, scheme])
 
   // A dialog a command asked for (a menu item run without the values it needs) opens here, once
   // per request: Format Cells, Insert Function and Unhide Sheet are the kit's own dialogs; any

@@ -1,6 +1,6 @@
 format: 1
 kit: sheet
-updated: "2026-11-17"
+updated: "2026-11-19"
 gate_budget_s: 600
 protected: []
 features:
@@ -271,6 +271,15 @@ features:
     paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/tests.rs, web/src/App.tsx, web/tests/formula-viewport.mjs]
     cases: [regressions/issue-grid-viewport-fill]
     since: "2026-11-17"
+  - id: sheet.editor.color-scheme
+    title: "The grid follows the host's color scheme, live: in dark, cells, gridlines, headings and automatic text and borders are drawn for a dark surface, nothing moving; the workbook's own colours, the saved file, pictures and the agent's preview stay as they are"
+    dimension: [function, platform]
+    priority: P1
+    status: has
+    commands: [editor.scheme]
+    paths: [bindings/wasm/src/scheme.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/render.rs, bindings/wasm/tests/color_scheme.rs, web/src/colorScheme.ts, web/src/App.tsx]
+    cases: [regressions/issue-h16-dark-grid]
+    since: "2026-11-19"
   - id: sheet.editor.display-modes
     title: The editor in Menus, Single line, Classic and Focus; Escape in Focus cancels typing or a selected object first
     dimension: [function]

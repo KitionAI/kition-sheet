@@ -1,6 +1,7 @@
 {
   "editor.commentPlaces": { "params": { "anchors": [{ "ids": ["not-a-sheet", "r", "c"] }] } },
   "editor.insertText": { "params": { "text": "±" } },
+  "editor.scheme": { "params": { "scheme": "dark" } },
   "file.export": { "params": { "format": "csv" } },
   "file.exportCsv": { "params": { "path": "$tmp/out.csv" } },
   "file.exportHtml": { "params": { "path": "$tmp/out.html" } },

@@ -148,7 +148,7 @@ impl SheetDocument {
         let cells_w = width.saturating_sub(band_w as u32).max(1);
         let cells_h = height.saturating_sub(band_h as u32).max(1);
         let extent = (range.end.col + 1, range.end.row + 1);
-        let paint = Paint { plain: false, editor: false, headings: false };
+        let paint = Paint { plain: false, editor: false, headings: false, palette: &crate::scheme::Palette::LIGHT };
         let cells = self.paint_sheet(wb, index, sheet, extent, (x0, y0, scale, cells_w, cells_h), paint);
         let mut canvas = Canvas::new(width, height, WHITE);
         let all = Rect { x0: 0.0, y0: 0.0, x1: f64::from(width), y1: f64::from(height) };

@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-h16-dark-grid
+feature: sheet.editor.color-scheme
+intent: >-
+  The editor's grid follows the host's color scheme (`editor.scheme`), as the apps the kit matches
+  do (docs/parity/ui-parity.md, "Dark mode, system appearance"): in dark, empty cells, gridlines
+  and headings are dark and automatic text is light at WCAG AA; a fill or font colour the workbook
+  sets is drawn as it is, with automatic text on a fill dark or light by that fill; every gridline,
+  letter and fill is in the same pixels as in light; the switch moves the revision (the page
+  repaints) but neither changes nor dirties the workbook; the saved file, File › Export as Picture
+  and the agent's `file.render` stay light, byte for byte; back in light the grid is what it was.
+  Before, the grid had one light palette and was white in Kition's dark scheme (host matrix row
+  H16: median luminance 1.000).
+layer: gate
+source:
+  kind: issue
+  from: "Kition host matrix row H16 (e2e/interaction/sheet.spec.ts), task dark-surface-board-sheet"
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-sheet-kit, test: color_scheme }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-19"

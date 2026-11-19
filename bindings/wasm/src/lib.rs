@@ -52,6 +52,7 @@ mod references;
 mod registry_read_premises;
 mod render;
 mod resize;
+mod scheme;
 mod shared_edit_premises;
 mod style_premises;
 mod table_lookup_premises;
@@ -89,17 +90,17 @@ const MIN_ROWS: u32 = 100;
 const OVERFLOW_COLS: u32 = 20;
 
 pub(crate) const WHITE: Rgba = [255, 255, 255, 255];
-const GRIDLINE: Rgba = [225, 225, 228, 255];
+pub(crate) const GRIDLINE: Rgba = [225, 225, 228, 255];
 pub(crate) const HEADING: Rgba = [245, 245, 247, 255];
 pub(crate) const HEADING_LINE: Rgba = [210, 210, 214, 255];
 pub(crate) const HEADING_TEXT: Rgba = [90, 90, 96, 255];
 /// The lines under frozen rows and right of frozen columns (upstream `grid.rs`).
-const FREEZE_LINE: Rgba = [150, 150, 150, 255];
+pub(crate) const FREEZE_LINE: Rgba = [150, 150, 150, 255];
 /// The sheet's brand colour (`ui.brand.light` in `kit.json`); the grid is always drawn light.
 const ACCENT: [u8; 4] = [26, 134, 65, 255];
 const SELECTION: [u8; 4] = [26, 134, 65, 36];
 const HEADING_SELECTED: [u8; 4] = [26, 134, 65, 56];
-const EDITING_TEXT: [u8; 4] = [20, 20, 20, 255];
+pub(crate) const EDITING_TEXT: [u8; 4] = [20, 20, 20, 255];
 /// The freeze preview's line and tint (the Freeze Panes menu points at a choice).
 const FREEZE_PREVIEW: [u8; 4] = [26, 134, 65, 255];
 const FREEZE_PREVIEW_TINT: [u8; 4] = [26, 134, 65, 28];
@@ -132,6 +133,11 @@ pub struct SheetDocument {
     /// How many times the cell being typed changed: part of the revision, so the page repaints
     /// it (the editor is drawn with the cells, in its runs' fonts).
     edits: u64,
+    /// The host's color scheme the editor's grid is drawn in (`editor.scheme`): a view concern,
+    /// never saved, never a change of the workbook ([`scheme`]).
+    scheme: scheme::Scheme,
+    /// How many times the scheme changed: part of the revision, so the page repaints the grid.
+    schemes: u64,
     /// The pointer is over the cell being typed (or selecting its characters): the text cursor.
     text_hover: bool,
     /// A drag that started in the grid.
@@ -197,6 +203,9 @@ struct Paint {
     editor: bool,
     /// The row and column headings.
     headings: bool,
+    /// The grid's own colours: the host's scheme in the editor ([`scheme`]), light in every
+    /// picture of the workbook.
+    palette: &'static scheme::Palette,
 }
 
 /// The editor's state in [`KitDocument::inspect`], as JSON Pointers: what the editor shows of the
@@ -332,6 +341,18 @@ impl SheetDocument {
                 self.session.prefs.column_prefix = prefix.to_owned();
             }
             return Ok(json!({ "columnPrefix": self.session.prefs.column_prefix }));
+        }
+        if command == "editor.scheme" {
+            // The host's color scheme: the grid is drawn in its palette; nothing moves, nothing is
+            // saved, the workbook is unchanged.
+            let name = params.get("scheme").and_then(Json::as_str).ok_or("invalid-params: editor.scheme needs `scheme`, light or dark")?;
+            let scheme = scheme::Scheme::parse(name).ok_or_else(|| format!("invalid-params: the scheme is light or dark, not `{name}`"))?;
+            let changed = scheme != self.scheme;
+            if changed {
+                self.scheme = scheme;
+                self.schemes = self.schemes.saturating_add(1);
+            }
+            return Ok(json!({ "changed": changed, "scheme": scheme.name() }));
         }
         if command == "editor.formula" {
             return self.bar_command(&params);
@@ -479,6 +500,8 @@ impl SheetDocument {
             editing: None,
             viewport: (0.0, 0.0),
             edits: 0,
+            scheme: scheme::Scheme::Light,
+            schemes: 0,
             text_hover: false,
             dragging: false,
             selecting: false,
@@ -617,6 +640,7 @@ impl SheetDocument {
         &self,
         canvas: &mut Canvas,
         sheet: &Sheet,
+        palette: &scheme::Palette,
         (x, y, scale): (f64, f64, f64),
         (r0, r1, c0, c1): (u32, u32, u32, u32),
         (grid_right, grid_bottom): (f64, f64),
@@ -626,21 +650,21 @@ impl SheetDocument {
         let (gutter_w, gutter_h) = (row_gutter(sheet), col_gutter(sheet));
         let line = scale.clamp(1.0, 2.0).round();
         let half = 5.5 * scale;
-        canvas.fill(Rect { x0: to_x(0.0), y0: to_y(0.0), x1: to_x(gutter_w), y1: grid_bottom }, WHITE);
-        canvas.fill(Rect { x0: to_x(0.0), y0: to_y(0.0), x1: grid_right, y1: to_y(gutter_h) }, WHITE);
+        canvas.fill(Rect { x0: to_x(0.0), y0: to_y(0.0), x1: to_x(gutter_w), y1: grid_bottom }, palette.background);
+        canvas.fill(Rect { x0: to_x(0.0), y0: to_y(0.0), x1: grid_right, y1: to_y(gutter_h) }, palette.background);
         let size = (9.0 * 96.0 / 72.0 * scale) as f32;
         // A button: a box with a minus, a plus, or a level number.
         let button = |canvas: &mut Canvas, cx: f64, cy: f64, mark: Option<bool>, label: Option<u8>| {
             let (bx0, by0, bx1, by1) = ((cx - half).round(), (cy - half).round(), (cx + half).round(), (cy + half).round());
-            canvas.fill(Rect { x0: bx0, y0: by0, x1: bx1, y1: by1 }, WHITE);
-            canvas.hline(bx0, bx1, by0, line, HEADING_TEXT);
-            canvas.hline(bx0, bx1, by1 - line, line, HEADING_TEXT);
-            canvas.vline(bx0, by0, by1, line, HEADING_TEXT);
-            canvas.vline(bx1 - line, by0, by1, line, HEADING_TEXT);
+            canvas.fill(Rect { x0: bx0, y0: by0, x1: bx1, y1: by1 }, palette.background);
+            canvas.hline(bx0, bx1, by0, line, palette.heading_text);
+            canvas.hline(bx0, bx1, by1 - line, line, palette.heading_text);
+            canvas.vline(bx0, by0, by1, line, palette.heading_text);
+            canvas.vline(bx1 - line, by0, by1, line, palette.heading_text);
             if let Some(plus) = mark {
-                canvas.hline((cx - half * 0.55).round(), (cx + half * 0.55).round(), cy.round(), line, HEADING_TEXT);
+                canvas.hline((cx - half * 0.55).round(), (cx + half * 0.55).round(), cy.round(), line, palette.heading_text);
                 if plus {
-                    canvas.vline(cx.round(), (cy - half * 0.55).round(), (cy + half * 0.55).round(), line, HEADING_TEXT);
+                    canvas.vline(cx.round(), (cy - half * 0.55).round(), (cy + half * 0.55).round(), line, palette.heading_text);
                 }
             }
             if let Some(n) = label {
@@ -652,7 +676,7 @@ impl SheetDocument {
                     cx - text.width() / 2.0,
                     cy + (ascent - descent) / 2.0,
                     Rect { x0: bx0, y0: by0, x1: bx1, y1: by1 },
-                    HEADING_TEXT,
+                    palette.heading_text,
                     false,
                 );
             }
@@ -668,8 +692,8 @@ impl SheetDocument {
                 let cy = to_y((Self::row_y(sheet, summary) + Self::row_y(sheet, summary + 1)) / 2.0);
                 if !hidden {
                     let top = to_y(Self::row_y(sheet, start)) + 2.0 * scale;
-                    canvas.vline(cx.round(), top, cy - half, line, HEADING_TEXT);
-                    canvas.hline(cx.round(), cx + 4.0 * scale, top.round(), line, HEADING_TEXT);
+                    canvas.vline(cx.round(), top, cy - half, line, palette.heading_text);
+                    canvas.hline(cx.round(), cx + 4.0 * scale, top.round(), line, palette.heading_text);
                 }
                 button(canvas, cx, cy, Some(hidden), None);
             }
@@ -690,8 +714,8 @@ impl SheetDocument {
                 let cx = to_x((Self::col_x(sheet, summary) + Self::col_x(sheet, summary + 1)) / 2.0);
                 if !hidden {
                     let left = to_x(Self::col_x(sheet, start)) + 2.0 * scale;
-                    canvas.hline(left, cx - half, cy.round(), line, HEADING_TEXT);
-                    canvas.vline(left.round(), cy, cy + 4.0 * scale, line, HEADING_TEXT);
+                    canvas.hline(left, cx - half, cy.round(), line, palette.heading_text);
+                    canvas.vline(left.round(), cy, cy + 4.0 * scale, line, palette.heading_text);
                 }
                 button(canvas, cx, cy, Some(hidden), None);
             }
@@ -724,10 +748,13 @@ impl SheetDocument {
     /// [`Self::paint`]; `plain` draws the sheet as a picture of it (File › Export as Picture):
     /// no gridlines, headings, filter buttons, freeze lines, note marks or cell being typed.
     fn paint_with(&self, x: f64, y: f64, scale: f64, width: u32, height: u32, plain: bool) -> Vec<u8> {
-        let Some(st) = self.session.active() else { return Canvas::new(width, height, WHITE).px };
+        let background = if plain { WHITE } else { self.scheme.palette().background };
+        let Some(st) = self.session.active() else { return Canvas::new(width, height, background).px };
         let si = st.wb.active_sheet;
-        let Some(sheet) = st.wb.active() else { return Canvas::new(width, height, WHITE).px };
-        let paint = Paint { plain, editor: true, headings: !plain && sheet.show_headings };
+        let Some(sheet) = st.wb.active() else { return Canvas::new(width, height, background).px };
+        // The editor's grid in the host's scheme; a plain picture of the sheet is always light.
+        let palette = if plain { &scheme::Palette::LIGHT } else { self.scheme.palette() };
+        let paint = Paint { plain, editor: true, headings: !plain && sheet.show_headings, palette };
         self.paint_sheet(&st.wb, si, sheet, self.extent(), (x, y, scale, width, height), paint)
     }
 
@@ -737,7 +764,8 @@ impl SheetDocument {
     fn paint_sheet(&self, wb: &Workbook, si: usize, sheet: &Sheet, (cols, rows): (u32, u32), at: (f64, f64, f64, u32, u32), paint: Paint) -> Vec<u8> {
         let (x, y, scale, width, height) = at;
         let plain = paint.plain;
-        let mut canvas = Canvas::new(width, height, WHITE);
+        let palette = paint.palette;
+        let mut canvas = Canvas::new(width, height, palette.background);
         let (cols, rows) = (cols.max(1), rows.max(1));
         let to_x = |dx: f64| (dx - x) * scale;
         let to_y = |dy: f64| (dy - y) * scale;
@@ -756,7 +784,7 @@ impl SheetDocument {
         let mut conditional = kition_sheet_engine::cf::CfCache::new();
 
         // Gridlines, in the sheet's gridline colour when it has one.
-        let gridline = sheet.grid_color.map_or(GRIDLINE, |c| [(c >> 16) as u8, (c >> 8) as u8, c as u8, 255]);
+        let gridline = sheet.grid_color.map_or(palette.gridline, |c| [(c >> 16) as u8, (c >> 8) as u8, c as u8, 255]);
         if sheet.show_gridlines && !plain {
             for c in c0..=c1 + 1 {
                 if c <= c1 && view::col_w(sheet, c) == 0.0 {
@@ -814,7 +842,7 @@ impl SheetDocument {
                     canvas.fill(Rect { x0: rect.x0 + line, y0: rect.y0 + line, ..rect }, fill);
                 } else if range.start != range.end {
                     // No gridlines inside a merged area.
-                    canvas.fill(Rect { x0: rect.x0 + line, y0: rect.y0 + line, ..rect }, WHITE);
+                    canvas.fill(Rect { x0: rect.x0 + line, y0: rect.y0 + line, ..rect }, palette.background);
                 }
                 for (border, edge) in [
                     (style.borders.top, (rect.x0, rect.y0, rect.x1, rect.y0)),
@@ -828,7 +856,7 @@ impl SheetDocument {
                         BorderStyle::Thick => 3.0,
                         _ => 1.0,
                     } * scale.clamp(1.0, 2.0);
-                    let color = resolve(border.color, wb).unwrap_or([0, 0, 0, 255]);
+                    let color = resolve(border.color, wb).unwrap_or(palette.border);
                     let (ax, ay, bx, by) = edge;
                     if ay == by {
                         canvas.hline(ax, bx + width / 2.0, ay.round() - (width / 2.0).floor(), width.round(), color);
@@ -855,6 +883,7 @@ impl SheetDocument {
                         &style,
                         text_rect,
                         scale,
+                        palette.auto_text(fill),
                         (c0, c1),
                         &|c| sheet.value_ref(c).is_none_or(Value::is_empty) && merge_of(c).is_none(),
                         &|col| to_x(Self::col_x(sheet, col)),
@@ -888,10 +917,10 @@ impl SheetDocument {
         let (split_row, split_col) = view::split(sheet);
         let split = 2.0 * line;
         if frozen_rows > 0 {
-            canvas.hline(to_x(head_w), grid_right, to_y(Self::row_y(sheet, split_row)).round() - split, split, FREEZE_LINE);
+            canvas.hline(to_x(head_w), grid_right, to_y(Self::row_y(sheet, split_row)).round() - split, split, palette.freeze_line);
         }
         if frozen_cols > 0 {
-            canvas.vline(to_x(Self::col_x(sheet, split_col)).round() - split, to_y(head_h), grid_bottom, split, FREEZE_LINE);
+            canvas.vline(to_x(Self::col_x(sheet, split_col)).round() - split, to_y(head_h), grid_bottom, split, palette.freeze_line);
         }
 
         // Shapes, over the cells: groups' members each in their own place.
@@ -937,7 +966,7 @@ impl SheetDocument {
 
         // The cell being typed, over the cells: its runs, the selected characters and the caret.
         if let (Some(b), Some(edit)) = (self.edit_box(x, y, scale).filter(|_| !plain && paint.editor), self.editing.as_ref()) {
-            canvas.fill(b.rect, WHITE);
+            canvas.fill(b.rect, palette.background);
             let (from, to) = edit.selection();
             for line in &b.lines {
                 let (top, under) = (line.baseline - b.ascent, line.baseline + b.descent);
@@ -951,7 +980,7 @@ impl SheetDocument {
             }
             if let Some(line) = b.line_of(edit.caret) {
                 let (top, under) = (line.baseline - b.ascent, line.baseline + b.descent);
-                canvas.vline((b.start + line.x(edit.caret)).round(), top, under, scale.clamp(1.0, 2.0).round(), EDITING_TEXT);
+                canvas.vline((b.start + line.x(edit.caret)).round(), top, under, scale.clamp(1.0, 2.0).round(), palette.editing_text);
             }
         }
 
@@ -960,12 +989,12 @@ impl SheetDocument {
         if paint.headings {
             let (top, left) = (to_y(gutter_h), to_x(gutter_w));
             let (band_h, band_w) = (to_y(head_h), to_x(head_w));
-            canvas.fill(Rect { x0: left.max(band_w), y0: top, x1: grid_right, y1: band_h }, HEADING);
-            canvas.fill(Rect { x0: left, y0: band_h.max(top), x1: band_w, y1: grid_bottom }, HEADING);
+            canvas.fill(Rect { x0: left.max(band_w), y0: top, x1: grid_right, y1: band_h }, palette.heading);
+            canvas.fill(Rect { x0: left, y0: band_h.max(top), x1: band_w, y1: grid_bottom }, palette.heading);
             let size = (11.0 * 96.0 / 72.0 * scale) as f32;
             for c in c0..=c1 {
                 let (a, b) = (to_x(Self::col_x(sheet, c)), to_x(Self::col_x(sheet, c + 1)));
-                canvas.vline(a.round(), top, band_h, line, HEADING_LINE);
+                canvas.vline(a.round(), top, band_h, line, palette.heading_line);
                 let label = col_to_letters(c);
                 let text = Line { font: &self.faces.sans, size, text: &label };
                 let (ascent, descent) = text.metrics();
@@ -976,13 +1005,13 @@ impl SheetDocument {
                     ((a + b) / 2.0 - text.width() / 2.0).round(),
                     baseline,
                     Rect { x0: a, y0: top, x1: b, y1: band_h },
-                    HEADING_TEXT,
+                    palette.heading_text,
                     false,
                 );
             }
             for r in r0..=r1 {
                 let (a, b) = (to_y(Self::row_y(sheet, r)), to_y(Self::row_y(sheet, r + 1)));
-                canvas.hline(left, band_w, a.round(), line, HEADING_LINE);
+                canvas.hline(left, band_w, a.round(), line, palette.heading_line);
                 let label = (r + 1).to_string();
                 let text = Line { font: &self.faces.sans, size, text: &label };
                 let (ascent, descent) = text.metrics();
@@ -992,16 +1021,16 @@ impl SheetDocument {
                     ((left + band_w) / 2.0 - text.width() / 2.0).round(),
                     baseline,
                     Rect { x0: left, y0: a, x1: band_w, y1: b },
-                    HEADING_TEXT,
+                    palette.heading_text,
                     false,
                 );
             }
-            canvas.hline(left, grid_right, band_h.round() - line, line, HEADING_LINE);
-            canvas.vline(band_w.round() - line, top, grid_bottom, line, HEADING_LINE);
-            canvas.fill(Rect { x0: left, y0: top, x1: band_w, y1: band_h }, HEADING);
+            canvas.hline(left, grid_right, band_h.round() - line, line, palette.heading_line);
+            canvas.vline(band_w.round() - line, top, grid_bottom, line, palette.heading_line);
+            canvas.fill(Rect { x0: left, y0: top, x1: band_w, y1: band_h }, palette.heading);
         }
         if (gutter_w > 0.0 || gutter_h > 0.0) && !plain {
-            self.paint_outline(&mut canvas, sheet, (x, y, scale), (r0, r1, c0, c1), (grid_right, grid_bottom));
+            self.paint_outline(&mut canvas, sheet, palette, (x, y, scale), (r0, r1, c0, c1), (grid_right, grid_bottom));
         }
         canvas.px
     }
@@ -1091,6 +1120,7 @@ impl SheetDocument {
         style: &kition_sheet_engine::model::Style,
         rect: Rect,
         scale: f64,
+        auto: Rgba,
         (first_col, last_col): (u32, u32),
         empty: &dyn Fn(CellRef) -> bool,
         col_x: &dyn Fn(u32) -> f64,
@@ -1128,7 +1158,7 @@ impl SheetDocument {
                 (formatted.text, formatted.color.map(format_color), formatted.numeric)
             }
         };
-        let color = color.or_else(|| resolve(style.font.color, wb)).unwrap_or([0, 0, 0, 255]);
+        let color = color.or_else(|| resolve(style.font.color, wb)).unwrap_or(auto);
         let numeric = numeric || matches!(value, Value::Number(_));
         if style.align.rotation != 0 {
             self.paint_turned(canvas, &text, style, rect, scale, color);
@@ -1590,7 +1620,7 @@ impl SheetDocument {
             while tx < w {
                 let tw = tile.min(w - tx);
                 let at = (x0 - MARGIN + f64::from(tx) / scale, y0 - MARGIN + f64::from(ty) / scale, scale, tw, th);
-                let paint = Paint { plain: true, editor: false, headings: false };
+                let paint = Paint { plain: true, editor: false, headings: false, palette: &scheme::Palette::LIGHT };
                 let px = self.paint_sheet(wb, si, sheet, extent, at, paint);
                 for row in 0..th {
                     let from = (row as usize) * (tw as usize) * 4;
@@ -1780,7 +1810,7 @@ impl SheetDocument {
         let merged = sheet.merges.iter().find(|m| m.contains(active)).copied().unwrap_or(RangeRef::new(active, active));
         let (dx0, dy0, dx1, dy1) = Self::cell_rect(sheet, merged);
         let style = wb.styles.get(sheet.style_id(merged.start));
-        let color = resolve(style.font.color, wb).unwrap_or(EDITING_TEXT);
+        let color = resolve(style.font.color, wb).unwrap_or(self.scheme.palette().editing_text);
         let text = edit.text();
         let rich = if text.starts_with('=') {
             formula::rich_text(&text, &formula::references(&text, &sheet.name, &sheet.name))
@@ -2340,7 +2370,7 @@ impl KitDocument for SheetDocument {
 
     /// The workbook's revision, and the changes of the cell being typed (drawn with the cells).
     fn revision(&self) -> u64 {
-        self.session.active().map_or(0, |st| st.revision).saturating_add(self.edits)
+        self.session.active().map_or(0, |st| st.revision).saturating_add(self.edits).saturating_add(self.schemes)
     }
 
     fn dirty(&self) -> bool {
@@ -2671,6 +2701,7 @@ impl KitDocument for SheetDocument {
             for (id, title, params) in [
                 ("editor.viewport", "Set Visible Grid Extent", "{right: number, bottom: number, x?: number, y?: number}"),
                 ("editor.wording", "Set the Editor's Wording", "{columnPrefix?: string}"),
+                ("editor.scheme", "Draw the Grid in the Host's Color Scheme", "{scheme: string}"),
                 ("editor.formula", "Type in the Formula Bar", "{text?: string, start?: number, end?: number, enter?: string, peek?: boolean}"),
                 ("editor.cycleReference", "Cycle Reference Type (F4)", "{text?: string, start?: number, end?: number}"),
                 ("editor.acceptFunction", "Insert Function From List", "{name?: string}"),

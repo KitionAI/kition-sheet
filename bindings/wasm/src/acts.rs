@@ -313,6 +313,7 @@ pub const BINDING_COMMANDS: &[(&str, &[EditorState], &str)] = &[
     ("commandLine", ALL, "enters its text into the active cell of the active sheet and clears its editing mode"),
     ("editor.viewport", &[], "records the editor's visible extent"),
     ("editor.wording", &[], "sets the editor's language for made-up names"),
+    ("editor.scheme", &[], "sets the color scheme the editor's grid is drawn in"),
     ("editor.formula", SELECTION_AND_PART, "types in the formula bar of the active cell"),
     ("editor.cycleReference", SELECTION, "cycles the reference at the caret of the cell being typed"),
     ("editor.acceptFunction", SELECTION, "puts the chosen function into the cell being typed"),

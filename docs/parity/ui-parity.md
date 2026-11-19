@@ -1,6 +1,6 @@
 # UI parity
 
-> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-17 · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-11-19 · **Last updated:** 2026-11-19 · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Interaction, controls and feel, against Excel. Part of [target-app-parity.md](target-app-parity.md).
 **UI/UX fidelity: ~55% ready, 50–80 h** (estimated). Ribbon command coverage is measured
@@ -22,7 +22,7 @@ Sources: the kit's editor (`web/src`, its golden cases in `web/tests`),
 | Status bar: Sum/Count/Average and more, view buttons, zoom | yes | yes | Web editor shows Sum, Average and Count for a selection with two or more values; customizable statistics partial |
 | Task panes (Format Chart, Comments, Watch, Selection, Pivot Table Fields) | yes | yes | element-level Format pane for shapes and pictures missing |
 | Backstage (File) view: Info, New with templates, Open recent, Export, Options | yes | partial | Web editor's File tab, as WPS's 输出为 and 另存为: Export as PDF (every sheet, as Print lays it out), Picture (the sheet's used range as PNG), Excel Workbook (an `.xlsx` copy, also of an `.xls` or `.csv` opened here), CSV (what the cells show) and Web Page, each written beside the workbook by the host; Save as Template names the template (the workbook's name selected; OK off while empty or only spaces; 80 characters at most) and writes an `.xltx`. A preview (viewer role: `.xls`, `.xltx`, `.ods`, `.csv` and others the kit only views) keeps the File tab, sheet tabs, zoom, selection and copy, and refuses typing. Files that are empty, damaged or not spreadsheets are refused saying what they are (in English: kit-editor shows the engine's text). Copy puts plain text and HTML carrying Kition Sheet's own cells on the clipboard, so another workbook pastes formats, merges and checkboxes (golden-file: 123 of the 279 cases of 工作簿导入, 工作簿导出, 文件预览 and 保存模板; 131 cloud or host deferred, 25 not applicable). Options dialog and template gallery missing |
-| Dark mode, system appearance | yes | yes | done |
+| Dark mode, system appearance | yes | yes | done: the web editor's grid follows the host's color scheme live (`editor.scheme`): in dark, cells, gridlines, headings, the outline gutter and automatic text and borders are dark-scheme colours (text at WCAG AA), the workbook's own fills and font colours are kept, nothing moves; the saved file, pictures and the agent's preview stay light (regressions/issue-h16-dark-grid). Charts, shapes, form controls, filter buttons and check boxes keep their light look |
 | Cell drawing against WPS for Mac | — | yes | Text at its point size, column widths in WPS's character units, rows refit on open, wrapped lines broken by Chinese line-breaking rules with WPS's line pitch: the 16 golden workbooks score 0.987–1.0 against WPS's pictures and PDFs (`bindings/wasm/examples/golden_render.rs`, `golden_compare.rs`). Latin text in Chinese fonts is measured with Arial's widths (WPS draws PingFang's), so a few wrapped lines differ |
 | Page Layout view (paper view with rulers and header editing) | yes | **no** (Page Break Preview only) | 8–12 h |
 
