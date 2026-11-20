@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-dark-affordances
+feature: sheet.editor.color-scheme
+intent: >-
+  In the host's dark scheme the editor's affordances and objects over the grid follow it, as the
+  grid does: filter buttons, checkbox cells (also on a fill), form controls kept from the file,
+  note and comment marks and the outline buttons are drawn for the dark surface with their marks
+  readable, and a chart's automatic colours (its area, text, gridlines and axes) follow while its
+  series keep the file's colours; a cell fill and a data bar's colour the file sets are kept. No
+  light patch is left in the dark editor; File › Export as Picture stays light and byte for byte
+  the same; back in light the editor is drawn as it was. Before, filter buttons, check boxes (white
+  inside, also inside a filled cell), form controls and charts (a white card) stayed light in a dark
+  host.
+layer: gate
+source:
+  kind: issue
+  from: "task note-and-dark-leftovers (dark scheme leftovers a person sees as light patches in a dark host)"
+  license: owned
+input: []
+steps:
+  - cargo-test: { package: kition-sheet-kit, test: the_affordances_and_objects_follow_the_dark_scheme }
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-19"

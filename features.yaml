@@ -277,8 +277,8 @@ features:
     priority: P1
     status: has
     commands: [editor.scheme]
-    paths: [bindings/wasm/src/scheme.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/render.rs, bindings/wasm/tests/color_scheme.rs, web/src/colorScheme.ts, web/src/App.tsx]
-    cases: [regressions/issue-h16-dark-grid]
+    paths: [bindings/wasm/src/scheme.rs, bindings/wasm/src/lib.rs, bindings/wasm/src/render.rs, bindings/wasm/tests/color_scheme.rs, crates/engine/chart/src/render.rs, web/src/colorScheme.ts, web/src/App.tsx]
+    cases: [regressions/issue-h16-dark-grid, regressions/issue-dark-affordances]
     since: "2026-11-19"
   - id: sheet.editor.display-modes
     title: The editor in Menus, Single line, Classic and Focus; Escape in Focus cancels typing or a selected object first

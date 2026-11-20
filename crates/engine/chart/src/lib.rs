@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 pub use axis::{Scale, format_number, nice_scale};
 pub use diagram::{DiagramDrawing, render_diagram};
 pub use raster::rasterize;
-pub use render::{Swatch, legend_entries, render};
+pub use render::{ChartPalette, Swatch, legend_entries, render, render_in};
 pub use resolve::{default_palette, resolve, series_color};
 pub use shape::{render_shape, shape_rgba};
 pub use sparkline::render_sparkline;

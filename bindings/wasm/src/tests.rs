@@ -1578,3 +1578,129 @@ fn the_cell_being_typed_takes_the_text_cursor_and_drags_repaint_only_when_the_ca
     doc.pointer(&event(PointerAction::Up, x0 + 200.0, y, false)).unwrap();
     assert_eq!(doc.editing.as_ref().map(Edit::selection), Some((0, 10)));
 }
+
+/// A sheet with every affordance and object the editor draws over its cells: filter buttons on a
+/// header, checkbox cells (empty, ticked, one on a fill), a note and a threaded comment, a data
+/// bar, a sparkline, a column chart, outline buttons, and form controls kept from a file.
+fn affordances() -> SheetDocument {
+    let mut doc = SheetDocument::create("Affordances.xlsx", 0, 0).unwrap();
+    doc.execute("range.setValues", json!({ "range": "A1:D5", "values": [["Item", "Q1", "Q2", "Q3"], ["Rent", 12, 14, 9], ["Food", 4, 7, 6], ["Fuel", 8, 3, 5], ["Tax", 2, 6, 11]] }))
+        .unwrap();
+    doc.execute("data.filter", json!({ "range": "A1:D5" })).unwrap();
+    doc.execute("insert.checkbox", json!({ "range": "F2:F4" })).unwrap();
+    doc.execute("cell.set", json!({ "cell": "F3", "input": "TRUE" })).unwrap();
+    doc.execute("home.fillColor", json!({ "range": "F4", "color": "#C6EFCE" })).unwrap();
+    doc.execute("review.newNote", json!({ "cell": "B2", "text": "A note" })).unwrap();
+    doc.execute("review.newComment", json!({ "cell": "C2", "text": "A comment", "author": "Example" })).unwrap();
+    doc.execute("home.conditionalFormat", json!({ "range": "D2:D5", "rule": { "type": "dataBar", "color": "#5B9BD5" } })).unwrap();
+    doc.execute("insert.sparkline", json!({ "range": "B2:D2", "location": "E2", "type": "line", "markers": true })).unwrap();
+    doc.execute("data.group", json!({ "rows": "7:8" })).unwrap();
+    doc.execute("insert.chart", json!({ "range": "A1:B5", "type": "column" })).unwrap();
+    let sheet = std::sync::Arc::make_mut(&mut doc.session.doc_mut().unwrap().wb).sheet_mut(0).unwrap();
+    // The chart right of everything else, so nothing is under it.
+    let anchor = &mut sheet.charts[0].anchor;
+    (anchor.cell, anchor.dx, anchor.dy) = (CellRef::new(0, 10), 0.0, 0.0);
+    for (kind, row, checked, text) in [("Checkbox", 11, true, "Paid"), ("Button", 13, false, "Run"), ("Drop", 15, false, "")] {
+        sheet.form_controls.push(kition_sheet_engine::model::FormControl {
+            kind: kind.into(),
+            from: (CellRef::new(row, 6), 2.0, 2.0),
+            to: (CellRef::new(row + 1, 8), 2.0, 2.0),
+            checked,
+            text: text.into(),
+            ..Default::default()
+        });
+    }
+    doc.execute("selection.set", json!({ "range": "K30" })).unwrap();
+    doc
+}
+
+/// Writes `px` as a PNG to `KITION_SHEET_PNG/<name>.png` when that folder is given, for a person to look at.
+fn shoot(name: &str, px: &[u8], w: u32, h: u32) {
+    if let Some(dir) = std::env::var_os("KITION_SHEET_PNG") {
+        image::RgbaImage::from_raw(w, h, px.to_vec()).unwrap().save(std::path::Path::new(&dir).join(format!("{name}.png"))).unwrap();
+    }
+}
+
+/// The editor's affordances follow the host's scheme in dark (task note-and-dark-leftovers): no
+/// filter button, checkbox, form control or chart area is a light patch on the dark grid; the
+/// marks on them read; the colours the file sets (a fill, the data bar's and the chart's series
+/// colours) are kept; light is what it was, and pictures stay light.
+#[test]
+fn the_affordances_and_objects_follow_the_dark_scheme() {
+    let mut doc = affordances();
+    let (w, h) = (1300u32, 420u32);
+    let light = doc.render(0.0, 0.0, 1.0, w, h).unwrap();
+    let picture = doc.execute("file.export", json!({ "format": "png" })).unwrap();
+    doc.execute("editor.scheme", json!({ "scheme": "dark" })).unwrap();
+    let dark = doc.render(0.0, 0.0, 1.0, w, h).unwrap();
+    shoot("sheet-affordances-light", &light, w, h);
+    shoot("sheet-affordances-dark", &dark, w, h);
+
+    let region = |px: &[u8], (x0, y0, x1, y1): (u32, u32, u32, u32)| -> Vec<[u8; 4]> {
+        (y0..y1).flat_map(|y| (x0..x1).map(move |x| (y * w + x) as usize * 4)).map(|i| [px[i], px[i + 1], px[i + 2], px[i + 3]]).collect()
+    };
+    let sheet = &doc.sheet().unwrap().1.clone();
+    let cell = |col: u32, row: u32| {
+        let (x0, y0, x1, y1) = SheetDocument::cell_rect(sheet, RangeRef::new(CellRef::new(row, col), CellRef::new(row, col)));
+        (x0 as u32 + 1, y0 as u32 + 1, x1 as u32 - 1, y1 as u32 - 1)
+    };
+    let light_patch = |p: &[u8; 4]| p[0] >= 240 && p[1] >= 240 && p[2] >= 240;
+    // Each affordance's cell, and the chart and form controls where they sit.
+    let chart = sheet.charts[0].anchor;
+    let chart_x = SheetDocument::col_x(sheet, chart.cell.col) + f64::from(chart.dx);
+    let chart_y = SheetDocument::row_y(sheet, chart.cell.row) + f64::from(chart.dy);
+    let chart_box = (
+        chart_x as u32 + 2,
+        chart_y as u32 + 2,
+        ((chart_x + f64::from(chart.width)) as u32).min(w) - 2,
+        ((chart_y + f64::from(chart.height)) as u32).min(h) - 2,
+    );
+    let places = [
+        ("filter buttons", (cell(0, 0).0, cell(0, 0).1, cell(3, 0).2, cell(3, 0).3)),
+        ("empty checkbox", cell(5, 1)),
+        ("ticked checkbox", cell(5, 2)),
+        ("checkbox on a fill", cell(5, 3)),
+        ("form controls", (cell(6, 11).0, cell(6, 11).1, cell(8, 16).2, cell(8, 16).3)),
+        ("chart", chart_box),
+    ];
+    for (name, at) in places {
+        let patches = region(&dark, at).iter().filter(|p| light_patch(p)).count();
+        assert_eq!(patches, 0, "{name}: {patches} light pixels on the dark grid");
+    }
+    // Over the whole editor, no light patch is left.
+    let anywhere = dark.chunks(4).filter(|p| light_patch(&[p[0], p[1], p[2], p[3]])).count();
+    assert_eq!(anywhere, 0, "{anywhere} light pixels in the dark editor");
+    // The marks read: a filter arrow, the tick, the note's and the comment's corners, a caption.
+    let lit = |px: &[u8], at, min: f64| region(px, at).iter().filter(|p| scheme::luminance(**p) >= min).count();
+    assert!(lit(&dark, cell(0, 0), 0.5) > 4, "the filter arrow is light on its dark button");
+    assert!(lit(&dark, cell(5, 2), 0.3) > 10, "the ticked box is light, its tick dark");
+    assert!(lit(&dark, (cell(6, 11).0, cell(6, 11).1, cell(8, 12).2, cell(8, 12).3), 0.5) > 10, "the check box's caption is light");
+    let corner =
+        |px: &[u8], at: (u32, u32, u32, u32)| region(px, (at.2 - 5, at.1, at.2, at.1 + 4)).into_iter().map(scheme::luminance).fold(0.0f64, f64::max);
+    assert!(corner(&dark, cell(1, 1)) > 0.1, "the note's corner shows");
+    assert!(corner(&dark, cell(2, 1)) > 0.1, "the comment's corner shows");
+    // The chart's area is dark, its text light, its columns the file's colour in both schemes.
+    let area = region(&dark, chart_box);
+    let dark_share = area.iter().filter(|p| scheme::luminance(**p) <= 0.05).count() as f64 / area.len() as f64;
+    assert!(dark_share > 0.5, "the chart's area follows: {dark_share:.2} of it is dark");
+    let series = |px: &[u8]| {
+        let mut counts = std::collections::HashMap::<[u8; 3], usize>::new();
+        for p in region(px, chart_box) {
+            if p[0].abs_diff(p[1]) > 40 || p[1].abs_diff(p[2]) > 40 {
+                *counts.entry([p[0], p[1], p[2]]).or_default() += 1;
+            }
+        }
+        counts.into_iter().max_by_key(|(_, n)| *n)
+    };
+    let (in_light, in_dark) = (series(&light).unwrap(), series(&dark).unwrap());
+    assert_eq!(in_light.0, in_dark.0, "the columns keep the file's colour");
+    assert!(in_light.1.abs_diff(in_dark.1) * 20 <= in_light.1, "the columns are as large: {in_light:?} {in_dark:?}");
+    // The file's fill on F4 and the data bar's colour are kept.
+    assert!(region(&dark, cell(5, 3)).iter().any(|p| p[..3] == [0xC6, 0xEF, 0xCE]), "the fill is kept");
+    assert!(region(&dark, cell(3, 1)).iter().any(|p| p[..3] == [0x5B, 0x9B, 0xD5]), "the data bar keeps its colour");
+
+    // Pictures stay light, and light is what it was.
+    assert_eq!(doc.execute("file.export", json!({ "format": "png" })).unwrap(), picture);
+    doc.execute("editor.scheme", json!({ "scheme": "light" })).unwrap();
+    assert_eq!(doc.render(0.0, 0.0, 1.0, w, h).unwrap(), light);
+}

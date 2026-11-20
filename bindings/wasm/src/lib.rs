@@ -867,7 +867,7 @@ impl SheetDocument {
                 let mut text_rect = rect;
                 if let Some(look) = &look {
                     if let Some((fraction, color, gradient)) = look.bar {
-                        paint_data_bar(&mut canvas, rect, scale, f64::from(fraction), color, gradient);
+                        paint_data_bar(&mut canvas, rect, scale, f64::from(fraction), color, gradient, palette.background);
                     }
                     if let Some((set, index)) = &look.icon {
                         paint_icon(&mut canvas, set, *index, rect, scale);
@@ -883,7 +883,7 @@ impl SheetDocument {
                         &style,
                         text_rect,
                         scale,
-                        palette.auto_text(fill),
+                        (palette.auto_text(fill), palette),
                         (c0, c1),
                         &|c| sheet.value_ref(c).is_none_or(Value::is_empty) && merge_of(c).is_none(),
                         &|col| to_x(Self::col_x(sheet, col)),
@@ -891,11 +891,11 @@ impl SheetDocument {
                 }
                 // A note's (red) or a comment's (purple) mark in the top-right corner.
                 if let Some(comment) = sheet.comments.get(&anchor).filter(|_| !plain) {
-                    paint_comment_mark(&mut canvas, rect, scale, comment.threaded);
+                    paint_comment_mark(&mut canvas, rect, scale, comment.threaded, palette);
                 }
                 // An AutoFilter's or a table's filter button at the right of a header cell.
                 if let Some(filtered) = filter_button(sheet, anchor).filter(|_| !plain) {
-                    paint_filter_button(&mut canvas, rect, scale, filtered);
+                    paint_filter_button(&mut canvas, rect, scale, filtered, palette);
                 }
             }
         }
@@ -907,7 +907,7 @@ impl SheetDocument {
                 continue;
             }
             let (dx0, dy0, dx1, dy1) = Self::cell_rect(sheet, RangeRef::new(c, c));
-            paint_sparkline(&mut canvas, wb, si, spark, Rect { x0: to_x(dx0), y0: to_y(dy0), x1: to_x(dx1), y1: to_y(dy1) });
+            paint_sparkline(&mut canvas, wb, si, spark, Rect { x0: to_x(dx0), y0: to_y(dy0), x1: to_x(dx1), y1: to_y(dy1) }, palette);
         }
 
         // Freeze lines, just inside the frozen panes, so they stay put with them; under the
@@ -950,7 +950,7 @@ impl SheetDocument {
 
         // Form controls kept from the file (check boxes, buttons…), where they sit.
         for control in &sheet.form_controls {
-            self.paint_form_control(&mut canvas, sheet, control, &to_x, &to_y, scale);
+            self.paint_form_control(&mut canvas, sheet, control, (&to_x, &to_y), scale, palette);
         }
 
         // Charts, over the cells (upstream `chartview.rs` `paint_objects`).
@@ -961,7 +961,7 @@ impl SheetDocument {
             if card.intersect(Rect { x0: 0.0, y0: 0.0, x1: f64::from(width), y1: f64::from(height) }).is_empty() {
                 continue;
             }
-            self.paint_chart(&mut canvas, wb, si, chart, card, scale);
+            self.paint_chart(&mut canvas, wb, si, chart, card, scale, palette);
         }
 
         // The cell being typed, over the cells: its runs, the selected characters and the caret.
@@ -1042,9 +1042,9 @@ impl SheetDocument {
         canvas: &mut Canvas,
         sheet: &Sheet,
         c: &kition_sheet_engine::model::FormControl,
-        to_x: &dyn Fn(f64) -> f64,
-        to_y: &dyn Fn(f64) -> f64,
+        (to_x, to_y): (&dyn Fn(f64) -> f64, &dyn Fn(f64) -> f64),
         scale: f64,
+        palette: &scheme::Palette,
     ) {
         let (from, fx, fy) = c.from;
         let (to, tx, ty) = c.to;
@@ -1058,14 +1058,14 @@ impl SheetDocument {
         {
             return;
         }
-        const EDGE: Rgba = [128, 128, 128, 255];
-        const INK: Rgba = [0, 0, 0, 255];
+        // The control's own colours are the editor's: they follow the host's scheme.
+        let (edge, ink) = (palette.control_edge, palette.control_ink);
         let line = scale.clamp(1.0, 2.0).round();
         let frame = |canvas: &mut Canvas, r: Rect| {
-            canvas.hline(r.x0, r.x1, r.y0, line, EDGE);
-            canvas.hline(r.x0, r.x1, r.y1 - line, line, EDGE);
-            canvas.vline(r.x0, r.y0, r.y1, line, EDGE);
-            canvas.vline(r.x1 - line, r.y0, r.y1, line, EDGE);
+            canvas.hline(r.x0, r.x1, r.y0, line, edge);
+            canvas.hline(r.x0, r.x1, r.y1 - line, line, edge);
+            canvas.vline(r.x0, r.y0, r.y1, line, edge);
+            canvas.vline(r.x1 - line, r.y0, r.y1, line, edge);
         };
         let size = (11.0 * 96.0 / 72.0 * scale) as f32;
         let caption = |canvas: &mut Canvas, x: f64, clip: Rect, centred: bool| {
@@ -1073,23 +1073,23 @@ impl SheetDocument {
             let (ascent, descent) = text.metrics();
             let width = text.width();
             let x = if centred { (clip.x0 + clip.x1) / 2.0 - width / 2.0 } else { x };
-            text.draw(canvas, x, (clip.y0 + clip.y1) / 2.0 + (ascent - descent) / 2.0, clip, INK, false);
+            text.draw(canvas, x, (clip.y0 + clip.y1) / 2.0 + (ascent - descent) / 2.0, clip, ink, false);
         };
         match c.kind.as_str() {
             "Checkbox" | "Radio" => {
                 let side = (12.0 * scale).min(rect.y1 - rect.y0);
                 let top = (rect.y0 + rect.y1) / 2.0 - side / 2.0;
                 let mark = Rect { x0: rect.x0 + 2.0 * scale, y0: top, x1: rect.x0 + 2.0 * scale + side, y1: top + side };
-                canvas.fill(mark, WHITE);
+                canvas.fill(mark, palette.control_inside);
                 frame(canvas, mark);
                 if c.checked {
                     let inset = (side * 0.28).round();
-                    canvas.fill(Rect { x0: mark.x0 + inset, y0: mark.y0 + inset, x1: mark.x1 - inset, y1: mark.y1 - inset }, INK);
+                    canvas.fill(Rect { x0: mark.x0 + inset, y0: mark.y0 + inset, x1: mark.x1 - inset, y1: mark.y1 - inset }, ink);
                 }
                 caption(canvas, mark.x1 + 4.0 * scale, rect, false);
             }
             "Button" => {
-                canvas.fill(rect, [240, 240, 240, 255]);
+                canvas.fill(rect, palette.control_face);
                 frame(canvas, rect);
                 caption(canvas, rect.x0, rect, true);
             }
@@ -1099,7 +1099,7 @@ impl SheetDocument {
             }
             "Label" => caption(canvas, rect.x0 + 2.0 * scale, rect, false),
             _ => {
-                canvas.fill(rect, WHITE);
+                canvas.fill(rect, palette.control_inside);
                 frame(canvas, rect);
             }
         }
@@ -1120,7 +1120,7 @@ impl SheetDocument {
         style: &kition_sheet_engine::model::Style,
         rect: Rect,
         scale: f64,
-        auto: Rgba,
+        (auto, palette): (Rgba, &scheme::Palette),
         (first_col, last_col): (u32, u32),
         empty: &dyn Fn(CellRef) -> bool,
         col_x: &dyn Fn(u32) -> f64,
@@ -1129,7 +1129,7 @@ impl SheetDocument {
         if style.checkbox
             && let Value::Bool(checked) = value
         {
-            paint_checkbox(canvas, rect, scale, style, checked, resolve(style.font.color, wb));
+            paint_checkbox(canvas, rect, scale, style, checked, resolve(style.font.color, wb), palette);
             return;
         }
         if value.is_empty() {
@@ -1415,7 +1415,17 @@ impl SheetDocument {
     /// One chart as Kition Sheet draws it: a white card, the chart's shapes rasterised at this
     /// scale, and its labels in the cell faces (rotated labels, such as vertical axis titles, are
     /// left out).
-    fn paint_chart(&self, canvas: &mut Canvas, wb: &Workbook, si: usize, chart: &kition_sheet_engine::model::Chart, card: Rect, scale: f64) {
+    #[allow(clippy::too_many_arguments)]
+    fn paint_chart(
+        &self,
+        canvas: &mut Canvas,
+        wb: &Workbook,
+        si: usize,
+        chart: &kition_sheet_engine::model::Chart,
+        card: Rect,
+        scale: f64,
+        palette: &scheme::Palette,
+    ) {
         let (w, h) = ((card.x1 - card.x0).round().max(1.0), (card.y1 - card.y0).round().max(1.0));
         if w * h > 32.0 * 1024.0 * 1024.0 {
             return;
@@ -1423,10 +1433,12 @@ impl SheetDocument {
         canvas.fill(Rect { x0: card.x0, y0: card.y0 + 1.5 * scale, x1: card.x1, y1: card.y1 + 1.5 * scale }, [0, 0, 0, 18]);
         let data = kition_sheet_chart::resolve(wb, si, chart);
         let measure = FaceMeasure { faces: &self.faces, name: &wb.theme.minor_font };
-        let prims = kition_sheet_chart::render(chart, &data, chart.anchor.width, chart.anchor.height, &measure);
+        // The chart's automatic colours (its area, text, gridlines, axes) in the editor's scheme;
+        // its series keep the file's.
+        let prims = kition_sheet_chart::render_in(chart, &data, chart.anchor.width, chart.anchor.height, &measure, &palette.chart);
         let s = scale as f32;
         let scaled: Vec<kition_sheet_chart::Prim> = prims.iter().map(|prim| scale_prim(prim, s)).collect();
-        let image = kition_sheet_chart::rasterize(&scaled, w as u32, h as u32, [255, 255, 255, 255]);
+        let image = kition_sheet_chart::rasterize(&scaled, w as u32, h as u32, palette.chart.background);
         canvas.image(&image, w as usize, h as usize, card.x0, card.y0, card);
         self.paint_texts(canvas, wb, &scaled, (card.x0, card.y0), card);
     }
@@ -3143,8 +3155,9 @@ fn apply_conditional(style: &mut kition_sheet_engine::model::Style, look: &kitio
     }
 }
 
-/// A data bar: `fraction` of the cell's width, solid or fading to white (upstream `grid.rs`).
-fn paint_data_bar(canvas: &mut Canvas, cell: Rect, scale: f64, fraction: f64, color: [u8; 3], gradient: bool) {
+/// A data bar: `fraction` of the cell's width, solid or fading to the grid's background (white;
+/// the dark grid's in the dark scheme) (upstream `grid.rs`). The bar's colour is the rule's.
+fn paint_data_bar(canvas: &mut Canvas, cell: Rect, scale: f64, fraction: f64, color: [u8; 3], gradient: bool, toward: Rgba) {
     let bar = Rect {
         x0: cell.x0 + 2.0 * scale,
         y0: cell.y0 + 2.0 * scale,
@@ -3163,7 +3176,10 @@ fn paint_data_bar(canvas: &mut Canvas, cell: Rect, scale: f64, fraction: f64, co
     let mut x = x0;
     while x < x1 {
         let t = (x - x0) / span;
-        let shade = color.map(|channel| (f64::from(channel) + (255.0 - f64::from(channel)) * 0.75 * t).round() as u8);
+        let shade: [u8; 3] = std::array::from_fn(|i| {
+            let (from, to) = (f64::from(color.get(i).copied().unwrap_or(0)), f64::from(toward.get(i).copied().unwrap_or(255)));
+            (from + (to - from) * 0.75 * t).round() as u8
+        });
         canvas.fill(Rect { x0: x, x1: x + 1.0, ..bar }, rgb(shade));
         x += 1.0;
     }
@@ -3190,15 +3206,19 @@ pub(crate) fn checkbox_rect(cell: Rect, scale: f64, style: &kition_sheet_engine:
     Rect { x0: x, y0: y, x1: x + side, y1: y + side }
 }
 
-/// The grey of an empty box and the dark grey of a ticked one (WPS), when the cell's font has no
-/// colour of its own; with one, the box takes it.
-const CHECKBOX_EMPTY: Rgba = [150, 150, 156, 255];
-const CHECKBOX_TICKED: Rgba = [80, 80, 86, 255];
-
-/// A checkbox cell's box: empty, a light grey outline on white (the cell's fill stays outside
-/// it); ticked, dark grey filled with a white tick. A font colour of the cell's own colours it;
-/// bold, italic and the lines through or under text don't touch it.
-fn paint_checkbox(canvas: &mut Canvas, cell: Rect, scale: f64, style: &kition_sheet_engine::model::Style, checked: bool, own: Option<Rgba>) {
+/// A checkbox cell's box: empty, a grey outline on the grid's background (white, as WPS; the dark
+/// grid's in the dark scheme; the cell's fill stays outside it); ticked, filled grey (dark grey on
+/// the light grid, light grey on the dark) with a tick in the background's colour. A font colour of
+/// the cell's own colours it; bold, italic and the lines through or under text don't touch it.
+fn paint_checkbox(
+    canvas: &mut Canvas,
+    cell: Rect,
+    scale: f64,
+    style: &kition_sheet_engine::model::Style,
+    checked: bool,
+    own: Option<Rgba>,
+    palette: &scheme::Palette,
+) {
     let own = own.filter(|_| style.font.color != Color::Auto);
     let stroke = scale.clamp(1.0, 2.0).round();
     let r = checkbox_rect(cell, scale, style);
@@ -3208,11 +3228,11 @@ fn paint_checkbox(canvas: &mut Canvas, cell: Rect, scale: f64, style: &kition_sh
     }
     let side = r.x1 - r.x0;
     if checked {
-        canvas.fill(b, own.unwrap_or(CHECKBOX_TICKED));
+        canvas.fill(b, own.unwrap_or(palette.checkbox_ticked));
         let s = side as f32;
         let tick = kition_sheet_chart::Prim::Line {
             pts: vec![[s * 0.22, s * 0.52], [s * 0.42, s * 0.72], [s * 0.78, s * 0.3]],
-            color: WHITE,
+            color: palette.checkbox_tick,
             width: (s * 0.13).max(1.2),
             dash: false,
         };
@@ -3220,8 +3240,8 @@ fn paint_checkbox(canvas: &mut Canvas, cell: Rect, scale: f64, style: &kition_sh
         let image = kition_sheet_chart::rasterize(&[tick], px, px, [255, 255, 255, 0]);
         canvas.image(&image, px as usize, px as usize, r.x0, r.y0, cell);
     } else {
-        let color = own.unwrap_or(CHECKBOX_EMPTY);
-        canvas.fill(b, WHITE);
+        let color = own.unwrap_or(palette.checkbox_empty);
+        canvas.fill(b, palette.checkbox_inside);
         canvas.hline(b.x0, b.x1, b.y0, stroke, color);
         canvas.hline(b.x0, b.x1, b.y1 - stroke, stroke, color);
         canvas.vline(b.x0, b.y0, b.y1, stroke, color);
@@ -3230,9 +3250,9 @@ fn paint_checkbox(canvas: &mut Canvas, cell: Rect, scale: f64, style: &kition_sh
 }
 
 /// The mark of a cell with a note (a red triangle) or a threaded comment (a purple one) in its
-/// top-right corner.
-fn paint_comment_mark(canvas: &mut Canvas, cell: Rect, scale: f64, threaded: bool) {
-    let color: Rgba = if threaded { [0x7B, 0x3F, 0xC4, 255] } else { [0xD8, 0x20, 0x20, 255] };
+/// top-right corner, lighter on the dark grid.
+fn paint_comment_mark(canvas: &mut Canvas, cell: Rect, scale: f64, threaded: bool, palette: &scheme::Palette) {
+    let color: Rgba = if threaded { palette.comment_mark } else { palette.note_mark };
     let side = (6.0 * scale).round();
     for i in 0..side as i64 {
         // Row i of the triangle: from the right edge leftwards, narrowing downwards.
@@ -3261,7 +3281,7 @@ fn filter_button(sheet: &Sheet, cell: CellRef) -> Option<bool> {
 
 /// A filter button: a raised square at the right of the cell with a down arrow, and a funnel
 /// beside it when the column is filtered.
-fn paint_filter_button(canvas: &mut Canvas, cell: Rect, scale: f64, filtered: bool) {
+fn paint_filter_button(canvas: &mut Canvas, cell: Rect, scale: f64, filtered: bool, palette: &scheme::Palette) {
     let side = (15.0 * scale).min(cell.y1 - cell.y0 - 2.0 * scale).max(4.0).round();
     let x1 = cell.x1 - 2.0 * scale;
     let b = Rect { x0: x1 - side, y0: (cell.y1 - 2.0 * scale - side).max(cell.y0 + scale), x1, y1: cell.y1 - 2.0 * scale };
@@ -3269,15 +3289,13 @@ fn paint_filter_button(canvas: &mut Canvas, cell: Rect, scale: f64, filtered: bo
     if b.is_empty() {
         return;
     }
-    const FACE: Rgba = [0xF3, 0xF3, 0xF5, 255];
-    const EDGE: Rgba = [0x8A, 0x8A, 0x90, 255];
-    const MARK: Rgba = [0x40, 0x40, 0x44, 255];
+    let (face, edge, mark) = (palette.filter_face, palette.filter_edge, palette.filter_mark);
     let stroke = scale.clamp(1.0, 2.0).round();
-    canvas.fill(b, FACE);
-    canvas.hline(b.x0, b.x1, b.y0, stroke, EDGE);
-    canvas.hline(b.x0, b.x1, b.y1 - stroke, stroke, EDGE);
-    canvas.vline(b.x0, b.y0, b.y1, stroke, EDGE);
-    canvas.vline(b.x1 - stroke, b.y0, b.y1, stroke, EDGE);
+    canvas.fill(b, face);
+    canvas.hline(b.x0, b.x1, b.y0, stroke, edge);
+    canvas.hline(b.x0, b.x1, b.y1 - stroke, stroke, edge);
+    canvas.vline(b.x0, b.y0, b.y1, stroke, edge);
+    canvas.vline(b.x1 - stroke, b.y0, b.y1, stroke, edge);
     let (w, h) = (b.x1 - b.x0, b.y1 - b.y0);
     let (cx, cy) = (b.x0 + w * if filtered { 0.68 } else { 0.5 }, b.y0 + h * 0.52);
     // The down arrow: rows narrowing to a point.
@@ -3285,7 +3303,7 @@ fn paint_filter_button(canvas: &mut Canvas, cell: Rect, scale: f64, filtered: bo
     for i in 0..half as i64 {
         let y = (cy - half / 2.0).round() + i as f64;
         let r = half - i as f64;
-        canvas.fill(Rect { x0: cx - r, y0: y, x1: cx + r, y1: y + 1.0 }, MARK);
+        canvas.fill(Rect { x0: cx - r, y0: y, x1: cx + r, y1: y + 1.0 }, mark);
     }
     if filtered {
         // A funnel: a wide top narrowing to a stem.
@@ -3294,14 +3312,21 @@ fn paint_filter_button(canvas: &mut Canvas, cell: Rect, scale: f64, filtered: bo
         let fw = (w * 0.18).max(1.5).round();
         for i in 0..(fw as i64) {
             let r = fw - i as f64;
-            canvas.fill(Rect { x0: fx - r, y0: top + i as f64, x1: fx + r, y1: top + i as f64 + 1.0 }, MARK);
+            canvas.fill(Rect { x0: fx - r, y0: top + i as f64, x1: fx + r, y1: top + i as f64 + 1.0 }, mark);
         }
-        canvas.fill(Rect { x0: fx - stroke / 2.0, y0: top + fw, x1: fx + stroke / 2.0 + 0.5, y1: top + fw + h * 0.3 }, MARK);
+        canvas.fill(Rect { x0: fx - stroke / 2.0, y0: top + fw, x1: fx + stroke / 2.0 + 0.5, y1: top + fw + h * 0.3 }, mark);
     }
 }
 
 /// A sparkline drawn in its cell, from its source's values now.
-fn paint_sparkline(canvas: &mut Canvas, wb: &Workbook, si: usize, spark: &kition_sheet_engine::model::Sparkline, cell: Rect) {
+fn paint_sparkline(
+    canvas: &mut Canvas,
+    wb: &Workbook,
+    si: usize,
+    spark: &kition_sheet_engine::model::Sparkline,
+    cell: Rect,
+    palette: &scheme::Palette,
+) {
     let area = cell.intersect(Rect { x0: 0.0, y0: 0.0, x1: canvas.w as f64, y1: canvas.h as f64 });
     if area.is_empty() {
         return;
@@ -3310,7 +3335,8 @@ fn paint_sparkline(canvas: &mut Canvas, wb: &Workbook, si: usize, spark: &kition
         Value::Array(a) => a.iter().take(10_000).map(Value::as_f64).collect(),
         v => vec![v.as_f64()],
     };
-    let [r, g, b] = spark.color.resolve(&wb.theme).unwrap_or([0x15, 0x60, 0x82]);
+    // The file's colour, else the automatic one (lighter on the dark grid).
+    let [r, g, b] = spark.color.resolve(&wb.theme).unwrap_or(palette.sparkline);
     let (w, h) = ((cell.x1 - cell.x0) as f32, (cell.y1 - cell.y0) as f32);
     let (x0, y0) = (cell.x0.floor(), cell.y0.floor());
     let (iw, ih) = ((cell.x1.ceil() - x0).max(1.0) as u32, (cell.y1.ceil() - y0).max(1.0) as u32);

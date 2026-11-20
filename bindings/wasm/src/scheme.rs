@@ -67,6 +67,29 @@ pub struct Palette {
     pub freeze_line: Rgba,
     /// Automatic text in the cell being typed, and its caret.
     pub editing_text: Rgba,
+    /// A filter button's face, edge, and its arrow and funnel.
+    pub filter_face: Rgba,
+    pub filter_edge: Rgba,
+    pub filter_mark: Rgba,
+    /// A checkbox cell's box with no colour of its own: inside the empty box, the empty box's
+    /// outline, the ticked box, and its tick.
+    pub checkbox_inside: Rgba,
+    pub checkbox_empty: Rgba,
+    pub checkbox_ticked: Rgba,
+    pub checkbox_tick: Rgba,
+    /// The corner marks of a note and of a threaded comment.
+    pub note_mark: Rgba,
+    pub comment_mark: Rgba,
+    /// Form controls: the inside of a check box, option button, list or drop-down; a button's
+    /// face; their edges; their captions and marks.
+    pub control_inside: Rgba,
+    pub control_face: Rgba,
+    pub control_edge: Rgba,
+    pub control_ink: Rgba,
+    /// A sparkline's colour when the file gives it none.
+    pub sparkline: [u8; 3],
+    /// A chart's automatic colours (its area, text, gridlines and axes); its series keep theirs.
+    pub chart: kition_sheet_chart::ChartPalette,
 }
 
 /// Black: automatic text on a light fill.
@@ -84,6 +107,21 @@ impl Palette {
         border: BLACK,
         freeze_line: FREEZE_LINE,
         editing_text: EDITING_TEXT,
+        filter_face: [0xF3, 0xF3, 0xF5, 255],
+        filter_edge: [0x8A, 0x8A, 0x90, 255],
+        filter_mark: [0x40, 0x40, 0x44, 255],
+        checkbox_inside: WHITE,
+        checkbox_empty: [150, 150, 156, 255],
+        checkbox_ticked: [80, 80, 86, 255],
+        checkbox_tick: WHITE,
+        note_mark: [0xD8, 0x20, 0x20, 255],
+        comment_mark: [0x7B, 0x3F, 0xC4, 255],
+        control_inside: WHITE,
+        control_face: [240, 240, 240, 255],
+        control_edge: [128, 128, 128, 255],
+        control_ink: BLACK,
+        sparkline: [0x15, 0x60, 0x82],
+        chart: kition_sheet_chart::ChartPalette::LIGHT,
     };
 
     /// The dark scheme: Kition's dark paper (#1e1e1e, as its other dark work areas), headings a step
@@ -98,6 +136,21 @@ impl Palette {
         border: [200, 200, 204, 255],
         freeze_line: [140, 140, 140, 255],
         editing_text: [240, 240, 240, 255],
+        filter_face: [58, 58, 62, 255],
+        filter_edge: [112, 112, 120, 255],
+        filter_mark: [220, 220, 226, 255],
+        checkbox_inside: [30, 30, 30, 255],
+        checkbox_empty: [150, 150, 156, 255],
+        checkbox_ticked: [176, 176, 184, 255],
+        checkbox_tick: [30, 30, 30, 255],
+        note_mark: [0xF0, 0x50, 0x50, 255],
+        comment_mark: [0xA8, 0x80, 0xF0, 255],
+        control_inside: [30, 30, 30, 255],
+        control_face: [52, 52, 56, 255],
+        control_edge: [128, 128, 128, 255],
+        control_ink: [230, 230, 230, 255],
+        sparkline: [0x5A, 0xA8, 0xD8],
+        chart: kition_sheet_chart::ChartPalette::DARK,
     };
 
     /// Automatic text on a cell with `fill` (none: the grid's background). On the light grid always
@@ -148,6 +201,42 @@ mod tests {
         let light = Palette::LIGHT;
         assert!(contrast(dark.gridline, dark.background) >= contrast(light.gridline, light.background));
         assert!(contrast(dark.heading_line, dark.heading) >= contrast(light.heading_line, light.heading));
+    }
+
+    #[test]
+    fn the_dark_affordances_are_dark_and_their_marks_read() {
+        let (dark, light) = (Palette::DARK, Palette::LIGHT);
+        for (name, face) in [
+            ("filter button", dark.filter_face),
+            ("checkbox inside", dark.checkbox_inside),
+            ("control inside", dark.control_inside),
+            ("button face", dark.control_face),
+            ("chart area", dark.chart.background),
+        ] {
+            assert!(luminance(face) <= 0.1, "{name} is dark: {face:?}");
+        }
+        // Marks on their faces: the arrow, the tick, captions and chart text at WCAG AA; outlines,
+        // edges, corner marks, gridlines and axes as non-text (3:1), or at least as visible as light.
+        assert!(contrast(dark.filter_mark, dark.filter_face) >= 4.5);
+        assert!(contrast(dark.checkbox_tick, dark.checkbox_ticked) >= 4.5);
+        assert!(contrast(dark.control_ink, dark.control_face) >= 4.5 && contrast(dark.control_ink, dark.background) >= 4.5);
+        assert!(contrast(dark.chart.text, dark.chart.background) >= 4.5, "chart text: {:.2}", contrast(dark.chart.text, dark.chart.background));
+        for (name, mark, on) in [
+            ("filter edge", dark.filter_edge, dark.background),
+            ("empty checkbox", dark.checkbox_empty, dark.checkbox_inside),
+            ("ticked checkbox", dark.checkbox_ticked, dark.background),
+            ("note mark", dark.note_mark, dark.background),
+            ("comment mark", dark.comment_mark, dark.background),
+            ("control edge", dark.control_edge, dark.background),
+            ("sparkline", [dark.sparkline[0], dark.sparkline[1], dark.sparkline[2], 255], dark.background),
+            ("chart axis", dark.chart.axis, dark.chart.background),
+        ] {
+            assert!(contrast(mark, on) >= 3.0, "{name}: {:.2}", contrast(mark, on));
+        }
+        assert!(contrast(dark.chart.grid, dark.chart.background) >= contrast(light.chart.grid, light.chart.background));
+        // The light palette is what was always drawn.
+        assert_eq!(light.chart, kition_sheet_chart::ChartPalette::LIGHT);
+        assert_eq!((light.checkbox_inside, light.control_inside, light.checkbox_tick), (WHITE, WHITE, WHITE));
     }
 
     #[test]
