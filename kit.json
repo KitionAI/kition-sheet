@@ -12,7 +12,8 @@
     "module": "kition_sheet_kit",
     "class": "SheetDocument",
     "contract": 2,
-    "crate": "kition-sheet-kit"
+    "crate": "kition-sheet-kit",
+    "editorState": ["/sheet", "/used", "/active", "/selection", "/stats", "/lines", "/content", "/editing", "/editText", "/editCaret", "/editAnchor", "/pointing", "/gridlines", "/gridColor", "/headings", "/freeze", "/freezeShift", "/freezePreview", "/activeRect", "/zoom", "/zoomAsked", "/editCell", "/formulaHint", "/formulaText", "/formulaReferences", "/table", "/shape", "/shapes", "/chart", "/shapeEditing", "/escape", "/formatPainter", "/style", "/tableInfo", "/dialog", "/validation", "/defaultSize", "/notice", "/checkbox"]
   },
   "formats": [
     {
