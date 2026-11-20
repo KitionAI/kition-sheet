@@ -3,6 +3,11 @@
 Changes to Kition Sheet, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.2
+
+- In a dark host, filter buttons, check boxes, note and comment marks, form controls and chart chrome (the chart area, gridlines, axis lines and automatic text) follow the dark palette instead of staying light; series colours and the colours the file sets are kept. Export as Picture, PDF, print and the saved file still use the light palette.
+- `kit.json` declares the engine's editor state as `engine.editorState`, so a host that does not run the engine's Rust code reads `inspect()` without it.
+
 ## 0.1.1
 
 - The grid follows the host's dark scheme: in a dark host the cells, gridlines and headings are drawn dark, with automatic text and borders light (text at WCAG AA); the light scheme keeps exactly the colours it had.
