@@ -30,6 +30,14 @@ try {
   const run = (commands) => page.evaluate(async (commands) => (await window.devHost.connection().ai.run(commands, false)).completed, commands)
   const cell = async (ref) => (await run([{ command: 'cell.get', params: { cell: ref } }]))[0].result
   const nameBox = kit.getByTestId('sheet-name-box')
+  // The person goes to `range` through the Name Box, and the grid takes the keyboard back: an
+  // agent's selection.set moves only the agent's own editor state (KHP C3b).
+  const select = async (range) => {
+    await nameBox.fill(range)
+    await nameBox.press('Enter')
+    await until(async () => (await nameBox.inputValue()) === range, `${range} selected`)
+    await kit.locator('.kui-text-sink').evaluate((sink) => sink.focus())
+  }
   const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
   await page.waitForTimeout(800)
 
@@ -44,8 +52,7 @@ try {
   await page.keyboard.press('ControlOrMeta+c')
   await page.waitForTimeout(300)
   await run([{ command: 'edit.clearClipboard', params: {} }])
-  await run([{ command: 'selection.set', params: { range: 'D20' } }])
-  await until(async () => (await nameBox.inputValue()) === 'D20', 'D20 selected')
+  await select('D20')
   await page.keyboard.press('ControlOrMeta+v')
   await until(async () => (await cell('D20')).input === a1, 'the copied cells pasted at D20')
   assert.equal((await cell('E21')).input, b2)
@@ -54,8 +61,7 @@ try {
   const html = '<table><tr><td colspan="2" style="font-weight:700;background:#e8e6f4;text-align:center">Size</td></tr>'
     + '<tr><td rowspan="2">Ops</td><td>1. close<br>2. open</td></tr><tr><td>load</td></tr></table>'
   const text = 'Size\t\nOps\t1. close\n2. open\n\tload\n'
-  await run([{ command: 'selection.set', params: { range: 'D10' } }])
-  await until(async () => (await nameBox.inputValue()) === 'D10', 'D10 selected')
+  await select('D10')
   const written = await frame.evaluate(async ({ html, text }) => {
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })])

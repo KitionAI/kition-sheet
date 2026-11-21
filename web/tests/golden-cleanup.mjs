@@ -210,6 +210,7 @@ try {
       { command: 'review.newNote', params: { cell: 'A1', text: '备注' } },
       { command: 'selection.set', params: { range: 'A1:B1' } },
     ])
+    await h.goTo('A1:B1')
     await settle()
     await dragBy(await bottomBorder('A1'), 0, 3 * G.rh)
     await until(async () => (await val('A4')) === '合并')
@@ -234,6 +235,7 @@ try {
       { command: 'cell.set', params: { cell: 'A6', input: '行' } },
       { command: 'selection.set', params: { range: 'E1' } },
     ])
+    await h.goTo('E1')
     await settle()
     await dragBy(await bottomBorder('E1'), -2 * G.cw, 0)
     await until(async () => (await val('C1')) === '外')
@@ -274,6 +276,7 @@ try {
       { command: 'insert.table', params: { range: 'A1:B6', style: 'TableStyleMedium2' } },
       { command: 'selection.set', params: { range: 'D1' } },
     ])
+    await h.goTo('D1')
     await settle(300)
     await filterButton('A1')
     await kit.getByTestId('sheet-filter-item-乙').uncheck()
@@ -296,6 +299,7 @@ try {
       { command: 'cell.set', params: { cell: 'A1', input: 'TRUE' } },
       { command: 'selection.set', params: { range: 'A1' } },
     ])
+    await h.goTo('A1')
     await settle()
     await dragBy(await bottomBorder('A1'), 2 * G.cw, 2 * G.rh)
     await until(async () => (await val('C3')) === true)
@@ -312,6 +316,7 @@ try {
       { command: 'edit.clearContents', params: { range: 'B1' } },
       { command: 'selection.set', params: { range: 'A1' } },
     ])
+    await h.goTo('A1')
     await settle()
     await dragBy(await bottomBorder('A1'), G.cw, 0)
     await until(async () => (await val('B1')) === 1)
@@ -328,6 +333,7 @@ try {
       asTable ? { command: 'insert.table', params: { range: 'A1:B6' } } : { command: 'data.filter', params: { range: 'A1:B6' } },
       { command: 'selection.set', params: { range: 'D1' } },
     ])
+    await h.goTo('D1')
     await settle(300)
   }
 

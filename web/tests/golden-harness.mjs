@@ -135,7 +135,9 @@ export async function startGolden({ prefix }) {
     await ai(steps)
     const shown = names.filter((name) => !hidden.includes(name))
     if (!(await showsTabs(shown))) throw new Error(`setup: tabs ${JSON.stringify(await tabNames())}`)
-    await until(async () => same(await selectedTabs(), [active]))
+    // The agent's sheet.activate moves only the agent's own editor state (KHP C3b): the person
+    // clicks the tab, as the cases start on that sheet.
+    await choose(active)
   }
   const numbered = (count) => Array.from({ length: count }, (_, index) => `工作表${index + 1}`)
   /** What the grid shows in A1 for the active sheet (the sheet's own text). */

@@ -459,7 +459,8 @@ try {
 
   await section('INSC-C51 选区多个单元格', async () => {
     await fresh()
-    await ai([{ command: 'selection.set', params: { range: 'A1:A3' } }])
+    // The person's selection (an agent's selection.set moves only its own editor state, KHP C3b).
+    await h.goTo('A1:A3')
     await insertCheckbox()
     // The selection's tint off the cells looked at.
     await select('D6')
@@ -594,10 +595,8 @@ try {
     await settle(250)
     const yellow = (p) => p[0] > 230 && p[1] > 230 && p[2] < 80
     step('INSC-C69 A1 呈黄色背景与四边细边框，方框水平居中', yellow(await h.pixel(46 + 10, 21 + 10)) && (await styleOf('A1')).borders?.top?.style === 'Thin' && (await shown('A1')) === 'checked', JSON.stringify((await styleOf('A1')).borders?.top))
-    await ai([
-      { command: 'home.fillColor', params: { range: 'B1', color: '#FFFF00' } },
-      { command: 'selection.set', params: { range: 'B1' } },
-    ])
+    await ai([{ command: 'home.fillColor', params: { range: 'B1', color: '#FFFF00' } }])
+    await select('B1')
     await insertCheckbox()
     step('INSC-C70 先设黄色背景再插入：单元格仍为黄色，方框内部为方框本身的白底', yellow(await h.pixel(46 + G.cw + 10, 21 + 10)) && (await shown('B1')) === 'empty')
   })
@@ -717,17 +716,22 @@ try {
   await section('INSC-C262/C263 选择性粘贴', async () => {
     await fresh()
     await boxes('A1:B1', [['A1', true]])
-    await exec('edit.copy', { range: 'A1:B1' })
+    // The person copies A1:B1 (the cell menu's Copy) and pastes it with Paste Special.
+    await h.goTo('A1:B1')
+    await cellMenu('A1', null, 'sheet-grid-menu-copy')
     await right('A3')
     await kit.getByTestId('sheet-grid-menu-paste-special').click()
+    // kit-editor's command dialog keeps the parameters the command does not list up front under
+    // its More options.
+    await kit.locator('[role=dialog]').waitFor()
+    if (!(await kit.locator('#param-what').isVisible())) await kit.locator('[role=dialog] details > summary').click()
     await kit.locator('#param-what').selectOption('values')
     await kit.getByTestId('command-dialog-run').click()
     await settle(300)
     await select('D6')
     step('INSC-C262 选择性粘贴为值：A3 呈 TRUE、B3 呈 FALSE（WPS/Excel 大写），均不呈方框', (await val('A3')) === true && (await val('B3')) === false && !(await isBox('A3')) && !(await isBox('B3')) && (await cellOf('A3')).text === 'TRUE', JSON.stringify([await val('A3'), await val('B3'), (await cellOf('A3')).text, await shown('A3')]))
-    await exec('edit.copy', { range: 'A1' })
-    await ai([{ command: 'selection.set', params: { range: 'D1' } }])
-    await exec('edit.pasteSpecial', { what: 'formats' })
+    // An agent's selection and clipboard last one run (KHP C3b), so its copy and paste go together.
+    await ai([{ command: 'edit.copy', params: { range: 'A1' } }, { command: 'selection.set', params: { range: 'D1' } }, { command: 'edit.pasteSpecial', params: { what: 'formats' } }])
     await settle(200)
     step('INSC-C263 选择性粘贴为格式：D1 不呈方框，仍为空', !(await isBox('D1')) && (await val('D1')) == null && (await shown('D1')) === 'none')
   })
@@ -781,6 +785,7 @@ try {
   await section('INSC-C270/C271/C272 合并与取消合并', async () => {
     await fresh()
     await ai([{ command: 'cell.set', params: { cell: 'A1', input: '1' } }, { command: 'insert.checkbox', params: { range: 'B1' } }, { command: 'selection.set', params: { range: 'A1:B1' } }])
+    await h.goTo('A1:B1')
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-merge').click()
     await kit.getByTestId('sheet-merge-confirm').waitFor()
@@ -794,6 +799,7 @@ try {
 
     await fresh()
     await ai([{ command: 'insert.checkbox', params: { range: 'A1' } }, { command: 'cell.set', params: { cell: 'B1', input: '1' } }, { command: 'selection.set', params: { range: 'A1:B1' } }])
+    await h.goTo('A1:B1')
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-merge').click()
     await kit.getByTestId('sheet-merge-confirm-ok').click()
@@ -806,6 +812,7 @@ try {
 
     await fresh()
     await ai([{ command: 'insert.checkbox', params: { range: 'A1:B1' } }, { command: 'selection.set', params: { range: 'A1:B1' } }])
+    await h.goTo('A1:B1')
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-merge').click()
     await kit.getByTestId('sheet-merge-confirm-ok').click()

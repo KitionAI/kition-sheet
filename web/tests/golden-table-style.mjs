@@ -603,9 +603,8 @@ try {
 
   await section('TS-C99 复制整个表样式范围进行选择性粘贴', async () => {
     await asTable()
-    await exec('edit.copy', { range: 'A1:D10' })
-    await exec('selection.set', { range: 'H1' })
-    await exec('edit.pasteSpecial', { what: 'values' })
+    // An agent's selection and clipboard last one run (KHP C3b), so its copy and paste go together.
+    await ai([{ command: 'edit.copy', params: { range: 'A1:D10' } }, { command: 'selection.set', params: { range: 'H1' } }, { command: 'edit.pasteSpecial', params: { what: 'values' } }])
     await settle(200)
     step('TS-C99 选择性粘贴（值）：不带表样式，不生成新表格，源表不变', (await value('H1')) === '名称' && (await ownFill('H1')) === null && (await tables()).length === 1 && (await tableRange()) === 'A1:D10')
   })

@@ -38,6 +38,13 @@ const at = async (x, y) => {
   const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
   return { x: region.x + HEADER.x + x, y: region.y + HEADER.y + y }
 }
+// The person selects `range` through the Name Box: an agent's selection.set moves only the
+// agent's own editor state (KHP C3b), and Insert › Chart charts the person's selection.
+const select = async (range) => {
+  await kit.getByTestId('sheet-name-box').fill(range)
+  await kit.getByTestId('sheet-name-box').press('Enter')
+  await until(async () => (await kit.getByTestId('sheet-name-box').inputValue()) === range, `${range} selected`)
+}
 const drag = async (from, to) => {
   const a = await at(from[0], from[1])
   const b = await at(to[0], to[1])
@@ -53,7 +60,7 @@ try {
   for (const [cell, input] of [['A1', ''], ['B1', 'East'], ['C1', 'West'], ['A2', 'Q1'], ['B2', '10'], ['C2', '4'], ['A3', 'Q2'], ['B3', '20'], ['C3', '6']]) {
     await run('cell.set', { cell, input })
   }
-  await run('selection.set', { range: 'A1:C3' })
+  await select('A1:C3')
   await kit.getByTestId('ribbon-tab-insert').click()
   await kit.getByTestId('sheet-chart-insert').click()
   const others = (await all()).length
@@ -70,7 +77,7 @@ try {
   console.log('PASS insert a chart of the selected cells from the shared menu')
 
   // Click away, then select it with the pointer, drag it, and resize it by a handle.
-  await run('selection.set', { range: 'A10' })
+  await select('A10')
   let f = (await chart()).frame
   await drag([f.x + f.w / 2, f.y + f.h / 2], [f.x + f.w / 2 + 60, f.y + f.h / 2 + 30])
   await until(async () => Math.abs((await chart()).frame.x - (f.x + 60)) < 1.5, 'dragging moves the chart')

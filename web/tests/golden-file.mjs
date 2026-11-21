@@ -273,7 +273,8 @@ try {
     const sheet = await sheetOf('字体格式')
     step('IMP-C39 下拉列表规则保留', sheet.validationRanges.includes('M1'), JSON.stringify(sheet.validationRanges))
     // Typed in the grid: the rule's message, and the value stays out.
-    await exec('selection.set', { range: 'M1' })
+    // The person goes to M1 (an agent's selection.set moves only its own editor state, KHP C3b).
+    await h.goTo('M1')
     await settle(200)
     await kit.locator('.kui-text-sink').focus()
     await page.keyboard.type('也许')
@@ -321,7 +322,7 @@ try {
   })
 
   await section('IMP-C36/EXP-C41 公式与引用', async () => {
-    await exec('sheet.activate', { sheet: '公式' })
+    await h.choose('公式')
     const b = await Promise.all(['B1', 'B2', 'B3', 'B4'].map((r) => cellOf(r)))
     step('IMP-C36 公式与计算结果一致', b[0].formula === '=SUM(A1:A3)' && b[0].value === 6 && b[1].formula === '=$A$1*2' && b[1].value === 2, JSON.stringify(b.map((c) => [c.formula, c.value])))
     step('IMP-C36 跨工作表引用与名称引用不串位', b[2].value === 12.5 && b[3].value === 12, JSON.stringify([b[2].formula, b[2].value, b[3].formula, b[3].value]))
@@ -329,7 +330,7 @@ try {
   })
 
   await section('IMP-C34/C35/EXP-C58 图表', async () => {
-    await exec('sheet.activate', { sheet: '对象' })
+    await h.choose('对象')
     const sheet = await sheetOf('对象')
     const kinds = sheet.charts.map((c) => c.kind).join(',')
     step('IMP-C34 柱形图、折线图、饼图按类型与系列保留', /Column|Bar/.test(kinds) && kinds.includes('Line') && kinds.includes('Pie') && sheet.charts.every((c) => c.series >= 1), kinds)
@@ -354,7 +355,7 @@ try {
     await ai([{ command: 'sheet.activate', params: { sheet: '公式' } }, { command: 'review.protectSheet', params: {} }])
     const bytes = await workbookBytes()
     await openFile('保护.xlsx', bytes)
-    await exec('sheet.activate', { sheet: '公式' })
+    await h.choose('公式')
     let refused = false
     try {
       await exec('cell.set', { cell: 'A1', input: '99' })
@@ -740,7 +741,7 @@ try {
     step('IMP-X1 复制时剪贴板 HTML 带有本应用的单元格副本', (copied.html ?? '').includes('data-kition-sheet="'))
     await openFile('目标.xlsx', await workbookBytes())
     await build(['目标'], { fill: false })
-    await exec('selection.set', { range: 'B3' })
+    await h.goTo('B3')
     await kit.locator('.kui-text-sink').evaluate((sink, { html, text }) => {
       const data = new DataTransfer()
       data.setData('text/html', html)
@@ -774,7 +775,7 @@ try {
   })
 
   await section('PRV-C50 预览态下可以选中与复制', async () => {
-    await exec('selection.set', { range: 'A1:B1' })
+    await h.goTo('A1:B1')
     const copied = await exec('edit.copy', { range: 'A1:B1' })
     step('PRV-C50 选区与复制可用', (await details()).selection === 'A1:B1' && copied.text.startsWith('宋体加粗红'), JSON.stringify(copied.text))
   })

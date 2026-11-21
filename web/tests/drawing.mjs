@@ -104,10 +104,14 @@ try {
   await until(async () => (await shapes())[0].stroke.none === true, 'No Outline from Shape Format')
   console.log('PASS fill and outline from Shape Format')
 
-  // Arrange: a second shape (inserted on top, selected), sent to the back from Shape Format, in
-  // one step. Describing without ids lists every shape bottom to top once nothing is selected.
+  // Arrange: a second shape (inserted on top, then clicked: an agent's run selects in its own
+  // editor state, KHP C3b), sent to the back from Shape Format, in one step. Describing without
+  // ids lists every shape bottom to top once nothing is selected.
   const first = (await shapes())[0].id
   const { id: second } = await run('drawing.insert', { geometry: { preset: 'rect' }, frame: { x: 20, y: 20, w: 60, h: 40 } })
+  const placed = (await run('drawing.describe', { ids: [second] })).objects[0].frame
+  const onSecond = await at(placed.x + placed.w / 2, placed.y + placed.h / 2)
+  await page.mouse.click(onSecond.x, onSecond.y)
   const stack = async () => {
     const away = await at(700, 420)
     await page.mouse.click(away.x, away.y)

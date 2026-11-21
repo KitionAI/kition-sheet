@@ -42,21 +42,28 @@ async function open(query, seed = null) {
   const host = () => page.evaluate(() => ({ created: window.commentHost.created, activated: window.commentHost.activated, threads: window.commentHost.threads }))
   const markers = kit.getByTestId('sheet-comment-marker')
   const toasts = () => kit.locator('.kui-toast[data-level=error]').allTextContents().then((all) => all.join(' | '))
-  return { page, kit, errors, until, run, host, markers, toasts }
+  // The person selects `range` through the Name Box: New Comment anchors to the person's
+  // selection, which an agent's selection.set leaves as it was (KHP C3b).
+  const select = async (range) => {
+    await kit.getByTestId('sheet-name-box').fill(range)
+    await kit.getByTestId('sheet-name-box').press('Enter')
+    await until(async () => (await kit.getByTestId('sheet-name-box').inputValue()) === range)
+  }
+  return { page, kit, errors, until, run, host, markers, toasts, select }
 }
 
 let seed = null
 try {
   // The person who edits: New Comment goes to the host.
   {
-    const { page, kit, errors, until, run, host, markers, toasts } = await open('role=editor')
+    const { page, kit, errors, until, run, host, markers, toasts, select } = await open('role=editor')
     await kit.getByTestId('ribbon-tab-review').click()
     step('Review offers New Comment for the host', (await kit.getByTestId('sheet-host-comment').count()) === 1)
     step('and not the file\'s own New Comment', (await kit.getByTestId('sheet-cmd-review.newComment').count()) === 0)
     step('the file\'s other comment commands stay', (await kit.getByTestId('sheet-cmd-review.deleteComment').count()) === 1)
     step('the kit lists comment-anchors', await page.evaluate(() => window.commentHost.connection().capabilities.includes('comment-anchors')))
 
-    await run('selection.set', { range: 'B3', active: 'B3' })
+    await select('B3')
     await kit.getByTestId('sheet-host-comment').click()
     await until(async () => (await host()).created.length === 1)
     const first = (await host()).created[0]
@@ -86,7 +93,7 @@ try {
     step('comments/locate finds it, and not a foreign anchor', JSON.stringify(located) === '[true,false]', JSON.stringify(located))
 
     // A range, and the person cancelling in the host.
-    await run('selection.set', { range: 'D6:E8', active: 'D6' })
+    await select('D6:E8')
     await page.evaluate(() => window.commentHost.cancelNext())
     await kit.getByTestId('sheet-host-comment').click()
     await until(async () => (await host()).created.length === 2)
@@ -108,7 +115,7 @@ try {
     step('a thread whose cell was deleted has no marker', (await markers.count()) === 0)
 
     // A thread that stays, and the workbook saved with its replica (One's documents keep one).
-    await run('selection.set', { range: 'B2', active: 'B2' })
+    await select('B2')
     await kit.getByTestId('sheet-host-comment').click()
     await until(async () => (await markers.count()) === 1)
     await page.evaluate(() => window.commentHost.connection().save())
@@ -135,10 +142,10 @@ try {
 
   // A commenter: a read-only workbook, and New Comment goes to the host.
   {
-    const { page, kit, errors, until, run, host, markers, toasts } = await open('role=commenter', seed)
+    const { page, kit, errors, until, run, host, markers, toasts, select } = await open('role=commenter', seed)
     await kit.getByTestId('ribbon-tab-review').click()
     step('a commenter gets New Comment', (await kit.getByTestId('sheet-host-comment').count()) === 1)
-    await run('selection.set', { range: 'C4', active: 'C4' })
+    await select('C4')
     await kit.getByTestId('sheet-host-comment').click()
     await until(async () => (await host()).created.length === 1)
     step('a commenter\'s comment reaches the host', /!C4$/.test((await host()).created[0]?.anchor?.label ?? ''), `${JSON.stringify((await host()).created)} ${await toasts()}`)

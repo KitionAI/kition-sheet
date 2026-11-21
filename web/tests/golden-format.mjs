@@ -881,19 +881,17 @@ try {
       steps.push({ command: 'home.fontName', params: { range: `A${i + 1}`, name } })
     })
     await ai(steps)
-    await exec('edit.copy', { range: 'A1:A10' })
-    await exec('selection.set', { range: 'C1' })
-    await exec('edit.paste', {})
+    // An agent's selection and clipboard last one run (KHP C3b), so its copy and paste go together.
+    await ai([{ command: 'edit.copy', params: { range: 'A1:A10' } }, { command: 'selection.set', params: { range: 'C1' } }, { command: 'edit.paste', params: {} }])
     const here = await Promise.all(fonts.map((_, i) => fontOf(`C${i + 1}`)))
     step('FONT-C30 本 sheet 内粘贴：字体样式全部粘贴成功', here.every((f, i) => f.name === fonts[i]))
-    await exec('edit.cut', { range: 'A1:A10' })
-    await exec('sheet.activate', { sheet: '工作表2' })
-    await exec('selection.set', { range: 'B2' })
-    await exec('edit.paste', {})
+    await ai([{ command: 'edit.cut', params: { range: 'A1:A10' } }, { command: 'sheet.activate', params: { sheet: '工作表2' } }, { command: 'selection.set', params: { range: 'B2' } }, { command: 'edit.paste', params: {} }])
     await settle(300)
+    // The person goes to 工作表2 to look at what the agent pasted there.
+    await h.choose('工作表2')
     await click('B6')
     step('FONT-C30 剪切后跨 sheet 粘贴：字体与文本正确，工具栏一致', (await fontOf('B6')).name === '楷体' && (await cellOf('B6')).value === '楷体' && (await fontBox().inputValue()) === '楷体')
-    await exec('sheet.activate', { sheet: '工作表1' })
+    await h.choose('工作表1')
   })
 
   await section('FONT-C57/C59/C95 导出与重新导入', async () => {

@@ -291,7 +291,7 @@ try {
 
   await section('FRZ-C11 末行冻结', async () => {
     await table()
-    await exec('selection.set', { range: 'A1000' })
+    await goTo('A1000')
     await settle()
     // The jump scrolls the target into view (WPS, M6); back to the top-left, so the freeze starts at row 1 and column A.
     await top(30000)
@@ -377,7 +377,7 @@ try {
 
   await section('FRZ-C27 末行末列', async () => {
     await table()
-    await exec('selection.set', { range: 'AY1000' })
+    await goTo('AY1000')
     await settle()
     // The jump scrolls the target into view (WPS, M6); back to the top-left, so the freeze starts at row 1 and column A.
     await top(30000)
@@ -717,8 +717,7 @@ try {
     await table()
     await exec('home.borders', { range: 'C3:D6', preset: 'all' })
     await exec('home.fillColor', { range: 'F3', color: '#FFFF00' })
-    await exec('selection.set', { range: 'F3' })
-    await exec('home.bold')
+    await ai([{ command: 'selection.set', params: { range: 'F3' } }, { command: 'home.bold', params: {} }])
     await goTo('A1')
     const style = async () => JSON.stringify([(await cellOf('C4')).style ?? null, (await cellOf('F3')).style ?? null])
     const before = await style()
@@ -765,7 +764,12 @@ try {
     await until(async () => (await details()).active === 'D7')
     await settle(300)
     // Row 7 is scrolled out of view; the highlight of column D runs down the frozen rows (column D is scrolled too): look at row 2's frozen band instead.
-    await exec('selection.set', { range: 'B2' })
+    // The person clicks B2, in the frozen corner (the Name Box is hidden with the formula bar; an
+    // agent's selection.set moves only its own editor state, KHP C3b).
+    const b2 = inCell(1, 1, 1.5)
+    const canvas = await region()
+    await page.mouse.click(canvas.x + b2[0], canvas.y + b2[1])
+    await until(async () => (await details()).active === 'B2')
     await settle(400)
     const rowBand = await at(9, 1, 1.5)
     const colBand = await at(1, 12, 1.5)
