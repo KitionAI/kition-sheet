@@ -312,6 +312,8 @@ try {
     await setGridlines(false)
     await clickCell(4, 9)
     await page.keyboard.type('内容')
+    // The typed text reaches the engine a moment after the keys (WebKit on a runner read it early).
+    await until(async () => (await editText()) === '内容', 20)
     step('BAR-C18 单元格内直接编辑并显示输入，编辑栏保持隐藏', (await editText()) === '内容' && !(await barShown()))
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('ArrowDown')
