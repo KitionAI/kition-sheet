@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, useKitEditor } from '@kition/kit-editor'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, useKitEditor } from '@kition/sdk/editor'
 import { backToGrid, type SheetInfo } from './sheet'
 
 /**

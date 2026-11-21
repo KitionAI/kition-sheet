@@ -6,8 +6,8 @@ import {
   ImageDownIcon as ImageOut,
   LayoutTemplateIcon as Template,
   TableIcon as Workbook,
-} from '@kition/tessera-icons/react'
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, RibbonButton, RibbonGroup, toast, useKitEditor } from '@kition/kit-editor'
+} from '@kition/tessera/icons/react'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, RibbonButton, RibbonGroup, toast, useKitEditor } from '@kition/sdk/editor'
 import { cleanName, exportThroughHost, MAX_NAME, type ExportFormat } from '../exportFile'
 import { backToGrid } from '../sheet'
 

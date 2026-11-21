@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, CrosshairIcon as Crosshair, Grid3x3Icon as Grid3x3, SnowflakeIcon as Snowflake } from '@kition/tessera-icons/react'
-import { ColorGrid, MenuButton, MenuItem, MenuSeparator, RibbonButton, RibbonMenu, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, CrosshairIcon as Crosshair, Grid3x3Icon as Grid3x3, SnowflakeIcon as Snowflake } from '@kition/tessera/icons/react'
+import { ColorGrid, MenuButton, MenuItem, MenuSeparator, RibbonButton, RibbonMenu, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { FOCUS_COLORS, GRIDLINE_COLORS, backToGrid, cellParts, columnLetters, type SheetInfo } from './sheet'
 
 /**

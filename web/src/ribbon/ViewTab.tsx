@@ -1,5 +1,5 @@
-import { CrosshairIcon as Crosshair, EyeIcon as Eye, SnowflakeIcon as Snowflake } from '@kition/tessera-icons/react'
-import { Checkbox, CommandTab, RibbonGroup, RibbonItem, RibbonStack, useKitEditor } from '@kition/kit-editor'
+import { CrosshairIcon as Crosshair, EyeIcon as Eye, SnowflakeIcon as Snowflake } from '@kition/tessera/icons/react'
+import { Checkbox, CommandTab, RibbonGroup, RibbonItem, RibbonStack, useKitEditor } from '@kition/sdk/editor'
 import { SHEET_PRIMARY, type SheetInfo } from '../sheet'
 import { FocusCellButton, FreezeMenu, GridlineColorMenu } from '../ViewControls'
 

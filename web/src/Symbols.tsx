@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, RibbonGroup, RibbonMenu, readKitStore, useKitEditor, useReadOnly, writeKitStore } from '@kition/kit-editor'
-import { OmegaIcon } from '@kition/tessera-icons/react'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, RibbonGroup, RibbonMenu, readKitStore, useKitEditor, useReadOnly, writeKitStore } from '@kition/sdk/editor'
+import { OmegaIcon } from '@kition/tessera/icons/react'
 import { FONTS, backToGrid } from './sheet'
 
 /**

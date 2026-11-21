@@ -24,8 +24,8 @@ import {
   type KitCanvasHandle,
   type Phrases,
   type RasterView,
-} from '@kition/kit-editor'
-import { ChartColumnIcon as ChartColumn, ShieldCheckIcon, SquareFunctionIcon as FunctionSquare } from '@kition/tessera-icons/react'
+} from '@kition/sdk/editor'
+import { ChartColumnIcon as ChartColumn, ShieldCheckIcon, SquareFunctionIcon as FunctionSquare } from '@kition/tessera/icons/react'
 import { engineManifest } from './engine'
 import { CATALOGS, localizeError } from './strings'
 import { EXPORT_COMMANDS, HOST_FILE_COMMANDS, SHEET_PRIMARY, describe, type SelectionStats } from './sheet'

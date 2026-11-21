@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { ChevronDownIcon as ChevronDown, PaintbrushIcon as Paintbrush } from '@kition/tessera-icons/react'
-import { ColorGrid, MenuButton, RibbonButton, RibbonPresentationContext, isMac, readKitStore, toast, useKitEditor, useReadOnly, writeKitStore, type IconComponent } from '@kition/kit-editor'
+import { ChevronDownIcon as ChevronDown, PaintbrushIcon as Paintbrush } from '@kition/tessera/icons/react'
+import { ColorGrid, MenuButton, RibbonButton, RibbonPresentationContext, isMac, readKitStore, toast, useKitEditor, useReadOnly, writeKitStore, type IconComponent } from '@kition/sdk/editor'
 import { FONTS, SIZES, backToGrid, fontMatches, type FontChoice, type SheetInfo } from './sheet'
 
 /** How many fonts the Font list keeps under Recently Used. */

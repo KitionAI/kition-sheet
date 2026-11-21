@@ -10,8 +10,8 @@
  * keeps no comments. `window.commentHostSeed` (set before the page loads) opens a file, replica and
  * threads another page saved (`commentHost.saved()`).
  */
-import { mountKit, type KitConnection } from '@kition/kit-host'
-import { KitRpcError, type KitCommentAnchor, type KitShownThread } from '@kition/kit-ui-protocol'
+import { mountKit, type KitConnection } from '@kition/sdk/host'
+import { KitRpcError, type KitCommentAnchor, type KitShownThread } from '@kition/sdk/protocol'
 
 type Seed = { file: string; version: string; snapshot: string; blobs: string; threads: KitShownThread[] }
 

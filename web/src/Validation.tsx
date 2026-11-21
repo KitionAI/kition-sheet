@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, useKitEditor } from '@kition/kit-editor'
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, useKitEditor } from '@kition/sdk/editor'
 import { toScreen, type Pins } from './commentAnchors'
 import type { ViewStore } from './HostComments'
 import { backToGrid, type SheetInfo, type ValidationRule } from './sheet'

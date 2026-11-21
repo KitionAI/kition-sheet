@@ -12,8 +12,8 @@ export default defineConfig({
   worker: { format: 'es' },
   // Preserve the published editor's relative worker URLs and prebundle its CJS dependencies.
   optimizeDeps: {
-    exclude: ['@kition/kit-editor', '@kition/kit-dev-host'],
-    include: ['@kition/tessera-ui', '@kition/kit-editor > use-sync-external-store/shim'],
+    exclude: ['@kition/sdk'],
+    include: ['@kition/tessera/ui', '@kition/sdk > use-sync-external-store/shim'],
   },
   server: {
     port: 5182,

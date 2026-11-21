@@ -1,4 +1,4 @@
-import type { Catalog } from '@kition/kit-editor'
+import type { Catalog } from '@kition/sdk/editor'
 
 /** zh-CN descriptions of the most used functions (the editor's own wording), by `fn:NAME`. */
 const FUNCTION_TEXT_ZH: Catalog = {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, ColorGrid, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, toast, useKitEditor } from '@kition/kit-editor'
+import { Button, ColorGrid, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, toast, useKitEditor } from '@kition/sdk/editor'
 import { FONTS, SIZES, backToGrid, type SheetInfo } from './sheet'
 
 type Color = 'Auto' | { Rgb: number } | { Theme: unknown } | null | undefined

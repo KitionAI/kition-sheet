@@ -9,7 +9,7 @@
  * host; comments and notes already in the file stay in the file, and the Review tab's other
  * comment and note commands keep acting on them. Elsewhere New Comment writes into the file.
  */
-import type { KitCommentAnchor, KitShownThread } from '@kition/kit-ui-protocol'
+import type { KitCommentAnchor, KitShownThread } from '@kition/sdk/protocol'
 
 export type RunEngine = (command: string, params: Record<string, unknown>) => Promise<string>
 

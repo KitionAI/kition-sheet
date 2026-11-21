@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
-import { Button, ColorGrid, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, RibbonGroup, RibbonMenu, RibbonStack, toast, useEngineQuery, useKitEditor } from '@kition/kit-editor'
-import { CheckIcon as Check, Table2Icon as Table2, TablePropertiesIcon as TableProperties, XIcon as X } from '@kition/tessera-icons/react'
+import { Button, ColorGrid, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalTitle, RibbonGroup, RibbonMenu, RibbonStack, toast, useEngineQuery, useKitEditor } from '@kition/sdk/editor'
+import { CheckIcon as Check, Table2Icon as Table2, TablePropertiesIcon as TableProperties, XIcon as X } from '@kition/tessera/icons/react'
 import { backToGrid, cellParts, columnLetters, type SheetInfo } from './sheet'
 import { askConfirm } from './SheetDialogs'
 

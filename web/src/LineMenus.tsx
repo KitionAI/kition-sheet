@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from 'react'
-import { CommandItem, ContextMenu, MenuItem, MenuSeparator, SubMenu, useKitEditor, useReadOnly, type ContextMenuPoint } from '@kition/kit-editor'
+import { CommandItem, ContextMenu, MenuItem, MenuSeparator, SubMenu, useKitEditor, useReadOnly, type ContextMenuPoint } from '@kition/sdk/editor'
 import { backToGrid, type SheetInfo } from './sheet'
 import { askConfirm } from './SheetDialogs'
 

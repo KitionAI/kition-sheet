@@ -7,8 +7,8 @@ import {
   ListIcon as List,
   LockIcon as Lock,
   PlusIcon as Plus,
-} from '@kition/tessera-icons/react'
-import { ColorGrid, ContextMenu, IconButton, MenuItem, MenuSeparator, SubMenu, toast, useKitEditor, useReadOnly, type ContextMenuPoint } from '@kition/kit-editor'
+} from '@kition/tessera/icons/react'
+import { ColorGrid, ContextMenu, IconButton, MenuItem, MenuSeparator, SubMenu, toast, useKitEditor, useReadOnly, type ContextMenuPoint } from '@kition/sdk/editor'
 import type { SheetInfo, SheetTab } from './sheet'
 import { askDeleteSheet } from './SheetDialogs'
 import { backToGrid } from './sheet'

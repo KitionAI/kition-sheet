@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { MessageSquarePlusIcon as MessageSquarePlus } from '@kition/tessera-icons/react'
-import { CommandGroupButtons, RibbonButton, RibbonGroup, toast, useKitEditor, type HostConnection, type KitCanvasView, type KitEngine, type RasterDecoration } from '@kition/kit-editor'
-import type { KitShownThread } from '@kition/kit-ui-protocol'
+import { MessageSquarePlusIcon as MessageSquarePlus } from '@kition/tessera/icons/react'
+import { CommandGroupButtons, RibbonButton, RibbonGroup, toast, useKitEditor, type HostConnection, type KitCanvasView, type KitEngine, type RasterDecoration } from '@kition/sdk/editor'
+import type { KitShownThread } from '@kition/sdk/protocol'
 import { MARKER_SIZE, MARKER_TARGET, commentMarkers, commentPlaces, hostCommenting, markerTarget, refusalReason, selectionAnchor, type CommentMarker, type Pins } from './commentAnchors'
 
 /** The canvas's view, for the marker targets only (the editor around them does not re-render on a scroll). */

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, SquareFunctionIcon as FunctionSquare, XIcon as X } from '@kition/tessera-icons/react'
-import { IconButton, useKitEditor, useReadOnly } from '@kition/kit-editor'
+import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, SquareFunctionIcon as FunctionSquare, XIcon as X } from '@kition/tessera/icons/react'
+import { IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { backToGrid, type SheetInfo } from './sheet'
 import { FormulaText } from './FormulaText'
 import { HintPanel, type FormulaHint } from './FormulaHints'

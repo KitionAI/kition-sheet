@@ -1,4 +1,4 @@
-import type { KitEngineInfo } from '@kition/kit-editor'
+import type { KitEngineInfo } from '@kition/sdk/editor'
 import type { FormulaHint } from './FormulaHints'
 
 type Color = 'Auto' | { Rgb: number } | { Theme: unknown } | null

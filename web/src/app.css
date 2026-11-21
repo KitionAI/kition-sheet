@@ -1,4 +1,4 @@
-/* The Sheet editor's own layout; colors and shapes come from @kition/kit-editor's tokens. */
+/* The Sheet editor's own layout; colors and shapes come from @kition/sdk/editor's tokens. */
 
 .sheet-formula-bar {
   gap: 4px;

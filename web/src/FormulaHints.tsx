@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { useKitEditor } from '@kition/kit-editor'
+import { useKitEditor } from '@kition/sdk/editor'
 import { functionText } from './strings'
 import { toScreen, type Pins } from './commentAnchors'
 import type { ViewStore } from './HostComments'
