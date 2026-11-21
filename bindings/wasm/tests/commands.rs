@@ -29,9 +29,28 @@ fn sample(id: &str) -> Result<serde_json::Value, String> {
     doc.execute(id, entry.get("params").map_or(serde_json::json!({}), fill))
 }
 
+/// The word list `review.spelling` checks against in these tests (`KITION_SHEET_WORDS`), so its
+/// sample answers on a machine with no system word list too (a hosted CI runner).
+const WORDS: &str = "a\nand\namount\ncity\ndate\nname\nnorth\nregion\nsales\nsouth\nthe\ntotal\nvalue\n";
+
 /// What each read command answers matches the output schema it declares (KHP A1).
 #[test]
 fn every_read_command_answers_what_its_output_schema_says() {
+    // The engine reads its word list once per process, so the test runs itself again with
+    // `KITION_SHEET_WORDS` naming the tests' list.
+    if std::env::var_os("KITION_SHEET_WORDS").is_none() {
+        let words = std::env::temp_dir().join(format!("kition-sheet-words-{}.txt", std::process::id()));
+        std::fs::write(&words, WORDS).unwrap();
+        let name = "every_read_command_answers_what_its_output_schema_says";
+        let out = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([name, "--exact", "--nocapture", "--test-threads=1"])
+            .env("KITION_SHEET_WORDS", &words)
+            .output()
+            .unwrap();
+        let log = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+        assert!(out.status.success() && log.contains("1 passed"), "{log}");
+        return;
+    }
     let mut failures = Vec::new();
     for command in basic().commands().into_iter().filter(|c| c.schema.is_some() && !c.mutates) {
         let Some(schema) = command.output_schema else { continue };

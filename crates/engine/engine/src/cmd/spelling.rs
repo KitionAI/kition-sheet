@@ -1,5 +1,6 @@
 //! Spelling: checks text cells against the system word list (`/usr/share/dict/words` on macOS
-//! and Linux; nothing is bundled) plus a user dictionary kept in the engine preferences. A hosted
+//! and Linux; nothing is bundled), or the word list `KITION_SHEET_WORDS` names (one word a line,
+//! for a machine with none), plus a user dictionary kept in the engine preferences. A hosted
 //! session reads nothing of the machine it runs on (KHP section 10.6), so it has no word list.
 
 use std::collections::HashSet;
@@ -35,7 +36,11 @@ fn system_words() -> &'static HashSet<String> {
         #[cfg_attr(target_arch = "wasm32", allow(unused_mut))]
         let mut set = HashSet::new();
         #[cfg(not(target_arch = "wasm32"))]
-        for path in ["/usr/share/dict/words", "/usr/share/dict/american-english", "/usr/share/dict/british-english"] {
+        for path in std::env::var_os("KITION_SHEET_WORDS")
+            .map(std::path::PathBuf::from)
+            .into_iter()
+            .chain(["/usr/share/dict/words", "/usr/share/dict/american-english", "/usr/share/dict/british-english"].map(std::path::PathBuf::from))
+        {
             if let Ok(text) = std::fs::read_to_string(path) {
                 for w in text.lines().take(2_000_000) {
                     set.insert(w.trim().to_lowercase());
