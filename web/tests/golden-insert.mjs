@@ -474,6 +474,8 @@ try {
     step('INSC-C53 未勾选为浅灰描边的空心方框', (await shown('A1')) === 'empty')
     await click('A1')
     await settle(200)
+    // The box is drawn checked a frame after the value turns TRUE (WebKit on a runner read it early).
+    await until(async () => (await shown('A1')) === 'checked' && (await val('A1')) === true, 20)
     step('INSC-C53/C59 单击方框：深灰实底与白色对勾，取值 TRUE', (await shown('A1')) === 'checked' && (await val('A1')) === true)
     step('INSC-C59/C250 fx 栏呈「TRUE」', (await formulaBar()) === 'TRUE')
     await click('A1')
