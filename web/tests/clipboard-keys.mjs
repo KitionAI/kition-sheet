@@ -70,7 +70,11 @@ try {
       return false
     }
   }, { html, text })
-  if (written) {
+  // WebKit on Linux (Playwright's WPE build) keeps only the plain text of what a page writes to the
+  // clipboard: its paste event carries no text/html, so there the paste event a key press makes
+  // brings the table, as where a browser keeps a script from writing the clipboard.
+  const keepsHtml = !(which === 'webkit' && process.platform === 'linux')
+  if (written && keepsHtml) {
     await page.keyboard.press('ControlOrMeta+v')
   } else {
     // This browser keeps a script from writing the clipboard: the paste event a key press makes.
