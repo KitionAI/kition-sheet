@@ -4,7 +4,7 @@
   "level": "basic",
   "id": "kit.sheet",
   "name": "Sheet",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "Apache-2.0",
   "distribution": "plugin",
   "engine": {
@@ -174,10 +174,11 @@
   },
   "headless": {
     "executable": "kition-sheet",
-    "protocol": "kition-kit/2",
+    "protocol": "kition-kit/1",
     "features": [
       "view.describe",
       "document.check",
+      "document.identity",
       "model.open",
       "model.import",
       "model.export",

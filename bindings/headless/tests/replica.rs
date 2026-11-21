@@ -8,7 +8,7 @@ use kition_sheet_kit::SheetDocument;
 use serde_json::{Value, json};
 
 fn kit() -> Headless<SheetDocument> {
-    Headless::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap())
+    Headless::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_sheet_kit::EDITOR_STATE).unwrap())
 }
 
 const BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

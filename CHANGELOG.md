@@ -3,6 +3,11 @@
 Changes to Kition Sheet, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## 0.1.3
+
+- A host asks a workbook file for its document id (`document.identity`) and copies a workbook as a new document (`document.fork`): an `.xlsx` is written from the workbook and embeds no replica (its `xl/kition/identities.json` part holds object ids, not a document id or history), so it carries no id and its fork is the same bytes (Kit Process Protocol section 5.6, kition-sdk 6b4d471).
+- The headless program speaks Kit Process Protocol version 1 (`headless.protocol` is `kition-kit/1`), as hosts on kition-sdk from bb1b07b require.
+
 ## 0.1.2
 
 - In a dark host, filter buttons, check boxes, note and comment marks, form controls and chart chrome (the chart area, gridlines, axis lines and automatic text) follow the dark palette instead of staying light; series colours and the colours the file sets are kept. Export as Picture, PDF, print and the saved file still use the light palette.

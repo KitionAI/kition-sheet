@@ -1,6 +1,6 @@
 format: 1
 kit: sheet
-updated: "2026-11-19"
+updated: "2026-11-20"
 gate_budget_s: 600
 protected: []
 features:
@@ -531,6 +531,14 @@ features:
     gap: "WPS cloud's cell components are not planned: ratings (评星), progress bars (进度), task lists (任务清单), date reminders (日期提醒), @mentions, attachments and cloud files. The Symbol dialog has no help entry and does not put the chosen font on the symbol it inserts; rich text in notes (备注) is not offered; cells can't be dragged to move them."
     cases: [sheet.editor.insert-content/golden-insert, sheet.editor.insert-content/checkboxes, regressions/issue-checkbox-number-format, regressions/issue-checkbox-click, regressions/issue-symbol-at-caret, regressions/issue-text-box-fonts, regressions/issue-shape-text-escape]
     since: "2026-11-17"
+  - id: sheet.platform.document-identity
+    title: "A host asks a workbook file for its document id and forks it (document.identity, document.fork; Kit Process Protocol 5.6): an .xlsx embeds no replica, so it carries none and forks unchanged"
+    dimension: [platform, data-safety]
+    priority: P1
+    status: has
+    paths: [bindings/headless/src/main.rs, bindings/headless/tests/identity.rs, kit.json]
+    cases: [sheet.platform.document-identity/no-replica]
+    since: "2026-11-20"
   - id: sheet.editor.workbook-files
     title: "Workbook files as in WPS: open xlsx, xlsm, templates, Excel 97-2003 .xls, .xlsb, ODS, CSV (UTF-8 or GBK) and web pages named .xls, sized as WPS sizes columns and rows; refuse empty, damaged and non-spreadsheet files saying what they are; File › Export as PDF (Chinese text embedded, A4), picture, Excel workbook, CSV of what cells show and web page; Save as Template (.xltx); a read-only preview; copy and paste between workbooks with formats; form controls kept on save"
     dimension: [function, conversion, fidelity]

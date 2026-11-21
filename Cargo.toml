@@ -12,14 +12,16 @@ repository = "https://github.com/KitionAI/kition-sheet"
 
 [workspace.dependencies]
 # kition-sdk, pinned by commit (one revision for every crate of it)
-kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
-kition-office-core = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
-kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
-kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
-kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+kition-convergence = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
+kition-office-core = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
+kition-headless = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
+kition-kit-server = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
+kition-kit = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
 # The kits' MCP server's tools (kition-kits-mcp), for the headless kit's end-to-end tests.
-kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
-kition-env = { git = "https://github.com/KitionAI/kition-sdk", rev = "f5ea478430d1e85069b6c6c9fac1de6b8e5c5d57" }
+kition-kits = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
+kition-env = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
+# A host of kit processes (`HeadlessKit`), for the `document.identity` tests.
+kition-kit-host = { git = "https://github.com/KitionAI/kition-sdk", rev = "6b4d471603aebdde1ee23c1a1cc522f8bbd97883" }
 # internal
 kition-sheet-core = { path = "crates/engine/core" }
 kition-sheet-numfmt = { path = "crates/engine/numfmt" }

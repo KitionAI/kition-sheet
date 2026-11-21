@@ -44,7 +44,7 @@ fn the_agent_exports_every_declared_format_and_the_kit_writes_no_file() {
     std::fs::create_dir_all(&root).unwrap();
     let root = std::fs::canonicalize(root).unwrap();
     std::fs::copy(Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../conformance/basic.xlsx")), root.join("basic.xlsx")).unwrap();
-    let mut kit = Headless::<SheetDocument>::new(KitInfo::from_manifest(MANIFEST, &[], &[]).unwrap());
+    let mut kit = Headless::<SheetDocument>::new(KitInfo::from_manifest(MANIFEST, &[], kition_sheet_kit::EDITOR_STATE).unwrap());
     let folder = HostFolder::new(&root).unwrap();
     kit.set_host(folder.host());
     let id = kit.open(OpenRequest { file: &folder.file("basic.xlsx").unwrap(), read_only: false, create: None }).unwrap().id;

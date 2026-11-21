@@ -61,7 +61,9 @@ fn replica_exports_and_saved_bytes_follow_a_replaced_document() {
     old.execute("cell.set", json!({"cell":"A1","input":"old"})).unwrap();
     std::fs::write(dir.path().join("Old.xlsx"), old.save(None).unwrap()).unwrap();
     let folder = HostFolder::new(dir.path()).unwrap();
-    let mut kit = Headless::<SheetDocument>::with_replica_port(KitInfo::from_manifest(include_str!("../../../kit.json"), &[], &[]).unwrap());
+    let mut kit = Headless::<SheetDocument>::with_replica_port(
+        KitInfo::from_manifest(include_str!("../../../kit.json"), &[], kition_sheet_kit::EDITOR_STATE).unwrap(),
+    );
     kit.set_host(folder.host());
     let opened = kit.open(OpenRequest { file: &folder.file("Old.xlsx").unwrap(), read_only: false, create: None }).unwrap();
     let id = opened.id;

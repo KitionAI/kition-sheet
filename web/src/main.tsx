@@ -18,7 +18,7 @@ const alone = window.setTimeout(() => {
 // Upstream's translations of its English labels and command titles, and this editor's own.
 const UPSTREAM = import.meta.glob('./i18n/upstream/*.rs', { query: '?raw', import: 'default' })
 
-void connectHost({ id: 'kit.sheet', version: '0.1.2', capabilities: ['ai', 'replica', 'comment-anchors'], brand: manifest.ui.brand, display: manifest.ui.display }).then(async (host) => {
+void connectHost({ id: 'kit.sheet', version: '0.1.3', capabilities: ['ai', 'replica', 'comment-anchors'], brand: manifest.ui.brand, display: manifest.ui.display }).then(async (host) => {
   window.clearTimeout(alone)
   const phrase = withPhrases(await loadPhrases(UPSTREAM, host.init.locale), PHRASES, host.init.locale)
   // No StrictMode: its doubled effects would open the document twice, in two engine workers.

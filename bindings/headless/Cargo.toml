@@ -19,6 +19,8 @@ kition-kit = { workspace = true, features = ["session"] }
 kition-kit-server = { workspace = true }
 serde_json = { workspace = true }
 kition-kits = { workspace = true }
+# document.identity and document.fork through the real process (tests/identity.rs).
+kition-kit-host = { workspace = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tempfile = "3"
 kition-sheet-engine = { workspace = true }
