@@ -628,6 +628,9 @@ try {
     await page.keyboard.type('=vlo')
     const list = kit.getByTestId('sheet-formula-hints-list')
     await list.waitFor()
+    // The list shows from the first letter: read it once it follows all of `=vlo` (WebKit on a
+    // runner showed the `=v` list, VALUE first, a moment before).
+    await until(async () => (await bar().inputValue()) === '=vlo' && (await list.locator('li').first().getAttribute('data-name'))?.startsWith('VLO'))
     const text = await kit.getByTestId('sheet-formula-hints-description').textContent()
     step('BAR-X7 =vlo 列表首项 VLOOKUP，说明为中文', (await list.locator('li').first().getAttribute('data-name')) === 'VLOOKUP' && text.includes('查找'), text)
     await bar().press('Escape')

@@ -553,6 +553,9 @@ function SheetTabButton(props: TabProps) {
           onBlur={() => props.onRename(false)}
           onClick={(event) => event.stopPropagation()}
           onDoubleClick={(event) => event.stopPropagation()}
+          // Pressing on the selected name and moving drags the tab, never the text: a native text
+          // drag would cancel the pointer (pointercancel) and the tab would not move (Linux).
+          onDragStart={(event) => event.preventDefault()}
           onKeyDown={(event) => {
             if (event.key === 'Enter') props.onRename(true)
             // What this Escape cancelled: the rename.
