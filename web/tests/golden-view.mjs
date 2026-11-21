@@ -1383,7 +1383,7 @@ try {
 
   // ———— carried from M5 into M6: the view follows programmatic moves; a freeze in a scrolled view ————
 
-  await section('FRZ-X3 名称框、Ctrl+方向键与代理的跳转把目标滚入视野，点击可见单元格不滚动', async () => {
+  await section('FRZ-X3 名称框与 Ctrl+方向键的跳转把目标滚入视野，点击可见单元格不滚动，代理的选区不移动本人的视图', async () => {
     await table({ rows: 20 })
     await goTo('C300')
     await settle(400)
@@ -1392,9 +1392,17 @@ try {
     await clickCell(2, 5)
     const again = await topRow()
     step('FRZ-X3 点击可见单元格不滚动', again === first, `${first} ${again}`)
+    // An agent's selection.set runs in the agent's own editor state (KHP C3b): the person's
+    // selection and view stay where they are.
+    const mine = (await details()).active
     await exec('selection.set', { range: 'A5' })
+    const kept = (await details()).active
+    const still = await topRow()
+    step('FRZ-X3 代理（selection.set）选中 A5：本人的选区与视图不动（C3b）', kept === mine && still === first, `${mine} ${kept} ${first} ${still}`)
+    // The person moves the selection back to A5 (the Name Box): the view follows.
+    await goTo('A5')
     await settle(400)
-    step('FRZ-X3 代理（selection.set）把选区移回 A5：视图跟随', (await topRow()) <= 5)
+    step('FRZ-X3 本人经名称框把选区移回 A5：视图跟随', (await topRow()) <= 5)
     await goTo('A1')
     await sink()
     await page.keyboard.press('Control+ArrowDown')

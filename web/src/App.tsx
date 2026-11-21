@@ -276,9 +276,9 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- per workbook and per change
   }, [doc, state?.focusCell, state?.focusColor])
 
-  // When the active cell moves (an arrow, Enter, Tab, Ctrl+arrow, the Name Box, Go To, an agent's
-  // selection) the view scrolls just enough to show it, past the frozen rows and columns, as WPS
-  // does; a click on a cell in view leaves the view where it is (one partly in view is brought in
+  // When the person's active cell moves (an arrow, Enter, Tab, Ctrl+arrow, the Name Box, Go To;
+  // an agent's selection is its own and moves neither, KHP C3b) the view scrolls just enough to
+  // show it, past the frozen rows and columns, as WPS does; a click on a cell in view leaves the view where it is (one partly in view is brought in
   // whole). Showing another sheet keeps the place that sheet was left at.
   const followed = useRef<{ sheet: string; active: string } | null>(null)
   useEffect(() => {
