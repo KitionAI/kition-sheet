@@ -496,15 +496,17 @@ impl crate::DocState {
             *slot = self.selection.clone();
         }
         // The active sheet is view state: change it without making the workbook dirty, and
-        // without making a replica for it (a viewer's first switch would read as an edit).
+        // without recording it in the replica (the replica holds no active sheet): neither makes
+        // a replica (a viewer's first switch would read as an edit) nor records a step, which
+        // settles every cell's position and took a second on a sheet of 200,000 cells.
         let dirty = self.is_dirty();
-        let unreplicated = self.link.kdm.is_none() && std::sync::Arc::ptr_eq(&self.link.synced, &self.wb);
+        let in_sync = std::sync::Arc::ptr_eq(&self.link.synced, &self.wb);
         let wb = std::sync::Arc::make_mut(&mut self.wb);
         wb.active_sheet = i;
         if !dirty {
             self.saved = self.wb.clone();
         }
-        if unreplicated {
+        if in_sync {
             self.link.synced = self.wb.clone();
         }
         self.selection = self.sheet_selections.get(i).cloned().unwrap_or_default();
