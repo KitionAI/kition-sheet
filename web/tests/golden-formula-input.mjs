@@ -117,7 +117,9 @@ try {
     await page.keyboard.type('=su')
     await hints().waitFor()
     await hints().locator('li[data-name="SUM"]').click()
-    await until(async () => (await editText()) === '=SUM(')
+    // The click on the list item takes the keyboard; the editor gives it back to the cell a frame
+    // later (the runner typed `1,2)` and Enter into nothing before it did).
+    await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
     step('FX-C6 单击 SUM：=SUM(，仍在编辑', (await editText()) === '=SUM(' && (await details()).editing === true, JSON.stringify(await editText()))
     await page.keyboard.type('1,2)')
     await page.keyboard.press('Enter')
@@ -136,6 +138,9 @@ try {
     await bar.pressSequentially('+cou')
     const list = kit.getByTestId('sheet-formula-hints-list')
     await list.waitFor()
+    // The list shows from the first letter: read it once it follows all of `+cou` (Chromium on a
+    // runner read the `+c` list a moment before).
+    await until(async () => (await bar.inputValue()) === '=$B$1+cou' && ((await list.locator('li').first().getAttribute('data-name')) ?? '').startsWith('COU'))
     step('FX-C7 编辑栏下弹出 COU… 函数列表', ((await list.locator('li').first().getAttribute('data-name')) ?? '').startsWith('COU'))
     await bar.press('Tab')
     await until(async () => (await bar.inputValue()).startsWith('=$B$1+COU') && (await bar.inputValue()).endsWith('('))
