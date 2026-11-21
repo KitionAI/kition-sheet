@@ -7,6 +7,7 @@ each package is published with a `package-v<version>` tag.
 
 - A host asks a workbook file for its document id (`document.identity`) and copies a workbook as a new document (`document.fork`): an `.xlsx` is written from the workbook and embeds no replica (its `xl/kition/identities.json` part holds object ids, not a document id or history), so it carries no id and its fork is the same bytes (Kit Process Protocol section 5.6, kition-sdk 6b4d471).
 - The headless program speaks Kit Process Protocol version 1 (`headless.protocol` is `kition-kit/1`), as hosts on kition-sdk from bb1b07b require.
+- kition-sdk 6672663: the replica's undo passes over an undo group whose changes came to nothing (a value written and written back), and the same Undo takes back the step before it, as before kition-sdk 4b81569.
 
 ## 0.1.2
 
