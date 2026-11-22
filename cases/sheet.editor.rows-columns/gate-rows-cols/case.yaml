@@ -1,0 +1,28 @@
+format: 1
+id: sheet.editor.rows-columns/gate-rows-cols
+feature: sheet.editor.rows-columns
+intent: >-
+  Inserting and deleting rows and columns against the WPS reference cases (module M4 插入行列,
+  删除行列), in Chromium (`pnpm test:gate-rows-cols` runs WebKit as well): Home › Insert lists
+  rows above and below and columns left and right with count boxes (the selection's size at
+  first, digits only, at most 1000 rows and 100 columns), cells and the sheet; Home › Delete and
+  the cell's right-click Delete take cells, rows and columns; the row and column headings'
+  right-click menus; Ctrl+Shift+= and Ctrl+-; greyed while a cell is typed and with the whole
+  sheet selected; undo, redo, save and reopen; formats, conditional formats, validation, links,
+  pictures, merged cells, hidden lines, filters, frozen panes, formulas and charts as WPS for Mac
+  leaves them.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/gate-rows-cols.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-rows-cols.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

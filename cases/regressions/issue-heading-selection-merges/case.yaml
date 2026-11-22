@@ -5,12 +5,12 @@ intent: >-
   Selecting row 1 under a merge of A1:B2 grew the selection to rows 1 and 2, so Delete took both
   and the merge with them; the grid's corner selected only the region around the active cell.
   Now a heading's rows or columns stay as selected (deleting row 1 leaves A1:B1 merged, as WPS
-  does; golden DEL-C36) and the corner selects the whole sheet (DEL-C30).
+  does; reference case DEL-C36) and the corner selects the whole sheet (DEL-C30).
 layer: gate
 dimension: function
 source:
   kind: synthetic
-  from: golden case table 删除行列 rows 30 and 36
+  from: reference case table 删除行列 rows 30 and 36
   license: owned
 input: []
 steps:

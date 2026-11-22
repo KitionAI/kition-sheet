@@ -46,7 +46,7 @@ export function ExportGroup({ sheet, sheets }: { sheet: string; sheets: readonly
         <RibbonButton icon={Workbook} size="large" label={p('Export as Excel Workbook')} disabled={off} onClick={() => void run('xlsx')} data-testid="sheet-export-xlsx" primary />
         <RibbonButton icon={FileSpreadsheet} size="large" label={p('Export as CSV')} disabled={off} onClick={() => void run('csv')} data-testid="sheet-export-csv" primary />
         {/* CSV in UTF-8 with a byte-order mark, as Excel's and WPS's 「CSV UTF-8」 write it: Excel for
-            Windows then reads its Chinese text rightly (golden case EXP-C69). */}
+            Windows then reads its Chinese text rightly (reference case EXP-C69). */}
         <RibbonButton icon={FileSpreadsheet} size="large" label={p('Export as CSV UTF-8')} disabled={off} onClick={() => void run('csv', null, { bom: true })} data-testid="sheet-export-csv-bom" primary />
         <RibbonButton icon={Globe} size="large" label={p('Export as Web Page')} disabled={off} onClick={() => void run('html')} data-testid="sheet-export-html" primary />
       </RibbonGroup>

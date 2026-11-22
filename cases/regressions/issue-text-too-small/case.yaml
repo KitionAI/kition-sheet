@@ -4,7 +4,7 @@ feature: sheet.editor.workbook-files
 intent: >-
   Cell text was drawn about a fifth smaller than its point size (the font's scale was taken as
   its ascent-to-descent height, not its em), so 11 pt text looked like 9 pt next to WPS. Text is
-  now drawn at its point size (样章渲染对照, every golden workbook).
+  now drawn at its point size (样章渲染对照, every reference workbook).
 layer: unit
 dimension: function
 source:

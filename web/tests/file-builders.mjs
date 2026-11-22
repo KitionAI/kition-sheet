@@ -1,6 +1,6 @@
 // Test inputs built here byte by byte (the repository holds no files other applications wrote):
 // a stored (uncompressed) zip, a compound file (OLE2) with one stream, and a small Excel 97-2003
-// (BIFF8) workbook. Used by tests/golden-file.mjs.
+// (BIFF8) workbook. Used by tests/gate-file.mjs.
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
   let c = n

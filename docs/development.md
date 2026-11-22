@@ -29,7 +29,7 @@ cd web && pnpm install && pnpm engine && pnpm test:flow
 `pnpm engine` builds `bindings/wasm` into `web/public/engine` and copies fonts from a
 [kition-fonts](https://github.com/KitionAI/kition-fonts) checkout next to this repository (or the
 one `KITION_FONTS_DIR` names). `pnpm dev` serves `dev.html`, which hosts the editor the way Kition
-does; `web/package.json` lists the other browser tests (`test:golden-*`, `test:chart`,
+does; `web/package.json` lists the other browser tests (`test:gate-*`, `test:chart`,
 `test:export`, …).
 
 The check every change passes is `cargo xtask ci` ([quality.md](quality.md)); `cargo xtask --help`

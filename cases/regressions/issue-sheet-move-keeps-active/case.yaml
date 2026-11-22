@@ -5,12 +5,12 @@ intent: >-
   Moving a sheet (a tab dragged, or Move Left/Right) leaves the sheet in view active with its
   selection, and every sheet keeps the selection it remembers. Before, `sheet.move` made the moved
   sheet active while the selection stayed the old sheet's, and the remembered selections stayed at
-  their old positions, so they came back on the wrong sheets (golden UI-C41, UI-C62).
+  their old positions, so they came back on the wrong sheets (reference case UI-C41, UI-C62).
 layer: gate
 dimension: function
 source:
   kind: synthetic
-  from: golden case table 工作表 UI 交互, rows 41 and 62
+  from: reference case table 工作表 UI 交互, rows 41 and 62
   license: owned
 input: []
 steps:

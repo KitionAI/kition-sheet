@@ -1,0 +1,28 @@
+format: 1
+id: sheet.editor.formula-input/gate-formula-input
+feature: sheet.editor.formula-input
+intent: >-
+  Formula entry as in WPS for Mac, in Chromium (`pnpm test:gate-formula-input` runs WebKit as
+  well): clicking, dragging and the arrow keys point at cells while a formula waits for a
+  reference, another sheet's cells too (Enter returns to the formula's sheet); F4 cycles the
+  reference; the function list follows the name being typed (Tab or a click takes one) and the
+  argument hint the call, in the cell and in the formula bar; Escape cancels; a misspelt function
+  is #NAME?; the bar shows the formula while the cell shows its value; text from an input method
+  goes in; a circular reference shows 0.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/gate-formula-input.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-formula-input.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 600
+since: "2026-11-17"

@@ -311,17 +311,17 @@ features:
       - web/src/sheet.ts
       - web/src/strings.ts
       - web/src/app.css
-      - web/tests/golden-sheet-ui.mjs
-      - web/tests/golden-harness.mjs
+      - web/tests/gate-sheet-ui.mjs
+      - web/tests/gate-harness.mjs
       - bindings/wasm/src/lib.rs
       - bindings/wasm/src/tests.rs
       - crates/engine/engine/src/cmd/sheet.rs
       - crates/engine/engine/src/cmd/edit.rs
       - crates/engine/formula/src/adjust.rs
-    target: "WPS Office for Mac (golden case table 工作表 UI 交互)"
+    target: "WPS Office for Mac (reference case table 工作表 UI 交互)"
     gap: The cloud-only rows of the case table (collaboration, permissions, autosave status, version history, share links, merge/lock/download sheet) are deferred (docs/gaps.md).
     cases:
-      - sheet.editor.sheet-tabs/golden-sheet-ui
+      - sheet.editor.sheet-tabs/gate-sheet-ui
       - regressions/issue-sheet-move-keeps-active
       - regressions/issue-sheet-switch-enters-typing
       - regressions/issue-viewer-sheet-switch
@@ -341,15 +341,15 @@ features:
       - web/src/sheet.ts
       - web/src/strings.ts
       - web/src/app.css
-      - web/tests/golden-sheet-menu.mjs
-      - web/tests/golden-harness.mjs
+      - web/tests/gate-sheet-menu.mjs
+      - web/tests/gate-harness.mjs
       - crates/engine/engine/src/cmd/sheet.rs
       - crates/engine/formula/src/adjust.rs
       - crates/engine/model/src/workbook.rs
-    target: "WPS Office for Mac (golden case table 工作表右键菜单)"
+    target: "WPS Office for Mac (reference case table 工作表右键菜单)"
     gap: The case table's cloud rows (merge sheets, per-visitor sheet locks, download, offline and autosave notices, collaborators, version history) are deferred (docs/gaps.md); a sheet name may hold a comma and the workbook has no fixed sheet limit, as in WPS and Excel.
     cases:
-      - sheet.editor.sheet-menu/golden-sheet-menu
+      - sheet.editor.sheet-menu/gate-sheet-menu
       - sheet.editor.sheet-menu/copy-naming
       - regressions/issue-sheet-copy-references
       - regressions/issue-sheet-delete-references
@@ -371,9 +371,9 @@ features:
       - web/src/App.tsx
       - web/src/sheet.ts
       - web/src/app.css
-      - web/tests/golden-formula-input.mjs
+      - web/tests/gate-formula-input.mjs
     target: "WPS Office for Mac 7.5.1"
-    cases: [sheet.editor.formula-input/golden-formula-input, sheet.editor.formula-input/cell-editor]
+    cases: [sheet.editor.formula-input/gate-formula-input, sheet.editor.formula-input/cell-editor]
     since: "2026-11-17"
   - id: sheet.editor.formula-bar
     title: "The formula bar as in WPS: View › Show › 显示编辑栏 (kept for next time), Name Box, ✕ ✓ fx (Insert Function), typing there is typing in the cell (pointing, other sheets, Enter/Tab/Esc, Alt+Enter), expand"
@@ -391,10 +391,10 @@ features:
       - web/src/App.tsx
       - web/src/strings.ts
       - web/src/app.css
-      - web/tests/golden-formula-bar.mjs
+      - web/tests/gate-formula-bar.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: WPS cloud's separate views (独立视图) are not planned.
-    cases: [sheet.editor.formula-bar/golden-formula-bar, sheet.editor.formula-bar/bar-editing, regressions/issue-insert-function-and-f2, regressions/issue-alt-enter-line-break, regressions/issue-view-zoom]
+    cases: [sheet.editor.formula-bar/gate-formula-bar, sheet.editor.formula-bar/bar-editing, regressions/issue-insert-function-and-f2, regressions/issue-alt-enter-line-break, regressions/issue-view-zoom]
     since: "2026-11-17"
   - id: sheet.editor.rows-columns
     title: "Inserting and deleting rows and columns as in WPS: Home › Insert/Delete with counts, the grid's right-click menus (cell, row and column headings), shortcuts, and what moves with the lines"
@@ -413,10 +413,10 @@ features:
       - web/src/sheet.ts
       - web/src/strings.ts
       - web/src/app.css
-      - web/tests/golden-rows-cols.mjs
+      - web/tests/gate-rows-cols.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: WPS cloud's add-rows-at-the-bottom bar and locked (permission) cells are not planned.
-    cases: [sheet.editor.rows-columns/golden-rows-cols, sheet.editor.rows-columns/structural-edits, regressions/issue-freeze-follows-lines, regressions/issue-filtered-rows-delete, regressions/issue-heading-selection-merges]
+    cases: [sheet.editor.rows-columns/gate-rows-cols, sheet.editor.rows-columns/structural-edits, regressions/issue-freeze-follows-lines, regressions/issue-filtered-rows-delete, regressions/issue-heading-selection-merges]
     since: "2026-11-17"
   - id: sheet.editor.view-settings
     title: "Frozen panes, gridlines and the highlight of the selection's rows and columns as in WPS: Home and View › Freeze Panes with WPS's choices and their preview, Show Gridlines and the gridline colour, Highlight Rows and Columns with its colours in the View tab and the status bar"
@@ -437,10 +437,10 @@ features:
       - web/src/ribbon/HomeTab.tsx
       - web/src/App.tsx
       - web/src/sheet.ts
-      - web/tests/golden-view.mjs
+      - web/tests/gate-view.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: WPS cloud's own views (独立视图), collaborators and mobile are not planned; the highlight is kept for the next time (WPS for Mac turns it off when a file is opened again).
-    cases: [sheet.editor.view-settings/golden-view, sheet.editor.view-settings/view-commands, regressions/issue-freeze-line-zoomed-out, regressions/issue-freeze-scrolled-view, regressions/issue-heading-labels-tiles]
+    cases: [sheet.editor.view-settings/gate-view, sheet.editor.view-settings/view-commands, regressions/issue-freeze-line-zoomed-out, regressions/issue-freeze-scrolled-view, regressions/issue-heading-labels-tiles]
     since: "2026-11-17"
   - id: sheet.editor.format-font
     title: "The format painter and the font controls as in WPS: Home › Format Painter (a click paints once, a double-click until Esc), the font box with its searchable list and Recently Used, the size box with WPS's sizes, Increase and Decrease Font Size, bold, italic, underline and strikethrough with their shortcuts, font and fill colour split buttons with Recent Colors and More Colors, characters of a cell formatted on their own, Cmd/Ctrl+click areas"
@@ -462,10 +462,10 @@ features:
       - web/src/ribbon/HomeTab.tsx
       - web/src/App.tsx
       - web/src/sheet.ts
-      - web/tests/golden-format.mjs
+      - web/tests/gate-format.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: Cloud font services (licensed fonts, downloads, uploads, weight submenus), collaborators, cell locks and mobile are not planned; 楷体 draws in Ma Shan Zheng, and the Song and FangSong fonts in Droid Sans Fallback (no open Song or FangSong face in kition-fonts); read-only shows no Home tab, so the font of a cell is not shown to a viewer.
-    cases: [sheet.editor.format-font/golden-format, sheet.editor.format-font/painter-and-fonts, regressions/issue-format-painter-never-painted, regressions/issue-font-size-steps, regressions/issue-command-click-selection]
+    cases: [sheet.editor.format-font/gate-format, sheet.editor.format-font/painter-and-fonts, regressions/issue-format-painter-never-painted, regressions/issue-font-size-steps, regressions/issue-command-click-selection]
     since: "2026-11-17"
   - id: sheet.editor.table-styles
     title: "Table styles and Format Cells as in WPS: Home › 套用表格样式 with Preset Styles by theme colour (light, medium and dark designs of our own), the workbook's own styles (New Table Style, Modify, Delete, Set As Default), the Format As Table dialog (the data around one cell, Only Format As Table with title rows, or Convert to a table), the Table Design tab's options taking effect at once, Resize Table, Convert to Range and Clear; tables growing as entries are typed or pasted beside them, bands that skip hidden rows, a cell's own format over the style, the format painter carrying a table's look; the Format Cells dialog (Cmd/Ctrl+1, the cell menu, Home › Format) with Number, Alignment, Font, Border, Patterns and Protection; command dialogs reaching the editor"
@@ -490,10 +490,10 @@ features:
       - web/src/App.tsx
       - web/src/sheet.ts
       - web/src/strings.ts
-      - web/tests/golden-table-style.mjs
+      - web/tests/gate-table-style.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: "WPS's online “more tablestyles” and New Pivot Table Style are not offered; cloud-only cases (date reminders, attachments, history, collaborators, mobile) are not planned."
-    cases: [sheet.editor.table-styles/golden-table-style, sheet.editor.table-styles/table-styles, regressions/issue-command-dialogs-dropped, regressions/issue-format-cells-number-format, regressions/issue-table-header-formula, regressions/issue-outline-single-row]
+    cases: [sheet.editor.table-styles/gate-table-style, sheet.editor.table-styles/table-styles, regressions/issue-command-dialogs-dropped, regressions/issue-format-cells-number-format, regressions/issue-table-header-formula, regressions/issue-outline-single-row]
     since: "2026-11-17"
   - id: sheet.editor.insert-content
     title: "Inserting content as in WPS and Excel: Insert › 符号 with the recent and common symbols and the Symbol dialog (符号 and 特殊字符 tabs, a name search, the font and the Unicode subset), a symbol going in at the caret of what is typed or after the active cell's text with the cell open, into a selected text box too; Insert › 复选框, Excel's checkbox cells (a click on the box or Space ticks them, they are not typed in, they stay through Clear Formats, the format painter and Paste Special › Formats, are saved as Excel's cell controls); the cell menu's Paste Special, Clear, Sort, Merge (asking first), Insert Comment and Hyperlink; Ctrl+; and Ctrl+Shift+; for the date and time; Home's font commands on a selected text box; a table's header row clearing its pictures"
@@ -526,10 +526,10 @@ features:
       - web/src/App.tsx
       - web/src/sheet.ts
       - web/src/strings.ts
-      - web/tests/golden-insert.mjs
+      - web/tests/gate-insert.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: "WPS cloud's cell components are not planned: ratings (评星), progress bars (进度), task lists (任务清单), date reminders (日期提醒), @mentions, attachments and cloud files. The Symbol dialog has no help entry and does not put the chosen font on the symbol it inserts; rich text in notes (备注) is not offered; cells can't be dragged to move them."
-    cases: [sheet.editor.insert-content/golden-insert, sheet.editor.insert-content/checkboxes, regressions/issue-checkbox-number-format, regressions/issue-checkbox-click, regressions/issue-symbol-at-caret, regressions/issue-text-box-fonts, regressions/issue-shape-text-escape]
+    cases: [sheet.editor.insert-content/gate-insert, sheet.editor.insert-content/checkboxes, regressions/issue-checkbox-number-format, regressions/issue-checkbox-click, regressions/issue-symbol-at-caret, regressions/issue-text-box-fonts, regressions/issue-shape-text-escape]
     since: "2026-11-17"
   - id: sheet.platform.document-identity
     title: "A host asks a workbook file for its document id and forks it (document.identity, document.fork; Kit Process Protocol 5.6): an .xlsx embeds no replica, so it carries none and forks unchanged"
@@ -566,18 +566,18 @@ features:
       - crates/formats/pdf/src/lib.rs
       - bindings/wasm/src/lib.rs
       - bindings/wasm/src/draw.rs
-      - bindings/wasm/examples/golden_render.rs
-      - bindings/wasm/examples/golden_compare.rs
+      - bindings/wasm/examples/corpus_render.rs
+      - bindings/wasm/examples/corpus_compare.rs
       - web/src/exportFile.ts
       - web/src/ribbon/ExportGroup.tsx
       - web/src/App.tsx
       - web/src/strings.ts
-      - web/tests/golden-file.mjs
+      - web/tests/gate-file.mjs
       - web/tests/file-builders.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: "WPS cloud's file features are not planned: upload, sharing, collaboration, version history, permissions, H5 and WeChat preview, the cloud template library. Saving as .xls, .ods or .xlsb is not offered (they open read-only); form controls are kept but not drawn in PDFs and do not move with inserted rows; CSV from the editor carries a UTF-8 byte-order mark (agents choose); Latin text inside Chinese fonts is measured with Arial's widths, so a few wrapped lines break one word differently from WPS."
     cases:
-      - sheet.editor.workbook-files/golden-file
+      - sheet.editor.workbook-files/gate-file
       - sheet.editor.workbook-files/workbook-files
       - regressions/issue-text-too-small
       - regressions/issue-pdf-chinese
@@ -607,10 +607,10 @@ features:
       - bindings/wasm/src/moving.rs
       - bindings/wasm/src/lib.rs
       - web/src/App.tsx
-      - web/tests/golden-cleanup.mjs
+      - web/tests/gate-cleanup.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: "A move onto another sheet by dragging (Alt+drag onto a tab) and a drag that scrolls the grid at its edge are not offered; conditional formats and validation that lie partly inside the block stay where they are (Excel splits them)."
-    cases: [sheet.editor.move-cells/golden-cleanup, sheet.editor.move-cells/move-cells, sheet.editor.move-cells/drag-gestures]
+    cases: [sheet.editor.move-cells/gate-cleanup, sheet.editor.move-cells/move-cells, sheet.editor.move-cells/drag-gestures]
     since: "2026-11-17"
   - id: sheet.editor.filter-buttons
     title: "Filter buttons as in WPS, on the sheet's AutoFilter and on a table's header: 升序 and 降序, 内容筛选 with the column's values and how many rows hold each, a search, 全选 and the blanks, 文本筛选 or 数字筛选 conditions (等于, 包含, 大于, 介于, 前十项, 高于平均值…) and 自定义筛选, 清空条件; a table keeps its own criteria, saved in the .xlsx; a sort keeps the filter on the rows it lets through"
@@ -628,10 +628,10 @@ features:
       - bindings/wasm/src/moving.rs
       - web/src/FilterMenu.tsx
       - web/src/App.tsx
-      - web/tests/golden-cleanup.mjs
+      - web/tests/gate-cleanup.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: "颜色筛选 (by fill or font colour) is kept from files and offered to agents but not in the list; date filters by year, month and day (WPS's 日期筛选 tree) are not offered; columns inserted inside a table do not shift its criteria."
-    cases: [sheet.editor.filter-buttons/golden-cleanup, sheet.editor.filter-buttons/table-filter, regressions/issue-table-filter-buttons]
+    cases: [sheet.editor.filter-buttons/gate-cleanup, sheet.editor.filter-buttons/table-filter, regressions/issue-table-filter-buttons]
     since: "2026-11-17"
   - id: sheet.editor.data-validation
     title: "Data validation in the editor as in WPS: a list's arrow at the right of the cell and its entries (Alt+↓), the input message beside the selected cell, a refused value held with the rule's Stop (重试, 取消), Warning (是否继续？ 是, 否, 取消) or Information (确定, 取消) message, and Data › 数据验证 with its 设置, 输入信息 and 出错警告 pages and 全部清除"
@@ -647,10 +647,10 @@ features:
       - web/src/Validation.tsx
       - web/src/sheet.ts
       - web/src/App.tsx
-      - web/tests/golden-cleanup.mjs
+      - web/tests/gate-cleanup.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: "圈释无效数据 draws no circles in the editor (the command lists the cells); a list from another sheet's range follows the engine's evaluation without WPS's refusal of whole-column sources."
-    cases: [sheet.editor.data-validation/golden-cleanup, sheet.editor.data-validation/validation-messages]
+    cases: [sheet.editor.data-validation/gate-cleanup, sheet.editor.data-validation/validation-messages]
     since: "2026-11-17"
   - id: sheet.agent.observe
     title: An agent reads the workbook and answers in it

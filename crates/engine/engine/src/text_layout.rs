@@ -10,7 +10,7 @@
 use kition_sheet_model::Font;
 
 /// Lines of a cell wrap inside its width less this padding (both sides, px at 96 dpi; about
-/// 4.9 pt, fitted to WPS's line breaks in the golden workbooks).
+/// 4.9 pt, fitted to WPS's line breaks in the reference workbooks).
 pub const CELL_PADDING_PX: f32 = 6.5;
 
 /// Characters that may not start a line.

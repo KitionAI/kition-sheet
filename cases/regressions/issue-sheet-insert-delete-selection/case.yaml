@@ -5,14 +5,14 @@ intent: >-
   Adding a sheet keeps the selection of the sheet that was in view (switching back returns to
   it); a hidden sheet can be deleted while a visible one is left; deleting or hiding the sheet in
   view shows its right-hand neighbour (else its left) with that sheet's selection. Before, a new
-  sheet made the previous one forget its selection (golden UI-C14), any deletion reset the
+  sheet made the previous one forget its selection (reference case UI-C14), any deletion reset the
   selection, a hidden sheet could not be deleted beside a single visible one, and hiding the
-  active sheet jumped to the first sheet (golden UI-C102).
+  active sheet jumped to the first sheet (reference case UI-C102).
 layer: gate
 dimension: function
 source:
   kind: synthetic
-  from: golden case table 工作表 UI 交互, rows 14 and 102
+  from: reference case table 工作表 UI 交互, rows 14 and 102
   license: owned
 input: []
 steps:

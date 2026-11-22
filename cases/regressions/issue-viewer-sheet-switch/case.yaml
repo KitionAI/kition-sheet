@@ -4,12 +4,12 @@ feature: sheet.editor.sheet-tabs
 intent: >-
   Switching sheets is view state: it makes no replica and leaves the workbook saved. Before, the
   first switch made the replica, which a viewer's read-only session takes for an edit: the first
-  click on another tab was refused with "view only" (golden UI-C69).
+  click on another tab was refused with "view only" (reference case UI-C69).
 layer: gate
 dimension: function
 source:
   kind: synthetic
-  from: golden case table 工作表 UI 交互, row 69
+  from: reference case table 工作表 UI 交互, row 69
   license: owned
 input: []
 steps:

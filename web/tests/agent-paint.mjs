@@ -5,9 +5,9 @@
 // conditional format, a recalculation of RAND(), frozen panes and the zoom an agent sets are
 // repainted, and the person sees them.
 // node tests/agent-paint.mjs [chromium|webkit]
-import { startGolden } from './golden-harness.mjs'
+import { startGate } from './gate-harness.mjs'
 
-const h = await startGolden({ prefix: 'PAINT-' })
+const h = await startGate({ prefix: 'PAINT-' })
 const { page, kit, step, section, until, ai, exec, details, nameBox, clickCell, signature, tab, openEditor } = h
 
 // Every engine render the canvas asks for (each paint, whole or a patch), counted where the editor

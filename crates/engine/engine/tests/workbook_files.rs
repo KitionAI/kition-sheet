@@ -1,4 +1,4 @@
-//! Opening, exporting and copying workbooks against the golden WPS cases (module M9: 工作簿导入,
+//! Opening, exporting and copying workbooks against the WPS reference cases (module M9: 工作簿导入,
 //! 工作簿导出, 文件预览, 保存模板): files that are not spreadsheets, empty or damaged say so; a web
 //! page named .xls opens as its table; rows without a height of their own are sized as WPS sizes
 //! them; templates are written as templates; the File tab's exports answer their bytes; and a copy

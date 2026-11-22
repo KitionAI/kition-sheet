@@ -1,0 +1,30 @@
+format: 1
+id: sheet.editor.formula-bar/gate-formula-bar
+feature: sheet.editor.formula-bar
+intent: >-
+  The formula bar against the WPS reference cases (module M3 编辑栏), in Chromium
+  (`pnpm test:gate-formula-bar` runs WebKit as well): View › Show lists 显示网格线 then
+  显示编辑栏; unchecking hides the whole bar and the grid moves up without misplacing clicks,
+  frozen panes, zoom or gridlines; it stays hidden in Focus, after a reload and in a new tab, and
+  a viewer can toggle it without changing the workbook; the Name Box and the field follow the
+  selection; typing in the field shows in the cell, ✓ enters and stays, ✕ restores; fx opens
+  Insert Function without losing the formula and puts the chosen function at the caret; long text
+  scrolls; pointing at cells (another sheet's too) inserts references at the field's caret;
+  Enter, Shift+Enter, Tab and Escape; Alt+Enter breaks the line; the bar expands; F2 edits.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/gate-formula-bar.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-formula-bar.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 600
+since: "2026-11-17"

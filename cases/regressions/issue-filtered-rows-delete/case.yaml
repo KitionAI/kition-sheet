@@ -4,12 +4,12 @@ feature: sheet.editor.rows-columns
 intent: >-
   Deleting rows across a filtered range deleted the rows the filter hides as well. Now only the
   rows in view go, the hidden ones stay hidden and the filter stays on (WPS for Mac, Excel;
-  golden DEL-C34).
+  reference case DEL-C34).
 layer: gate
 dimension: function
 source:
   kind: synthetic
-  from: golden case table 删除行列 row 34
+  from: reference case table 删除行列 row 34
   license: owned
 input: []
 steps:

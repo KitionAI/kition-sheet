@@ -591,7 +591,7 @@ fn draws_office_fonts_in_their_metric_compatible_stand_ins() {
 }
 
 /// Clicking another sheet's tab while a cell is being typed enters the typing on the sheet it was
-/// typed on, and the other sheet opens with nothing typed (golden UI-C86, UI-C87). Before, the
+/// typed on, and the other sheet opens with nothing typed (reference case UI-C86, UI-C87). Before, the
 /// typing went with the person to the next sheet and landed in its active cell on Enter.
 #[test]
 fn switching_sheets_enters_the_typing_on_its_own_sheet() {
@@ -619,7 +619,7 @@ fn switching_sheets_enters_the_typing_on_its_own_sheet() {
 
 /// `inspect` gives the sheet tabs what they show: every sheet in order, hidden ones marked, tab
 /// colours and locks; and the status bar's sum, average and count for a selection of more than
-/// one cell (golden UI-C16, UI-C17, UI-C70, UI-C102).
+/// one cell (reference case UI-C16, UI-C17, UI-C70, UI-C102).
 #[test]
 fn inspect_gives_the_tabs_and_the_selection_statistics() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
@@ -647,7 +647,7 @@ fn inspect_gives_the_tabs_and_the_selection_statistics() {
 
 /// Switching sheets is view state: it neither marks the workbook unsaved nor makes the replica a
 /// viewer's session would read as an edit (the first switch in a read-only document was refused
-/// as "view only", golden UI-C69).
+/// as "view only", reference case UI-C69).
 #[test]
 fn switching_sheets_makes_no_replica_and_no_change() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();

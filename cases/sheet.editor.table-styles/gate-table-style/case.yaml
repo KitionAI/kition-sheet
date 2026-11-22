@@ -1,0 +1,29 @@
+format: 1
+id: sheet.editor.table-styles/gate-table-style
+feature: sheet.editor.table-styles
+intent: >-
+  Table styles and Format Cells against the WPS reference cases (module M7 套用表格样式), in Chromium
+  (`pnpm test:gate-table-style` runs WebKit as well): the gallery's Preset Styles, theme colours
+  and light/medium/dark groups, the Format As Table dialog (the range around one cell, Only Format
+  As Table, Convert to a table), the Table Design tab's options at once, header names, merged
+  cells, custom styles made, modified, deleted and set as default and kept through save and
+  reopen, Resize Table with valid and invalid ranges, a cell's own format over the style, the
+  format painter, tables growing as entries are typed or pasted beside them and not otherwise,
+  rows and columns inserted and deleted, hidden and grouped rows keeping the bands alternate,
+  sorting, removing duplicates, sheet copies, clearing, merging greyed, Convert to Range; and the
+  Format Cells dialog (Cmd/Ctrl+1, the cell menu, Home › Format) with its six tabs in one undo step.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/gate-table-style.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-table-style.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+since: "2026-11-17"

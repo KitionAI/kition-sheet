@@ -1,0 +1,32 @@
+format: 1
+id: sheet.editor.sheet-tabs/gate-sheet-ui
+feature: sheet.editor.sheet-tabs
+intent: >-
+  The WPS reference "工作表 UI 交互" cases (module M1) in Chromium (about 3.5 minutes; `pnpm
+  test:gate-sheet-ui` runs WebKit as well): clicking, the sheet list
+  and Ctrl+Page Up/Down switch sheets, each sheet coming back with its own selection, Name Box,
+  formula bar, scroll position, frozen panes, filter and hidden rows, at the same zoom; tabs dragged
+  to reorder (with a drop mark, the tabs scrolling at either end, Escape, leaving the window or
+  dropping away from the tabs leaving them as they were) and moved left or right from the sheet
+  menu, which opens from the active tab's arrow and from a right-click; the active sheet stays in
+  view and keeps its tab colour; renaming commits on a click elsewhere and is dropped by Escape;
+  typing left in a cell is entered on its own sheet; a viewer switches sheets and nothing else;
+  the order and the active sheet survive saving and opening again. Each step names its row of the
+  case table (UI-C5 is row 5).
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/gate-sheet-ui.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-sheet-ui.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 420
+since: "2026-11-17"
