@@ -100,7 +100,7 @@ People trust Kition Sheet with their numbers; a crash loses their work. **This o
 - **Layering** is enforced by `cargo xtask layers`: `core`/`numfmt` (L0) → `formula`/`functions` (L1) → `model`/`calc`/`xlsx` (L2) → `chart` (L3) → `engine` (L5) → `kition-sheet-kit` (L6) → apps.
 - **The UI is thin**: panels read engine state and act through `app.run(id, params)`. Colours come from `theme::Tokens`.
 - **Rust only** (no handwritten JS/TS). **Never break wasm** (`cargo xtask wasm`).
-- **Quality gates** before every commit: `cargo xtask ci` (fmt, clippy -D warnings, tests, assets, layers, wasm). One task id per commit (`M2.1: borders gallery`).
+- **Checks and CI.** On this machine run only the fast checks: `cargo fmt --all -- --check`, `cargo check -p <touched crates> --all-targets`, the wasm check (`cargo xtask wasm`) and `pnpm typecheck` in `web/`. One task id per commit (`M2.1: borders gallery`). The full checks run in the kit's CI run on GitHub (`.github/workflows/ci.yml`, which calls Kition's reusable kit CI): clippy, `cargo test --workspace`, `cargo xtask ci` (fmt, clippy -D warnings, tests, assets, layers, wasm) and every `test:*` script of `web/`. A task is done when the CI run of HEAD passes and HEAD is on `origin/main` (Kition's `scripts/kit-ci.sh` `push`, `wait`, `land`); never push untested commits to `main`. Add no other workflows, and do not start the Package workflow (`.github/workflows/package.yml`): releasing is the owner's step.
 
 ## Running and looking at the app
 - There is no desktop app, CLI or control channel in this repository (Kition does not use
