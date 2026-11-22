@@ -28,6 +28,7 @@ mod controls;
 mod data_read_premises;
 mod describe;
 mod draw;
+mod drawn;
 mod edit;
 mod edit_read_premises;
 mod files;
@@ -138,6 +139,11 @@ pub struct SheetDocument {
     scheme: scheme::Scheme,
     /// How many times the scheme changed: part of the revision, so the page repaints the grid.
     schemes: u64,
+    /// How many of another's steps (an agent's, the host's) changed what the grid draws without an
+    /// undo step (a recalculation, a view or typing state the editor keeps): part of the revision,
+    /// so the page repaints them, as it skips repainting a step that moves neither the revision
+    /// nor `inspect()` (kition-sdk `agentSkipsUnchangedPaint`, [`drawn`]).
+    drawn: u64,
     /// The pointer is over the cell being typed (or selecting its characters): the text cursor.
     text_hover: bool,
     /// A drag that started in the grid.
@@ -313,6 +319,32 @@ impl SheetDocument {
     fn command_schema(&self, command: &str) -> Option<Json> {
         static SCHEMAS: std::sync::OnceLock<std::collections::HashMap<String, Json>> = std::sync::OnceLock::new();
         SCHEMAS.get_or_init(|| self.commands().into_iter().filter_map(|command| Some((command.id, command.schema?))).collect()).get(command).cloned()
+    }
+
+    /// [`KitDocument::execute`]'s work: the tool ids, and an agent's command that names what it
+    /// acts on run apart from the editor's state.
+    fn execute_step(&mut self, command: &str, params: Json) -> Result<Json, String> {
+        self.refuse_unknown(command, &params)?;
+        let mut params = params;
+        let schema = self.command_schema(command);
+        let implied = if self.session.active().is_some() { self.take_tool_ids(command, &mut params, schema.as_ref())? } else { None };
+        let agent = kition_kit::dispatch::role() == Some(kition_kit::dispatch::Role::Agent);
+        if !agent || context::moves_the_editor(command) || !Self::names_target(&params) {
+            return self.run_command(command, params);
+        }
+        let kept = self.editor_snapshot();
+        let active = self.doc_state()?.wb.active_sheet;
+        if let Some(index) = self.command_target_sheet(command, &params, implied)
+            && index != active
+        {
+            self.session.show_sheet(index, None).map_err(engine_error)?;
+        }
+        let result = self.run_command(command, params);
+        if let Some(kept) = kept {
+            // Fails only when the command closed the workbook, which leaves nothing to put back.
+            let _ = self.put_back(&kept);
+        }
+        result
     }
 
     fn run_command(&mut self, command: &str, params: Json) -> Result<Json, String> {
@@ -502,6 +534,7 @@ impl SheetDocument {
             edits: 0,
             scheme: scheme::Scheme::Light,
             schemes: 0,
+            drawn: 0,
             text_hover: false,
             dragging: false,
             selecting: false,
@@ -2380,9 +2413,10 @@ impl KitDocument for SheetDocument {
         (Self::col_x(sheet, cols).round() as u32, Self::row_y(sheet, rows).round() as u32)
     }
 
-    /// The workbook's revision, and the changes of the cell being typed (drawn with the cells).
+    /// The workbook's revision, and the changes of the cell being typed (drawn with the cells), of
+    /// the scheme, and of what another's step changed in the drawing without an undo step.
     fn revision(&self) -> u64 {
-        self.session.active().map_or(0, |st| st.revision).saturating_add(self.edits).saturating_add(self.schemes)
+        self.session.active().map_or(0, |st| st.revision).saturating_add(self.edits).saturating_add(self.schemes).saturating_add(self.drawn)
     }
 
     fn dirty(&self) -> bool {
@@ -2415,26 +2449,14 @@ impl KitDocument for SheetDocument {
     /// selection and the selected objects as they were, also when it fails; only the commands
     /// whose work is moving the editor ([`context::moves_the_editor`]: `sheet.activate`,
     /// `selection.set`, `view.*`, …) keep their effect. A person's commands run as they always did.
+    /// Another's command that changes what the grid draws moves the revision ([`drawn`]).
     fn execute(&mut self, command: &str, params: Json) -> Result<Json, String> {
-        self.refuse_unknown(command, &params)?;
-        let mut params = params;
-        let schema = self.command_schema(command);
-        let implied = if self.session.active().is_some() { self.take_tool_ids(command, &mut params, schema.as_ref())? } else { None };
-        let agent = kition_kit::dispatch::role() == Some(kition_kit::dispatch::Role::Agent);
-        if !agent || context::moves_the_editor(command) || !Self::names_target(&params) {
-            return self.run_command(command, params);
-        }
-        let kept = self.editor_snapshot();
-        let active = self.doc_state()?.wb.active_sheet;
-        if let Some(index) = self.command_target_sheet(command, &params, implied)
-            && index != active
+        let before = drawn::Drawn::before(self);
+        let result = self.execute_step(command, params);
+        if let Some(before) = before
+            && !before.same(self)
         {
-            self.session.show_sheet(index, None).map_err(engine_error)?;
-        }
-        let result = self.run_command(command, params);
-        if let Some(kept) = kept {
-            // Fails only when the command closed the workbook, which leaves nothing to put back.
-            let _ = self.put_back(&kept);
+            self.drawn = self.drawn.saturating_add(1);
         }
         result
     }

@@ -8,6 +8,7 @@ use kition_sheet_engine::model::{Font, RichText, RunFont, TextRun};
 use kition_sheet_engine::text_format;
 use serde_json::Value as Json;
 
+#[derive(Clone, PartialEq)]
 pub struct Edit {
     chars: Vec<char>,
     /// Each character's own font (`RunFont::default()`: the cell's).

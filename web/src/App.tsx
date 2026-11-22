@@ -61,13 +61,21 @@ const TABS: Array<[string, string]> = [
   ['automate', 'Automate'],
 ]
 
+/**
+ * An agent's step that moves neither the engine's revision nor its `inspect()` (a cell read, the
+ * agent selecting) does not repaint the grid, so the person's paint in progress lands. The engine
+ * keeps that safe: every agent step that changes what the grid draws moves the revision
+ * (`bindings/wasm/src/drawn.rs`, checked command by command by `tests/agent_paint.rs`).
+ */
+const SESSION = { agentSkipsUnchangedPaint: true } as const
+
 export function App({ host: given, phrase }: { host: HostConnection; phrase: Phrases }) {
   const t = useMemo(() => createKitStrings(CATALOGS, given.init.locale), [given])
   // A workbook that does not open says why in the editor's language too: the host hears the
   // engine's English reason translated (kit-editor hands the host the engine's error as it is).
   const host = useMemo<HostConnection>(() => ({ ...given, failed: (error: unknown) => given.failed(new Error(localizeError(phrase, t, error))) }), [given, phrase, t])
   const manifest = useMemo(engineManifest, [])
-  const opened = useKitSession(host, manifest, describe)
+  const opened = useKitSession(host, manifest, describe, SESSION)
   // The editor shows why a workbook did not open in its own language too.
   const session = useMemo(() => (opened.failure ? { ...opened, failure: localizeError(phrase, t, opened.failure) } : opened), [opened, phrase, t])
   // A command refused says why in the editor's language (the engine's messages are English).

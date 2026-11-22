@@ -22,6 +22,7 @@ const HANDLE: [u8; 4] = [255, 255, 255, 255];
 const ADJUST: [u8; 4] = [255, 214, 0, 255];
 
 /// The text of a shape being typed, before it is set.
+#[derive(Clone, PartialEq)]
 pub(crate) struct ShapeEdit {
     pub id: u32,
     pub text: String,

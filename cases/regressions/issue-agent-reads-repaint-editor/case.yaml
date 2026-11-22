@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-agent-reads-repaint-editor
+feature: sheet.agent.observe
+intent: >-
+  In the editor, an agent reading cells, the workbook and the sheet, and selecting on its own,
+  asks the engine for no render (each such step used to repaint the person's whole grid and drop
+  the paint in progress, so an agent reading many cells made the grid stutter); the person's entry
+  lands while the agent keeps reading; an agent's value, fill, conditional format, recalculation
+  of RAND(), frozen panes and zoom are repainted and the person sees them.
+layer: gate
+dimension: ai
+source:
+  kind: probe
+  from: web/tests/agent-paint.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/agent-paint.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-21"

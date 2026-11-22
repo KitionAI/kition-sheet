@@ -659,7 +659,7 @@ features:
     status: has
     commands: [formulas.functions, formulas.evaluate, document.inspect, sheet.read, cell.get, selection.stats, history.list, app.commands]
     requirements: [AX13]
-    cases: [sheet.agent.observe/best-region, regressions/issue-6]
+    cases: [sheet.agent.observe/best-region, regressions/issue-6, regressions/issue-agent-reads-repaint, regressions/issue-agent-reads-repaint-editor]
     since: "2026-11-17"
   - id: sheet.agent.act
     title: An agent adds formulas and rows

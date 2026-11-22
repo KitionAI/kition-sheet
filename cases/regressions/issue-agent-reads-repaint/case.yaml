@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-agent-reads-repaint
+feature: sheet.agent.observe
+intent: >-
+  Each agent step, even a read such as `cell.get`, repainted the person's whole grid and dropped
+  the paint in progress. The editor now skips the repaint for a step that moves neither the
+  revision nor `inspect()` (kition-sdk `agentSkipsUnchangedPaint`), so every agent step that
+  changes what the grid draws must move the revision: Calculate Now recalculating RAND() and
+  NOW(), which is no undo step, did not, and would have left the old numbers on screen. Every
+  command an agent can run is checked: a step that changes the grid's pixels moves the revision
+  or `inspect()`; reads, the agent's own selection and a range rendered for it move neither; the
+  person's scrolling moves no revision.
+layer: gate
+dimension: ai
+source:
+  kind: issue
+  from: Kition Sheet regression suite
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: agent_paint
+expected:
+  - actual: out:cargo-test
+    compare: exit
+    value: 0
+since: "2026-11-21"
