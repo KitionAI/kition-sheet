@@ -4,6 +4,8 @@
 // engine for no paint and leave the person's paint in progress to land; a value, a fill, a
 // conditional format, a recalculation of RAND(), frozen panes and the zoom an agent sets are
 // repainted, and the person sees them.
+// A person's edit is drawn when its repaint and a "paint nothing" (the release of a checkbox click,
+// an agent's read) reach React together (regression case `regressions/issue-checkbox-paint-lost`).
 // node tests/agent-paint.mjs [chromium|webkit]
 import { startGate } from './gate-harness.mjs'
 
@@ -11,19 +13,70 @@ const h = await startGate({ prefix: 'PAINT-' })
 const { page, kit, step, section, until, ai, exec, details, nameBox, clickCell, signature, tab, openEditor } = h
 
 // Every engine render the canvas asks for (each paint, whole or a patch), counted where the editor
-// sends it to the engine's worker.
+// sends it to the engine's worker; the engine tool calls (a click's press and release, a key) and the
+// requests still unanswered, the same way.
 await page.addInitScript(() => {
   const send = Worker.prototype.postMessage
   globalThis.__renders = 0
+  globalThis.__settled = 0
+  const waiting = new Set()
+  const workers = new Map()
+  globalThis.__waiting = () => waiting.size
   Worker.prototype.postMessage = function (message, ...rest) {
     const method = message?.request?.method
     if (method === 'render' || method === 'renderArea') globalThis.__renders += 1
+    // A settled tool call ends a gesture: a click's release, a key.
+    if (method === 'tool' && message.request.settled === true) globalThis.__settled += 1
+    if (!workers.has(this)) {
+      const n = workers.size
+      workers.set(this, n)
+      // Heard after the editor's own handler, so the answer has been taken in by then.
+      this.addEventListener('message', (event) => {
+        if (event.data != null && typeof event.data === 'object' && 'id' in event.data) waiting.delete(`${n}:${event.data.id}`)
+      })
+    }
+    if (message != null && typeof message === 'object' && 'id' in message) waiting.add(`${workers.get(this)}:${message.id}`)
     return send.call(this, message, ...rest)
+  }
+  // React renders a state change in a task its scheduler posts to itself (`port.postMessage(null)`).
+  // Held, the editor's state changes meanwhile reach React together, in one render, as they do on a
+  // loaded machine when the engine answers before React gets to render.
+  const post = MessagePort.prototype.postMessage
+  const held = []
+  globalThis.__holding = false
+  MessagePort.prototype.postMessage = function (message, ...rest) {
+    if (globalThis.__holding && message === null) {
+      held.push(this)
+      return undefined
+    }
+    return post.call(this, message, ...rest)
+  }
+  globalThis.__release = () => {
+    globalThis.__holding = false
+    for (const port of held.splice(0)) post.call(port, null)
   }
 })
 
 /** How many renders the canvas has asked the engine for so far. */
 const renders = () => kit.locator('body').evaluate(() => globalThis.__renders ?? -1)
+/** How many settled engine tool calls (a click's release, a key) the editor has made, and how many requests are still unanswered. */
+const settled = () => kit.locator('body').evaluate(() => globalThis.__settled ?? -1)
+const waiting = () => kit.locator('body').evaluate(() => globalThis.__waiting?.() ?? -1)
+/** Holds React's renders (the editor's state changes wait), and lets them go in one render. */
+const hold = () => kit.locator('body').evaluate(() => { globalThis.__holding = true })
+const release = () => kit.locator('body').evaluate(() => globalThis.__release())
+/** What the grid shows of the checkbox in a cell (`col`, `row` from 0): checked, empty, or none. */
+const box = async (col, row) => {
+  const cx = 46 + col * h.grid.cw + Math.floor(h.grid.cw / 2)
+  const cy = 21 + row * h.grid.rh + Math.floor(h.grid.rh / 2)
+  const inner = await h.pixel(cx - 3, cy - 3)
+  const edge = await h.pixel(cx - 6, cy)
+  const dark = (p) => p[0] < 140 && p[1] < 140 && p[2] < 140
+  if (dark(inner) && dark(edge)) return 'checked'
+  const grey = edge[0] > 130 && edge[0] < 205 && Math.abs(edge[0] - edge[2]) < 16
+  const white = inner[0] > 235 && inner[1] > 235 && inner[2] > 235
+  return grey && white ? 'empty' : 'none'
+}
 /** Waits until the canvas asks for no more renders (the paints in flight landed). */
 const quiet = async () => {
   for (let i = 0; i < 40; i += 1) {
@@ -166,6 +219,59 @@ try {
     const redrawn = await until(async () => (await cellShows(6, 2)).hash !== before.hash, 30)
     step('PAINT-6 the person sees the new number in G3', redrawn)
     step('PAINT-6 the step asked for a render', (await renders()) > start)
+  })
+
+  // The press of a click on a checkbox ticks it (the engine's revision moves: the whole grid is
+  // repainted); the release changes nothing more and asks to paint nothing. kit-editor keeps one
+  // change for React, the last: when both answers reach React in one render, the canvas used to be
+  // told to paint nothing, and the box stayed drawn empty while the formula bar showed TRUE
+  // (INSC-C53/C60 on a loaded WebKit runner).
+  await section('PAINT-9 a checkbox clicked while React is busy is drawn checked once it renders', async () => {
+    await exec('insert.checkbox', { range: 'B8' })
+    await quiet()
+    const before = await box(1, 7)
+    const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
+    const start = await settled()
+    const painted = await renders()
+    let answered = false
+    let asked = 0
+    await hold()
+    try {
+      await page.mouse.click(region.x + 46 + h.grid.cw + h.grid.cw / 2, region.y + 21 + 7 * h.grid.rh + h.grid.rh / 2)
+      // The press and the release have both been answered while React waited.
+      answered = await until(async () => (await settled()) > start && (await waiting()) === 0, 50)
+      asked = (await renders()) - painted
+    } finally {
+      await release()
+    }
+    await quiet()
+    step('PAINT-9 B8 is drawn checked after the held render, with no further input', before === 'empty' && (await box(1, 7)) === 'checked', `${before} → ${await box(1, 7)}; answered while held: ${answered}, renders asked meanwhile: ${asked}`)
+    step('PAINT-9 B8 holds TRUE', (await exec('cell.get', { cell: 'B8' })).value === true)
+  })
+
+  // An agent reads between the person's tick (Space) and its paint: each read asks to paint nothing
+  // (agentSkipsUnchangedPaint), and must not replace the tick's repaint.
+  await section('PAINT-10 the person’s tick is drawn though an agent reads before it is painted', async () => {
+    await exec('insert.checkbox', { range: 'B10' })
+    const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
+    // Beside the box: selects B10 without ticking it.
+    await page.mouse.click(region.x + 46 + h.grid.cw + 6, region.y + 21 + 9 * h.grid.rh + 10)
+    await until(async () => (await details()).active === 'B10', 30)
+    await quiet()
+    const before = await box(1, 9)
+    const start = await settled()
+    let ticked = false
+    await hold()
+    try {
+      await page.keyboard.press(' ')
+      await until(async () => (await settled()) > start && (await waiting()) === 0, 50)
+      // The agent's reads run after the key (they wait for the person's input in flight).
+      for (let i = 0; i < 30 && !ticked; i += 1) ticked = (await exec('cell.get', { cell: 'B10' })).value === true
+    } finally {
+      await release()
+    }
+    await quiet()
+    step('PAINT-10 B10 is drawn checked after the agent’s reads and the held render, with no further input', ticked && before === 'empty' && (await box(1, 9)) === 'checked', `${before} → ${await box(1, 9)}; ticked: ${ticked}`)
   })
 
   await section('PAINT-7 an agent’s frozen panes are repainted', async () => {

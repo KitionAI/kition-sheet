@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-checkbox-paint-lost
+feature: sheet.editor.insert-content
+intent: >-
+  A click on a checkbox's box ticks it on the press (the engine's revision moves: the whole grid
+  is repainted) and the release changes nothing more (paint nothing); an agent's read with
+  agentSkipsUnchangedPaint also asks to paint nothing. kit-editor keeps one change for React, the
+  last, so when the press's answer and the release's (or an agent's read) reached React in one
+  render, the canvas was told to paint nothing and the box stayed drawn empty while the formula bar
+  showed TRUE (INSC-C53/C59/C60 failing in WebKit on loaded CI runners, before and after
+  agentSkipsUnchangedPaint). The person's tick is drawn checked once React renders, with no
+  further input, whether the release or an agent's reads came in between.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/agent-paint.mjs (PAINT-9, PAINT-10)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/agent-paint.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-21"
