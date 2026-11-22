@@ -2,20 +2,28 @@
  * The repaint the grid owes after the session's changes, when React took several of them in one
  * render.
  *
- * kit-editor's session (`@kition/sdk/editor`, `useKitDocument`) keeps the last refresh in one React
- * state, `{ revision, damage }`: each refresh adds 1 to `revision` and REPLACES `damage` (null:
- * repaint the whole grid; an area: repaint only it; the empty area `{0,0,0,0}`: repaint nothing).
- * When two refreshes land before React renders, the canvas sees only the second one's area. A click
- * on a checkbox makes two: the press ticks the box (the revision moves: the whole grid) and the
- * release, which changes nothing more, asks for the empty area; so does an agent's read with
- * `agentSkipsUnchangedPaint`. Taken together, the canvas repainted nothing and the box stayed drawn
- * as it was while the formula bar showed TRUE (INSC-C53/C60 on a loaded WebKit runner).
+ * Why it was written: kit-editor's session (`@kition/sdk/editor`, `useKitDocument`) used to keep
+ * the last refresh in one React state, `{ revision, damage }`: each refresh added 1 to `revision`
+ * and REPLACED `damage` (null: repaint the whole grid; an area: repaint only it; the empty area
+ * `{0,0,0,0}`: repaint nothing). When two refreshes landed before React rendered, the canvas saw
+ * only the second one's area. A click on a checkbox makes two: the press ticks the box (the
+ * revision moves: the whole grid) and the release, which changes nothing more, asks for the empty
+ * area; so does an agent's read with `agentSkipsUnchangedPaint`. Taken together, the canvas
+ * repainted nothing and the box stayed drawn as it was while the formula bar showed TRUE
+ * (INSC-C53/C60 on a loaded WebKit runner).
  *
  * `repaintFor` puts that right from what the canvas was last handed: a change whose `revision`
  * moved by more than one stands for several refreshes, and it repaints the whole grid unless the
  * last one asked for nothing AND nothing the grid draws from moved meanwhile (the same document,
  * its revision and its `inspect()`: the rule kit-editor's `agentSkipsUnchangedPaint` itself trusts),
  * so an agent's reads taken together still paint nothing.
+ *
+ * No longer needed: since `@kition/sdk` 0.5.2-stage.15 (kition-sdk b8fcc7d and 1515603) the
+ * editor itself merges the areas every refresh since the last committed change owes, so a change's
+ * `damage` already covers all of them (the whole grid wins; the empty area adds nothing). On such a
+ * build `repaintFor` stays correct: it only ever widens a multi-refresh change to the whole grid,
+ * which repaints more, never less. It stays while the case regressions/issue-checkbox-paint-lost
+ * runs its tests (`src/repaint.test.mjs`); removing both changes that case's steps.
  */
 
 /** A document area (document pixels); x1 ≤ x0 or y1 ≤ y0 is the empty area: nothing to repaint. */
