@@ -687,8 +687,11 @@ try {
     step('GRID-C7 重新勾选：网格线恢复，颜色与初始一致', (await gridBox().isChecked()) && same(await gridAt(5, 10), initial))
     const seen = []
     for (let i = 0; i < 5; i += 1) {
+      const was = (await details()).gridlines
       await gridBox().click()
-      await settle(200)
+      // The box shows the click at once (the value asked for, src/pendingToggle.ts); wait for the
+      // engine to take it and the grid to show it, then compare the three.
+      await until(async () => (await details()).gridlines === !was && (await gridBox().isChecked()) === !was && white(await gridAt(5, 10)) === was, 30)
       seen.push((await gridBox().isChecked()) === (await details()).gridlines && white(await gridAt(5, 10)) === !(await details()).gridlines)
     }
     step('GRID-C8 连续 5 次后为隐藏态，每次勾选框与网格线一致', seen.every(Boolean) && !(await details()).gridlines, JSON.stringify(seen))
