@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   CommandTab,
   ChartDesignGroups,
@@ -43,6 +43,7 @@ import { InsertFunctionDialog, openInsertFunction } from './InsertFunction'
 import { backToGrid } from './sheet'
 import { ExportGroup } from './ribbon/ExportGroup'
 import { CommentMarkerTargets, HostCommentGroup, createViewStore, useHostComments } from './HostComments'
+import { SheetScrollbars } from './SheetScrollbars'
 import { CellFormulaHints } from './FormulaHints'
 import { GridMenu, showGridMenu } from './LineMenus'
 import { FocusCellButton } from './ViewControls'
@@ -136,6 +137,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   // Comment threads the host keeps (Kit UI protocol section 7k): marked here, created there.
   const comments = useHostComments(host, doc, change, state?.sheet, t('commentFailed'))
   const views = useMemo(createViewStore, [])
+  const gridId = useId()
   // The overlays follow what the engine draws them from: the cell being typed, the highlight of the
   // selection's rows and columns, the frozen panes and the freeze being previewed.
   useEffect(() => { tools.refresh() }, [state?.formulaText, doc?.info.width, doc?.info.height, state?.focusCell, state?.focusColor, state?.freeze.join(), state?.freezePreview?.join(), state?.freezeShift.join(), state?.formatPainter, tools.refresh])
@@ -628,6 +630,8 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
           </FrameChrome>
         ) : null}
         <div className="kui-row" onContextMenu={(event) => void gridMenu(event)}>
+          <div className="sheet-grid-workspace" data-testid="sheet-grid-workspace">
+          <div className="sheet-grid-viewport" id={gridId}>
           <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} decorate={comments.decorate} onView={(view) => {
             views.set(view)
             setZoom(view.zoom)
@@ -659,6 +663,9 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
               <CommentMarkerTargets markers={comments.markers} views={views} pins={doc.pinned} onActivate={host.activateComment} label={(count) => t('commentThread', { count })} />
             ) : null}
           </KitDocumentCanvas>
+          </div>
+          {doc && !session.failure ? <SheetScrollbars views={views} canvas={canvas} width={doc.width} height={doc.height} controls={gridId} vertical={t('verticalScroll')} horizontal={t('horizontalScroll')} /> : null}
+          </div>
         </div>
         {state ? (
           <FrameChrome>

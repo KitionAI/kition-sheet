@@ -17,6 +17,7 @@
     "test:ink": "node tests/ink.mjs chromium && node tests/ink.mjs webkit",
     "test:modes": "node tests/modes.mjs chromium && node tests/modes.mjs webkit",
     "test:focus-escape": "node tests/focus-escape.mjs chromium && node tests/focus-escape.mjs webkit",
+    "test:scrollbars": "node tests/scrollbars.mjs chromium && node tests/scrollbars.mjs webkit",
     "test:clipboard": "node tests/clipboard-keys.mjs chromium && node tests/clipboard-keys.mjs webkit",
     "test:agent-paint": "node tests/agent-paint.mjs chromium && node tests/agent-paint.mjs webkit",
     "test:unit": "node --test src/exportFile.test.mjs src/commentAnchors.test.mjs src/localizeError.test.mjs src/pendingToggle.test.mjs src/repaint.test.mjs",

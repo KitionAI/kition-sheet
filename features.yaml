@@ -300,6 +300,20 @@ features:
       - web/tests/focus-escape.mjs
     cases: [sheet.editor.display-modes/mode-smoke, regressions/issue-focus-escape]
     since: "2026-11-17"
+  - id: sheet.editor.grid-scrollbars
+    title: "The grid has a vertical and a horizontal scrollbar, as in Excel and WPS: each follows the view and moves it, and the sheet grows as the view nears its end"
+    dimension: [function]
+    priority: P1
+    status: has
+    paths:
+      - web/src/SheetScrollbars.tsx
+      - web/src/App.tsx
+      - web/src/strings.ts
+      - web/src/app.css
+      - web/tests/scrollbars.mjs
+    gap: "The scrollbars' length is the cells the engine draws (those in use and the view's reach), not the whole sheet; frozen panes do not shorten them."
+    cases: [regressions/issue-grid-scrollbars]
+    since: "2026-11-22"
   - id: sheet.editor.sheet-tabs
     title: "Sheet tab bar as in WPS: click, list, Ctrl+Page Up/Down, drag to reorder, move left/right, rename, tab colours and locks, scrolling tabs; each sheet keeps its selection and scroll"
     dimension: [function]

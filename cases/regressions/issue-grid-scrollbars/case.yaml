@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-grid-scrollbars
+feature: sheet.editor.grid-scrollbars
+intent: The grid has a scrollbar along its right edge and one along its bottom edge, each follows the wheel's scrolling and moves the view (keys, dragging the thumb), and at the horizontal one's end the sheet grows (the grid had no scrollbar, so there was no way to scroll sideways without a wheel that tilts or a trackpad; owner report, 2026-11-22).
+layer: gate
+source:
+  kind: probe
+  from: web/tests/scrollbars.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/scrollbars.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 120
+since: "2026-11-22"

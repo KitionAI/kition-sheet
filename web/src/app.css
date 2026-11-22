@@ -1276,3 +1276,26 @@
 .sheet-validation-message {
   white-space: pre-wrap;
 }
+
+/* The grid with its scrollbars along the right and bottom edges. */
+.sheet-grid-workspace {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 14px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--kit-surface-muted);
+}
+
+.sheet-grid-viewport {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sheet-grid-workspace > .kui-scrollbar[aria-orientation='horizontal'] {
+  grid-column: 1;
+  grid-row: 2;
+}
