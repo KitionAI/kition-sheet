@@ -1,6 +1,6 @@
 //! Writes the conformance fixtures (KHP `spec/conformance.md`): `basic.xlsx`, which `sheet_check`
 //! finds clean, one `check-<code>.xlsx` per code of `agent/checks.json`, on which the check reports
-//! that code, and `golden/` (the previews of `basic.xlsx`).
+//! that code, and `expected/` (the expected previews of `basic.xlsx`).
 //! `cargo run -p kition-sheet-kit --example checks -- conformance`. The workbooks are built on the
 //! model and written by the engine's own XLSX writer, so they are the same on every run.
 
@@ -142,25 +142,25 @@ fn main() -> Result<(), String> {
         std::fs::write(Path::new(&dir).join(name), &bytes).map_err(|error| format!("{name}: {error}"))?;
         println!("wrote {name}");
         if name == "basic.xlsx" {
-            golden(Path::new(&dir), &bytes)?;
+            expected_previews(Path::new(&dir), &bytes)?;
         }
     }
     Ok(())
 }
 
-/// `golden/basic.png` and `golden/basic-scale-2.png`: the engine's own render of `basic.xlsx`, at 1
+/// `expected/basic.png` and `expected/basic-scale-2.png`: the engine's own render of `basic.xlsx`, at 1
 /// and 2 pixels per point, which `<prefix>_inspect { preview }` must match.
-fn golden(dir: &Path, bytes: &[u8]) -> Result<(), String> {
+fn expected_previews(dir: &Path, bytes: &[u8]) -> Result<(), String> {
     use kition_kit::KitDocument;
     let doc = kition_sheet_kit::SheetDocument::open("basic.xlsx", bytes)?;
-    let golden = dir.join("golden");
-    std::fs::create_dir_all(&golden).map_err(|error| error.to_string())?;
+    let expected = dir.join("expected");
+    std::fs::create_dir_all(&expected).map_err(|error| error.to_string())?;
     for (file, scale) in [("basic.png", 1.0), ("basic-scale-2.png", 2.0)] {
         let (width, height) = ((f64::from(doc.width().min(1200)) * scale) as u32, (f64::from(doc.height().min(900)) * scale) as u32);
         let rgba = doc.render(0.0, 0.0, scale, width, height)?;
         let picture = image::RgbaImage::from_raw(width, height, rgba).ok_or("a render of the wrong size")?;
-        picture.save(golden.join(file)).map_err(|error| error.to_string())?;
-        println!("wrote golden/{file}");
+        picture.save(expected.join(file)).map_err(|error| error.to_string())?;
+        println!("wrote expected/{file}");
     }
     Ok(())
 }
