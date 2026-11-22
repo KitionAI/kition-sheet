@@ -482,9 +482,16 @@ try {
 
   await section('BAR-C36 快速连续切换编辑栏开关', async () => {
     await setBar(true)
-    for (let i = 0; i < 10; i += 1) await showBox().click()
-    // Each click goes through the engine's preference and back: read once the box and the bar
-    // have followed the last one (a fixed 800 ms read the box early on a loaded runner).
+    // A click sends the opposite of what the box shows, and the box shows the engine's preference
+    // only once the previous click has come back from the engine. A click that lands before that
+    // reads the old state and sends the same value again instead of toggling: on a loaded runner
+    // the ten clicks ended with the bar hidden and the wait for the shown bar ran out (7 s). So
+    // each click waits until the box shows the state it produced, and then the next one follows.
+    for (let i = 0; i < 10; i += 1) {
+      const was = await showBox().isChecked()
+      await showBox().click()
+      await until(async () => (await showBox().isChecked()) === !was)
+    }
     await until(async () => (await showBox().isChecked()) && (await barShown()))
     const checked = await showBox().isChecked()
     step('BAR-C36 连续 10 次后与最后一次操作一致（勾选态，偶数次回到显示），状态与显示一致', checked && (await barShown()) && (await kit.locator('[data-testid="sheet-formula-bar"]').count()) === 1, String(checked))
