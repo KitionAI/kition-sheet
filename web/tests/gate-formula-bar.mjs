@@ -280,6 +280,8 @@ try {
     await page.mouse.dblclick(at.x, at.y)
     await until(async () => (await details()).editing)
     await page.keyboard.type('Z')
+    // The typed key reaches the engine's edit text after `type` returns: read once it is there.
+    await until(async () => (await editText()) === 'B2Z')
     step('BAR-C15 双击进入编辑态，输入正常显示', (await editText()) === 'B2Z', await editText())
     await page.keyboard.press('Enter')
     await until(async () => (await input('B2')) === 'B2Z')
