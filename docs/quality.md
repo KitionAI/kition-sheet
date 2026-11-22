@@ -28,7 +28,7 @@ Every feature and every case belongs to one or more of these dimensions.
 
 | `layer` | Runs | Budget | Failing means |
 |---|---|---|---|
-| `unit` | Not executed by the case runner: the case points at an existing test (`cargo-test` or `exec` step) that `cargo xtask ci` already runs. The runner only checks the test exists, so the catalogue links to it | (inside `cargo xtask ci`) | The commit is refused by `cargo xtask ci` |
+| `unit` | Not executed by the case runner: the case points at an existing test (`cargo-test` or `exec` step) that `cargo fmt --all -- --check` already runs. The runner only checks the test exists, so the catalogue links to it | (inside `cargo fmt --all -- --check`) | The commit is refused by `cargo fmt --all -- --check` |
 | `gate` | Every commit, every PR, before an agent ends a task (`cargo xtask gate --affected`; all before merge) | The whole kit ≤ `gate_budget_s` (600) on a maintainer's machine | Not done; cannot merge |
 | `corpus` | Weekly, on a maintainer's machine at night | Hours | Weekly report; important failures become issues and then regression cases |
 | `eval` | Only when a maintainer starts it (`cargo xtask eval`, F-QA-16): never from a hook, the gate, the pre-finish check, a schedule, CI, or by an agent on its own | Tokens are recorded, not capped | Success rate per kit and model in the run's report; the matrix reads the latest maintainer run |
@@ -36,12 +36,12 @@ Every feature and every case belongs to one or more of these dimensions.
 ## How to run
 
 ```sh
-cargo xtask ci
+cargo fmt --all -- --check
 ```
 
 Run it before you finish any task; the task is not done until it exits 0. Report the real exit
 code, not the exit code of a wrapper shell. When the gate runner arrives, this section
-names `cargo xtask gate --affected` (the gate cases of the features you touched) as well.
+names `cargo xtask gate --affected` (the gating tests of the features you touched) as well.
 
 Claude Code runs this command through the Stop hook in `.claude/settings.json`
 (`.claude/hooks/quality-gate.sh`). For an emergency bypass in one session only, start it with
@@ -215,7 +215,7 @@ Larger files belong to the corpus.
 ### The 10-minute budget
 
 - Gate inputs are small: a few pages, a few hundred cells, images under 512 × 512, timelines under 3 seconds at 320 × 180. Large files belong to the corpus.
-- Gate cases run in-process by default; the headless executable is exercised by the conformance suite and a few `gate` cases tagged `headless`.
+- Gating tests run in-process by default; the headless executable is exercised by the conformance suite and a few gating tests tagged `headless`.
 - At most about ten `flow` cases per kit are `gate`; the rest are `corpus` (weekly).
 - No `gate` case measures performance against a tight time budget on this shared machine; performance budgets (Q9) use generous limits in `gate` and the real numbers in the weekly report.
 - Film exports in `gate` are a few frames, not a full export.
