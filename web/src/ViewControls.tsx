@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, CrosshairIcon as Crosshair, Grid3x3Icon as Grid3x3, SnowflakeIcon as Snowflake } from '@kition/tessera/icons/react'
 import { ColorGrid, MenuButton, MenuItem, MenuSeparator, RibbonButton, RibbonMenu, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { FOCUS_COLORS, GRIDLINE_COLORS, backToGrid, cellParts, columnLetters, type SheetInfo } from './sheet'
+import { usePendingToggle } from './pendingToggle'
 
 /**
  * Freeze Panes as WPS has it (开始 › 冻结窗格, 视图 › 冻结窗格): 取消冻结 first while panes are
@@ -98,19 +99,21 @@ function FocusPalette({ info, testId }: { info: SheetInfo; testId: string }) {
 
 /**
  * 高亮行列 as a split button: the upper part turns the highlight on and off (pressed while on), the
- * arrow below opens the colours. `place` is where it shows: the View tab or the status bar.
+ * arrow below opens the colours. `place` is where it shows: the View tab or the status bar; both
+ * share what the person last asked for until the engine answers (`usePendingToggle`).
  */
 export function FocusCellButton({ info, place }: { info: SheetInfo; place: 'ribbon' | 'status' }) {
   const { run, t } = useKitEditor()
   const ribbon = place === 'ribbon'
   const testId = ribbon ? 'sheet-focus' : 'sheet-status-focus'
-  const toggle = () => void run('view.focusCell', { on: !info.focusCell }).finally(backToGrid)
+  const [shown, click] = usePendingToggle('view.focusCell', info.focusCell, (on) => run('view.focusCell', { on }))
+  const toggle = () => void click().finally(backToGrid)
   return (
-    <span className={ribbon ? 'sheet-focus-split' : 'sheet-focus-status'} data-on={info.focusCell || undefined}>
+    <span className={ribbon ? 'sheet-focus-split' : 'sheet-focus-status'} data-on={shown || undefined}>
       {ribbon ? (
-        <RibbonButton icon={Crosshair} label={t('focusCell')} size="large" pressed={info.focusCell} onClick={toggle} data-testid={testId} primary />
+        <RibbonButton icon={Crosshair} label={t('focusCell')} size="large" pressed={shown} onClick={toggle} data-testid={testId} primary />
       ) : (
-        <button type="button" className="sheet-focus-icon" aria-pressed={info.focusCell} aria-label={t('focusCell')} title={t('focusCell')} onClick={toggle} data-testid={testId}>
+        <button type="button" className="sheet-focus-icon" aria-pressed={shown} aria-label={t('focusCell')} title={t('focusCell')} onClick={toggle} data-testid={testId}>
           <Crosshair size={14} aria-hidden="true" />
         </button>
       )}

@@ -1,0 +1,29 @@
+format: 1
+id: regressions/issue-formula-bar-quick-toggle
+feature: sheet.editor.formula-bar
+intent: >-
+  A click on View › Show › Formula Bar sent the opposite of what the box showed, and the box
+  changed only when the engine answered, so a second click before that answer sent the same value
+  again and a quick double-click lost a toggle (found with BAR-C36 on a loaded runner). Now a click
+  toggles what the person last asked for, the box shows it at once, and once every answer is back
+  (in any order, or failed) the box shows the engine's state, an agent's change too; Gridlines,
+  Headings and 高亮行列 (View tab and status bar) toggle the same way through one shared helper.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/src/pendingToggle.test.mjs, web/tests/gate-formula-bar.mjs (BAR-C36)
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, --test, src/pendingToggle.test.mjs]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-formula-bar.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 600
+since: "2026-11-21"

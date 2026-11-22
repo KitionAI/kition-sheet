@@ -45,6 +45,7 @@ import { CommentMarkerTargets, HostCommentGroup, createViewStore, useHostComment
 import { CellFormulaHints } from './FormulaHints'
 import { GridMenu, showGridMenu } from './LineMenus'
 import { FocusCellButton } from './ViewControls'
+import { usePendingToggle } from './pendingToggle'
 import { SymbolDialog, SymbolGroup } from './Symbols'
 import { useColorScheme } from './colorScheme'
 
@@ -258,10 +259,13 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- per workbook and per change
   }, [doc, state?.formulaBar])
   const formulaBar = state ? (barSynced.current === doc ? state.formulaBar : (storedBar() ?? state.formulaBar)) : false
-  const showFormulaBar = (on: boolean) => {
+  // The box shows what the person last asked for until the engine answers; the bar follows the
+  // engine.
+  const [formulaBarBox, clickFormulaBar] = usePendingToggle('view.formulaBar', formulaBar, (on) => {
     writeKitStore('sheet', 'formulaBar', on)
-    void editor.run('view.formulaBar', { on })
-  }
+    return editor.run('view.formulaBar', { on })
+  })
+  const showFormulaBar = () => void clickFormulaBar()
 
   // View › 高亮行列 is the person's too (on or off, and its colour): kept for the next time, and
   // given to each workbook opened before it shows.
@@ -498,7 +502,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       </>
     ),
     home: state ? <HomeTab info={state} onClipboard={(action) => void clipboard(action)} /> : <CommandTab menu="Home" />,
-    view: state ? <ViewTab info={state} formulaBar={formulaBar} onFormulaBar={showFormulaBar} /> : <CommandTab menu="View" />,
+    view: state ? <ViewTab info={state} formulaBar={formulaBarBox} onFormulaBar={showFormulaBar} /> : <CommandTab menu="View" />,
     formulas: (
       <>
         {/* Insert Function opens the kit's dialog; the function chosen starts the formula in the cell. */}

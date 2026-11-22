@@ -484,11 +484,11 @@ try {
 
   await section('BAR-C36 快速连续切换编辑栏开关', async () => {
     await setBar(true)
-    // A click sends the opposite of what the box shows, and the box shows the engine's preference
-    // only once the previous click has come back from the engine. A click that lands before that
-    // reads the old state and sends the same value again instead of toggling: on a loaded runner
-    // the ten clicks ended with the bar hidden and the wait for the shown bar ran out (7 s). So
-    // each click waits until the box shows the state it produced, and then the next one follows.
+    // A click sends the opposite of what the box shows. Each of these ten clicks waits until the box
+    // shows the state it produced, and then the next one follows; the double-click below has no
+    // wait at all. (Before the box showed the value asked for at once, a click that landed before
+    // the previous one had come back from the engine sent the same value again: on a loaded runner
+    // the ten clicks ended with the bar hidden.)
     for (let i = 0; i < 10; i += 1) {
       const was = await showBox().isChecked()
       await showBox().click()
@@ -497,6 +497,16 @@ try {
     await until(async () => (await showBox().isChecked()) && (await barShown()))
     const checked = await showBox().isChecked()
     step('BAR-C36 连续 10 次后与最后一次操作一致（勾选态，偶数次回到显示），状态与显示一致', checked && (await barShown()) && (await kit.locator('[data-testid="sheet-formula-bar"]').count()) === 1, String(checked))
+    // Two clicks with no wait between them (a double-click): each toggles what the box shows, so
+    // the second lands before the engine has answered the first and must still turn the bar back
+    // on (regressions/issue-formula-bar-quick-toggle). One more engine round trip after the clicks
+    // makes sure both have been answered before the state is read.
+    await showBox().dblclick()
+    await exec('document.inspect')
+    await until(async () => (await details()).formulaBar === true && (await showBox().isChecked()) && (await barShown()))
+    const engine = (await details()).formulaBar
+    const twice = await showBox().isChecked()
+    step('BAR-C36 不等待连续点击两次（双击）后切换两次：仍为勾选态，编辑栏显示，引擎状态一致', engine === true && twice && (await barShown()) && (await kit.locator('[data-testid="sheet-formula-bar"]').count()) === 1, `${engine} ${twice}`)
   })
 
   await section('BAR-C37 长文本内容在编辑栏中的显示与编辑', async () => {

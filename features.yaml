@@ -389,12 +389,13 @@ features:
       - web/src/InsertFunction.tsx
       - web/src/ribbon/ViewTab.tsx
       - web/src/App.tsx
+      - web/src/pendingToggle.ts
       - web/src/strings.ts
       - web/src/app.css
       - web/tests/gate-formula-bar.mjs
     target: "WPS Office for Mac 7.5.1"
     gap: WPS cloud's separate views (独立视图) are not planned.
-    cases: [sheet.editor.formula-bar/gate-formula-bar, sheet.editor.formula-bar/bar-editing, regressions/issue-insert-function-and-f2, regressions/issue-alt-enter-line-break, regressions/issue-view-zoom]
+    cases: [sheet.editor.formula-bar/gate-formula-bar, sheet.editor.formula-bar/bar-editing, regressions/issue-insert-function-and-f2, regressions/issue-alt-enter-line-break, regressions/issue-view-zoom, regressions/issue-formula-bar-quick-toggle]
     since: "2026-11-17"
   - id: sheet.editor.rows-columns
     title: "Inserting and deleting rows and columns as in WPS: Home › Insert/Delete with counts, the grid's right-click menus (cell, row and column headings), shortcuts, and what moves with the lines"
@@ -433,6 +434,7 @@ features:
       - crates/kdm/kdm-model/src/features.rs
       - bindings/wasm/src/lib.rs
       - web/src/ViewControls.tsx
+      - web/src/pendingToggle.ts
       - web/src/ribbon/ViewTab.tsx
       - web/src/ribbon/HomeTab.tsx
       - web/src/App.tsx

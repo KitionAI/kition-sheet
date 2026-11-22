@@ -1,6 +1,7 @@
 import { CrosshairIcon as Crosshair, EyeIcon as Eye, SnowflakeIcon as Snowflake } from '@kition/tessera/icons/react'
 import { Checkbox, CommandTab, RibbonGroup, RibbonItem, RibbonStack, useKitEditor } from '@kition/sdk/editor'
 import { SHEET_PRIMARY, type SheetInfo } from '../sheet'
+import { usePendingToggle } from '../pendingToggle'
 import { FocusCellButton, FreezeMenu, GridlineColorMenu } from '../ViewControls'
 
 /** The freeze commands the View tab's own Freeze Panes menu runs (WPS's choices). */
@@ -10,17 +11,20 @@ const FREEZE_COMMANDS = ['view.freezePanes', 'view.freezeRows', 'view.freezeColu
  * The View tab: its Show group as WPS has it, check boxes top to bottom for 显示网格线 (the
  * sheet's gridlines), 显示编辑栏 (the formula bar, the person's) and 显示行号列标 (the headings);
  * then 高亮行列 (the person's highlight of the selection's rows and columns) and Freeze Panes as
- * WPS has them; the engine's other View groups after it.
+ * WPS has them; the engine's other View groups after it. Each box shows what the person last
+ * asked for until the engine answers (`usePendingToggle`), so quick clicks each toggle.
  */
-export function ViewTab({ info, formulaBar, onFormulaBar }: { info: SheetInfo; formulaBar: boolean; onFormulaBar: (on: boolean) => void }) {
+export function ViewTab({ info, formulaBar, onFormulaBar }: { info: SheetInfo; formulaBar: boolean; onFormulaBar: () => void }) {
   const { run, enabled, t } = useKitEditor()
+  const [gridlines, toggleGridlines] = usePendingToggle('view.gridlines', info.gridlines, (on) => run('view.gridlines', { on }))
+  const [headings, toggleHeadings] = usePendingToggle('view.headings', info.headings, (on) => run('view.headings', { on }))
   return (
     <>
       <RibbonGroup id="sheet:show" label={t('showGroup')} icon={Eye}>
         <RibbonStack>
           <RibbonItem primary>
             <span className="sheet-show-option">
-              <Checkbox label={t('showGridlines')} checked={info.gridlines} disabled={!enabled('view.gridlines')} onChange={(on) => void run('view.gridlines', { on })} testId="sheet-show-gridlines" />
+              <Checkbox label={t('showGridlines')} checked={gridlines} disabled={!enabled('view.gridlines')} onChange={() => void toggleGridlines()} testId="sheet-show-gridlines" />
             </span>
           </RibbonItem>
           <RibbonItem primary>
@@ -30,7 +34,7 @@ export function ViewTab({ info, formulaBar, onFormulaBar }: { info: SheetInfo; f
           </RibbonItem>
           <RibbonItem>
             <span className="sheet-show-option">
-              <Checkbox label={t('showHeadings')} checked={info.headings} disabled={!enabled('view.headings')} onChange={(on) => void run('view.headings', { on })} testId="sheet-show-headings" />
+              <Checkbox label={t('showHeadings')} checked={headings} disabled={!enabled('view.headings')} onChange={() => void toggleHeadings()} testId="sheet-show-headings" />
             </span>
           </RibbonItem>
         </RibbonStack>
