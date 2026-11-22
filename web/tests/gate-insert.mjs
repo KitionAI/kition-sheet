@@ -474,15 +474,14 @@ try {
     step('INSC-C53 未勾选为浅灰描边的空心方框', (await shown('A1')) === 'empty')
     await click('A1')
     // The box is drawn checked a frame or more after the value turns TRUE. Wait on what the
-    // person sees (the formula bar, the grid's pixels) and read the value through the agent only
-    // after: each agent step repaints the whole grid and drops the paint in flight, so polling
-    // through `cell.get` kept the checked box from ever landing on a slow WebKit runner. On a
-    // loaded runner WebKit drew it more than 3 s after the click: wait up to 10 s.
-    await until(async () => (await formulaBar()) === 'TRUE' && (await shown('A1')) === 'checked', 100)
+    // person sees (the formula bar, the grid's pixels), then read the value through the agent.
+    // A box never drawn (the click's press and release taken in one React render repainted
+    // nothing, regressions/issue-checkbox-paint-lost) fails here, within about 3 s.
+    await until(async () => (await formulaBar()) === 'TRUE' && (await shown('A1')) === 'checked', 30)
     step('INSC-C53/C59 单击方框：深灰实底与白色对勾，取值 TRUE', (await shown('A1')) === 'checked' && (await val('A1')) === true)
     step('INSC-C59/C250 fx 栏呈「TRUE」', (await formulaBar()) === 'TRUE')
     await click('A1')
-    await until(async () => (await formulaBar()) === 'FALSE' && (await shown('A1')) === 'empty', 100)
+    await until(async () => (await formulaBar()) === 'FALSE' && (await shown('A1')) === 'empty', 30)
     step('INSC-C60 再次单击取消勾选，回到空心方框', (await shown('A1')) === 'empty' && (await val('A1')) === false)
     // Excel and WPS show FALSE in capitals.
     step('INSC-C60/C249 fx 栏呈「FALSE」（WPS/Excel 大写）', (await formulaBar()) === 'FALSE')

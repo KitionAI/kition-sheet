@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   CommandTab,
   ChartDesignGroups,
@@ -27,6 +27,7 @@ import {
 } from '@kition/sdk/editor'
 import { ChartColumnIcon as ChartColumn, ShieldCheckIcon, SquareFunctionIcon as FunctionSquare } from '@kition/tessera/icons/react'
 import { engineManifest } from './engine'
+import { repaintFor, type Drawn, type Handed } from './repaint'
 import { CATALOGS, localizeError } from './strings'
 import { EXPORT_COMMANDS, HOST_FILE_COMMANDS, SHEET_PRIMARY, describe, type SelectionStats } from './sheet'
 import { FormulaBar } from './FormulaBar'
@@ -66,7 +67,9 @@ const TABS: Array<[string, string]> = [
  * An agent's step that moves neither the engine's revision nor its `inspect()` (a cell read, the
  * agent selecting) does not repaint the grid, so the person's paint in progress lands. The engine
  * keeps that safe: every agent step that changes what the grid draws moves the revision
- * (`bindings/wasm/src/drawn.rs`, checked command by command by `tests/agent_paint.rs`).
+ * (`bindings/wasm/src/drawn.rs`, checked command by command by `tests/agent_paint.rs`). Its "paint
+ * nothing" must not replace a repaint the person's edit still owes when React takes both in one
+ * render: `repaintFor` (`src/repaint.ts`) sees to that.
  */
 const SESSION = { agentSkipsUnchangedPaint: true } as const
 
@@ -77,8 +80,20 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   const host = useMemo<HostConnection>(() => ({ ...given, failed: (error: unknown) => given.failed(new Error(localizeError(phrase, t, error))) }), [given, phrase, t])
   const manifest = useMemo(engineManifest, [])
   const opened = useKitSession(host, manifest, describe, SESSION)
+  // The canvas repaints what the session's changes taken together owe (`src/repaint.ts`): kit-editor
+  // keeps only the last change's area, so a checkbox's press (repaint) and release (nothing more)
+  // taken in one render repainted nothing.
+  const handed = useRef<Handed | null>(null)
+  const drawnNow = (): Drawn => ({ doc: opened.doc, revision: opened.info?.revision ?? 0, inspected: JSON.stringify(opened.info?.inspected ?? null) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the info and the document come with the change
+  const owed = useMemo(() => repaintFor(handed.current, opened.change, drawnNow()), [opened.change])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- as above
+  useLayoutEffect(() => { handed.current = { change: opened.change.revision, drawn: drawnNow() } }, [opened.change])
   // The editor shows why a workbook did not open in its own language too.
-  const session = useMemo(() => (opened.failure ? { ...opened, failure: localizeError(phrase, t, opened.failure) } : opened), [opened, phrase, t])
+  const session = useMemo(() => {
+    const shown = owed === opened.change ? opened : { ...opened, change: owed }
+    return opened.failure ? { ...shown, failure: localizeError(phrase, t, opened.failure) } : shown
+  }, [opened, owed, phrase, t])
   // A command refused says why in the editor's language (the engine's messages are English).
   const editor = useKitEditorState(session, host, t, 'sheet', phrase, undefined, {
     report: (title, error) => toast('error', title, localizeError(phrase, t, error)),

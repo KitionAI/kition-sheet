@@ -19,7 +19,7 @@
     "test:focus-escape": "node tests/focus-escape.mjs chromium && node tests/focus-escape.mjs webkit",
     "test:clipboard": "node tests/clipboard-keys.mjs chromium && node tests/clipboard-keys.mjs webkit",
     "test:agent-paint": "node tests/agent-paint.mjs chromium && node tests/agent-paint.mjs webkit",
-    "test:unit": "node --test src/exportFile.test.mjs src/commentAnchors.test.mjs src/localizeError.test.mjs src/pendingToggle.test.mjs",
+    "test:unit": "node --test src/exportFile.test.mjs src/commentAnchors.test.mjs src/localizeError.test.mjs src/pendingToggle.test.mjs src/repaint.test.mjs",
     "test:comments": "node tests/comments.mjs chromium && node tests/comments.mjs webkit",
     "test:export": "node tests/export.mjs chromium && node tests/export.mjs webkit",
     "test:gate-sheet-ui": "node tests/gate-sheet-ui.mjs chromium && node tests/gate-sheet-ui.mjs webkit",

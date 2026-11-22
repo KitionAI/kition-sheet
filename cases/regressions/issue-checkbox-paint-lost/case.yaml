@@ -9,15 +9,19 @@ intent: >-
   render, the canvas was told to paint nothing and the box stayed drawn empty while the formula bar
   showed TRUE (INSC-C53/C59/C60 failing in WebKit on loaded CI runners, before and after
   agentSkipsUnchangedPaint). The person's tick is drawn checked once React renders, with no
-  further input, whether the release or an agent's reads came in between.
+  further input, whether the release or an agent's reads came in between: the kit hands the canvas
+  a whole repaint for a batch of changes in which the engine's revision or inspect() moved
+  (web/src/repaint.ts), and still nothing for an agent's reads alone.
 layer: gate
 dimension: function
 source:
   kind: probe
-  from: web/tests/agent-paint.mjs (PAINT-9, PAINT-10)
+  from: web/src/repaint.test.mjs, web/tests/agent-paint.mjs (PAINT-9, PAINT-10)
   license: owned
 input: []
 steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, --test, src/repaint.test.mjs]
   - exec:
       cmd: [pnpm, --dir, web, exec, node, tests/agent-paint.mjs, chromium]
 expected:
