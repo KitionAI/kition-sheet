@@ -331,9 +331,7 @@ impl SheetDocument {
                     for p in entry.premises.iter_mut().filter(|p| p.id == sid) {
                         if let Some(fields) = &mut p.fields {
                             fields.retain(|field| {
-                                field != "constraints"
-                                    && !field.starts_with("constraints.")
-                                    && !matches!(field.as_str(), "features.merges" | "features.validations")
+                                field != "constraints" && !field.starts_with("constraints.") && !matches!(field.as_str(), "merges" | "validations")
                             });
                         }
                     }

@@ -9,6 +9,7 @@ mod drawing_ids;
 mod drawing_tests;
 mod fixtures;
 mod font_tests;
+mod identity_fingerprints;
 mod kept_tests;
 mod malformed;
 mod ods_tests;

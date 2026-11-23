@@ -125,7 +125,7 @@ impl SheetDocument {
             } else if state.kdm().is_some_and(|kdm| kdm.replica().map_entries(&axes.object, "constraints").is_ok()) {
                 fields.extend(kdm_model::constraint_fields(range));
             } else {
-                fields.extend(["features.merges", "features.tables"].map(str::to_owned));
+                fields.extend(["merges", "tables"].map(str::to_owned));
             }
         }
         for at in styled {
@@ -371,7 +371,7 @@ impl SheetDocument {
         let sid = ids::sheet_tool_id(sheet);
         let mut under = Under::default();
         under.objects.push(json!(sid));
-        let mut fields = vec!["props.protection".to_owned(), "features.autofilter".into()];
+        let mut fields = vec!["props.protection".to_owned(), "autofilter".into()];
         if command != "home.formatCells" || params.get("style").is_some() {
             fields.push("props.defaultRowHeight".into());
         }

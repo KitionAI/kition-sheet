@@ -658,6 +658,8 @@ pub fn rename_sheet(wb: &mut Workbook, sheet: usize, name: &str) {
             .map(|e| kition_sheet_formula::print(&kition_sheet_formula::adjust::rename_sheet(e, &old, name)))
             .unwrap_or_else(|_| t.to_owned())
     };
+    // Sparkline and pivot sources and links to places in the workbook too (the engine's
+    // `rename_sheet_features`).
     for si in 0..wb.sheets.len() {
         let Some(sh) = wb.sheet_mut(si) else { continue };
         for chart in sh.charts.iter_mut() {
@@ -666,6 +668,15 @@ pub fn rename_sheet(wb: &mut Workbook, sheet: usize, name: &str) {
                 series.categories = series.categories.as_deref().map(fix);
                 series.name = series.name.as_deref().map(fix);
             }
+        }
+        for sp in sh.sparklines.iter_mut() {
+            sp.source = fix(&sp.source);
+        }
+        for pt in sh.pivots.iter_mut() {
+            pt.source = fix(&pt.source);
+        }
+        for link in sh.hyperlinks.values_mut().filter(|l| !l.is_external()) {
+            link.target = fix(&link.target);
         }
     }
     if let Some(sh) = wb.sheet_mut(sheet) {

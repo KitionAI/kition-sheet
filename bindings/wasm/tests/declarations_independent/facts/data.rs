@@ -39,7 +39,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
         "data.sortAscending" | "data.sortDescending" | "data.sort" | "data.removeDuplicates" | "data.subtotal" => {
             let range = data_range(cx, params);
             cx.source(&mut out, cx.active, range, true);
-            out.add(&cx.sid(cx.active), ["features.tables", "features.autofilter", "~sortObjects"]);
+            out.add(&cx.sid(cx.active), ["tables", "autofilter", "~sortObjects"]);
             cx.constraints(&mut out, cx.active, range);
             if command != "data.sort" || params.get("keys").is_some() {
                 cx.entry(&mut out, cx.active, range, false);
@@ -126,7 +126,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
         "insert.sparkline" => {
             let range = params.get("location").and_then(Value::as_str).and_then(area).unwrap();
             cx.address(&mut out, cx.active, range);
-            out.add(&cx.sid(cx.active), ["features.sparklines"]);
+            out.add(&cx.sid(cx.active), ["sparklines"]);
             cx.shared(&mut out, cx.active, None, false);
         }
         "insert.link" => link(&mut out, params, cx),
@@ -227,9 +227,9 @@ fn filter(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
         .and_then(Value::as_str)
         .and_then(|name| sheet.tables.iter().find(|table| table.name.eq_ignore_ascii_case(name)))
         .or_else(|| sheet.table_at(params.get("cell").and_then(Value::as_str).and_then(area).map_or(cx.active_cell, |r| r.start)));
-    out.add(&sid, ["features.autofilter", "~filterScopes", "props.protection"]);
+    out.add(&sid, ["autofilter", "~filterScopes", "props.protection"]);
     if let Some(table) = table {
-        out.add(&sid, [format!("features.tables[name={}]", json!(table.name))]);
+        out.add(&sid, [format!("tables[name={}]", json!(table.name))]);
         if command == "data.filter" {
             cx.constraints(out, si, RangeRef::cell(cx.active_cell));
         } else {
@@ -257,7 +257,7 @@ fn table(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
             if command == "table.deleteStyle" || params.get("replace").is_some() {
                 out.add("workbook", ["~tabs"]);
                 for (owner, sheet) in cx.wb.sheets.iter().enumerate() {
-                    out.add(&cx.sid(owner), ["features.tables"]);
+                    out.add(&cx.sid(owner), ["tables"]);
                     if sheet.tables.iter().any(|table| table.style.eq_ignore_ascii_case(name)) {
                         cx.shared(out, owner, None, false);
                     }
@@ -273,7 +273,7 @@ fn table(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
         .unwrap_or_else(|| (cx.active, cx.wb.sheets[cx.active].tables.iter().position(|table| table.range.contains(cx.active_cell)).unwrap()));
     let table = &cx.wb.sheets[si].tables[ti];
     let sid = cx.sid(si);
-    let field = format!("features.tables[name={}]", json!(table.name));
+    let field = format!("tables[name={}]", json!(table.name));
     out.add(&sid, [field.clone()]);
     match command {
         "table.headerRow" => {
@@ -424,7 +424,7 @@ fn comments(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
 fn conditional(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
     let si = cx.sheet(params);
     cx.lookup(out, params, si);
-    out.add(&cx.sid(si), ["features.condFormats"]);
+    out.add(&cx.sid(si), ["condFormats"]);
     if command == "home.conditionalFormat" {
         cx.address(out, si, cx.range(params));
     }
@@ -480,7 +480,7 @@ fn names(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
 fn calculation(out: &mut Facts, cx: &Context) {
     out.add("workbook", ["names", "props.calc", "props.dateSystem"]);
     for (si, sheet) in cx.wb.sheets.iter().enumerate() {
-        out.add(&cx.sid(si), ["name", "features.tables", "features.validations"]);
+        out.add(&cx.sid(si), ["name", "tables", "validations"]);
         for (at, _) in sheet.cells.iter() {
             cx.source(out, si, RangeRef::cell(at), false);
         }
@@ -493,7 +493,7 @@ fn pivot(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
     if command != "pivot.delete" {
         if let Some((owner, ti)) = cx.wb.table(source) {
             let table = &cx.wb.sheets[owner].tables[ti];
-            out.add(&cx.sid(owner), [format!("features.tables[name={}]", json!(table.name))]);
+            out.add(&cx.sid(owner), [format!("tables[name={}]", json!(table.name))]);
             cx.source(out, owner, table.range, true);
         } else if let Some(range) = area(source) {
             let owner = source.rsplit_once('!').and_then(|(name, _)| cx.wb.sheet_index(name)).unwrap_or(si);
@@ -503,7 +503,7 @@ fn pivot(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
     }
     for (owner, sheet) in cx.wb.sheets.iter().enumerate() {
         for pivot in &sheet.pivots {
-            out.add(&cx.sid(owner), [format!("features.pivots[name={}]", json!(pivot.name))]);
+            out.add(&cx.sid(owner), [format!("pivots[name={}]", json!(pivot.name))]);
             if let Some(range) = pivot.last_range {
                 cx.entry(out, owner, range, false);
                 for col in range.start.col..=range.end.col {

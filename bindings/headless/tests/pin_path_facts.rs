@@ -127,18 +127,13 @@ async fn automatic_calculation_holds_header_synchronization_inputs() {
     let fixture = Fixture::new();
     fixture.colleague(&[("insert.table", json!({"range":"A1:D12","name":"Sales","header":true}))]);
     let basis = fixture.basis().await;
-    // Reopening XLSX synchronizes header text to the stored column name. A raw
-    // second caller's model write preserves the stale header this tail repairs.
-    let outside = kition_kits::tools::call_as(
-        &fixture.kits,
-        "sheet_batch",
-        &json!({"path":"Book.xlsx","ops":[{"op":"set","target":"sheet:1","field":"features.tables.0.columns.0.name","value":"Outside"}]}),
-        kition_kits::tools::CallOptions { guard: kition_kits::tools::Guard::Off, ..Default::default() },
-        "outside",
-    )
-    .await
-    .unwrap();
-    assert!(outside.is_ok(), "outside header write: {outside:?}");
+    // Reopening XLSX synchronizes header text to the stored column name. A colleague's raw
+    // model write (the column's `TableColumn` renamed, its header cell left) preserves the stale
+    // header this tail repairs.
+    fixture.colleague_rewrite(|wb| {
+        let table = &mut wb.sheet_mut(0).unwrap().tables[0];
+        table.columns[0].name = "Outside".into();
+    });
     let before = fixture.bytes();
     let result = fixture.run(basis, "formulas.calculationOptions", json!({"mode":"automatic"})).await;
     let mut failures = Vec::new();

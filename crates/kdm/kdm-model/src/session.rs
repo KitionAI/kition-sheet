@@ -157,7 +157,7 @@ impl SheetSession {
                 ahead = created;
                 return Err(KdmError::Engine("objects to create ahead".into()));
             }
-            crate::settle::project_positions(tx, after, &ids)?;
+            crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids)?;
             Ok(())
         });
         let mut changed = self.replica.take_changed();
@@ -187,7 +187,7 @@ impl SheetSession {
                 let (model, blobs) = (&self.model, &mut self.blobs);
                 let result = self.replica.transact(origin, |tx| {
                     write_changes(tx, &model.workbook, after, edits, &mut ids, blobs)?;
-                    crate::settle::project_positions(tx, after, &ids)
+                    crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids)
                 });
                 changed.extend(self.replica.take_changed());
                 result

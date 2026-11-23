@@ -728,14 +728,12 @@ fn reviewed_narrowed_table_and_outline_inputs_are_held() {
     ] {
         compared.insert(command);
         let under = doc.under(command, &params).expect(command).expect("table premise");
-        let mut required = vec![("sheet:1".to_owned(), "features.tables[name=\"Sales\"]")];
+        let mut required = vec![("sheet:1".to_owned(), "tables[name=\"Sales\"]")];
         if command == "table.headerRow" {
             // Pinned after reviewing header-off: it preserves the latest column
             // names and does not use them to remove the existing header row.
-            required = vec![
-                ("sheet:1".to_owned(), "features.tables[name=\"Sales\"].range"),
-                ("sheet:1".to_owned(), "features.tables[name=\"Sales\"].header_row"),
-            ];
+            required =
+                vec![("sheet:1".to_owned(), "tables[name=\"Sales\"].range"), ("sheet:1".to_owned(), "tables[name=\"Sales\"].props.header_row")];
         }
         match command {
             // same-field decision: these commands replace destination input.

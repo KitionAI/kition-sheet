@@ -31,6 +31,7 @@ use serde_json::{Map, Value as Json, json};
 use crate::codec::{
     Decode, Encode, decode_cell, decode_formula, decode_line, decode_range, decode_text, encode_cell, encode_formula, encode_range, encode_text,
 };
+use crate::ids::FeatureIds;
 use crate::lines::{Axis, Use, span};
 use crate::{KdmResult, kdm_err};
 
@@ -688,25 +689,39 @@ fn read_pivot<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize,
     from_json(v)
 }
 
-/// Reads sheet `sheet`'s feature objects and its filter into `sh`, in list order. What does not
-/// read (or has nothing left on the grid) is skipped, as is a merged area or a table overlapping
-/// one read before it (made concurrently by two people): the engine keeps them apart.
-pub(crate) fn read_features<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, sheet: &ObjectId, sh: &mut Sheet) {
+/// Reads sheet `sheet`'s feature objects and its filter into `sh`, in list order, and answers
+/// the objects of what it read. What does not read (or has nothing left on the grid) is skipped,
+/// as is a merged area or a table overlapping one read before it (made concurrently by two
+/// people): the engine keeps them apart.
+pub(crate) fn read_features<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, sheet: &ObjectId, sh: &mut Sheet) -> FeatureIds {
     let of = |field: &str, ty: &str| -> Vec<ObjectId> { store.items(sheet, field).into_iter().filter(|o| store.is(o, ty)).collect() };
+    let mut ids = FeatureIds::default();
     for id in of("merges", MERGE) {
         if let Some(m) = read_merge(store, d, s, &id)
             && !sh.merges.iter().any(|x| x.intersects(&m))
         {
             sh.merges.push(m);
+            ids.merges.push(id);
         }
     }
-    sh.cond_formats = of("condFormats", COND_FORMAT).iter().filter_map(|id| read_cond_format(store, d, s, id)).collect();
-    sh.validations = of("validations", VALIDATION).iter().filter_map(|id| read_validation(store, d, s, id)).collect();
+    for id in of("condFormats", COND_FORMAT) {
+        if let Some(cf) = read_cond_format(store, d, s, &id) {
+            sh.cond_formats.push(cf);
+            ids.cond_formats.push(id);
+        }
+    }
+    for id in of("validations", VALIDATION) {
+        if let Some(dv) = read_validation(store, d, s, &id) {
+            sh.validations.push(dv);
+            ids.validations.push(id);
+        }
+    }
     for id in of("tables", TABLE) {
         if let Some(t) = read_table(store, d, s, &id)
             && !sh.tables.iter().any(|x| x.range.intersects(&t.range))
         {
             sh.tables.push(t);
+            ids.tables.push(id);
         }
     }
     sh.autofilter = Some(store.field(sheet, "autofilter")).filter(|v| v.is_object()).and_then(|item| {
@@ -715,8 +730,19 @@ pub(crate) fn read_features<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d:
         set(&mut item, "range", to_json(&r).ok()?);
         from_json::<AutoFilter>(item)
     });
-    sh.sparklines = of("sparklines", SPARKLINE).iter().filter_map(|id| read_sparkline(store, d, s, id)).collect();
-    sh.pivots = of("pivots", PIVOT).iter().filter_map(|id| read_pivot(store, d, s, id)).collect();
+    for id in of("sparklines", SPARKLINE) {
+        if let Some(sp) = read_sparkline(store, d, s, &id) {
+            sh.sparklines.push(sp);
+            ids.sparklines.push(id);
+        }
+    }
+    for id in of("pivots", PIVOT) {
+        if let Some(p) = read_pivot(store, d, s, &id) {
+            sh.pivots.push(p);
+            ids.pivots.push(id);
+        }
+    }
+    ids
 }
 
 // ---------------------------------------------------------------- links
@@ -726,7 +752,9 @@ pub(crate) fn read_features<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d:
 pub(crate) fn hyperlink_value<E: Encode + ?Sized>(e: &mut E, s: usize, h: &Hyperlink) -> KdmResult<Json> {
     let mut v = to_json(h)?;
     if !h.is_external() {
-        set(&mut v, "target", Json::String(encode_formula(e, &h.target, None, Some(s))?));
+        // A place may be written behind a `#` (`#Sheet2!A1`), as a file's location is.
+        let (hash, place) = h.target.strip_prefix('#').map_or(("", h.target.as_str()), |place| ("#", place));
+        set(&mut v, "target", Json::String(format!("{hash}{}", encode_formula(e, place, None, Some(s))?)));
     }
     Ok(v)
 }
@@ -735,7 +763,8 @@ pub(crate) fn hyperlink_value<E: Encode + ?Sized>(e: &mut E, s: usize, h: &Hyper
 pub(crate) fn read_hyperlink<D: Decode + ?Sized>(d: &D, s: usize, v: Json) -> Option<Hyperlink> {
     let mut h: Hyperlink = from_json(v)?;
     if !h.is_external() {
-        h.target = decode_formula(d, &h.target, Some(s));
+        let (hash, place) = h.target.strip_prefix('#').map_or(("", h.target.as_str()), |place| ("#", place));
+        h.target = format!("{hash}{}", decode_formula(d, place, Some(s)));
     }
     Some(h)
 }

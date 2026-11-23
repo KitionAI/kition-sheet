@@ -33,7 +33,6 @@ struct FileSheet {
     /// The fingerprint of the worksheet part the sheet's ids were written beside.
     #[serde(default)]
     fingerprint: String,
-    #[serde(flatten)]
     ids: SheetIdentities,
 }
 

@@ -2527,7 +2527,12 @@ impl KitDocument for SheetDocument {
     }
 
     fn under(&self, command: &str, params: &Json) -> Result<Option<kition_kit::Under>, String> {
-        self.shared_edit_premises(command, params, self.call_premises(command, params)?)
+        let under = self.shared_edit_premises(command, params, self.call_premises(command, params)?)?;
+        let wb = &self.doc_state()?.wb;
+        Ok(under.map(|mut under| {
+            place::feature_object_premises(wb, &mut under);
+            under
+        }))
     }
 
     fn under_step(&self, command: &str, params: &Json, _step: &kition_kit::PremiseStep) -> Result<Option<kition_kit::Under>, String> {

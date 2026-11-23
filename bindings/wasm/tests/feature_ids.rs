@@ -13,7 +13,7 @@ fn feature_identity_types_declare_their_read_only_contract() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     let schema: Value = serde_json::from_str(include_str!("../../../crates/kdm/kdm-model/model/schema.json")).unwrap();
     for ty in ["Group", "Table", "Pivot", "Style"] {
-        assert_eq!(schema["types"][ty]["readOnly"], true, "{ty} is an identity index whose owning list refuses direct writes");
+        assert_eq!(schema["types"][ty]["readOnly"], true, "{ty} is written by the kit's commands only; its owning list refuses direct writes");
     }
     let style = load(&mut doc, "workbook")["fields"]["styleObjects"][0].clone();
     let before = doc.save(None).unwrap();
@@ -38,8 +38,8 @@ fn feature_types_and_objects_have_persistent_tool_ids() {
         assert!(schema["types"][ty]["toolId"].is_object(), "missing tool id: {ty}");
     }
     let owner = load(&mut doc, "sheet:1");
-    let table = owner["fields"]["tableObjects"][0].as_str().expect("table identity index").to_owned();
-    let pivot = owner["fields"]["pivotObjects"][0].as_str().expect("pivot identity index").to_owned();
+    let table = owner["fields"]["tables"][0].as_str().expect("the sheet's tables").to_owned();
+    let pivot = owner["fields"]["pivots"][0].as_str().expect("the sheet's pivot tables").to_owned();
     assert!(table.starts_with("table:1:"), "{owner}");
     assert!(pivot.starts_with("pivot:1:"), "{owner}");
     for (target, ty) in [(table, "Table"), (pivot, "Pivot"), (format!("drawing:{group}"), "Group")] {

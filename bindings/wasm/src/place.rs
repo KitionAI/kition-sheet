@@ -190,6 +190,54 @@ fn property_fields(command: &str, params: &Value) -> Option<Vec<String>> {
     Some(fields.iter().map(|field| (*field).to_owned()).collect())
 }
 
+/// The fields of a `Table` or `Pivot` object a premise on all of it holds.
+const FEATURE_OBJECT_FIELDS: [&str; 5] = ["key", "name", "range", "props", "columns"];
+const PIVOT_OBJECT_FIELDS: [&str; 6] = ["key", "name", "anchor", "source", "lastRange", "props"];
+
+/// What a premise on a sheet's `tables` or `pivots` field (a list, or an item named by
+/// `[name=…]` and maybe a path inside it) holds of the `Table` and `Pivot` objects: they have tool
+/// ids (`table:<key>`, `pivot:<key>`), so others' changes of them are told under those ids, not
+/// under the sheet's list. Each such premise gets one on the objects it names: every table (or
+/// pivot table) of the sheet for the whole list, the named one for an item, with the path inside.
+pub(super) fn feature_object_premises(wb: &kition_sheet_engine::model::Workbook, under: &mut Under) {
+    let mut more = Vec::new();
+    for p in &under.premises {
+        let Some(sheet) = p.id.as_str().and_then(|id| wb.sheets.iter().find(|s| ids::sheet_tool_id(s) == id)) else { continue };
+        for field in p.fields.iter().flatten() {
+            for (list, prefix, all) in [("tables", "table", &FEATURE_OBJECT_FIELDS[..]), ("pivots", "pivot", &PIVOT_OBJECT_FIELDS[..])] {
+                let named: Vec<(String, u32)> = if list == "tables" {
+                    sheet.tables.iter().map(|t| (t.name.clone(), t.id)).collect()
+                } else {
+                    sheet.pivots.iter().map(|p| (p.name.clone(), p.id)).collect()
+                };
+                let tool = |id: u32| format!("{prefix}:{}:{id}", sheet.sheet_id);
+                let Some(rest) = field.strip_prefix(list) else { continue };
+                if rest.is_empty() || rest.starts_with('.') {
+                    for (_, id) in &named {
+                        more.push(premise(tool(*id), all.iter().copied()));
+                    }
+                } else if let Some(selector) = rest.strip_prefix("[name=") {
+                    let mut values = serde_json::Deserializer::from_str(selector).into_iter::<Value>();
+                    let Some(Ok(Value::String(name))) = values.next() else { continue };
+                    let tail = selector.get(values.byte_offset()..).unwrap_or("");
+                    let inside = tail.strip_prefix(']').unwrap_or("").strip_prefix('.').unwrap_or("");
+                    for (_, id) in named.iter().filter(|(n, _)| *n == name) {
+                        if inside.is_empty() {
+                            more.push(premise(tool(*id), all.iter().copied()));
+                        } else {
+                            more.push(premise(tool(*id), [inside.to_owned()]));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if !more.is_empty() {
+        under.premises.extend(more);
+        merged(under);
+    }
+}
+
 /// Joins repeated dependencies; no later premise may accidentally erase an earlier one.
 pub(super) fn merged(under: &mut Under) {
     let mut all: BTreeMap<String, Premise> = BTreeMap::new();
@@ -500,7 +548,7 @@ impl SheetDocument {
 
         if matches!(command, "home.conditionalFormat" | "home.clearRules" | "home.manageRules") {
             // Adding and reordering rules rewrites priorities; clearing rewrites membership.
-            let mut fields = vec!["features.condFormats"];
+            let mut fields = vec!["condFormats"];
             if params.get("range").and_then(Value::as_str).is_some_and(|range| range.contains('!'))
                 || params.get("sheet").is_some_and(Value::is_string)
             {
@@ -567,7 +615,7 @@ impl SheetDocument {
             };
             let id = ids::sheet_tool_id(owner);
             under.objects.push(json!(id));
-            under.premises.push(premise(id, [format!("features.tables[name={}]", json!(table.name))]));
+            under.premises.push(premise(id, [format!("tables[name={}]", json!(table.name))]));
             return Ok(Some(under));
         }
 
@@ -664,13 +712,13 @@ impl SheetDocument {
             use kition_sheet_engine::cmd::data::{filter_scopes, named_scope};
             let scopes = filter_scopes(sheet);
             let selected = named_scope(&self.session, &params).map_err(crate::engine_error)?;
-            sheet_fields.extend(["props.protection", "features.autofilter", "~filterScopes"].map(str::to_owned));
+            sheet_fields.extend(["props.protection", "autofilter", "~filterScopes"].map(str::to_owned));
             let mut applied = Vec::new();
             if command == "data.filter" {
                 let active = state.selection.active;
                 sheet_fields.extend(kdm_model::constraint_fields(RangeRef::cell(active)));
                 if let Some(table) = sheet.table_at(active) {
-                    sheet_fields.push(format!("features.tables[name={}]", json!(table.name)));
+                    sheet_fields.push(format!("tables[name={}]", json!(table.name)));
                 } else if sheet.autofilter.is_some() {
                     sheet_fields.push("~hiddenRows".into());
                 } else if let Some(range) = params.get("range").and_then(Value::as_str).and_then(area) {
@@ -700,7 +748,7 @@ impl SheetDocument {
                         continue;
                     }
                     if let Some(name) = &scope.table {
-                        sheet_fields.push(format!("features.tables[name={}]", json!(name)));
+                        sheet_fields.push(format!("tables[name={}]", json!(name)));
                     }
                     // Sheet filters also reapply nonempty table criteria. Clearing the
                     // selected scope writes visibility but does not read its entries.
@@ -775,12 +823,8 @@ impl SheetDocument {
             if ranges.iter().try_fold(0u64, |n, range| n.checked_add(range.count())).is_none_or(|n| n > 100_000) {
                 return self.document_premises().map(Some);
             }
-            let indexed = state
-                .kdm()
-                .and_then(|kdm| kdm.model().ids().sheets.get(si))
-                .is_some_and(|axes| state.kdm().is_some_and(|kdm| kdm.replica().map_entries(&axes.object, "constraints").is_ok()));
             for range in &ranges {
-                sheet_fields.extend(if indexed { kdm_model::constraint_fields(*range) } else { vec!["features".into()] });
+                sheet_fields.extend(kdm_model::constraint_fields(*range));
                 window(&mut under, &sid, "rows", range.start.row as usize, range.end.row as usize + 1);
                 window(&mut under, &sid, "cols", range.start.col as usize, range.end.col as usize + 1);
                 if table_resize {
@@ -799,7 +843,7 @@ impl SheetDocument {
                     .and_then(|name| sheet.tables.iter().find(|table| table.name.eq_ignore_ascii_case(name)))
                     .or_else(|| params.get("table").is_none().then(|| sheet.table_at(state.selection.active)).flatten());
                 let Some(table) = table else { return self.document_premises().map(Some) };
-                sheet_fields.extend([format!("features.tables[name={}]", json!(table.name)), "~arrays".into()]);
+                sheet_fields.extend([format!("tables[name={}]", json!(table.name)), "~arrays".into()]);
             }
             sheet_fields.push("props.protection".into());
             under.objects.push(json!(sid));
@@ -1131,7 +1175,12 @@ impl SheetDocument {
                     if let Some((index, _)) = list.iter().find(|(_, hit)| *hit) {
                         let owner = ids::sheet_tool_id(candidate);
                         under.objects.push(json!(owner));
-                        under.premises.push(premise(owner, [format!("features.{field}.{index}")]));
+                        let name = if parameter == "table" {
+                            candidate.tables.get(*index).map(|t| t.name.clone())
+                        } else {
+                            candidate.pivots.get(*index).map(|p| p.name.clone())
+                        };
+                        under.premises.push(premise(owner, [format!("{field}[name={}]", json!(name.unwrap_or_default()))]));
                         break;
                     }
                 }
@@ -1169,7 +1218,7 @@ impl SheetDocument {
             }
             let formula_at = ranges.first().map(|range| range.start).unwrap_or(state.selection.active);
             if sort {
-                sheet_fields.extend(["features.autofilter", "~sortObjects"].map(str::to_owned));
+                sheet_fields.extend(["autofilter", "~sortObjects"].map(str::to_owned));
                 under.premises.push(premise("workbook", ["theme"]));
                 for scope in kition_sheet_engine::cmd::data::filter_scopes(sheet).into_iter().filter(|scope| !scope.criteria.is_empty()) {
                     pending.push((si, scope.range.start, source_expr(scope.range), SourceFacts { visibility: true, ..SourceFacts::default() }));
@@ -1190,7 +1239,7 @@ impl SheetDocument {
                     }
                 }
                 // Every table filter can be reapplied, including one outside the sort block.
-                sheet_fields.push("features.tables".into());
+                sheet_fields.push("tables".into());
             }
             let total = ranges.iter().try_fold(0u64, |n, r| n.checked_add(r.count()));
             if total.is_none_or(|n| n > 100_000) {
@@ -1205,7 +1254,7 @@ impl SheetDocument {
                     }) {
                         sheet_fields.extend(kdm_model::constraint_fields(*range));
                     } else {
-                        sheet_fields.extend(["features.merges", "features.tables", "features.validations"].map(str::to_owned));
+                        sheet_fields.extend(["merges", "tables", "validations"].map(str::to_owned));
                     }
                     window(&mut under, &sid, "rows", range.start.row as usize, range.end.row as usize + 1);
                     window(&mut under, &sid, "cols", range.start.col as usize, range.end.col as usize + 1);
@@ -1491,9 +1540,7 @@ impl SheetDocument {
                                         }
                                     });
                                     if let Some(table) = table {
-                                        under
-                                            .premises
-                                            .push(premise(ids::sheet_tool_id(owner), [format!("features.tables[name={}]", json!(table.name))]));
+                                        under.premises.push(premise(ids::sheet_tool_id(owner), [format!("tables[name={}]", json!(table.name))]));
                                         pending.push((area.sheet, origin, source_expr(area.range), facts));
                                     } else {
                                         conservative = true;

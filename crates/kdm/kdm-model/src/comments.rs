@@ -97,7 +97,7 @@ fn write_replies(tx: &mut Tx<'_>, comment: &ObjectId, before: &[(String, String)
         .filter(|o| tx.exists(o) && seen.insert(o.clone()) && tx.object_type(o).ok().as_deref() == Some(REPLY))
         .collect();
     let before = if before.len() == old.len() { before } else { &[] };
-    let partner = crate::list::pair_items(before, after, None::<fn(&(String, String)) -> u32>);
+    let partner = crate::list::pair_items(before, after, None, true);
     let mut wrote = false;
     let mut out = Vec::with_capacity(after.len());
     for (k, (author, text)) in after.iter().enumerate() {

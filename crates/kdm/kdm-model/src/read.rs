@@ -429,7 +429,7 @@ impl<'r> Reader<'r> {
         // The sheet's id (its tool id `sheet:<id>`); a replica without one is numbered below.
         sheet.sheet_id = replica.get(&object, "sheetId")?.as_u64().and_then(|id| u32::try_from(id).ok()).unwrap_or(0);
         read_sheet_props(&*self, k, &replica.get(&object, "props")?, &mut sheet);
-        read_features(replica, &*self, k, &object, &mut sheet);
+        let features = read_features(replica, &*self, k, &object, &mut sheet);
 
         // Line info, by the lines' places.
         for axis in Axis::BOTH {
@@ -527,7 +527,7 @@ impl<'r> Reader<'r> {
             Some(s) => (s.rows.live.clone(), s.cols.live.clone()),
             None => (Vec::new(), Vec::new()),
         };
-        Ok((sheet, SheetIds { object, rows, cols, images, shapes, charts, texts, parts }))
+        Ok((sheet, SheetIds { object, rows, cols, images, shapes, charts, features, texts, parts }))
     }
 }
 

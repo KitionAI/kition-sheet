@@ -104,7 +104,7 @@ fn entry(out: &mut Facts, command: &str, params: &Value, cx: &Context, mut si: u
             // cell; the stored row layout expands its old entry and fitted row.
             out.add(&cx.axis(si, true, range.start.row), ["info", "~layout"]);
             out.add(&cx.axis(si, false, range.start.col), ["info.style"]);
-            out.add(&cx.sid(si), ["props.protection", "features.merges", "features.tables", "features.validations"]);
+            out.add(&cx.sid(si), ["props.protection", "merges", "tables", "validations"]);
             out.add("workbook", ["props.defaultStyle", "props.dateSystem"]);
             return;
         }
@@ -147,7 +147,7 @@ fn entry(out: &mut Facts, command: &str, params: &Value, cx: &Context, mut si: u
 fn style(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize) {
     let range = cx.range(params);
     cx.address(out, si, range);
-    out.add(&cx.sid(si), ["props.protection", "features.autofilter"]);
+    out.add(&cx.sid(si), ["props.protection", "autofilter"]);
     out.add("workbook", ["props.dateSystem"]);
     let points: Vec<_> = if range.is_full_cols() || range.is_full_rows() {
         let rows = range.is_full_rows();
@@ -239,7 +239,7 @@ fn merge(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize
     out.add("workbook", ["props.defaultStyle"]);
     if !matches!(command, "home.unmergeCells" | "home.mergeAcross") {
         cx.entry(out, si, range, false);
-        out.add(&cx.sid(si), ["features.autofilter"]);
+        out.add(&cx.sid(si), ["autofilter"]);
     }
     cx.shared(out, si, None, false);
 }

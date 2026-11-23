@@ -12,14 +12,31 @@ use crate::{KdmResult, root_id};
 
 /// Tool addresses are a projection of content and axis order. Keep them out of the incremental
 /// content diff, and commit their consequences in the session's same transaction.
-pub(crate) fn project_positions(tx: &mut Tx<'_>, workbook: &kition_sheet_model::Workbook, ids: &crate::Ids) -> KdmResult<()> {
+/// `before` is the view the write started from, with its objects: a sheet whose lines and id are
+/// as they were has every address right already.
+pub(crate) fn project_positions(
+    tx: &mut Tx<'_>,
+    before: (&kition_sheet_model::Workbook, &crate::Ids),
+    workbook: &kition_sheet_model::Workbook,
+    ids: &crate::Ids,
+) -> KdmResult<()> {
+    let (was, was_ids) = before;
     for (sheet, ids) in workbook.sheets.iter().zip(&ids.sheets) {
+        let mut moved = false;
         for axis in Axis::BOTH {
             for (index, object) in ids.axis(axis).iter().enumerate() {
                 if tx.get(object, "index")? != json!(index) {
                     tx.set(object, "index", json!(index))?;
+                    moved = true;
                 }
             }
+        }
+        // No line moved and the sheet's id is the one the addresses name: every address is still
+        // right (rule P1: one cell typed into a sheet of a million cells reads no other cell).
+        // The writer gives a new cell its address.
+        let same_id = was_ids.sheets.iter().zip(&was.sheets).any(|(sid, old)| sid.object == ids.object && old.sheet_id == sheet.sheet_id);
+        if !moved && same_id {
+            continue;
         }
         let rows: std::collections::HashMap<_, _> = ids.rows.iter().enumerate().map(|(index, id)| (id.as_str(), index as u32)).collect();
         let cols: std::collections::HashMap<_, _> = ids.cols.iter().enumerate().map(|(index, id)| (id.as_str(), index as u32)).collect();

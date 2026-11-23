@@ -855,7 +855,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
 
     /// Makes `owner.field` (a list of `ty` objects) hold `after`, given that the view held
     /// `before` there: an item keeps the object of the item it pairs with ([`pair_items`]; by
-    /// `key` when given), whose fields are set where they differ (`fields` gives them) and whose
+    /// `same` when given), whose fields are set where they differ (`fields` gives them) and whose
     /// own lists `children` writes; the other items get new objects, and the objects no item
     /// keeps are deleted. A list whose live objects are not the view's items one to one (the
     /// read skipped one) is written as new.
@@ -865,19 +865,33 @@ impl<'w, 'tx> Writer<'w, 'tx> {
         field: &str,
         ty: &str,
         before: &[T],
+        view: &[ObjectId],
         after: &[T],
-        key: Option<fn(&T) -> u32>,
+        same: Option<fn(&T, &T) -> bool>,
         fields: &mut dyn FnMut(&mut Self, &T) -> KdmResult<Map<String, Value>>,
         children: &mut dyn FnMut(&mut Self, &ObjectId, Option<&T>, &T) -> KdmResult<()>,
-    ) -> KdmResult<()> {
+    ) -> KdmResult<Vec<ObjectId>> {
         let mut seen = HashSet::new();
-        let listed = self.tx.list_items(owner, field)?;
-        let old: Vec<ObjectId> = listed
+        let listed: Vec<ObjectId> = self
+            .tx
+            .list_items(owner, field)?
             .into_iter()
             .filter(|o| self.tx.exists(o) && seen.insert(o.clone()) && self.tx.object_type(o).ok().as_deref() == Some(ty))
             .collect();
+        // The view's objects of its items when it has them (the read may have skipped some of the
+        // list's), else the list's when they are one to one; otherwise every item is new.
+        let old: Vec<ObjectId> = if !view.is_empty() && view.len() == before.len() && view.iter().all(|o| seen.contains(o)) {
+            view.to_vec()
+        } else if listed.len() == before.len() {
+            listed.clone()
+        } else {
+            Vec::new()
+        };
         let before = if before.len() == old.len() { before } else { &[] };
-        let partner = pair_items(before, after, key);
+        // Tables and pivot tables are the same one only by their id; other items left over pair in
+        // order (an edited one keeps its object).
+        let keyed = ty == TABLE || ty == PIVOT;
+        let partner = pair_items(before, after, same, !keyed);
         let mut out = Vec::with_capacity(after.len());
         for (place, item) in after.iter().enumerate() {
             let values = fields(self, item)?;
@@ -897,56 +911,66 @@ impl<'w, 'tx> Writer<'w, 'tx> {
             };
             out.push(object);
         }
+        // What the list holds and no item keeps goes (also what the read skipped: a merged area
+        // overlapping another, a range whose rows were all deleted).
         let keep: HashSet<&ObjectId> = out.iter().collect();
-        for object in &old {
+        for object in &listed {
             if !keep.contains(object) {
                 self.delete_held(object)?;
             }
         }
         self.wrote |= sync_list(self.tx, owner, field, &out)? > 0;
-        Ok(())
+        Ok(out)
     }
 
     /// Writes sheet `j`'s feature objects (see `features`) and its filter over the view's
     /// (`before`; `None`: a new sheet).
     fn write_features(&mut self, j: usize, object: &ObjectId, before: Option<&Sheet>, after: &Sheet, sheet_id: u32) -> KdmResult<()> {
-        self.sync_items(
+        let view = self.sheets.get(j).map(|s| s.features.clone()).unwrap_or_default();
+        let merges = self.sync_items(
             object,
             "merges",
             MERGE,
             before.map_or(&[][..], |b| b.merges.as_slice()),
+            &view.merges,
             &after.merges,
             None,
             &mut |w, r| merge_fields(w, j, *r),
             &mut |_, _, _, _| Ok(()),
         )?;
-        self.sync_items(
+        let cond_formats = self.sync_items(
             object,
             "condFormats",
             COND_FORMAT,
             before.map_or(&[][..], |b| b.cond_formats.as_slice()),
+            &view.cond_formats,
             &after.cond_formats,
-            None,
+            // Moved (its priority renumbered): the same rule.
+            Some(|a: &kition_sheet_model::CondFormat, b: &kition_sheet_model::CondFormat| {
+                a.ranges == b.ranges && a.rule == b.rule && a.stop_if_true == b.stop_if_true
+            }),
             &mut |w, cf| cond_format_fields(w, j, cf),
             &mut |_, _, _, _| Ok(()),
         )?;
-        self.sync_items(
+        let validations = self.sync_items(
             object,
             "validations",
             VALIDATION,
             before.map_or(&[][..], |b| b.validations.as_slice()),
+            &view.validations,
             &after.validations,
             None,
             &mut |w, dv| validation_fields(w, j, dv),
             &mut |_, _, _, _| Ok(()),
         )?;
-        self.sync_items(
+        let tables = self.sync_items(
             object,
             "tables",
             TABLE,
             before.map_or(&[][..], |b| b.tables.as_slice()),
+            &view.tables,
             &after.tables,
-            Some(|t: &kition_sheet_model::Table| t.id),
+            Some(|a: &kition_sheet_model::Table, b: &kition_sheet_model::Table| a.id == b.id),
             &mut |w, t| table_fields(w, j, sheet_id, t),
             &mut |w, table, was: Option<&kition_sheet_model::Table>, t| {
                 let was = was.map_or(&[][..], |b| b.columns.as_slice());
@@ -955,35 +979,43 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                     "columns",
                     TABLE_COLUMN,
                     was,
+                    &[],
                     &t.columns,
                     None,
                     &mut |w, c| table_column_fields(w, j, c),
                     &mut |_, _, _, _| Ok(()),
                 )
+                .map(|_| ())
             },
         )?;
-        self.sync_items(
+        let sparklines = self.sync_items(
             object,
             "sparklines",
             SPARKLINE,
             before.map_or(&[][..], |b| b.sparklines.as_slice()),
+            &view.sparklines,
             &after.sparklines,
             None,
             &mut |w, sp| sparkline_fields(w, j, sp),
             &mut |_, _, _, _| Ok(()),
         )?;
-        self.sync_items(
+        let pivots = self.sync_items(
             object,
             "pivots",
             PIVOT,
             before.map_or(&[][..], |b| b.pivots.as_slice()),
+            &view.pivots,
             &after.pivots,
-            Some(|p: &kition_sheet_model::PivotTable| p.id),
+            Some(|a: &kition_sheet_model::PivotTable, b: &kition_sheet_model::PivotTable| a.id == b.id),
             &mut |w, p| pivot_fields(w, j, sheet_id, p),
             &mut |_, _, _, _| Ok(()),
         )?;
         let filter = crate::features::autofilter_value(self, j, after.autofilter.as_ref())?;
-        self.set(object, "autofilter", filter)
+        self.set(object, "autofilter", filter)?;
+        if let Some(s) = self.sheets.get_mut(j) {
+            s.features = crate::ids::FeatureIds { merges, cond_formats, validations, tables, sparklines, pivots };
+        }
+        Ok(())
     }
 
     /// Writes sheet `j`'s comments (see `comments`). `full`: every comment of `after` is written

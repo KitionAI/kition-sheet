@@ -30,7 +30,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 cx.address(&mut out, si, cx.selected);
             } else if params.get("show").is_some() {
                 out.window("workbook", "sheets", si, si + 1);
-                out.add(&sid, ["~viewZoom", "props.freeze", "~freezeOrigin", "features.merges"]);
+                out.add(&sid, ["~viewZoom", "props.freeze", "~freezeOrigin", "merges"]);
                 cx.address(&mut out, si, RangeRef::cell(CellRef::new(2, 1)));
             }
         }
@@ -126,7 +126,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 .find(|table| params.get("table").and_then(Value::as_str).is_some_and(|name| table.name.eq_ignore_ascii_case(name)))
                 .or_else(|| sheet.table_at(cx.active_cell))
                 .unwrap();
-            out.add(&sid, [format!("features.tables[name={}]", json!(table.name)), "~arrays".into()]);
+            out.add(&sid, [format!("tables[name={}]", json!(table.name)), "~arrays".into()]);
             if params["range"].as_str().is_some_and(|text| text.contains('!')) {
                 out.add(&sid, ["name"]);
             }

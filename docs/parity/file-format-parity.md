@@ -1,6 +1,6 @@
 # File-format parity
 
-> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-17 · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-22 · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Every format Excel opens or saves, with Kition Sheet's read and write support, fidelity and tests.
 Part of [target-app-parity.md](target-app-parity.md). **File formats: ~50% ready, 80–120 h**
@@ -33,7 +33,10 @@ support comes from `crates/engine/engine/src/io.rs` (`FileKind`), `crates/format
 The XLSX writer includes an optional `xl/kition/identities.json` part for tool identities and
 cell provenance. It contains no replica history. Sheets, axes (including deleted-axis markers),
 cells, drawings, defined names, tables and pivots retain their observed identities after a Kition
-save/reopen. Other applications may discard this part. Cells remain addressed by A1 position.
+save/reopen. Each sheet's identities carry a fingerprint of the worksheet part they were saved
+beside, and the defined names' one of the workbook part: when another application changed that
+part, its identities are dropped (the objects get new ones) rather than naming the wrong rows,
+cells or names. Other applications may discard this part. Cells remain addressed by A1 position.
 Drawing endpoints normalize to integer EMUs, column widths to the file's character-width unit,
 and row heights to stored precision on entry. Chart source settings and threaded-comment state
 are retained in extensions. `bindings/wasm/tests/saved_receipts.rs` checks the object-model saved

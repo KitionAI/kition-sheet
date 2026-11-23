@@ -252,7 +252,7 @@ impl SheetDocument {
                         let Some(ranges) = text.split(',').map(area).collect::<Option<Vec<_>>>() else { return Ok(None) };
                         // same-field decision: restoring a view assigns its
                         // destination zoom and pane counts, even with explicit saved values.
-                        under.premises.push(premise(sid.clone(), ["features.merges", "~viewZoom", "props.freeze", "~freezeOrigin"]));
+                        under.premises.push(premise(sid.clone(), ["merges", "~viewZoom", "props.freeze", "~freezeOrigin"]));
                         ranges
                     };
                     let Some(axes) = state.kdm().and_then(|kdm| kdm.model().ids().sheets.get(target)) else { return Ok(None) };

@@ -128,7 +128,7 @@ impl SheetDocument {
         let Some(sheet) = state.wb.sheet(si) else { return Ok(None) };
         let Some(ranges) = bounded_ranges(sheet) else { return Ok(None) };
         let sid = ids::sheet_tool_id(sheet);
-        let mut fields = vec!["features.condFormats"];
+        let mut fields = vec!["condFormats"];
         if params.get("sheet").is_some_and(Value::is_string)
             || ["range", "cell"].iter().any(|key| params.get(*key).and_then(Value::as_str).is_some_and(|text| text.contains('!')))
         {

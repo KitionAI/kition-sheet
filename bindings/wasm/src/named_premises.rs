@@ -31,7 +31,7 @@ impl SheetDocument {
         // Its persistent row id survives insertion without exposing an internal cell id.
         under.premises.push(premise(format!("row:{row}"), ["info", "~layout"]));
         under.premises.push(premise(format!("col:{col}"), ["info.style"]));
-        under.premises.push(premise(sid, ["props.protection", "features.merges", "features.tables", "features.validations"]));
+        under.premises.push(premise(sid, ["props.protection", "merges", "tables", "validations"]));
         under.premises.push(premise("workbook", ["props.defaultStyle", "props.dateSystem"]));
         for index in resolved.definitions {
             if let Some(definition) = wb.names.get(index) {

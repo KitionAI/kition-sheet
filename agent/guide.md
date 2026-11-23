@@ -54,9 +54,14 @@ that names a file is refused before any step runs. Spelling (`review.spelling`) 
   Names, row/column identities, deleted axis markers and cell provenance are stored in the
   workbook's Kition identity part. Row/column ids follow the axis; a cell tool address remains positional.
 - **Tables and pivots** have `table:<sheetId>:<id>` and `pivot:<sheetId>:<id>` tool ids.
-  Sheet `tableObjects`, `pivotObjects` and `groups` expose read-only identity indexes; their
-  authoritative content remains in sheet feature registers. Commands accept table/pivot tool ids
-  through rename and save/reopen. Workbook `styleObjects` names immutable interned styles by
+  A sheet holds its features as objects: `tables` (each `Table` with its `columns`, one
+  `TableColumn` each), `pivots`, `merges`, `condFormats`, `validations` and `sparklines`, and its
+  filter in `autofilter`; their ranges name rows and columns by their objects. They are written
+  by the kit's commands only (read-only to batch writes); `groups` is a read-only index of the
+  shapes' groups. Commands accept table/pivot tool ids through rename and save/reopen.
+- **Comments** are `Comment` objects in the sheet's `comments` map, keyed by the cell's row and
+  column objects: `author`, `text`, `replies` (each a `Reply` with `author` and `text`),
+  `threaded`, `resolved` and `visible`. Workbook `styleObjects` names immutable interned styles by
   content hash (`style:<hash>`), named cell styles by definition name (`style:cell:<hash>`), and
   named table styles by their native UID (`style:table:<uid>`). Table-style rename preserves
   that UID; redefining a cell style preserves its id. Commands that apply or modify existing

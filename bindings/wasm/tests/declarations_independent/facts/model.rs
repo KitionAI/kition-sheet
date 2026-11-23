@@ -217,6 +217,45 @@ impl Facts {
         false
     }
 
+    /// A sheet's tables and pivot tables are `Table` and `Pivot` objects with tool ids of their
+    /// own: what a fact holds of a sheet's `tables` or `pivots` (the list, or an item by name and
+    /// a path inside it) it holds of those objects too.
+    pub fn with_feature_objects(mut self, cx: &Context) -> Self {
+        const TABLE: [&str; 5] = ["key", "name", "range", "props", "columns"];
+        const PIVOT: [&str; 6] = ["key", "name", "anchor", "source", "lastRange", "props"];
+        let mut more: Vec<(String, Vec<String>)> = Vec::new();
+        for fact in self.0.iter().filter(|fact| fact.kind == "field") {
+            let Some(sheet) = cx.wb.sheets.iter().find(|s| format!("sheet:{}", s.sheet_id) == fact.object) else { continue };
+            for (list, prefix, all) in [("tables", "table", &TABLE[..]), ("pivots", "pivot", &PIVOT[..])] {
+                let named: Vec<(String, u32)> = if list == "tables" {
+                    sheet.tables.iter().map(|t| (t.name.clone(), t.id)).collect()
+                } else {
+                    sheet.pivots.iter().map(|p| (p.name.clone(), p.id)).collect()
+                };
+                let tool = |id: u32| format!("{prefix}:{}:{id}", sheet.sheet_id);
+                let Some(rest) = fact.field.strip_prefix(list) else { continue };
+                if rest.is_empty() || rest.starts_with('.') {
+                    for (_, id) in &named {
+                        more.push((tool(*id), all.iter().map(|f| (*f).to_owned()).collect()));
+                    }
+                } else if let Some(selector) = rest.strip_prefix("[name=") {
+                    let mut values = serde_json::Deserializer::from_str(selector).into_iter::<Value>();
+                    let Some(Ok(Value::String(name))) = values.next() else { continue };
+                    let tail = &selector[values.byte_offset()..];
+                    let inside = tail.strip_prefix(']').unwrap_or("").strip_prefix('.').unwrap_or("");
+                    for (_, id) in named.iter().filter(|(n, _)| *n == name) {
+                        let fields = if inside.is_empty() { all.iter().map(|f| (*f).to_owned()).collect() } else { vec![inside.to_owned()] };
+                        more.push((tool(*id), fields));
+                    }
+                }
+            }
+        }
+        for (object, fields) in more {
+            self.add(&object, fields);
+        }
+        self
+    }
+
     pub fn difference(&self, other: &Self, cx: &Context) -> Vec<Fact> {
         self.0.iter().filter(|fact| !other.contains(fact, cx)).cloned().collect()
     }
@@ -502,7 +541,7 @@ impl Context {
             }
             Expr::Struct(reference) => {
                 if let Some((owner, index)) = self.wb.table(&reference.table) {
-                    out.add(&self.sid(owner), [format!("features.tables[name={}]", serde_json::json!(reference.table))]);
+                    out.add(&self.sid(owner), [format!("tables[name={}]", serde_json::json!(reference.table))]);
                     self.source(out, owner, self.wb.sheets[owner].tables[index].range, false);
                 }
             }

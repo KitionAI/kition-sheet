@@ -222,11 +222,15 @@ fn a_reply_edited_while_another_is_added_keeps_both() {
 fn an_internal_link_made_while_rows_are_inserted_above_its_target_follows_them() {
     let (blobs, mut a, mut b) = pair();
     edit(&mut a, &blobs, |wb| {
-        data(wb).hyperlinks.insert(at("A30"), kition_sheet_model::Hyperlink::new("Data!B40".into(), None));
+        data(wb).hyperlinks.insert(at("A5"), kition_sheet_model::Hyperlink::new("Data!B4".into(), None));
         vec![]
     });
-    edit(&mut b, &blobs, |wb| vec![common::insert_rows(wb, 0, 34, 2)]);
+    edit(&mut b, &blobs, |wb| vec![common::insert_rows(wb, 0, 1, 2)]);
     sync(&mut a, &mut b);
     assert_same("views", &a.model().workbook, &b.model().workbook);
-    assert_eq!(sheet(&a).hyperlinks.get(&at("A30")).map(|h| h.target.as_str()), Some("Data!B42"), "the link names the moved cell");
+    assert_eq!(
+        sheet(&a).hyperlinks.get(&at("A7")).map(|h| h.target.as_str()),
+        Some("Data!B6"),
+        "the link moved with its cell and names the moved cell"
+    );
 }

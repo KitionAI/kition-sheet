@@ -29,6 +29,9 @@ pub struct SheetIds {
     /// The `Chart` objects, parallel to the sheet's `charts` (empty while a replica older than
     /// schema version 4 keeps them in `features`).
     pub charts: Vec<ObjectId>,
+    /// The feature objects, parallel to the sheet's merges, conditional formats, validations,
+    /// tables, sparklines and pivot tables.
+    pub features: FeatureIds,
     /// The `Cell` objects whose `text` differs from what their view's cell writes, with the text
     /// they hold (see `cells`; usually none): the writer diffs a cell's new text against it.
     pub texts: HashMap<ObjectId, String>,
@@ -60,6 +63,17 @@ impl SheetIds {
             crate::lines::Axis::Cols => &self.cols,
         }
     }
+}
+
+/// A sheet's feature objects (see `features`), each list parallel to the sheet's own.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FeatureIds {
+    pub merges: Vec<ObjectId>,
+    pub cond_formats: Vec<ObjectId>,
+    pub validations: Vec<ObjectId>,
+    pub tables: Vec<ObjectId>,
+    pub sparklines: Vec<ObjectId>,
+    pub pivots: Vec<ObjectId>,
 }
 
 /// The objects of a view: `sheets` is parallel to `Workbook::sheets`, `names` to

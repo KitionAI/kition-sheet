@@ -185,21 +185,21 @@ impl SheetDocument {
         let sid = ids::sheet_tool_id(sheet);
         let mut under = Under::default();
         under.objects.push(json!(sid));
-        let table_field = format!("features.tables[name={}]", json!(table.name));
+        let table_field = format!("tables[name={}]", json!(table.name));
         let header_off = command == "table.headerRow" && !params.get("on").and_then(Value::as_bool).unwrap_or(!table.header_row);
         let mut table_fields = vec!["props.protection".into()];
         if header_off {
             // Removing a header preserves the current column names. A colleague's
             // header-cell edit can rename a column without changing this operation.
             let value = serde_json::to_value(table).map_err(|error| error.to_string())?;
-            table_fields.extend(
-                value
-                    .as_object()
-                    .into_iter()
-                    .flat_map(|table| table.keys())
-                    .filter(|key| key.as_str() != "columns")
-                    .map(|key| format!("{table_field}.{key}")),
-            );
+            table_fields.extend(value.as_object().into_iter().flat_map(|table| table.keys()).filter(|key| key.as_str() != "columns").map(|key| {
+                match key.as_str() {
+                    // The `Table` object's own fields; the rest of the table is its `props`.
+                    "id" => format!("{table_field}.key"),
+                    "name" | "range" => format!("{table_field}.{key}"),
+                    _ => format!("{table_field}.props.{key}"),
+                }
+            }));
         } else {
             table_fields.push(table_field);
         }
@@ -320,7 +320,7 @@ impl SheetDocument {
                     let Some(id) = dependency.id.as_str() else { continue };
                     if id == sid {
                         if let Some(fields) = &mut dependency.fields {
-                            fields.retain(|field| field == "name" || field == "props.protection" || field.starts_with("features.tables["));
+                            fields.retain(|field| field == "name" || field == "props.protection" || field.starts_with("tables["));
                         }
                     } else if id.starts_with("row:") {
                         if let Some(fields) = &mut dependency.fields {

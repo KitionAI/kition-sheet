@@ -9,9 +9,10 @@ use kition_kit::kdm::{ObjectId, Tx};
 use crate::KdmResult;
 
 /// For each item of `after`, the index of the item of `before` it is (`None`: a new one): an equal
-/// item first; then, with `key`, the item of the same key (an edited table keeps its object), and
-/// without it the items left over pair in order (an edited conditional format keeps its object).
-pub(crate) fn pair_items<T: PartialEq, K: Fn(&T) -> u32>(before: &[T], after: &[T], key: Option<K>) -> Vec<Option<usize>> {
+/// item first; then, with `same`, an item it is the same one as (a table of the same id, a
+/// conditional format moved with its priority renumbered); then, `in_order`, the items left over
+/// pair in order (an edited merged area keeps its object).
+pub(crate) fn pair_items<T: PartialEq>(before: &[T], after: &[T], same: Option<fn(&T, &T) -> bool>, in_order: bool) -> Vec<Option<usize>> {
     let mut partner: Vec<Option<usize>> = vec![None; after.len()];
     let mut used = vec![false; before.len()];
     for (j, a) in after.iter().enumerate() {
@@ -22,25 +23,23 @@ pub(crate) fn pair_items<T: PartialEq, K: Fn(&T) -> u32>(before: &[T], after: &[
             used[i] = true;
         }
     }
-    match key {
-        Some(key) => {
-            for (j, a) in after.iter().enumerate() {
-                if partner[j].is_some() {
-                    continue;
-                }
-                if let Some(i) = (0..before.len()).find(|&i| !used[i] && key(&before[i]) == key(a)) {
-                    partner[j] = Some(i);
-                    used[i] = true;
-                }
+    if let Some(same) = same {
+        for (j, a) in after.iter().enumerate() {
+            if partner[j].is_some() {
+                continue;
+            }
+            if let Some(i) = (0..before.len()).find(|&i| !used[i] && same(&before[i], a)) {
+                partner[j] = Some(i);
+                used[i] = true;
             }
         }
-        None => {
-            let mut free = (0..before.len()).filter(|&i| !used[i]).collect::<Vec<_>>().into_iter();
-            for slot in partner.iter_mut().filter(|p| p.is_none()) {
-                match free.next() {
-                    Some(i) => *slot = Some(i),
-                    None => break,
-                }
+    }
+    if in_order {
+        let mut free = (0..before.len()).filter(|&i| !used[i]).collect::<Vec<_>>().into_iter();
+        for slot in partner.iter_mut().filter(|p| p.is_none()) {
+            match free.next() {
+                Some(i) => *slot = Some(i),
+                None => break,
             }
         }
     }

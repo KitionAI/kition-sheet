@@ -45,7 +45,7 @@ impl SheetDocument {
                 // membership hold also detects a new sheet containing such a user.
                 under.premises.push(premise("workbook", ["~tabs"]));
                 for (owner, sheet) in state.wb.sheets.iter().enumerate() {
-                    under.premises.push(premise(ids::sheet_tool_id(sheet), ["features.tables"]));
+                    under.premises.push(premise(ids::sheet_tool_id(sheet), ["tables"]));
                     if sheet.tables.iter().any(|table| table.style.eq_ignore_ascii_case(replaced)) {
                         self.hold_shared_edit_reads(&mut under, owner, &[], false)?;
                     }
