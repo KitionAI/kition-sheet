@@ -275,7 +275,7 @@ impl Facts {
     /// of what the sheet's premises hold, as before those were objects of their own.
     pub fn less_feature_objects(mut self, cx: &Context) -> Self {
         let derived = self.feature_objects(cx);
-        self.0.retain(|fact| !derived.0.contains(fact) || fact.object.starts_with("sheet:"));
+        self.0.retain(|fact| !derived.0.contains(fact) || fact.kind == "identity" || fact.object.starts_with("sheet:"));
         self
     }
 
@@ -430,6 +430,10 @@ impl Context {
     pub fn whole(&self, out: &mut Facts) {
         let names = ToolIds::of_replica(&self.replica);
         for ty in self.replica.schema().types.keys() {
+            // Parts held without tool ids of their own are held by what holds them.
+            if matches!(ty.as_str(), "Merge" | "CondFormat" | "Validation" | "Sparkline" | "TableColumn" | "Reply") {
+                continue;
+            }
             for id in self.replica.objects_of_type(ty) {
                 let id = names.show(&id);
                 out.add(&id, ["*"]);
