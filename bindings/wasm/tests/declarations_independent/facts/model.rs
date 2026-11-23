@@ -275,7 +275,10 @@ impl Facts {
     /// of what the sheet's premises hold, as before those were objects of their own.
     pub fn less_feature_objects(mut self, cx: &Context) -> Self {
         let derived = self.feature_objects(cx);
-        self.0.retain(|fact| !derived.0.contains(fact) || fact.kind == "identity" || fact.object.starts_with("sheet:"));
+        let kept: Vec<Fact> = self.0.iter().filter(|fact| fact.object.starts_with("sheet:") || !derived.0.contains(fact)).cloned().collect();
+        // An object the kit holds for itself too (a table's formula inputs) still exists.
+        let own: BTreeSet<String> = kept.iter().filter(|fact| fact.kind != "identity").map(|fact| fact.object.clone()).collect();
+        self.0 = self.0.iter().filter(|fact| kept.contains(fact) || fact.kind == "identity" && own.contains(&fact.object)).cloned().collect();
         self
     }
 
