@@ -394,6 +394,24 @@ fn rewrite(wb: &mut kition_sheet_model::Workbook, target: &str, e: &Edit) {
         let host = wb.sheets.get(si).map(|s| s.name.clone()).unwrap_or_default();
         let Some(sh) = wb.sheet_mut(si) else { continue };
         adjust_feature_formulas(sh, |x| kition_sheet_formula::adjust::adjust(x, &host, target, e));
+        adjust_links(sh, |x| kition_sheet_formula::adjust::adjust(x, &host, target, e));
+    }
+}
+
+/// Maps the places in the workbook a sheet's links go to (`Sheet2!A1`, or behind a `#`) with
+/// `map`, so a link follows the rows and columns its target moves with.
+fn adjust_links(sh: &mut Sheet, map: impl Fn(kition_sheet_formula::Expr) -> kition_sheet_formula::Expr) {
+    for link in sh.hyperlinks.values_mut() {
+        if link.is_external() {
+            continue;
+        }
+        let (hash, place) = match link.target.strip_prefix('#') {
+            Some(place) => ("#", place),
+            None => ("", link.target.as_str()),
+        };
+        if let Some(text) = mapped_refs(place, &map) {
+            link.target = format!("{hash}{text}");
+        }
     }
 }
 
@@ -866,18 +884,7 @@ pub(crate) fn adjust_feature_formulas(sh: &mut Sheet, map: impl Fn(kition_sheet_
 /// the formulas beside its cells and links to places in the workbook.
 fn rename_sheet_features(sh: &mut Sheet, old: &str, new: &str) {
     adjust_feature_formulas(sh, |e| kition_sheet_formula::adjust::rename_sheet(e, old, new));
-    for link in sh.hyperlinks.values_mut() {
-        if link.is_external() {
-            continue;
-        }
-        let (hash, place) = match link.target.strip_prefix('#') {
-            Some(place) => ("#", place),
-            None => ("", link.target.as_str()),
-        };
-        if let Some(text) = renamed_refs(place, old, new) {
-            link.target = format!("{hash}{text}");
-        }
-    }
+    adjust_links(sh, |e| kition_sheet_formula::adjust::rename_sheet(e, old, new));
 }
 
 /// Where each sheet goes when the sheet at `from` moves to `to` (the others close up behind it

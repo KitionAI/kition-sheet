@@ -132,7 +132,7 @@ async fn automatic_calculation_holds_header_synchronization_inputs() {
     let outside = kition_kits::tools::call_as(
         &fixture.kits,
         "sheet_batch",
-        &json!({"path":"Book.xlsx","ops":[{"op":"set","target":"sheet:1","field":"tables.0.columns.0.name","value":"Outside"}]}),
+        &json!({"path":"Book.xlsx","ops":[{"op":"set","target":"table:1:1","field":"columns.0.name","value":"Outside"}]}),
         kition_kits::tools::CallOptions { guard: kition_kits::tools::Guard::Off, ..Default::default() },
         "outside",
     )

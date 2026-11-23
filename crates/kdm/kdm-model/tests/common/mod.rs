@@ -567,6 +567,19 @@ pub fn rewrite(wb: &mut Workbook, target: &str, e: &Edit) {
             n.formula = kition_sheet_formula::print(&adjust(expr, "\u{0}", target, e));
         }
     }
+    // Links to places in the workbook too (the engine's `adjust_links`).
+    for si in 0..wb.sheets.len() {
+        let host = wb.sheets[si].name.clone();
+        let Some(sheet) = wb.sheet_mut(si) else { continue };
+        for link in sheet.hyperlinks.values_mut().filter(|l| !l.is_external()) {
+            if let Ok(expr) = kition_sheet_formula::parse(&link.target) {
+                let new = adjust(expr.clone(), &host, target, e);
+                if new != expr {
+                    link.target = kition_sheet_formula::print(&new);
+                }
+            }
+        }
+    }
 }
 
 /// Inserts (`insert`) or deletes `count` rows (`rows`) or columns at `at` of sheet `sheet` the

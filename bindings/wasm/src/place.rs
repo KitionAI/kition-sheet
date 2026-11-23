@@ -292,6 +292,12 @@ impl SheetDocument {
             let replica = kdm.replica();
             let names = kition_kit::kdm::tool_ids::ToolIds::of_replica(replica);
             for ty in replica.schema().types.keys() {
+                // Parts of an object held without tool ids of their own (a sheet's merged areas,
+                // rules, validations and sparklines, a table's columns, a comment's replies): the
+                // premise on what holds them holds them.
+                if matches!(ty.as_str(), "Merge" | "CondFormat" | "Validation" | "Sparkline" | "TableColumn" | "Reply") {
+                    continue;
+                }
                 for object in replica.objects_of_type(ty) {
                     if under.premises.len() >= 100_000 {
                         return Err("document dependencies exceed the premise limit".into());
