@@ -220,7 +220,7 @@ impl Facts {
     /// A sheet's tables, pivot tables and comments are `Table`, `Pivot` and `Comment` objects
     /// with tool ids of their own: what a fact holds of a sheet's `tables` or `pivots` (the list, or an item by name and
     /// a path inside it) it holds of those objects too.
-    pub fn with_feature_objects(mut self, cx: &Context) -> Self {
+    fn feature_objects(&self, cx: &Context) -> Facts {
         const TABLE: [&str; 5] = ["key", "name", "range", "props", "columns"];
         const PIVOT: [&str; 6] = ["key", "name", "anchor", "source", "lastRange", "props"];
         let mut more: Vec<(String, Vec<String>)> = Vec::new();
@@ -263,9 +263,19 @@ impl Facts {
                 }
             }
         }
+        let mut out = Facts::default();
         for (object, fields) in more {
-            self.add(&object, fields);
+            out.add(&object, fields);
         }
+        out
+    }
+
+    /// These facts without the ones the kit's declaration derives from its own premises on a
+    /// sheet's tables, pivot tables and comments ([`Facts::feature_objects`]): the comparison is
+    /// of what the sheet's premises hold, as before those were objects of their own.
+    pub fn less_feature_objects(mut self, cx: &Context) -> Self {
+        let derived = self.feature_objects(cx);
+        self.0.retain(|fact| !derived.0.contains(fact) || fact.object.starts_with("sheet:"));
         self
     }
 

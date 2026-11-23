@@ -36,10 +36,9 @@ fn every_registered_write_path_compares_all_held_facts() {
             "view_file" => view::expected(&row, &params, &cx),
             "binding_entry" => binding(&params, &cx),
             _ => panic!("unprojected family {}", row.family),
-        }
-        .with_feature_objects(&cx);
+        };
         let under = doc.under(row.command, &params).unwrap().expect("registered write has an explicit declaration");
-        let actual = model::Facts::from_under(&under);
+        let actual = model::Facts::from_under(&under).less_feature_objects(&cx);
         actual.validate(&cx);
         let less = wanted.difference(&actual, &cx);
         let more = actual.difference(&wanted, &cx);
