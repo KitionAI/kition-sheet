@@ -62,6 +62,8 @@ const HANDLED: &[&str] = &[
     "features.rs: bubble_sizes: Option<String>",
     "features.rs: source: Option<String>",
     "features.rs: source: String",
+    // A link's target in the workbook (`Sheet2!A1`), in id form (`features::hyperlink_value`).
+    "features.rs: target: String",
     // A defined name's scope: the `Name` object's `scope` ref to a `Sheet`.
     "workbook.rs: scope: Option<usize>",
     // A sheet's own id (`sheetId`, its tool id `sheet:<id>`): stored as the `Sheet` object's
@@ -139,7 +141,6 @@ const HANDLED: &[&str] = &[
     "features.rs: std_dev: u8",
     "features.rs: style: String",
     "features.rs: style: u32",
-    "features.rs: target: String",
     "features.rs: text: String",
     "features.rs: title: Option<String>",
     "features.rs: tooltip: Option<String>",

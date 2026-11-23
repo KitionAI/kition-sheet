@@ -10,22 +10,27 @@
 //!   switches, protection (the password hash as a string: it does not fit a JSON number), print
 //!   settings (area, titles and breaks as line tokens), and the info of rows and columns below the
 //!   materialised part of the sheet (`farRows`, `farCols`, by index).
-//! - Sheet `features`: merges, conditional formats, validations, tables, the autofilter, charts,
-//!   sparklines and pivot tables, each range and anchor a position token, each formula in id form.
-//!   Shapes were here before schema version 3 and still read from here (`crate::shapes`).
+//! - A sheet's feature objects, each in its own list of the sheet so that two people's edits of
+//!   different ones (or of different fields of one) both stay: `Merge`, `CondFormat`,
+//!   `Validation`, `Table` (with its `TableColumn`s), `Sparkline` and `Pivot`; and its filter, the
+//!   `autofilter` register. Every range and anchor is a position token, every formula in id form.
+//! - A link's target in the workbook, in id form.
 //!
 //! Not stored (G4): the sheet's zoom, active cell and scroll position.
 
+use kition_kit::kdm::{ObjectId, Replica, Tx};
 use kition_sheet_core::RangeRef;
 use kition_sheet_model::{
-    AutoFilter, CfRule, CfValueKind, Chart, CondFormat, Image, LineInfo, PivotTable, PrintSettings, Shape, Sheet, SheetProtection, Sparkline, Table,
-    TotalsFn, Validation, Workbook,
+    AutoFilter, CfRule, CfValueKind, Chart, CondFormat, Hyperlink, Image, LineInfo, PivotTable, PrintSettings, Sheet, SheetProtection, Sparkline,
+    Table, TableColumn, TotalsFn, Validation, Workbook,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value as Json, json};
 
-use crate::codec::{Decode, Encode, decode_cell, decode_line, decode_range, decode_text, encode_cell, encode_range, encode_text};
+use crate::codec::{
+    Decode, Encode, decode_cell, decode_formula, decode_line, decode_range, decode_text, encode_cell, encode_formula, encode_range, encode_text,
+};
 use crate::lines::{Axis, Use, span};
 use crate::{KdmResult, kdm_err};
 
@@ -336,21 +341,6 @@ fn validation_strings(v: &mut Validation, f: &mut dyn FnMut(&mut String) -> KdmR
     Ok(())
 }
 
-fn table_strings(t: &mut Table, f: &mut dyn FnMut(&mut String) -> KdmResult<()>) -> KdmResult<()> {
-    for c in t.columns.iter_mut() {
-        if let Some(formula) = c.formula.as_mut() {
-            f(formula)?;
-        }
-        // A totals label is a formula only for a custom total.
-        if c.totals == TotalsFn::Custom
-            && let Some(label) = c.totals_label.as_mut()
-        {
-            f(label)?;
-        }
-    }
-    Ok(())
-}
-
 fn chart_strings(c: &mut Chart, f: &mut dyn FnMut(&mut String) -> KdmResult<()>) -> KdmResult<()> {
     for s in c.series.iter_mut() {
         f(&mut s.values)?;
@@ -403,14 +393,6 @@ fn decoded<D: Decode + ?Sized, T>(
     item
 }
 
-fn sparkline_strings(sp: &mut Sparkline, f: &mut dyn FnMut(&mut String) -> KdmResult<()>) -> KdmResult<()> {
-    f(&mut sp.source)
-}
-
-fn pivot_strings(p: &mut PivotTable, f: &mut dyn FnMut(&mut String) -> KdmResult<()>) -> KdmResult<()> {
-    f(&mut p.source)
-}
-
 fn ranges<E: Encode + ?Sized>(e: &mut E, s: usize, ranges: &[RangeRef], purpose: Use) -> KdmResult<Json> {
     Ok(Json::Array(ranges.iter().map(|r| encode_range(e, s, *r, purpose).map(Json::String)).collect::<KdmResult<Vec<_>>>()?))
 }
@@ -441,75 +423,176 @@ pub(crate) fn read_anchor<D: Decode + ?Sized>(d: &D, s: usize, v: &Json) -> Opti
     from_json(v)
 }
 
-/// A sheet's `features` register: only the kinds it has.
-pub(crate) fn sheet_features<E: Encode + ?Sized>(e: &mut E, s: usize, sh: &Sheet) -> KdmResult<Json> {
-    let mut out = Map::new();
-    if !sh.merges.is_empty() {
-        out.insert("merges".into(), ranges(e, s, &sh.merges, Use::Content)?);
+// ---------------------------------------------------------------- feature objects
+
+/// What a reader needs of the store a sheet's feature objects are in: a replica, or a
+/// transaction's view of one.
+pub(crate) trait Store {
+    /// A register field's value (`null` when the object or the field has none).
+    fn field(&self, id: &ObjectId, field: &str) -> Json;
+    /// A list field's items, each live object once, in order.
+    fn items(&self, id: &ObjectId, field: &str) -> Vec<ObjectId>;
+    /// Whether `id` is a live object of type `ty`.
+    fn is(&self, id: &ObjectId, ty: &str) -> bool;
+}
+
+impl Store for Replica {
+    fn field(&self, id: &ObjectId, field: &str) -> Json {
+        self.get(id, field).unwrap_or(Json::Null)
     }
-    if !sh.cond_formats.is_empty() {
-        let mut items = Vec::new();
-        for cf in &sh.cond_formats {
-            let mut item: CondFormat = cf.clone();
-            rule_strings(&mut item.rule, &mut |t: &mut String| {
-                *t = encode_text(e, t, Some(s))?;
-                Ok(())
-            })?;
-            let mut v = to_json(&item)?;
-            set(&mut v, "ranges", ranges(e, s, &cf.ranges, Use::Ref)?);
-            items.push(v);
-        }
-        out.insert("condFormats".into(), Json::Array(items));
+    fn items(&self, id: &ObjectId, field: &str) -> Vec<ObjectId> {
+        let mut seen = std::collections::HashSet::new();
+        self.list(id, field).unwrap_or_default().into_iter().filter(|o| self.exists(o) && seen.insert(o.clone())).collect()
     }
-    if !sh.validations.is_empty() {
-        let mut items = Vec::new();
-        for dv in &sh.validations {
-            let mut v = to_json(&encoded(e, s, dv, validation_strings)?)?;
-            set(&mut v, "ranges", ranges(e, s, &dv.ranges, Use::Ref)?);
-            items.push(v);
-        }
-        out.insert("validations".into(), Json::Array(items));
+    fn is(&self, id: &ObjectId, ty: &str) -> bool {
+        self.object_type(id).ok().as_deref() == Some(ty)
     }
-    if !sh.tables.is_empty() {
-        let mut items = Vec::new();
-        for t in &sh.tables {
-            let mut v = to_json(&encoded(e, s, t, table_strings)?)?;
-            set(&mut v, "range", Json::String(encode_range(e, s, t.range, Use::Content)?));
-            items.push(v);
-        }
-        out.insert("tables".into(), Json::Array(items));
+}
+
+impl Store for Tx<'_> {
+    fn field(&self, id: &ObjectId, field: &str) -> Json {
+        self.get(id, field).unwrap_or(Json::Null)
     }
-    if let Some(af) = &sh.autofilter {
-        let mut v = to_json(af)?;
-        set(&mut v, "range", Json::String(encode_range(e, s, af.range, Use::Content)?));
-        out.insert("autofilter".into(), v);
+    fn items(&self, id: &ObjectId, field: &str) -> Vec<ObjectId> {
+        let mut seen = std::collections::HashSet::new();
+        self.list_items(id, field).unwrap_or_default().into_iter().filter(|o| self.exists(o) && seen.insert(o.clone())).collect()
     }
-    // Charts and shapes are objects of their own (`crate::charts`, `crate::shapes`), no longer
-    // written here.
-    if !sh.sparklines.is_empty() {
-        let mut items = Vec::new();
-        for sp in &sh.sparklines {
-            let mut v = to_json(&encoded(e, s, sp, sparkline_strings)?)?;
-            set(&mut v, "cell", Json::String(encode_cell(e, s, sp.cell, Use::Ref)?));
-            items.push(v);
-        }
-        out.insert("sparklines".into(), Json::Array(items));
+    fn is(&self, id: &ObjectId, ty: &str) -> bool {
+        self.object_type(id).ok().as_deref() == Some(ty)
     }
-    if !sh.pivots.is_empty() {
-        let mut items = Vec::new();
-        for p in &sh.pivots {
-            let mut v = to_json(&encoded(e, s, p, pivot_strings)?)?;
-            set(&mut v, "anchor", Json::String(encode_cell(e, s, p.anchor, Use::Ref)?));
-            let last = match p.last_range {
-                Some(r) => Json::String(encode_range(e, s, r, Use::Ref)?),
-                None => Json::Null,
-            };
-            set(&mut v, "last_range", last);
-            items.push(v);
-        }
-        out.insert("pivots".into(), Json::Array(items));
+}
+
+/// The object types of a sheet's features and the `Sheet` list fields holding them.
+pub(crate) const MERGE: &str = "Merge";
+pub(crate) const COND_FORMAT: &str = "CondFormat";
+pub(crate) const VALIDATION: &str = "Validation";
+pub(crate) const TABLE: &str = "Table";
+pub(crate) const TABLE_COLUMN: &str = "TableColumn";
+pub(crate) const SPARKLINE: &str = "Sparkline";
+pub(crate) const PIVOT: &str = "Pivot";
+/// Every list of feature objects a sheet has, with its object type.
+pub(crate) const FEATURE_LISTS: [(&str, &str); 6] =
+    [("merges", MERGE), ("condFormats", COND_FORMAT), ("validations", VALIDATION), ("tables", TABLE), ("sparklines", SPARKLINE), ("pivots", PIVOT)];
+
+/// `v` as an object's fields, without the members `drop`.
+fn members(v: Json, drop: &[&str]) -> Map<String, Json> {
+    let mut map = match v {
+        Json::Object(map) => map,
+        _ => Map::new(),
+    };
+    for key in drop {
+        map.remove(*key);
     }
-    Ok(Json::Object(out))
+    map
+}
+
+fn object_of(fields: Vec<(&str, Json)>) -> Map<String, Json> {
+    fields.into_iter().map(|(k, v)| (k.to_owned(), v)).collect()
+}
+
+/// A merged area's `Merge` fields: its range as a position token.
+pub(crate) fn merge_fields<E: Encode + ?Sized>(e: &mut E, s: usize, r: RangeRef) -> KdmResult<Map<String, Json>> {
+    Ok(object_of(vec![("range", Json::String(encode_range(e, s, r, Use::Content)?))]))
+}
+
+/// A conditional format's `CondFormat` fields: its ranges as position tokens, its rule with every
+/// formula in id form, its priority and whether it stops the rules after it.
+pub(crate) fn cond_format_fields<E: Encode + ?Sized>(e: &mut E, s: usize, cf: &CondFormat) -> KdmResult<Map<String, Json>> {
+    let mut rule = cf.rule.clone();
+    rule_strings(&mut rule, &mut |t: &mut String| {
+        *t = encode_text(e, t, Some(s))?;
+        Ok(())
+    })?;
+    Ok(object_of(vec![
+        ("ranges", ranges(e, s, &cf.ranges, Use::Ref)?),
+        ("rule", to_json(&rule)?),
+        ("priority", json!(cf.priority)),
+        ("stopIfTrue", json!(cf.stop_if_true)),
+    ]))
+}
+
+/// A data validation's `Validation` fields: its ranges as position tokens, and the rest of it
+/// (its formulas in id form) as its `rule`.
+pub(crate) fn validation_fields<E: Encode + ?Sized>(e: &mut E, s: usize, dv: &Validation) -> KdmResult<Map<String, Json>> {
+    let rule = members(to_json(&encoded(e, s, dv, validation_strings)?)?, &["ranges"]);
+    Ok(object_of(vec![("ranges", ranges(e, s, &dv.ranges, Use::Ref)?), ("rule", Json::Object(rule))]))
+}
+
+/// A sparkline's `Sparkline` fields: its cell as a position token, its source in id form, the rest
+/// as its `props`.
+pub(crate) fn sparkline_fields<E: Encode + ?Sized>(e: &mut E, s: usize, sp: &Sparkline) -> KdmResult<Map<String, Json>> {
+    let source = encode_text(e, &sp.source, Some(s))?;
+    let props = members(to_json(sp)?, &["cell", "source"]);
+    Ok(object_of(vec![
+        ("cell", Json::String(encode_cell(e, s, sp.cell, Use::Ref)?)),
+        ("source", Json::String(source)),
+        ("props", Json::Object(props)),
+    ]))
+}
+
+/// A table's or pivot table's `key` (its tool id `table:<key>`, `pivot:<key>`): its sheet's id and
+/// its own.
+pub(crate) fn feature_key(sheet_id: u32, id: u32) -> String {
+    format!("{sheet_id}:{id}")
+}
+
+/// The local id at the end of a `key` ([`feature_key`]).
+fn id_of_key(key: &Json) -> Option<u32> {
+    key.as_str()?.rsplit(':').next()?.parse().ok()
+}
+
+/// A table's `Table` fields: its key, name, range (a position token) and the rest of it but its
+/// columns (`TableColumn` objects, [`table_column_fields`]) as its `props`.
+pub(crate) fn table_fields<E: Encode + ?Sized>(e: &mut E, s: usize, sheet_id: u32, t: &Table) -> KdmResult<Map<String, Json>> {
+    let props = members(to_json(t)?, &["id", "name", "range", "columns"]);
+    Ok(object_of(vec![
+        ("key", Json::String(feature_key(sheet_id, t.id))),
+        ("name", Json::String(t.name.clone())),
+        ("range", Json::String(encode_range(e, s, t.range, Use::Content)?)),
+        ("props", Json::Object(props)),
+    ]))
+}
+
+/// A table column's `TableColumn` fields: its name, and the rest of it (its calculated formula and
+/// custom totals label in id form) as its `props`.
+pub(crate) fn table_column_fields<E: Encode + ?Sized>(e: &mut E, s: usize, c: &TableColumn) -> KdmResult<Map<String, Json>> {
+    let mut c = c.clone();
+    if let Some(formula) = c.formula.as_mut() {
+        *formula = encode_text(e, formula, Some(s))?;
+    }
+    if c.totals == TotalsFn::Custom
+        && let Some(label) = c.totals_label.as_mut()
+    {
+        *label = encode_text(e, label, Some(s))?;
+    }
+    let name = Json::String(c.name.clone());
+    Ok(object_of(vec![("name", name), ("props", Json::Object(members(to_json(&c)?, &["name"])))]))
+}
+
+/// A pivot table's `Pivot` fields: its key, name, anchor cell and last range (position tokens),
+/// its source in id form, and the rest of it as its `props`.
+pub(crate) fn pivot_fields<E: Encode + ?Sized>(e: &mut E, s: usize, sheet_id: u32, p: &PivotTable) -> KdmResult<Map<String, Json>> {
+    let last = match p.last_range {
+        Some(r) => Json::String(encode_range(e, s, r, Use::Ref)?),
+        None => Json::Null,
+    };
+    let props = members(to_json(p)?, &["id", "name", "source", "anchor", "last_range"]);
+    Ok(object_of(vec![
+        ("key", Json::String(feature_key(sheet_id, p.id))),
+        ("name", Json::String(p.name.clone())),
+        ("anchor", Json::String(encode_cell(e, s, p.anchor, Use::Ref)?)),
+        ("source", Json::String(encode_text(e, &p.source, Some(s))?)),
+        ("lastRange", last),
+        ("props", Json::Object(props)),
+    ]))
+}
+
+/// A sheet's filter, as its `autofilter` register holds it (its range a position token).
+pub(crate) fn autofilter_value<E: Encode + ?Sized>(e: &mut E, s: usize, af: Option<&AutoFilter>) -> KdmResult<Json> {
+    let Some(af) = af else { return Ok(Json::Null) };
+    let mut v = to_json(af)?;
+    set(&mut v, "range", Json::String(encode_range(e, s, af.range, Use::Content)?));
+    Ok(v)
 }
 
 /// Whether a range token was written for a single cell (both ends of each axis the same line).
@@ -519,95 +602,142 @@ fn written_single(token: &str) -> bool {
     same(rows) && same(cols)
 }
 
-fn items<'v>(v: &'v Json, key: &str) -> impl Iterator<Item = &'v Json> {
-    v.get(key).and_then(Json::as_array).into_iter().flatten()
+/// A list of range tokens decoded, the ranges left empty dropped; `None` when no range is left.
+fn read_ranges<D: Decode + ?Sized>(d: &D, s: usize, v: &Json) -> Option<Vec<RangeRef>> {
+    let decoded: Vec<RangeRef> = v.as_array().into_iter().flatten().filter_map(Json::as_str).filter_map(|t| decode_range(d, s, t)).collect();
+    (!decoded.is_empty()).then_some(decoded)
 }
 
-/// `item` with its `key` (a list of range tokens) decoded, the ranges left empty dropped;
-/// `None` when no range is left.
-fn with_ranges<D: Decode + ?Sized>(d: &D, s: usize, item: &Json, key: &str) -> Option<Json> {
-    let decoded: Vec<Json> =
-        items(item, key).filter_map(Json::as_str).filter_map(|t| decode_range(d, s, t)).filter_map(|r| to_json(&r).ok()).collect();
-    if decoded.is_empty() {
-        return None;
+/// A string field's text.
+fn text_of<S: Store + ?Sized>(store: &S, id: &ObjectId, field: &str) -> Option<String> {
+    store.field(id, field).as_str().map(str::to_owned)
+}
+
+/// A merged area back. One that rows or columns deleted concurrently shrank to one cell is no
+/// merge any more (the engine's rule); one that was written as one cell is kept as it was.
+fn read_merge<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, id: &ObjectId) -> Option<RangeRef> {
+    let token = text_of(store, id, "range")?;
+    decode_range(d, s, &token).filter(|m| !m.is_single() || written_single(&token))
+}
+
+fn read_cond_format<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, id: &ObjectId) -> Option<CondFormat> {
+    let ranges = read_ranges(d, s, &store.field(id, "ranges"))?;
+    let mut rule: CfRule = from_json(store.field(id, "rule"))?;
+    let _ = rule_strings(&mut rule, &mut |t: &mut String| {
+        *t = decode_text(d, t, Some(s));
+        Ok(())
+    });
+    let priority = store.field(id, "priority").as_u64().and_then(|p| u32::try_from(p).ok()).unwrap_or(0);
+    let stop_if_true = store.field(id, "stopIfTrue").as_bool().unwrap_or(false);
+    Some(CondFormat { ranges, rule, priority, stop_if_true })
+}
+
+fn read_validation<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, id: &ObjectId) -> Option<Validation> {
+    let ranges = read_ranges(d, s, &store.field(id, "ranges"))?;
+    let mut rule = store.field(id, "rule");
+    set(&mut rule, "ranges", to_json(&ranges).ok()?);
+    from_json::<Validation>(rule).map(|dv| decoded(d, s, dv, validation_strings))
+}
+
+fn read_sparkline<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, id: &ObjectId) -> Option<Sparkline> {
+    let cell = decode_cell(d, s, &text_of(store, id, "cell")?)?;
+    let source = decode_text(d, &text_of(store, id, "source").unwrap_or_default(), Some(s));
+    let mut v = store.field(id, "props");
+    set(&mut v, "cell", to_json(&cell).ok()?);
+    set(&mut v, "source", Json::String(source));
+    from_json(v)
+}
+
+fn read_table<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, id: &ObjectId) -> Option<Table> {
+    let range = decode_range(d, s, &text_of(store, id, "range")?)?;
+    let mut columns = Vec::new();
+    for column in store.items(id, "columns") {
+        if !store.is(&column, TABLE_COLUMN) {
+            continue;
+        }
+        let mut v = store.field(&column, "props");
+        set(&mut v, "name", Json::String(text_of(store, &column, "name").unwrap_or_default()));
+        let Some(mut c) = from_json::<TableColumn>(v) else { continue };
+        if let Some(formula) = c.formula.as_mut() {
+            *formula = decode_text(d, formula, Some(s));
+        }
+        if c.totals == TotalsFn::Custom
+            && let Some(label) = c.totals_label.as_mut()
+        {
+            *label = decode_text(d, label, Some(s));
+        }
+        columns.push(c);
     }
-    let mut item = item.clone();
-    set(&mut item, key, Json::Array(decoded));
-    Some(item)
+    let mut v = store.field(id, "props");
+    set(&mut v, "id", json!(id_of_key(&store.field(id, "key")).unwrap_or(0)));
+    set(&mut v, "name", Json::String(text_of(store, id, "name").unwrap_or_default()));
+    set(&mut v, "range", to_json(&range).ok()?);
+    set(&mut v, "columns", to_json(&columns).ok()?);
+    from_json(v)
 }
 
-/// `item` with its `key` (one range token) decoded; `None` when nothing is left of the range.
-fn with_range<D: Decode + ?Sized>(d: &D, s: usize, item: &Json, key: &str) -> Option<Json> {
-    let r = item.get(key).and_then(Json::as_str).and_then(|t| decode_range(d, s, t))?;
-    let mut item = item.clone();
-    set(&mut item, key, to_json(&r).ok()?);
-    Some(item)
+fn read_pivot<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, id: &ObjectId) -> Option<PivotTable> {
+    let anchor = text_of(store, id, "anchor").and_then(|t| decode_cell(d, s, &t)).unwrap_or_default();
+    let last = text_of(store, id, "lastRange").and_then(|t| decode_range(d, s, &t));
+    let mut v = store.field(id, "props");
+    set(&mut v, "id", json!(id_of_key(&store.field(id, "key")).unwrap_or(0)));
+    set(&mut v, "name", Json::String(text_of(store, id, "name").unwrap_or_default()));
+    set(&mut v, "anchor", to_json(&anchor).ok()?);
+    set(&mut v, "source", Json::String(decode_text(d, &text_of(store, id, "source").unwrap_or_default(), Some(s))));
+    set(&mut v, "last_range", to_json(&last).ok()?);
+    from_json(v)
 }
 
-fn with_anchor<D: Decode + ?Sized>(d: &D, s: usize, item: &Json) -> Option<Json> {
-    let anchor = read_anchor(d, s, item.get("anchor")?)?;
-    let mut item = item.clone();
-    set(&mut item, "anchor", to_json(&anchor).ok()?);
-    Some(item)
+/// Reads sheet `sheet`'s feature objects and its filter into `sh`, in list order. What does not
+/// read (or has nothing left on the grid) is skipped, as is a merged area or a table overlapping
+/// one read before it (made concurrently by two people): the engine keeps them apart.
+pub(crate) fn read_features<D: Decode + ?Sized, S: Store + ?Sized>(store: &S, d: &D, s: usize, sheet: &ObjectId, sh: &mut Sheet) {
+    let of = |field: &str, ty: &str| -> Vec<ObjectId> { store.items(sheet, field).into_iter().filter(|o| store.is(o, ty)).collect() };
+    for id in of("merges", MERGE) {
+        if let Some(m) = read_merge(store, d, s, &id)
+            && !sh.merges.iter().any(|x| x.intersects(&m))
+        {
+            sh.merges.push(m);
+        }
+    }
+    sh.cond_formats = of("condFormats", COND_FORMAT).iter().filter_map(|id| read_cond_format(store, d, s, id)).collect();
+    sh.validations = of("validations", VALIDATION).iter().filter_map(|id| read_validation(store, d, s, id)).collect();
+    for id in of("tables", TABLE) {
+        if let Some(t) = read_table(store, d, s, &id)
+            && !sh.tables.iter().any(|x| x.range.intersects(&t.range))
+        {
+            sh.tables.push(t);
+        }
+    }
+    sh.autofilter = Some(store.field(sheet, "autofilter")).filter(|v| v.is_object()).and_then(|item| {
+        let r = item.get("range").and_then(Json::as_str).and_then(|t| decode_range(d, s, t))?;
+        let mut item = item.clone();
+        set(&mut item, "range", to_json(&r).ok()?);
+        from_json::<AutoFilter>(item)
+    });
+    sh.sparklines = of("sparklines", SPARKLINE).iter().filter_map(|id| read_sparkline(store, d, s, id)).collect();
+    sh.pivots = of("pivots", PIVOT).iter().filter_map(|id| read_pivot(store, d, s, id)).collect();
 }
 
-/// Reads a sheet's `features` into `sh`. What does not read (or has nothing left on the grid) is
-/// skipped.
-pub(crate) fn read_features<D: Decode + ?Sized>(d: &D, s: usize, v: &Json, sh: &mut Sheet) {
-    // A merge that rows or columns deleted concurrently shrank to one cell is no merge any more
-    // (the engine's rule); one that was written as one cell is kept as it was.
-    sh.merges =
-        items(v, "merges").filter_map(Json::as_str).filter_map(|t| decode_range(d, s, t).filter(|m| !m.is_single() || written_single(t))).collect();
-    sh.cond_formats = items(v, "condFormats")
-        .filter_map(|item| with_ranges(d, s, item, "ranges"))
-        .filter_map(from_json::<CondFormat>)
-        .map(|mut cf| {
-            let _ = rule_strings(&mut cf.rule, &mut |t: &mut String| {
-                *t = decode_text(d, t, Some(s));
-                Ok(())
-            });
-            cf
-        })
-        .collect();
-    sh.validations = items(v, "validations")
-        .filter_map(|item| with_ranges(d, s, item, "ranges"))
-        .filter_map(from_json::<Validation>)
-        .map(|dv| decoded(d, s, dv, validation_strings))
-        .collect();
-    sh.tables = items(v, "tables")
-        .filter_map(|item| with_range(d, s, item, "range"))
-        .filter_map(from_json::<Table>)
-        .map(|t| decoded(d, s, t, table_strings))
-        .collect();
-    sh.autofilter = v.get("autofilter").and_then(|item| with_range(d, s, item, "range")).and_then(from_json::<AutoFilter>);
-    sh.charts = items(v, "charts")
-        .filter_map(|item| with_anchor(d, s, item))
-        .filter_map(from_json::<Chart>)
-        .map(|c| decoded(d, s, c, chart_strings))
-        .collect();
-    sh.shapes = items(v, "shapes").filter_map(|item| with_anchor(d, s, item)).filter_map(from_json::<Shape>).collect();
-    sh.sparklines = items(v, "sparklines")
-        .filter_map(|item| {
-            let cell = item.get("cell").and_then(Json::as_str).and_then(|t| decode_cell(d, s, t))?;
-            let mut item = item.clone();
-            set(&mut item, "cell", to_json(&cell).ok()?);
-            Some(item)
-        })
-        .filter_map(from_json::<Sparkline>)
-        .map(|sp| decoded(d, s, sp, sparkline_strings))
-        .collect();
-    sh.pivots = items(v, "pivots")
-        .filter_map(|item| {
-            let anchor = item.get("anchor").and_then(Json::as_str).and_then(|t| decode_cell(d, s, t)).unwrap_or_default();
-            let last = item.get("last_range").and_then(Json::as_str).and_then(|t| decode_range(d, s, t));
-            let mut item = item.clone();
-            set(&mut item, "anchor", to_json(&anchor).ok()?);
-            set(&mut item, "last_range", to_json(&last).ok()?);
-            Some(item)
-        })
-        .filter_map(from_json::<PivotTable>)
-        .map(|p| decoded(d, s, p, pivot_strings))
-        .collect();
+// ---------------------------------------------------------------- links
+
+/// A link's value in its sheet's `hyperlinks` map: a target in the workbook (a cell or range,
+/// `Sheet2!A1`) in id form (`codec`), so it follows rows, columns and sheets moved or renamed.
+pub(crate) fn hyperlink_value<E: Encode + ?Sized>(e: &mut E, s: usize, h: &Hyperlink) -> KdmResult<Json> {
+    let mut v = to_json(h)?;
+    if !h.is_external() {
+        set(&mut v, "target", Json::String(encode_formula(e, &h.target, None, Some(s))?));
+    }
+    Ok(v)
+}
+
+/// A link back from its `hyperlinks` entry.
+pub(crate) fn read_hyperlink<D: Decode + ?Sized>(d: &D, s: usize, v: Json) -> Option<Hyperlink> {
+    let mut h: Hyperlink = from_json(v)?;
+    if !h.is_external() {
+        h.target = decode_formula(d, &h.target, Some(s));
+    }
+    Some(h)
 }
 
 // ---------------------------------------------------------------- images and names

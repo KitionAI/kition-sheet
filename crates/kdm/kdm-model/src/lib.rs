@@ -15,18 +15,18 @@
 //!   style's content hash to the style, so cells name styles by content and styles made
 //!   concurrently are all kept;
 //! - a `Name` has its name, its scope (a `ref` to a `Sheet`), its formula in id form and `props`;
-//! - a `Sheet` has its name, `props` and `features` registers (see `features`), its `rows` and
-//!   `cols` lists of line objects (see `lines`: dense from the top, deleted lines kept as
-//!   tombstones), its `cells`, `comments` and `hyperlinks` maps keyed `<rowObject>:<colObject>`,
-//!   and its `images`, each an `Image` with `props` and a content-addressed `blob`;
-//! - a cell's entry names its `Cell` object (schema version 2, plan K5; see `cells`): its text
+//! - a `Sheet` has its name and `props` register, its `rows` and `cols` lists of line objects
+//!   (see `lines`: dense from the top, deleted lines kept as tombstones), its `cells`, `comments`
+//!   and `hyperlinks` maps keyed `<rowObject>:<colObject>` (each comment a `Comment` object, see
+//!   `comments`), its feature objects (`Merge`, `CondFormat`, `Validation`, `Table`, `Sparkline`,
+//!   `Pivot`, each in a list of its own, and the `autofilter` register: see `features`), and its
+//!   `images`, each an `Image` with `props` and a content-addressed `blob`;
+//! - a cell's entry names its `Cell` object (plan K5; see `cells`): its text
 //!   value in a `text` field (concurrent typing in one cell merges by character; a rich text
 //!   cell's runs are its marks, see `marks`), everything else in an `input` register (a formula in id form, see
 //!   `codec`, or a number, boolean or error: formulas are not merged by character, so an id
 //!   token is never cut), its style's key, a legacy array formula's range, a picture's blob.
-//!   Formula results are never stored: the engine recalculates them (G1). A 0.3 replica (cells
-//!   as `{input, style?, array?, picture?}` registers) reads as well, and [`SheetSession`]
-//!   rewrites it in the object form before its first write (K6).
+//!   Formula results are never stored: the engine recalculates them (G1).
 //!   The plan's `media` list is not needed: image and cell picture bytes are blob fields, which
 //!   are content-addressed (one copy per content), so no `Media` type exists.
 //!
@@ -45,6 +45,7 @@ mod blob_gc;
 mod cells;
 mod charts;
 mod codec;
+mod comments;
 mod compare;
 mod constraints;
 mod feature_ids;

@@ -140,6 +140,10 @@ pub struct Out {
 }
 
 impl Out {
+    /// The bytes of a part written so far.
+    pub(crate) fn part_bytes(&self, name: &str) -> Option<&[u8]> {
+        self.parts.iter().find(|(n, _)| n == name).map(|(_, data)| data.as_slice())
+    }
     pub fn part(&mut self, name: &str, content_type: Option<&str>, data: Vec<u8>) {
         if let Some(ct) = content_type {
             self.overrides.push((format!("/{name}"), ct.to_string()));
@@ -213,7 +217,7 @@ fn write_package(wb: &Workbook, main: &str) -> Result<Vec<u8>, IoError> {
     };
 
     let mut wb_rels = Rels::default();
-    crate::identities::write(wb, &mut out, &mut wb_rels)?;
+    let mut sheet_parts = Vec::with_capacity(wb.sheets.len());
     let mut pivots = crate::pivot::PivotWriter::default();
     let mut sheets_xml = String::new();
     // Each sheet's own id (`Sheet::sheet_id`), so it survives the file.
@@ -223,6 +227,7 @@ fn write_package(wb: &Workbook, main: &str) -> Result<Vec<u8>, IoError> {
         pivots.add_sheet(wb, i, &mut out, &mut rels);
         let name = format!("xl/worksheets/sheet{}.xml", i + 1);
         out.part(&name, Some(CT_WORKSHEET), xml.into_bytes());
+        sheet_parts.push(name);
         if !rels.is_empty() {
             out.part(&format!("xl/worksheets/_rels/sheet{}.xml.rels", i + 1), None, rels.xml().into_bytes());
         }
@@ -367,6 +372,7 @@ fn write_package(wb: &Workbook, main: &str) -> Result<Vec<u8>, IoError> {
         );
         wb_rels.add("sheetMetadata", "metadata.xml");
     }
+    crate::identities::write(wb, &mut out, &mut wb_rels, &sheet_parts, w.as_bytes())?;
     out.part("xl/workbook.xml", Some(main), w.into_bytes());
     out.part("xl/_rels/workbook.xml.rels", None, wb_rels.xml().into_bytes());
 

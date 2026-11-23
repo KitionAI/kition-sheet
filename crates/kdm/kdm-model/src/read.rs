@@ -18,7 +18,7 @@ use serde_json::Value;
 
 use crate::cells::{self, OddTexts};
 use crate::codec::{Decode, decode_formula, decode_input, decode_range};
-use crate::features::{from_json, read_features, read_image, read_line_info, read_sheet_props, read_workbook_props, to_json};
+use crate::features::{from_json, read_features, read_hyperlink, read_image, read_line_info, read_sheet_props, read_workbook_props, to_json};
 use crate::ids::{Ids, Known, SheetIds};
 use crate::lines::{Axis, LineAt, Lines};
 use crate::write::style_key;
@@ -64,7 +64,7 @@ struct ReadSheet {
     cols: Lines,
 }
 
-/// One cell as read: its view, its picture, its `Cell` object (none for a 0.3 register) and that
+/// One cell as read: its view, its picture, its `Cell` object and that
 /// object's text when it is not what the view's cell would write (`cells::OddTexts`).
 struct ReadCell {
     cell: Cell,
@@ -388,10 +388,11 @@ impl<'r> Reader<'r> {
         Ok(Some(p))
     }
 
-    /// One `cells` entry of sheet `k`: a `Cell` object, or a 0.3 register entry (see `cells`).
+    /// One `cells` entry of sheet `k`: a `Cell` object (see `cells`).
     /// `None`: the entry names no live `Cell`.
     fn cell(&mut self, k: usize, v: &Value) -> KdmResult<Option<ReadCell>> {
         let Some((object, stored)) = cells::read_entry(self.replica, v) else { return Ok(None) };
+        let object = Some(object);
         let (value, formula) = match &stored.input {
             Some(input) => decode_input(&*self, input, k),
             None if stored.text.is_empty() => (CellValue::Empty, None),
@@ -428,7 +429,7 @@ impl<'r> Reader<'r> {
         // The sheet's id (its tool id `sheet:<id>`); a replica without one is numbered below.
         sheet.sheet_id = replica.get(&object, "sheetId")?.as_u64().and_then(|id| u32::try_from(id).ok()).unwrap_or(0);
         read_sheet_props(&*self, k, &replica.get(&object, "props")?, &mut sheet);
-        read_features(&*self, k, &replica.get(&object, "features")?, &mut sheet);
+        read_features(replica, &*self, k, &object, &mut sheet);
 
         // Line info, by the lines' places.
         for axis in Axis::BOTH {
@@ -474,12 +475,12 @@ impl<'r> Reader<'r> {
             sheet.cells.set(at, read.cell);
         }
         for (key, v) in replica.map_entries(&object, "comments")? {
-            if let (Some(at), Some(c)) = (self.position(k, &key), from_json(v)) {
+            if let (Some(at), Some(c)) = (self.position(k, &key), crate::comments::read(replica, &v)) {
                 sheet.comments.insert(at, c);
             }
         }
         for (key, v) in replica.map_entries(&object, "hyperlinks")? {
-            if let (Some(at), Some(h)) = (self.position(k, &key), from_json(v)) {
+            if let (Some(at), Some(h)) = (self.position(k, &key), read_hyperlink(&*self, k, v)) {
                 sheet.hyperlinks.insert(at, h);
             }
         }
@@ -496,43 +497,29 @@ impl<'r> Reader<'r> {
             images.push(image);
         }
 
-        // Shapes: `Shape` objects (schema version 3); a replica that has none keeps any in its
-        // `features` (read above).
+        // Shapes and charts: the `Shape` and `Chart` objects naming the sheet.
         let mut shapes = Vec::new();
-        let listed = crate::shapes::of_sheet(replica, &object);
-        if !listed.is_empty() {
-            sheet.shapes.clear();
-            let mut seen = HashSet::new();
-            for shape in listed {
-                if !replica.exists(&shape) || !seen.insert(shape.clone()) || replica.object_type(&shape).ok().as_deref() != Some(crate::shapes::SHAPE)
-                {
-                    continue;
-                }
-                let text = replica.text(&shape, "text").unwrap_or_default();
-                if let Some(s) = crate::shapes::read(&*self, k, &replica.get(&shape, "frame")?, &crate::shapes::look_of(replica, &shape)?, text) {
-                    sheet.shapes.push(s);
-                    shapes.push(shape);
-                }
+        let mut seen = HashSet::new();
+        for shape in crate::shapes::of_sheet(replica, &object) {
+            if !replica.exists(&shape) || !seen.insert(shape.clone()) || replica.object_type(&shape).ok().as_deref() != Some(crate::shapes::SHAPE) {
+                continue;
+            }
+            let text = replica.text(&shape, "text").unwrap_or_default();
+            if let Some(s) = crate::shapes::read(&*self, k, &replica.get(&shape, "frame")?, &crate::shapes::look_of(replica, &shape)?, text) {
+                sheet.shapes.push(s);
+                shapes.push(shape);
             }
         }
-
-        // Charts: `Chart` objects (schema version 4); a replica that has none keeps any in its
-        // `features` (read above).
         let mut charts = Vec::new();
-        let listed = crate::charts::of_sheet(replica, &object);
-        if !listed.is_empty() {
-            sheet.charts.clear();
-            let mut seen = HashSet::new();
-            for chart in listed {
-                if !replica.exists(&chart) || !seen.insert(chart.clone()) || replica.object_type(&chart).ok().as_deref() != Some(crate::charts::CHART)
-                {
-                    continue;
-                }
-                let members = replica.map_entries(&chart, "parts")?.into_iter().collect();
-                if let Some(c) = crate::charts::read(&*self, k, &replica.get(&chart, "frame")?, members) {
-                    sheet.charts.push(c);
-                    charts.push(chart);
-                }
+        let mut seen = HashSet::new();
+        for chart in crate::charts::of_sheet(replica, &object) {
+            if !replica.exists(&chart) || !seen.insert(chart.clone()) || replica.object_type(&chart).ok().as_deref() != Some(crate::charts::CHART) {
+                continue;
+            }
+            let members = replica.map_entries(&chart, "parts")?.into_iter().collect();
+            if let Some(c) = crate::charts::read(&*self, k, &replica.get(&chart, "frame")?, members) {
+                sheet.charts.push(c);
+                charts.push(chart);
             }
         }
 
@@ -544,13 +531,20 @@ impl<'r> Reader<'r> {
     }
 }
 
-/// A hash of everything sheet `object` holds but its cells and lines: its name, `props`,
-/// `features`, comments, hyperlinks and images. Two equal shapes, before and after a change of the
+/// A hash of everything sheet `object` holds but its cells and lines: its name, `props`, filter,
+/// which feature objects it lists, comments, hyperlinks, images, shapes and charts (a change
+/// inside a feature object, a comment or a drawing changes that object, which the caller tells). Two equal shapes, before and after a change of the
 /// sheet's object, mean only its `cells` map and lines changed ([`reread_cells`] checks the lines).
 pub(crate) fn sheet_shape(replica: &Replica, object: &ObjectId) -> KdmResult<u64> {
     let mut h = DefaultHasher::new();
-    for field in ["name", "props", "features"] {
+    for field in ["name", "props", "autofilter"] {
         replica.get(object, field)?.to_string().hash(&mut h);
+    }
+    for (field, _) in crate::features::FEATURE_LISTS {
+        for id in replica.list(object, field)? {
+            id.as_str().hash(&mut h);
+        }
+        0xfeu8.hash(&mut h);
     }
     for field in ["comments", "hyperlinks"] {
         for (key, v) in replica.map_entries(object, field)? {
@@ -643,8 +637,8 @@ pub(crate) fn reread_cells(
                 patch.appended[axis.slot()].push((line.clone(), info));
             }
         }
-        // A sheet that changed with no changed object of its own changed its map some other way
-        // (a 0.3 register entry merged in): read in full.
+        // A sheet that changed with no changed object of its own changed its map some other way:
+        // read in full.
         if let Some(delta) = delta.as_ref().filter(|d| d.values().any(|(j, _)| *j == k)) {
             let Some(places) = index.get_mut(k).and_then(Option::as_mut) else { return Ok(false) };
             for (id, change) in delta.iter().filter(|(_, (j, _))| *j == k) {
@@ -684,7 +678,7 @@ pub(crate) fn reread_cells(
                 found.insert(id);
             }
             let holds = named.as_ref().is_some_and(|id| holders.contains(id));
-            // A register (0.3) entry, a changed object (or one showing a changed object's text), or
+            // An entry naming no object, a changed object (or one showing a changed object's text), or
             // a place the view has no cell at.
             let read = named.is_none() || changed.is_some() || holds || (!view.cells.has(at) && !view.cell_pictures.contains_key(&at));
             if let Some(id) = named {

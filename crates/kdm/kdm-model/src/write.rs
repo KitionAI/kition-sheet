@@ -34,10 +34,13 @@ use serde_json::{Map, Value, json};
 
 use crate::cells::{self, Stored, ViewText};
 use crate::codec::{Encode, encode_formula, encode_input, encode_range};
-use crate::features::{image_props, line_info, name_props, sheet_features, sheet_props, to_json, workbook_props};
+use crate::features::{
+    COND_FORMAT, MERGE, PIVOT, SPARKLINE, TABLE, TABLE_COLUMN, VALIDATION, cond_format_fields, hyperlink_value, image_props, line_info, merge_fields,
+    name_props, pivot_fields, sheet_props, sparkline_fields, table_column_fields, table_fields, to_json, validation_fields, workbook_props,
+};
 use crate::ids::{Ids, SheetIds};
 use crate::lines::{Axis, Use, pad_id};
-use crate::list::{longest_increasing, sync_list};
+use crate::list::{longest_increasing, pair_items, sync_list};
 use crate::{KdmResult, root_id};
 
 /// More lines than this in one insert are not applied as list inserts: the sheet is then written
@@ -517,14 +520,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
             let was = if is_fresh { None } else { partner.get(j).copied().flatten().and_then(|i| Some((before_sheets.get(i)?, old.get(i)?))) };
             let restructured = restructured.get(j).copied().unwrap_or(false);
             self.write_sheet(j, was, sheet, sheet_ids.get(j).copied().unwrap_or(0), is_fresh, restructured)?;
-            if before.is_none_or(|wb| {
-                partner
-                    .get(j)
-                    .copied()
-                    .flatten()
-                    .and_then(|i| wb.sheets.get(i))
-                    .is_none_or(|old| old.tables != sheet.tables || old.pivots != sheet.pivots || old.shapes != sheet.shapes)
-            }) {
+            if before.is_none_or(|wb| partner.get(j).copied().flatten().and_then(|i| wb.sheets.get(i)).is_none_or(|old| old.shapes != sheet.shapes)) {
                 let object = self.sheets.get(j).map(|ids| ids.object.clone()).ok_or_else(|| crate::kdm_err("missing feature owner"))?;
                 self.wrote |= crate::feature_ids::sheet(self.tx, &object, sheet)?;
             }
@@ -595,6 +591,17 @@ impl<'w, 'tx> Writer<'w, 'tx> {
         for field in ["rows", "cols", "images"] {
             for item in self.tx.list_items(&sid.object, field)? {
                 self.delete(&item)?;
+            }
+        }
+        for (field, _) in crate::features::FEATURE_LISTS {
+            for item in self.tx.list_items(&sid.object, field)? {
+                self.delete_held(&item)?;
+            }
+        }
+        for (_, v) in self.tx.map_entries(&sid.object, "comments")? {
+            if let Some(comment) = crate::comments::object_of(self.tx, &v) {
+                crate::comments::delete(self.tx, &comment)?;
+                self.wrote = true;
             }
         }
         for object in sid.shapes.iter().chain(&sid.charts) {
@@ -827,6 +834,216 @@ impl<'w, 'tx> Writer<'w, 'tx> {
         Ok(())
     }
 
+    /// Creates an object of type `ty` with `fields` (null ones left out).
+    fn create_fields(&mut self, ty: &str, fields: Map<String, Value>) -> KdmResult<ObjectId> {
+        self.wrote = true;
+        self.tx.create(ty, fields.into_iter().filter(|(_, v)| !v.is_null()).collect())
+    }
+
+    /// Deletes an object a sheet's list holds, with what it holds in turn (a table's columns).
+    fn delete_held(&mut self, object: &ObjectId) -> KdmResult<()> {
+        if !self.tx.exists(object) {
+            return Ok(());
+        }
+        if self.tx.object_type(object).ok().as_deref() == Some(TABLE) {
+            for column in self.tx.list_items(object, "columns")? {
+                self.delete(&column)?;
+            }
+        }
+        self.delete(object)
+    }
+
+    /// Makes `owner.field` (a list of `ty` objects) hold `after`, given that the view held
+    /// `before` there: an item keeps the object of the item it pairs with ([`pair_items`]; by
+    /// `key` when given), whose fields are set where they differ (`fields` gives them) and whose
+    /// own lists `children` writes; the other items get new objects, and the objects no item
+    /// keeps are deleted. A list whose live objects are not the view's items one to one (the
+    /// read skipped one) is written as new.
+    fn sync_items<T: PartialEq>(
+        &mut self,
+        owner: &ObjectId,
+        field: &str,
+        ty: &str,
+        before: &[T],
+        after: &[T],
+        key: Option<fn(&T) -> u32>,
+        fields: &mut dyn FnMut(&mut Self, &T) -> KdmResult<Map<String, Value>>,
+        children: &mut dyn FnMut(&mut Self, &ObjectId, Option<&T>, &T) -> KdmResult<()>,
+    ) -> KdmResult<()> {
+        let mut seen = HashSet::new();
+        let listed = self.tx.list_items(owner, field)?;
+        let old: Vec<ObjectId> = listed
+            .into_iter()
+            .filter(|o| self.tx.exists(o) && seen.insert(o.clone()) && self.tx.object_type(o).ok().as_deref() == Some(ty))
+            .collect();
+        let before = if before.len() == old.len() { before } else { &[] };
+        let partner = pair_items(before, after, key);
+        let mut out = Vec::with_capacity(after.len());
+        for (place, item) in after.iter().enumerate() {
+            let values = fields(self, item)?;
+            let object = match partner.get(place).copied().flatten().and_then(|i| Some((i, old.get(i)?.clone()))) {
+                Some((i, object)) => {
+                    for (name, v) in values {
+                        self.set(&object, &name, v)?;
+                    }
+                    children(self, &object, before.get(i), item)?;
+                    object
+                }
+                None => {
+                    let object = self.create_fields(ty, values)?;
+                    children(self, &object, None, item)?;
+                    object
+                }
+            };
+            out.push(object);
+        }
+        let keep: HashSet<&ObjectId> = out.iter().collect();
+        for object in &old {
+            if !keep.contains(object) {
+                self.delete_held(object)?;
+            }
+        }
+        self.wrote |= sync_list(self.tx, owner, field, &out)? > 0;
+        Ok(())
+    }
+
+    /// Writes sheet `j`'s feature objects (see `features`) and its filter over the view's
+    /// (`before`; `None`: a new sheet).
+    fn write_features(&mut self, j: usize, object: &ObjectId, before: Option<&Sheet>, after: &Sheet, sheet_id: u32) -> KdmResult<()> {
+        self.sync_items(
+            object,
+            "merges",
+            MERGE,
+            before.map_or(&[][..], |b| b.merges.as_slice()),
+            &after.merges,
+            None,
+            &mut |w, r| merge_fields(w, j, *r),
+            &mut |_, _, _, _| Ok(()),
+        )?;
+        self.sync_items(
+            object,
+            "condFormats",
+            COND_FORMAT,
+            before.map_or(&[][..], |b| b.cond_formats.as_slice()),
+            &after.cond_formats,
+            None,
+            &mut |w, cf| cond_format_fields(w, j, cf),
+            &mut |_, _, _, _| Ok(()),
+        )?;
+        self.sync_items(
+            object,
+            "validations",
+            VALIDATION,
+            before.map_or(&[][..], |b| b.validations.as_slice()),
+            &after.validations,
+            None,
+            &mut |w, dv| validation_fields(w, j, dv),
+            &mut |_, _, _, _| Ok(()),
+        )?;
+        self.sync_items(
+            object,
+            "tables",
+            TABLE,
+            before.map_or(&[][..], |b| b.tables.as_slice()),
+            &after.tables,
+            Some(|t: &kition_sheet_model::Table| t.id),
+            &mut |w, t| table_fields(w, j, sheet_id, t),
+            &mut |w, table, was: Option<&kition_sheet_model::Table>, t| {
+                let was = was.map_or(&[][..], |b| b.columns.as_slice());
+                w.sync_items(
+                    table,
+                    "columns",
+                    TABLE_COLUMN,
+                    was,
+                    &t.columns,
+                    None,
+                    &mut |w, c| table_column_fields(w, j, c),
+                    &mut |_, _, _, _| Ok(()),
+                )
+            },
+        )?;
+        self.sync_items(
+            object,
+            "sparklines",
+            SPARKLINE,
+            before.map_or(&[][..], |b| b.sparklines.as_slice()),
+            &after.sparklines,
+            None,
+            &mut |w, sp| sparkline_fields(w, j, sp),
+            &mut |_, _, _, _| Ok(()),
+        )?;
+        self.sync_items(
+            object,
+            "pivots",
+            PIVOT,
+            before.map_or(&[][..], |b| b.pivots.as_slice()),
+            &after.pivots,
+            Some(|p: &kition_sheet_model::PivotTable| p.id),
+            &mut |w, p| pivot_fields(w, j, sheet_id, p),
+            &mut |_, _, _, _| Ok(()),
+        )?;
+        let filter = crate::features::autofilter_value(self, j, after.autofilter.as_ref())?;
+        self.set(object, "autofilter", filter)
+    }
+
+    /// Writes sheet `j`'s comments (see `comments`). `full`: every comment of `after` is written
+    /// and the rest go; otherwise only those that differ from `before`'s. `fresh`: the map is new.
+    fn write_comments(&mut self, j: usize, full: bool, fresh: bool, was: Option<(&Sheet, &SheetIds)>, after: &Sheet) -> KdmResult<()> {
+        let before = was.map(|(b, _)| b);
+        let Some(object) = self.sheets.get(j).map(|s| s.object.clone()) else { return Ok(()) };
+        if full {
+            let mut new: HashMap<String, CellRef> = HashMap::with_capacity(after.comments.len());
+            for c in after.comments.keys() {
+                new.insert(self.key_of(j, *c, true)?, *c);
+            }
+            // The view's comment at a key, by the lines before this write.
+            let was = was.map(|(b, sid)| (b, BeforeLines::new(sid)));
+            if !fresh {
+                for (key, _) in self.tx.map_entries(&object, "comments")? {
+                    match new.remove(&key) {
+                        Some(c) => {
+                            let old = was.as_ref().and_then(|(b, lines)| b.comments.get(&lines.position(&key)?));
+                            if let Some(comment) = after.comments.get(&c) {
+                                self.wrote |= crate::comments::write(self.tx, &object, &key, old, comment)?;
+                            }
+                        }
+                        None => {
+                            self.wrote |= crate::comments::remove(self.tx, &object, &key)?;
+                        }
+                    }
+                }
+            }
+            let mut rest: Vec<(String, CellRef)> = new.into_iter().collect();
+            rest.sort_by(|a, b| a.0.cmp(&b.0));
+            for (key, c) in rest {
+                if let Some(comment) = after.comments.get(&c) {
+                    self.wrote |= crate::comments::write(self.tx, &object, &key, None, comment)?;
+                }
+            }
+            return Ok(());
+        }
+        let Some(b) = before else { return Ok(()) };
+        let all: HashSet<CellRef> = b.comments.keys().chain(after.comments.keys()).copied().collect();
+        let mut changed: Vec<CellRef> = all.into_iter().filter(|c| b.comments.get(c) != after.comments.get(c)).collect();
+        changed.sort_unstable();
+        for c in changed {
+            match after.comments.get(&c) {
+                Some(comment) => {
+                    let key = self.key_of(j, c, true)?;
+                    self.wrote |= crate::comments::write(self.tx, &object, &key, b.comments.get(&c), comment)?;
+                }
+                None => {
+                    let key = self.key_of(j, c, false)?;
+                    let by_index = cell_key(&format!("#{}", c.row), &format!("#{}", c.col));
+                    for key in [key, by_index] {
+                        self.wrote |= crate::comments::remove(self.tx, &object, &key)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Writes one of a sheet's maps keyed by cell. `full`: `entries` are every entry the map
     /// should hold, and whatever else it holds goes; otherwise `entries` are the positions that
     /// changed (`None`: no entry any more). `fresh`: the map is new (empty).
@@ -1022,41 +1239,26 @@ impl<'w, 'tx> Writer<'w, 'tx> {
             }
         }
 
-        // Comments and links.
-        for (field, changed) in [
-            ("comments", before.is_none_or(|b| b.comments != after.comments)),
-            ("hyperlinks", before.is_none_or(|b| b.hyperlinks != after.hyperlinks)),
-        ] {
-            if !full && !changed {
-                continue;
-            }
+        // Comments (`Comment` objects, see `comments`) and links.
+        if full || before.is_some_and(|b| b.comments != after.comments) {
+            self.write_comments(j, full, fresh, was_cells, after)?;
+        }
+        if full || before.is_some_and(|b| b.hyperlinks != after.hyperlinks) {
             let mut entries = Vec::new();
-            let value_at = |c: &CellRef| -> KdmResult<Option<Value>> {
-                Ok(match field {
-                    "comments" => after.comments.get(c).map(to_json).transpose()?,
-                    _ => after.hyperlinks.get(c).map(to_json).transpose()?,
-                })
-            };
-            if full {
-                let keys: Vec<CellRef> =
-                    if field == "comments" { after.comments.keys().copied().collect() } else { after.hyperlinks.keys().copied().collect() };
-                for c in keys {
-                    entries.push((c, value_at(&c)?));
-                }
-            } else if let Some(b) = before {
-                let mut keys: Vec<CellRef> = if field == "comments" {
-                    let all: HashSet<CellRef> = b.comments.keys().chain(after.comments.keys()).copied().collect();
-                    all.into_iter().filter(|c| b.comments.get(c) != after.comments.get(c)).collect()
-                } else {
+            let keys: Vec<CellRef> = match before {
+                Some(b) if !full => {
                     let all: HashSet<CellRef> = b.hyperlinks.keys().chain(after.hyperlinks.keys()).copied().collect();
-                    all.into_iter().filter(|c| b.hyperlinks.get(c) != after.hyperlinks.get(c)).collect()
-                };
-                keys.sort_unstable();
-                for c in keys {
-                    entries.push((c, value_at(&c)?));
+                    let mut keys: Vec<CellRef> = all.into_iter().filter(|c| b.hyperlinks.get(c) != after.hyperlinks.get(c)).collect();
+                    keys.sort_unstable();
+                    keys
                 }
+                _ => after.hyperlinks.keys().copied().collect(),
+            };
+            for c in keys {
+                let v = after.hyperlinks.get(&c).map(|h| hyperlink_value(self, j, h)).transpose()?;
+                entries.push((c, v));
             }
-            self.write_map(j, field, full, fresh, entries)?;
+            self.write_map(j, "hyperlinks", full, fresh, entries)?;
         }
 
         // Props and features, after the cells (whose rows and columns now exist).
@@ -1089,13 +1291,11 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                 || b.validations != after.validations
                 || b.tables != after.tables
                 || b.autofilter != after.autofilter
-                || b.charts != after.charts
                 || b.sparklines != after.sparklines
                 || b.pivots != after.pivots
         });
         if features_changed {
-            let v = sheet_features(self, j, after)?;
-            self.set(&object, "features", v)?;
+            self.write_features(j, &object, before, after, sheet_id)?;
             self.wrote |= crate::constraints::write(self.tx, &object, after)?;
         }
 
@@ -1139,14 +1339,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
         }
         for (key, value) in wanted {
             if !current.iter().any(|(name, v)| name == &key && v == &value) {
-                match self.tx.map_set(sheet, field, &key, value) {
-                    // SDK 34dff06 cannot add a container to an existing object. Old replicas
-                    // still discover drawings by their sheet ref; preserve that migration.
-                    Err(kition_kit::kdm::KdmError::NotFound(path)) if self.tx.min_schema_version() < 6 && path == format!("{sheet}.{field}") => {
-                        return Ok(());
-                    }
-                    result => result?,
-                }
+                self.tx.map_set(sheet, field, &key, value)?;
                 self.wrote = true;
             }
         }
@@ -1191,8 +1384,6 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                         after.identities.drawings.get(&chart.id),
                     )?;
                     crate::charts::write_parts(self.tx, &created, &parts)?;
-                    // A version 3 reader would find no charts in the sheet's `features`.
-                    self.tx.raise_schema_version(crate::charts::CHART_OBJECTS)?;
                     out.push(created);
                 }
             }

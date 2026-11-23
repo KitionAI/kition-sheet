@@ -5,7 +5,8 @@
 //!   the same line objects), are removed; the first entry stays, where the reader reads it.
 //! - A name scoped to a deleted sheet becomes a workbook name.
 //! - A cell, comment or link keyed by a deleted (`gone`) or unknown row or column is removed
-//!   (a cell with its `Cell` object), on every sheet whose cells or lines changed. (Formulas naming a deleted line read `#REF!`,
+//!   (a cell with its `Cell` object, a comment with its `Comment`), on every sheet whose cells or
+//!   lines changed. (Formulas naming a deleted line read `#REF!`,
 //!   and feature ranges shrink to their live lines, as they are read: neither needs a repair.)
 //! - A workbook left without sheets gets one, under an id derived from the state, so replicas
 //!   repairing the same state create the same object.
@@ -79,6 +80,9 @@ pub(crate) fn validate_known(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, view
             && view_lines_and_new(tx, sheet, "cols", &sid.cols, &new_lines)?
         {
             wrote |= clean_list(tx, sheet, "images")?;
+            if !cells_only {
+                wrote |= clean_features(tx, sheet)?;
+            }
             continue;
         }
         let mut lines_changed = false;
@@ -117,6 +121,9 @@ pub(crate) fn validate_known(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, view
             }
         }
         wrote |= clean_list(tx, sheet, "images")?;
+        if !cells_only {
+            wrote |= clean_features(tx, sheet)?;
+        }
         if !any_gone || !(lines_changed || changed.contains(sheet)) {
             continue;
         }
@@ -126,11 +133,16 @@ pub(crate) fn validate_known(tx: &mut Tx<'_>, changed: &BTreeSet<ObjectId>, view
         for field in ["cells", "comments", "hyperlinks"] {
             for (key, v) in tx.map_entries(sheet, field)? {
                 if !valid_key(&key, rows, cols) {
-                    // A cell's `Cell` object goes with its entry.
+                    // A cell's `Cell` object goes with its entry, a comment's `Comment` too.
                     if field == "cells"
                         && let Some(cell) = crate::cells::object_of(tx, &v)
                     {
                         tx.delete(&cell)?;
+                    }
+                    if field == "comments"
+                        && let Some(comment) = crate::comments::object_of(tx, &v)
+                    {
+                        crate::comments::delete(tx, &comment)?;
                     }
                     tx.map_delete(sheet, field, &key)?;
                     wrote = true;
@@ -217,6 +229,20 @@ fn ensure_sheet(tx: &mut Tx<'_>, root: &ObjectId) -> KdmResult<bool> {
     };
     tx.list_insert(root, "sheets", 0, &object)?;
     Ok(true)
+}
+
+/// [`clean_list`] for each of a sheet's lists of feature objects, and a table's columns.
+fn clean_features(tx: &mut Tx<'_>, sheet: &ObjectId) -> KdmResult<bool> {
+    let mut wrote = false;
+    for (field, _) in crate::features::FEATURE_LISTS {
+        wrote |= clean_list(tx, sheet, field)?;
+    }
+    for table in tx.list_items(sheet, "tables")? {
+        if tx.object_type(&table).ok().as_deref() == Some(crate::features::TABLE) {
+            wrote |= clean_list(tx, &table, "columns")?;
+        }
+    }
+    Ok(wrote)
 }
 
 /// Removes list entries naming an object that no longer exists, and every entry after the first

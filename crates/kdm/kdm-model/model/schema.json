@@ -1,7 +1,7 @@
 {
   "kdm": 1,
   "kit": "kit.sheet",
-  "schemaVersion": 6,
+  "schemaVersion": 1,
   "root": "Workbook",
   "types": {
     "Workbook": {
@@ -57,12 +57,16 @@
         "rows": { "kind": "list", "of": "Row" },
         "cols": { "kind": "list", "of": "Col" },
         "cells": { "kind": "map", "owns": true, "of": "Cell" },
-        "comments": { "kind": "map" },
+        "comments": { "kind": "map", "owns": true, "of": "Comment" },
         "hyperlinks": { "kind": "map" },
-        "features": { "kind": "json", "optional": true },
+        "merges": { "kind": "list", "of": "Merge", "readOnly": true, "sample": false },
+        "condFormats": { "kind": "list", "of": "CondFormat", "readOnly": true, "sample": false },
+        "validations": { "kind": "list", "of": "Validation", "readOnly": true, "sample": false },
+        "tables": { "kind": "list", "of": "Table", "readOnly": true, "sample": false },
+        "autofilter": { "kind": "json", "optional": true, "readOnly": true, "sample": false },
+        "sparklines": { "kind": "list", "of": "Sparkline", "readOnly": true, "sample": false },
+        "pivots": { "kind": "list", "of": "Pivot", "readOnly": true, "sample": false },
         "constraints": { "kind": "map", "readOnly": true, "sample": false },
-        "tableObjects": { "kind": "list", "of": "Table", "readOnly": true, "sample": false },
-        "pivotObjects": { "kind": "list", "of": "Pivot", "readOnly": true, "sample": false },
         "groups": { "kind": "list", "of": "Group", "readOnly": true, "sample": false },
         "images": { "kind": "list", "of": "Image", "sample": false },
         "shapes": { "kind": "map", "owns": true, "readOnly": true, "sample": false },
@@ -132,7 +136,7 @@
         "picture": { "kind": "json", "optional": true },
         "by": { "kind": "string", "optional": true, "readOnly": true },
         "key": { "kind": "string", "optional": true, "readOnly": true },
-        "merged": { "kind": "json", "optional": true }
+        "raced": { "kind": "json", "optional": true, "readOnly": true, "sample": false }
       }
     },
     "Row": {
@@ -198,9 +202,18 @@
       "fields": {
         "key": { "kind": "string", "readOnly": true },
         "name": { "kind": "string", "readOnly": true },
-        "sheet": { "kind": "ref", "of": "Sheet", "readOnly": true, "position": true },
         "range": { "kind": "string", "readOnly": true, "position": true },
-        "columns": { "kind": "json", "readOnly": true }
+        "columns": { "kind": "list", "of": "TableColumn", "readOnly": true },
+        "props": { "kind": "json", "readOnly": true }
+      }
+    },
+    "TableColumn": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "label": "name",
+      "fields": {
+        "name": { "kind": "string", "readOnly": true },
+        "props": { "kind": "json", "readOnly": true }
       }
     },
     "Pivot": {
@@ -211,9 +224,62 @@
       "fields": {
         "key": { "kind": "string", "readOnly": true },
         "name": { "kind": "string", "readOnly": true },
-        "sheet": { "kind": "ref", "of": "Sheet", "readOnly": true, "position": true },
         "anchor": { "kind": "string", "readOnly": true, "position": true },
-        "source": { "kind": "string", "readOnly": true }
+        "source": { "kind": "string", "readOnly": true },
+        "lastRange": { "kind": "string", "optional": true, "readOnly": true },
+        "props": { "kind": "json", "readOnly": true }
+      }
+    },
+    "Merge": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "fields": {
+        "range": { "kind": "string", "readOnly": true }
+      }
+    },
+    "CondFormat": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "fields": {
+        "ranges": { "kind": "json", "readOnly": true },
+        "rule": { "kind": "json", "readOnly": true },
+        "priority": { "kind": "integer", "readOnly": true },
+        "stopIfTrue": { "kind": "boolean", "readOnly": true }
+      }
+    },
+    "Validation": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "fields": {
+        "ranges": { "kind": "json", "readOnly": true },
+        "rule": { "kind": "json", "readOnly": true }
+      }
+    },
+    "Sparkline": {
+      "batchOps": { "*": { "direct": true } },
+      "readOnly": true,
+      "fields": {
+        "cell": { "kind": "string", "readOnly": true },
+        "source": { "kind": "string", "readOnly": true },
+        "props": { "kind": "json", "readOnly": true }
+      }
+    },
+    "Comment": {
+      "batchOps": { "*": { "direct": true } },
+      "fields": {
+        "author": { "kind": "string", "label": "comment author" },
+        "text": { "kind": "text", "label": "comment text" },
+        "replies": { "kind": "list", "of": "Reply" },
+        "threaded": { "kind": "boolean", "label": "threaded", "sample": false },
+        "resolved": { "kind": "boolean", "label": "resolved" },
+        "visible": { "kind": "boolean", "label": "shown" }
+      }
+    },
+    "Reply": {
+      "batchOps": { "*": { "direct": true } },
+      "fields": {
+        "author": { "kind": "string", "label": "reply author" },
+        "text": { "kind": "text", "label": "reply text" }
       }
     },
     "Style": {
@@ -249,7 +315,6 @@
         "sheet": { "kind": "ref", "of": "Sheet", "position": true },
         "z": { "kind": "number", "optional": true, "position": true, "sample": false },
         "frame": { "kind": "json", "optional": true, "position": true, "label": "drawing anchor", "sample": false },
-        "props": { "kind": "json", "optional": true },
         "look": { "kind": "map" },
         "text": { "kind": "text" },
         "key": { "kind": "integer", "optional": true, "readOnly": true }

@@ -1,4 +1,4 @@
-//! Cells as `Cell` objects (schema version 2, plan K5 and K6).
+//! Cells as `Cell` objects (plan K5).
 //!
 //! A sheet's `cells` map names each cell's `Cell` object by its key (`<rowObject>:<colObject>`):
 //! the map value is the object's id. A `Cell` has
@@ -13,7 +13,7 @@
 //!   of two edits of one formula could cut a token (an id half from each side), which would read
 //!   as neither person's reference; a number merged by character would be a number nobody typed.
 //!   So two people editing one formula or number concurrently keep one of the edits, as before;
-//! - `style`, `array` and `picture` registers, as the 0.3 entry's fields;
+//! - `style`, `array` and `picture` registers;
 //! - `by`, a register only a `Cell` created ahead of a person's write has: the creating
 //!   session's token, which is also the end of the object's id ([`ahead_id`]: the cell's derived
 //!   id, `-`, the token). Two sessions typing into one empty cell at once so create two objects,
@@ -21,15 +21,15 @@
 //! - `key`, also only on a `Cell` created ahead: its key in the map, so a peer reading the new
 //!   cell finds its place without reading the whole map (rule P1), and a session finds the other
 //!   object of such a race (its key's entry names another object);
-//! - `merged`, only on a `Cell` created ahead that kept its entry in such a race: the other
+//! - `raced`, only on a `Cell` created ahead that kept its entry in such a race: the other
 //!   objects, by id. The cell's text is its own text and then theirs, in that order, every
 //!   replica reading the same; a write diffs each object's part on its own, so typing in any of
 //!   them merges by character and each person's undo reverts their own typing. Its other
 //!   registers are the kept object's (an input that is not text, a formula or a number, is a
-//!   whole value: the other's is not read). Sessions record `merged` (`SheetSession`) as they see
+//!   whole value: the other's is not read). Sessions record `raced` (`SheetSession`) as they see
 //!   the race, after an import and when opening a replica merged elsewhere, with the other's
 //!   style when the kept one has none. Cells written in bulk (an import, a paste into a full write) have no `by`,
-//!   `key` or `merged`: on a large workbook it would be most of the snapshot again.
+//!   `key` or `raced`: on a large workbook it would be most of the snapshot again.
 //!
 //! **Clearing** a cell empties its `Cell` (its text deleted by character, its registers unset)
 //! and keeps the object and its entry ([`clear`]): what another person types into the cell at
@@ -38,10 +38,6 @@
 //!
 //! When `input` is set, it is the cell's content, whatever `text` holds (text typed concurrently
 //! with a formula stays in `text`, unread, until the cell is text again).
-//!
-//! **0.3 replicas** (schema version 1) hold each cell as one register `{input, style?, array?,
-//! picture?}` in the map. [`read_entry`] reads both forms; [`migrate`] rewrites every register
-//! entry as a `Cell` object, in one `system` transaction before a session's first write.
 
 use std::collections::HashMap;
 
@@ -68,20 +64,20 @@ pub(crate) struct Stored {
     pub array: Option<String>,
     pub picture: Option<Value>,
     /// The `Cell` objects whose texts make up `text`, each with its own (the kept object first,
-    /// then the ones `merged` names); empty when only one object holds the text.
+    /// then the ones `raced` names); empty when only one object holds the text.
     pub parts: Vec<(ObjectId, String)>,
     /// `text` as runs with their marks, when any run has one (empty: plain text).
     pub runs: Vec<TextRun>,
 }
 
 impl Stored {
-    /// A stored 0.3 input string split into the register and the text.
+    /// A stored input string (`codec::encode_input`) split into the register and the text.
     pub fn from_input(input: &str) -> Stored {
         let (input, text) = split_input(input);
         Stored { input, text, ..Stored::default() }
     }
 
-    /// The cell's input as one string, the 0.3 form `codec::decode_input` reads.
+    /// The cell's input as one string, the form `codec::decode_input` reads.
     #[cfg(test)]
     pub fn joined(&self) -> String {
         match &self.input {
@@ -160,8 +156,7 @@ pub(crate) fn mark(tx: &mut Tx<'_>, id: &ObjectId, runs: &[TextRun]) -> KdmResul
 }
 
 /// The id a cell's object is created under: derived from its sheet and key, so replicas that
-/// create one cell concurrently (two migrations of one 0.3 replica, two people typing into one
-/// empty cell) create one object, not two that one map entry chooses between.
+/// create one cell concurrently create one object, not two that one map entry chooses between.
 ///
 /// The id is `c` and 96 bits of the hash in base 62 (18 characters): every cell stores its id
 /// twice (its object's key and its map entry), so on a workbook of 100,000 cells each character
@@ -181,7 +176,7 @@ pub(crate) fn cell_id(sheet: &ObjectId, key: &str) -> ObjectId {
 }
 
 /// The register of a `Cell` created ahead naming the other objects of a race (see the module docs).
-pub(crate) const MERGED: &str = "merged";
+pub(crate) const RACED: &str = "raced";
 
 /// The id of a `Cell` created ahead of a person's write by the session whose token is `by`: the
 /// cell's derived id ([`cell_id`]), `-`, the token. Sessions creating one cell at once make
@@ -196,7 +191,7 @@ pub(crate) fn ahead_id(derived: &ObjectId, by: &str) -> ObjectId {
     ObjectId::from_string(format!("{}-{by}", derived.as_str()))
 }
 
-/// Whether `id` is a `Cell` created ahead ([`ahead_id`]), the only cells that can hold `merged`.
+/// Whether `id` is a `Cell` created ahead ([`ahead_id`]), the only cells that can hold `raced`.
 pub(crate) fn is_ahead(id: &str) -> bool {
     id.len() > 19 && id.starts_with('c') && id.as_bytes().get(18) == Some(&b'-')
 }
@@ -205,16 +200,6 @@ pub(crate) fn is_ahead(id: &str) -> bool {
 pub(crate) fn object_of(tx: &Tx<'_>, value: &Value) -> Option<ObjectId> {
     let id = ObjectId::from_string(value.as_str()?);
     (tx.exists(&id) && tx.object_type(&id).ok().as_deref() == Some(CELL)).then_some(id)
-}
-
-/// A 0.3 register entry (`{input, style?, array?, picture?}`) as what it stores.
-pub(crate) fn from_register(v: &Value) -> Option<Stored> {
-    let map = v.as_object()?;
-    let mut stored = Stored::from_input(map.get("input").and_then(Value::as_str).unwrap_or(""));
-    stored.style = map.get("style").and_then(Value::as_str).map(str::to_owned);
-    stored.array = map.get("array").and_then(Value::as_str).map(str::to_owned);
-    stored.picture = map.get("picture").filter(|p| !p.is_null()).cloned();
-    Some(stored)
 }
 
 /// Creates the `Cell` object of `key` in `sheet`'s `cells` map, holding `stored`, and names it in
@@ -236,8 +221,8 @@ pub(crate) fn create(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str, stored: &Stor
 }
 
 /// Empties the cell `key` of `sheet` (see the module docs): a `Cell` object keeps its entry, its
-/// text is deleted and its registers unset; any other entry (a 0.3 register, an entry naming no
-/// live object) is removed. Answers whether it wrote anything.
+/// text is deleted and its registers unset; an entry naming no live object is removed. Answers
+/// whether it wrote anything.
 pub(crate) fn clear(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str) -> KdmResult<bool> {
     let v = tx.map_get(sheet, "cells", key)?;
     if v.is_null() {
@@ -254,7 +239,7 @@ pub(crate) fn clear(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str) -> KdmResult<b
             wrote = true;
         }
     }
-    for part in std::iter::once(id.clone()).chain(merged_of(tx, &id)) {
+    for part in std::iter::once(id.clone()).chain(raced_of(tx, &id)) {
         let len = tx.text_len(&part, TEXT)?;
         if len > 0 {
             tx.text_delete(&part, TEXT, 0, len)?;
@@ -304,12 +289,12 @@ pub(crate) fn split_parts(olds: &[String], new: &str) -> Vec<String> {
     out
 }
 
-/// The live `Cell` objects `id`'s `merged` names (none unless `id` is a cell created ahead).
-pub(crate) fn merged_of(tx: &Tx<'_>, id: &ObjectId) -> Vec<ObjectId> {
+/// The live `Cell` objects `id`'s `raced` names (none unless `id` is a cell created ahead).
+pub(crate) fn raced_of(tx: &Tx<'_>, id: &ObjectId) -> Vec<ObjectId> {
     if !is_ahead(id.as_str()) {
         return Vec::new();
     }
-    let v = tx.get(id, MERGED).unwrap_or(Value::Null);
+    let v = tx.get(id, RACED).unwrap_or(Value::Null);
     v.as_array()
         .into_iter()
         .flatten()
@@ -333,50 +318,8 @@ pub(crate) fn remove(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str) -> KdmResult<
     Ok(true)
 }
 
-/// The schema version whose cells are `Cell` objects: a migrated replica requires it (a 0.3
-/// reader, on version 1, would read the objects' ids as cells with no input).
-pub(crate) const CELL_OBJECTS: u32 = 2;
-
-/// Rewrites every 0.3 register entry of every sheet's `cells` map as a `Cell` object (K6), and
-/// raises the document's minimum schema version to [`CELL_OBJECTS`] in the same transaction (which
-/// must be a `system` one), so a 0.3 reader refuses the migrated replica instead of misreading it.
-/// Answers whether it wrote anything; a replica in the object form is left as it is.
-pub(crate) fn migrate(tx: &mut Tx<'_>) -> KdmResult<bool> {
-    let root = crate::root_id();
-    if !tx.exists(&root) {
-        return Ok(false);
-    }
-    let mut wrote = tx.raise_schema_version(CELL_OBJECTS)?;
-    for sheet in tx.list_items(&root, "sheets")? {
-        if tx.object_type(&sheet).ok().as_deref() != Some("Sheet") {
-            continue;
-        }
-        let mut legacy: Vec<(String, Stored)> =
-            tx.map_entries(&sheet, "cells")?.into_iter().filter_map(|(key, v)| Some((key, from_register(&v)?))).collect();
-        legacy.sort_by(|a, b| a.0.cmp(&b.0));
-        for (key, stored) in legacy {
-            create(tx, &sheet, &key, &stored)?;
-            wrote = true;
-        }
-    }
-    Ok(wrote)
-}
-
-/// Whether the replica is not yet in the object form: it does not require schema version
-/// [`CELL_OBJECTS`] (a 0.3 replica, even one with no cells). A migrated replica can still get a
-/// register entry, merged from a 0.3 peer's edit made before it saw the migration; that reads
-/// as any 0.3 entry does, and its next write makes it a `Cell` ([`create`]), so no scan of
-/// every cell looks for one.
-pub(crate) fn needs_migration(replica: &Replica) -> bool {
-    replica.exists(&crate::root_id()) && replica.min_schema_version() < CELL_OBJECTS
-}
-
-/// A cell's stored form as the replica holds it: a `Cell` object or a 0.3 register. `None`: the
-/// entry names no live `Cell` (and is not a register).
-pub(crate) fn read_entry(replica: &Replica, v: &Value) -> Option<(Option<ObjectId>, Stored)> {
-    if let Some(stored) = from_register(v) {
-        return Some((None, stored));
-    }
+/// A cell's `Cell` object and what it stores. `None`: the entry names no live `Cell`.
+pub(crate) fn read_entry(replica: &Replica, v: &Value) -> Option<(ObjectId, Stored)> {
     let id = ObjectId::from_string(v.as_str()?);
     // Each read is a lookup of the object (rule P1: a large workbook reads every cell on open):
     // `object_type` fails for a missing object, and only a formula has an array range.
@@ -398,7 +341,7 @@ pub(crate) fn read_entry(replica: &Replica, v: &Value) -> Option<(Option<ObjectI
     };
     // A cell created ahead may hold the texts of the other objects of a race (see the module docs).
     if is_ahead(id.as_str())
-        && let Some(others) = replica.get(&id, MERGED).ok().as_ref().and_then(Value::as_array)
+        && let Some(others) = replica.get(&id, RACED).ok().as_ref().and_then(Value::as_array)
     {
         let mut parts = vec![(id.clone(), stored.text.clone())];
         for other in others.iter().filter_map(Value::as_str).map(ObjectId::from_string) {
@@ -422,7 +365,7 @@ pub(crate) fn read_entry(replica: &Replica, v: &Value) -> Option<(Option<ObjectI
             stored.parts = parts;
         }
     }
-    Some((Some(id), stored))
+    Some((id, stored))
 }
 
 /// A `Cell`'s text, and its runs when any has a mark (empty otherwise).

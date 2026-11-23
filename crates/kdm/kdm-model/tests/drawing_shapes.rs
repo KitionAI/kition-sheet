@@ -1,20 +1,15 @@
-//! Drawing shapes through the replica, as `Shape` objects (schema version 3): groups, preset and
+//! Drawing shapes through the replica, as `Shape` objects: groups, preset and
 //! custom geometry, rotation and mirroring, transparency, gradients, pens, kept text bodies and
 //! style references, and one-cell anchors reach a peer; concurrent changes to different shapes,
 //! and to one shape's text, frame and each of its other members, all survive (`KitDrawing 1.0`
-//! DR14); a
-//! replica that kept its shapes in the sheet's `features` (schema version 2) reads and migrates.
+//! DR14).
 
 mod common;
 
 use common::{Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, at, edit, first, peer, sync};
-use kdm_model::SheetSession;
-use kition_kit::kdm::{ActorId, DocId, KdmError, ObjectId, Origin, Replica, Schema};
-use kition_kit::session::MemoryBlobs;
 use kition_sheet_model::{
     Anchor, AnchorMode, Color, CustomGeom, CustomPath, Gradient, GradientStop, Outline, PathFill, PresetGeom, Shape, ShapeKind, Workbook,
 };
-use serde_json::json;
 
 fn shapes() -> Vec<Shape> {
     let anchor = |a1: &str| Anchor { cell: at(a1), dx: 2.0, dy: 3.0, width: 80.0, height: 40.0, mode: AnchorMode::MoveOnly, one_cell: true };
@@ -218,104 +213,4 @@ fn deleting_a_shape_against_an_edit_deletes_it() {
     assert_converged(&a, &b);
     let ids: Vec<u32> = a.model().workbook.sheet(0).map(|s| s.shapes.iter().map(|x| x.id).collect()).unwrap_or_default();
     assert_eq!(ids, vec![10, 12]);
-}
-
-/// The schema replicas were written under before shapes were objects: version 2, without `Shape`.
-fn schema_v2() -> std::sync::Arc<Schema> {
-    let mut raw: serde_json::Value = serde_json::from_str(include_str!("../model/schema.json")).unwrap_or_else(|e| panic!("schema: {e}"));
-    raw["schemaVersion"] = json!(2);
-    raw["types"].as_object_mut().unwrap_or_else(|| panic!("types")).remove("Shape");
-    raw["types"].as_object_mut().unwrap_or_else(|| panic!("types")).remove("Chart");
-    raw["types"]["Sheet"]["fields"].as_object_mut().unwrap_or_else(|| panic!("Sheet fields")).remove("shapes");
-    std::sync::Arc::new(Schema::parse(&raw.to_string()).unwrap_or_else(|e| panic!("v2 schema: {e}")))
-}
-
-/// A replica as Kition Sheet 0.5 wrote it: one sheet whose `features` hold two shapes.
-fn replica_v2() -> Vec<u8> {
-    let actor = ActorId::from_u64(7).unwrap_or_else(|_| panic!("actor"));
-    let (replica, ()) = Replica::create_with(schema_v2(), DocId::new(), actor, &Origin::system("create"), |tx| {
-        let root = ObjectId::from_string("workbook");
-        tx.create_with_id("Workbook", &root, serde_json::Map::new())?;
-        let sheet = tx.create("Sheet", [("name".to_owned(), json!("Data"))].into_iter().collect())?;
-        tx.list_insert(&root, "sheets", 0, &sheet)?;
-        let mut lines = Vec::new();
-        for (field, k) in [("rows", 0), ("rows", 1), ("cols", 0), ("cols", 1)] {
-            let line = tx.create(if field == "rows" { "Row" } else { "Col" }, serde_json::Map::new())?;
-            tx.list_insert(&sheet, field, k, &line)?;
-            lines.push(line);
-        }
-        let cell = format!("{},{}", lines[1].as_str(), lines[3].as_str());
-        let anchor = json!({ "cell": cell, "dx": 2.0, "dy": 3.0, "width": 80.0, "height": 40.0, "mode": "MoveOnly" });
-        let features = json!({ "shapes": [
-            { "id": 10, "kind": "TextBox", "anchor": anchor, "fill": { "Rgb": 0xFFFFFF }, "line": "Auto", "text": "Kept", "rot": 5_400_000 },
-            { "id": 11, "kind": "Ellipse", "anchor": anchor, "fill": { "Theme": [4, 0] }, "line": "Auto", "text": "", "flip_h": true },
-        ] });
-        tx.set(&sheet, "features", features)?;
-        Ok(())
-    })
-    .unwrap_or_else(|e| panic!("v2 replica: {e}"));
-    replica.snapshot().unwrap_or_else(|e| panic!("snapshot: {e}"))
-}
-
-#[test]
-fn a_version_2_replica_reads_its_shapes_and_moves_them_into_objects_on_its_first_write() {
-    let bytes = replica_v2();
-    let mut s = SheetSession::open_snapshot(&bytes, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open: {e}"));
-    assert!(!s.migrated());
-    let check = |wb: &Workbook| {
-        let shapes = &wb.sheets[0].shapes;
-        assert_eq!(shapes.iter().map(|x| x.id).collect::<Vec<_>>(), vec![10, 11]);
-        assert_eq!((shapes[0].text.as_str(), shapes[0].rot, shapes[0].anchor.cell), ("Kept", 5_400_000, at("B2")));
-        assert!(shapes[1].flip_h && shapes[1].kind == ShapeKind::Ellipse);
-    };
-    check(s.workbook());
-
-    // The first write migrates: the shapes become objects, the view reads the same.
-    let mut after = s.workbook().clone();
-    if let Some(sheet) = after.sheet_mut(0) {
-        sheet.shapes[1].text = "New".into();
-    }
-    assert_eq!(s.record(&Origin::person("user:a"), &after, &[]).unwrap_or_else(|e| panic!("record: {e}")), 1, "one undo step: the edit");
-    assert!(s.migrated());
-    assert_eq!(s.replica().min_schema_version(), 4, "shapes and charts are objects now");
-    let sheet = s.model().ids().sheets[0].object.clone();
-    assert_eq!(s.replica().objects_of_type("Shape").len(), 2);
-    assert!(s.replica().get(&sheet, "features").unwrap_or_default().get("shapes").is_none(), "no shapes left in `features`");
-    let (read, _) = kdm_model::read_document(s.replica(), s.blobs()).unwrap_or_else(|e| panic!("read: {e}"));
-    assert_eq!(read.sheets[0].shapes[1].text, "New");
-    assert_eq!(read.sheets[0].shapes[0].text, "Kept");
-
-    // A version 2 kit refuses the migrated replica rather than showing it without its shapes.
-    let actor = ActorId::from_u64(11).unwrap_or_else(|_| panic!("actor"));
-    let migrated = s.snapshot().unwrap_or_else(|e| panic!("snapshot: {e}"));
-    assert!(matches!(Replica::load(schema_v2(), &migrated, actor), Err(KdmError::NewerSchema { found: 4, reads: 2 })));
-
-    // Undo takes back the edit, not the migration.
-    assert!(s.undo().unwrap_or_else(|e| panic!("undo: {e}")).0);
-    check(s.workbook());
-    assert_eq!(s.replica().objects_of_type("Shape").len(), 2, "the shapes stay objects after the undo");
-}
-
-#[test]
-fn two_people_migrating_one_replica_at_once_converge_on_the_same_shapes() {
-    let bytes = replica_v2();
-    let mut a = SheetSession::open_snapshot(&bytes, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open a: {e}"));
-    let mut b = SheetSession::open_snapshot(&bytes, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open b: {e}"));
-    for (s, text) in [(&mut a, "from a"), (&mut b, "from b")] {
-        let mut after = s.workbook().clone();
-        if let Some(sheet) = after.sheet_mut(0) {
-            sheet.shapes[1].text = text.into();
-        }
-        s.record(&Origin::person("user:x"), &after, &[]).unwrap_or_else(|e| panic!("record: {e}"));
-    }
-    let to_b = a.export_changes(&b.version()).unwrap_or_else(|e| panic!("export: {e}"));
-    let to_a = b.export_changes(&a.version()).unwrap_or_else(|e| panic!("export: {e}"));
-    b.import_changes(&to_b).unwrap_or_else(|e| panic!("import b: {e}"));
-    a.import_changes(&to_a).unwrap_or_else(|e| panic!("import a: {e}"));
-    assert_eq!(a.replica().objects_of_type("Shape").len(), 2, "the same two objects, not four");
-    assert_eq!(a.workbook().sheets[0].shapes, b.workbook().sheets[0].shapes);
-    // Both made the same object at once, so one creation's text is the object's: a known limit for
-    // text typed into one shape by two people who each migrated the same old replica offline.
-    let text = &a.workbook().sheets[0].shapes[1].text;
-    assert!(text == "from a" || text == "from b", "one side's text, never a mix: {text}");
 }

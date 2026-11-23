@@ -168,11 +168,8 @@ pub fn settle_inputs(tx: &mut Tx<'_>, reserved: &[ObjectId]) -> KdmResult<()> {
             let props = crate::features::sheet_props(&mut inputs, host, &sheet, [&[], &[]])?;
             inputs.tx.set(&object, "props", props)?;
         }
-        if inputs.tx.get(&object, "features")?.is_null() {
-            inputs.tx.set(&object, "features", json!({}))?;
-        }
         let mut constrained = sheet.clone();
-        crate::features::read_features(&inputs, host, &inputs.tx.get(&object, "features")?, &mut constrained);
+        crate::features::read_features(&*inputs.tx, &inputs, host, &object, &mut constrained);
         crate::constraints::write(inputs.tx, &object, &constrained)?;
         for (_, value) in inputs.tx.map_entries(&object, "shapes").unwrap_or_default() {
             let Some(shape) = value.as_str().map(ObjectId::from_string).filter(|id| inputs.tx.exists(id)) else { continue };

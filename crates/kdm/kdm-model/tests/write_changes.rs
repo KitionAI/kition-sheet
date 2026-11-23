@@ -1,7 +1,8 @@
 //! `write_changes` writes only what differs: one `Cell` object for a cell edit (a text cell's
 //! characters edited in place); three `Row` objects and their cells for a three-row insert in a
 //! 10,000-row sheet (no formula below rewritten);
-//! tombstones for a delete; one register for a feature; nothing for an unchanged view.
+//! tombstones for a delete; one object for a new merged area (the sheet's other merges untouched);
+//! nothing for an unchanged view.
 
 mod common;
 
@@ -187,22 +188,31 @@ fn deleting_rows_marks_them_gone_and_drops_their_cells() {
 }
 
 #[test]
-fn changing_a_merge_writes_the_features_register_only() {
+fn a_new_merge_writes_one_merge_object() {
     let blobs = SharedBlobs::default();
     let before = rich();
     let (mut replica, mut ids) = new_replica(&before, &blobs);
     replica.take_changed();
     let sheet = ids.sheets[0].object.clone();
+    let merges_before = replica.list(&sheet, "merges").unwrap_or_default();
     let mut after = before.clone();
     after.sheet_mut(0).unwrap_or_else(|| panic!("Data")).merges.push(common::range("E20:F21"));
     assert!(write(&mut replica, &before, &after, &[], &mut ids, &blobs));
     let changed = replica.take_changed();
-    // The merge's rows were padded on (rows 20 and 21 had no objects): those are new objects.
+    // The merge's rows were padded on (rows 20 and 21 had no objects): those are new objects; the
+    // sheet lists the new `Merge`, and its other merges' objects are untouched.
     assert!(changed.contains(&sheet));
+    let mut merges = 0;
     for o in &changed {
         let ty = replica.object_type(o).unwrap_or_default();
-        assert!(ty == "Sheet" || ty == "Row", "only the sheet and new rows changed, not {ty}");
+        assert!(ty == "Sheet" || ty == "Row" || ty == "Merge", "only the sheet, new rows and the new merge changed, not {ty}");
+        if ty == "Merge" {
+            merges += 1;
+            assert!(!merges_before.contains(o), "an existing merge was rewritten");
+        }
     }
+    assert_eq!(merges, 1, "one new Merge object");
+    assert_eq!(replica.list(&sheet, "merges").unwrap_or_default().len(), merges_before.len() + 1);
     let (read, _) = read_document(&replica, &blobs).unwrap_or_else(|error| panic!("read: {error}"));
     assert!(read.sheets[0].merges.contains(&common::range("E20:F21")));
 }

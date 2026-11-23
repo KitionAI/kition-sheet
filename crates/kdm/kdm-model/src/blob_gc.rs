@@ -10,9 +10,7 @@
 //!
 //! `kit.sheet` references blobs in two places: an `Image`'s `blob` field, and a `Cell`'s
 //! `picture` (a picture in a cell, `{blob, mime, alt}`; one register, read whenever the cell
-//! changes). A 0.3 replica, before its migration, holds the picture in the cell's entry of its
-//! `Sheet`'s `cells` map: that map is read only when the caller says the sheet may hold cell
-//! pictures (the view's sheet has some) or held some before.
+//! changes).
 //!
 //! The current state's references are counted per object, updated from the objects each
 //! transaction, undo, redo or import changed, so nothing rescans the whole document. Each undo
@@ -69,9 +67,9 @@ fn collect(value: &Value, out: &mut Vec<String>) {
     }
 }
 
-/// The blobs object `id` references (none if it no longer exists): an `Image`'s `blob`, and, when
-/// `cells` is set, the cell pictures in a `Sheet`'s `cells` map.
-fn object_blobs(replica: &Replica, id: &ObjectId, cells: bool) -> Vec<String> {
+/// The blobs object `id` references (none if it no longer exists): an `Image`'s `blob`, a
+/// `Cell`'s `picture`.
+fn object_blobs(replica: &Replica, id: &ObjectId) -> Vec<String> {
     let mut out = Vec::new();
     if !replica.exists(id) {
         return out;
@@ -85,16 +83,6 @@ fn object_blobs(replica: &Replica, id: &ObjectId, cells: bool) -> Vec<String> {
         Ok("Cell") => {
             if let Ok(value) = replica.get(id, "picture") {
                 collect(&value, &mut out);
-            }
-        }
-        // 0.3 register entries (before the migration) hold their pictures in the map.
-        Ok("Sheet") if cells => {
-            if let Ok(entries) = replica.map_entries(id, "cells") {
-                for (_, entry) in &entries {
-                    if let Some(picture) = entry.get("picture") {
-                        collect(picture, &mut out);
-                    }
-                }
             }
         }
         _ => {}
@@ -120,23 +108,21 @@ impl BlobIndex {
             }
             all.insert(sheet);
         }
-        index.update(replica, &all, cells);
+        index.update(replica, &all);
         index
     }
 
-    /// Re-reads the references of the `changed` objects. `cells` says which sheets may hold cell
-    /// pictures now; a sheet that held some before is read regardless.
+    /// Re-reads the references of the `changed` objects.
     ///
     /// An object can list the same hash more than once (one picture in two cells): `before` and
     /// `now` are counted as multisets, and only a hash's *net* change in how many times this one
     /// object lists it touches `refs`, so a hash an object keeps listing never drops to a
     /// transient zero and looks "added" again.
-    pub fn update(&mut self, replica: &Replica, changed: &BTreeSet<ObjectId>, cells: &dyn Fn(&ObjectId) -> bool) -> Moved {
+    pub fn update(&mut self, replica: &Replica, changed: &BTreeSet<ObjectId>) -> Moved {
         let mut dropped = Vec::new();
         let mut gained = Vec::new();
         for id in changed {
-            let scan = self.by_object.contains_key(id) || cells(id);
-            let now = object_blobs(replica, id, scan);
+            let now = object_blobs(replica, id);
             let before = if now.is_empty() { self.by_object.remove(id) } else { self.by_object.insert(id.clone(), now.clone()) }.unwrap_or_default();
             let mut before_counts: HashMap<&str, i64> = HashMap::new();
             for hash in &before {

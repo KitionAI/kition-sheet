@@ -8,6 +8,45 @@ use kition_kit::kdm::{ObjectId, Tx};
 
 use crate::KdmResult;
 
+/// For each item of `after`, the index of the item of `before` it is (`None`: a new one): an equal
+/// item first; then, with `key`, the item of the same key (an edited table keeps its object), and
+/// without it the items left over pair in order (an edited conditional format keeps its object).
+pub(crate) fn pair_items<T: PartialEq, K: Fn(&T) -> u32>(before: &[T], after: &[T], key: Option<K>) -> Vec<Option<usize>> {
+    let mut partner: Vec<Option<usize>> = vec![None; after.len()];
+    let mut used = vec![false; before.len()];
+    for (j, a) in after.iter().enumerate() {
+        // The same place first: an unchanged list pairs with no search.
+        let at = Some(j).filter(|&i| before.get(i) == Some(a) && !used[i]).or_else(|| (0..before.len()).find(|&i| !used[i] && before[i] == *a));
+        if let Some(i) = at {
+            partner[j] = Some(i);
+            used[i] = true;
+        }
+    }
+    match key {
+        Some(key) => {
+            for (j, a) in after.iter().enumerate() {
+                if partner[j].is_some() {
+                    continue;
+                }
+                if let Some(i) = (0..before.len()).find(|&i| !used[i] && key(&before[i]) == key(a)) {
+                    partner[j] = Some(i);
+                    used[i] = true;
+                }
+            }
+        }
+        None => {
+            let mut free = (0..before.len()).filter(|&i| !used[i]).collect::<Vec<_>>().into_iter();
+            for slot in partner.iter_mut().filter(|p| p.is_none()) {
+                match free.next() {
+                    Some(i) => *slot = Some(i),
+                    None => break,
+                }
+            }
+        }
+    }
+    partner
+}
+
 /// Makes `owner.field` list exactly `target` (distinct objects): entries not in `target`, and
 /// repeated entries, are removed (their objects are not deleted: the caller decides that); the
 /// entries already there keep their place as far as possible (the longest run already in

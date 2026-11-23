@@ -185,3 +185,75 @@ fn perf_10000_rows() {
 fn perf_100000_cells() {
     measure("100,000 cells", &cells_100k(), "B5000", "A5000", "K");
 }
+
+/// A million cells imported as one sheet (20,000 rows of 50 numbers), run by CI on every push (the
+/// schema freeze's benchmark, 2026-11-22): the import (a new replica), the snapshot's size and
+/// time, opening it, how much of the snapshot the `cells` map's keys take, one cell edited (the
+/// median of 5) and a peer's import of one such edit (the median of 5). It prints to the test's
+/// own stderr (not captured, so the numbers show in CI's log). Cells stay in one `cells` map per
+/// sheet while one cell's edit and import take milliseconds here (rule P1): they read no other
+/// cell, so the map's size does not reach them.
+#[test]
+fn a_million_cells() {
+    use std::io::Write;
+    const ROWS: u32 = 20_000;
+    const COLS: u32 = 50;
+    let t = Instant::now();
+    let mut wb = Workbook::new();
+    {
+        let sheet = wb.sheet_mut(0).unwrap_or_else(|| panic!("sheet"));
+        for r in 0..ROWS {
+            for c in 0..COLS {
+                sheet.set_cell(
+                    kition_sheet_core::CellRef::new(r, c),
+                    kition_sheet_model::Cell::value(kition_sheet_core::Value::Number(f64::from(r * COLS + c))),
+                );
+            }
+        }
+    }
+    let build = t.elapsed();
+    let origin = Origin::person("user:perf");
+    let t = Instant::now();
+    let created = SheetSession::create(&wb).unwrap_or_else(|e| panic!("create: {e}"));
+    let import = t.elapsed();
+    drop(wb);
+    let sheet = created.model().ids().sheets[0].object.clone();
+    let entries = created.replica().map_entries(&sheet, "cells").unwrap_or_else(|e| panic!("cells: {e}"));
+    assert_eq!(entries.len(), (ROWS * COLS) as usize, "one entry per cell");
+    let key_bytes: usize = entries.iter().map(|(k, v)| k.len() + v.as_str().map_or(0, str::len)).sum();
+    drop(entries);
+    let t = Instant::now();
+    let snapshot = created.snapshot().unwrap_or_else(|e| panic!("snapshot: {e}"));
+    let snap_time = t.elapsed();
+    drop(created);
+    let t = Instant::now();
+    let mut s = SheetSession::open_snapshot(&snapshot, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open: {e}"));
+    let open = t.elapsed();
+    let mut peer = SheetSession::open_snapshot(&snapshot, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open peer: {e}"));
+    let (mut edits, mut imports) = (Vec::new(), Vec::new());
+    for k in 0..5u32 {
+        let since = peer.version();
+        let mut next = s.workbook().clone();
+        put(&mut next, 0, &format!("B{}", 1000 + k), &format!("{}", 0.5 + f64::from(k)));
+        let t = Instant::now();
+        s.record(&origin, &next, &[]).unwrap_or_else(|e| panic!("record: {e}"));
+        edits.push(t.elapsed());
+        let bytes = s.export_changes(&since).unwrap_or_else(|e| panic!("export: {e}"));
+        let t = Instant::now();
+        peer.import_changes(&bytes).unwrap_or_else(|e| panic!("import: {e}"));
+        imports.push(t.elapsed());
+    }
+    assert_eq!(common::input(peer.workbook(), 0, "B1004"), "4.5");
+    let line = format!(
+        "a million cells ({ROWS} rows x {COLS} columns): building the workbook {} | import {} | snapshot {} MB in {} | the cells map's keys and values {} MB | open {} | one cell edited {} | a peer's import of it {}\n",
+        ms(build),
+        ms(import),
+        snapshot.len() / (1024 * 1024),
+        ms(snap_time),
+        key_bytes / (1024 * 1024),
+        ms(open),
+        ms(median(edits)),
+        ms(median(imports)),
+    );
+    let _ = std::io::stderr().write_all(line.as_bytes());
+}

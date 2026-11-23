@@ -1,16 +1,11 @@
-//! Charts through the replica, as `Chart` objects (schema version 4): concurrent changes to
-//! different charts of a sheet, and to different members of one chart, all survive (`KitDrawing`
-//! DR14), a row insert that moves a chart's ranges among them; a replica that kept its charts in
-//! the sheet's `features` (schema version 3) reads and migrates.
+//! Charts through the replica, as `Chart` objects: concurrent changes to different charts of a
+//! sheet, and to different members of one chart, all survive (`KitDrawing` DR14), a row insert
+//! that moves a chart's ranges among them.
 
 mod common;
 
 use common::{Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, at, edit, first, insert_rows, peer, put, sync};
-use kdm_model::SheetSession;
-use kition_kit::kdm::{ActorId, DocId, KdmError, ObjectId, Origin, Replica, Schema};
-use kition_kit::session::MemoryBlobs;
 use kition_sheet_model::{Anchor, Chart, ChartKind, LegendPos, Series, Workbook};
-use serde_json::json;
 
 fn chart(id: u32, a1: &str) -> Chart {
     Chart {
@@ -159,94 +154,4 @@ fn a_row_insert_moving_a_charts_ranges_and_a_retitle_both_stay() {
     let c = &a.model().workbook.sheets[0].charts[0];
     assert_eq!(c.title.as_deref(), Some("Moved"));
     assert!(c.series[0].values.contains("$B$4:$B$5"), "the values moved down with their rows: {}", c.series[0].values);
-}
-
-/// The schema replicas were written under before charts were objects: version 3, without `Chart`.
-fn schema_v3() -> std::sync::Arc<Schema> {
-    let mut raw: serde_json::Value = serde_json::from_str(include_str!("../model/schema.json")).unwrap_or_else(|e| panic!("schema: {e}"));
-    raw["schemaVersion"] = json!(3);
-    raw["types"].as_object_mut().unwrap_or_else(|| panic!("types")).remove("Chart");
-    std::sync::Arc::new(Schema::parse(&raw.to_string()).unwrap_or_else(|e| panic!("v3 schema: {e}")))
-}
-
-/// A replica as a schema 3 build wrote it: one sheet whose `features` hold two charts.
-fn replica_v3() -> Vec<u8> {
-    let actor = ActorId::from_u64(7).unwrap_or_else(|_| panic!("actor"));
-    let (replica, ()) = Replica::create_with(schema_v3(), DocId::new(), actor, &Origin::system("create"), |tx| {
-        let root = ObjectId::from_string("workbook");
-        tx.create_with_id("Workbook", &root, serde_json::Map::new())?;
-        let sheet = tx.create("Sheet", [("name".to_owned(), json!("Data"))].into_iter().collect())?;
-        tx.list_insert(&root, "sheets", 0, &sheet)?;
-        let mut lines = Vec::new();
-        for (field, k) in [("rows", 0), ("rows", 1), ("cols", 0), ("cols", 1)] {
-            let line = tx.create(if field == "rows" { "Row" } else { "Col" }, serde_json::Map::new())?;
-            tx.list_insert(&sheet, field, k, &line)?;
-            lines.push(line);
-        }
-        let cell = format!("{},{}", lines[1].as_str(), lines[3].as_str());
-        let anchor = json!({ "cell": cell, "dx": 0.0, "dy": 0.0, "width": 300.0, "height": 200.0, "mode": "MoveAndSize" });
-        let features = json!({ "charts": [
-            { "id": 5, "kind": "Pie", "anchor": anchor, "title": "Kept", "series": [{ "name": null, "categories": null, "values": "1,2", "bubble_sizes": null, "color": null, "secondary": false, "kind": null }], "legend": "Right", "data_labels": false, "gridlines": false, "style": 1, "x_title": null, "y_title": null, "source": null, "by_rows": false },
-            { "id": 6, "kind": "Line", "anchor": anchor, "title": "Other", "series": [], "legend": "Bottom", "data_labels": false, "gridlines": true, "style": 1, "x_title": null, "y_title": null, "source": null, "by_rows": false },
-        ] });
-        tx.set(&sheet, "features", features)?;
-        tx.raise_schema_version(3)?;
-        Ok(())
-    })
-    .unwrap_or_else(|e| panic!("v3 replica: {e}"));
-    replica.snapshot().unwrap_or_else(|e| panic!("snapshot: {e}"))
-}
-
-#[test]
-fn a_version_3_replica_reads_its_charts_and_moves_them_into_objects_on_its_first_write() {
-    let bytes = replica_v3();
-    let mut s = SheetSession::open_snapshot(&bytes, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open: {e}"));
-    assert!(!s.migrated());
-    let check = |wb: &Workbook| {
-        let charts = &wb.sheets[0].charts;
-        assert_eq!(charts.iter().map(|c| c.id).collect::<Vec<_>>(), vec![5, 6]);
-        assert_eq!((charts[0].kind, charts[0].title.as_deref(), charts[0].anchor.cell), (ChartKind::Pie, Some("Kept"), at("B2")));
-    };
-    check(s.workbook());
-    let mut after = s.workbook().clone();
-    if let Some(sheet) = after.sheet_mut(0) {
-        sheet.charts[1].title = Some("New".into());
-    }
-    assert_eq!(s.record(&Origin::person("user:a"), &after, &[]).unwrap_or_else(|e| panic!("record: {e}")), 1, "one undo step: the edit");
-    assert!(s.migrated());
-    assert_eq!(s.replica().min_schema_version(), 4);
-    assert_eq!(s.replica().objects_of_type("Chart").len(), 2);
-    let sheet = s.model().ids().sheets[0].object.clone();
-    assert!(s.replica().get(&sheet, "features").unwrap_or_default().get("charts").is_none(), "no charts left in `features`");
-    let (read, _) = kdm_model::read_document(s.replica(), s.blobs()).unwrap_or_else(|e| panic!("read: {e}"));
-    assert_eq!(read.sheets[0].charts[1].title.as_deref(), Some("New"));
-    assert_eq!(read.sheets[0].charts[0].title.as_deref(), Some("Kept"));
-    // A schema 3 kit refuses the migrated replica rather than showing it without its charts.
-    let actor = ActorId::from_u64(11).unwrap_or_else(|_| panic!("actor"));
-    let migrated = s.snapshot().unwrap_or_else(|e| panic!("snapshot: {e}"));
-    assert!(matches!(Replica::load(schema_v3(), &migrated, actor), Err(KdmError::NewerSchema { found: 4, reads: 3 })));
-    // Undo takes back the edit, not the migration.
-    assert!(s.undo().unwrap_or_else(|e| panic!("undo: {e}")).0);
-    check(s.workbook());
-    assert_eq!(s.replica().objects_of_type("Chart").len(), 2, "the charts stay objects after the undo");
-}
-
-#[test]
-fn two_people_migrating_one_replica_at_once_converge_on_the_same_charts() {
-    let bytes = replica_v3();
-    let mut a = SheetSession::open_snapshot(&bytes, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open a: {e}"));
-    let mut b = SheetSession::open_snapshot(&bytes, MemoryBlobs::default()).unwrap_or_else(|e| panic!("open b: {e}"));
-    for (s, title) in [(&mut a, "from a"), (&mut b, "from b")] {
-        let mut after = s.workbook().clone();
-        if let Some(sheet) = after.sheet_mut(0) {
-            sheet.charts[0].title = Some(title.into());
-        }
-        s.record(&Origin::person("user:x"), &after, &[]).unwrap_or_else(|e| panic!("record: {e}"));
-    }
-    let to_b = a.export_changes(&b.version()).unwrap_or_else(|e| panic!("export: {e}"));
-    let to_a = b.export_changes(&a.version()).unwrap_or_else(|e| panic!("export: {e}"));
-    b.import_changes(&to_b).unwrap_or_else(|e| panic!("import b: {e}"));
-    a.import_changes(&to_a).unwrap_or_else(|e| panic!("import a: {e}"));
-    assert_eq!(a.replica().objects_of_type("Chart").len(), 2, "the same two objects, not four");
-    assert_eq!(a.workbook().sheets[0].charts, b.workbook().sheets[0].charts);
 }

@@ -35,14 +35,12 @@ pub struct SheetSession {
     /// after it, for [`SheetSession::blobs_since`] (Kition Photo's blob log: chronological, so
     /// `since` cleanly splits it into "already has" and "needs"; trimmed with the store).
     blob_log: Vec<(Version, Vec<String>)>,
-    /// Whether the replica holds no 0.3 cell registers any more (`cells::migrate`).
-    migrated: bool,
     /// This session's token, the `by` of the `Cell` objects it creates ahead, and the end of their
     /// ids (see `cells`).
     token: String,
     /// The `Cell` objects this session created ahead of a person's write: an import that gives
     /// one's entry to another session's object (both typed into one empty cell at once) makes
-    /// [`SheetSession::import_changes`] record the race (`cells::MERGED`), so the cell shows both.
+    /// [`SheetSession::import_changes`] record the race (`cells::RACED`), so the cell shows both.
     mine: HashSet<ObjectId>,
     /// Every `Cell` created ahead this session knows of (any session's), with its `key`: an
     /// import that only re-points a cell's entry (an undo elsewhere) can make a race of two of
@@ -88,18 +86,7 @@ impl SheetSession {
         model.note_shapes(&replica, None);
         let index = BlobIndex::build(&replica, &|id| may_hold_pictures(&model, true, id));
         let token = token_of(&replica);
-        Ok(Self {
-            replica,
-            model,
-            blobs,
-            index,
-            blob_log: Vec::new(),
-            migrated: true,
-            token,
-            mine: HashSet::new(),
-            ahead: BTreeMap::new(),
-            stale: false,
-        })
+        Ok(Self { replica, model, blobs, index, blob_log: Vec::new(), token, mine: HashSet::new(), ahead: BTreeMap::new(), stale: false })
     }
 
     /// Opens a snapshot (or a full change export) of another replica as a new replica of a fresh
@@ -109,10 +96,9 @@ impl SheetSession {
         replica.take_changed();
         let (model, named_ahead) = SheetModel::load_races(&replica, &blobs)?;
         let index = BlobIndex::build(&replica, &|id| may_hold_pictures(&model, true, id));
-        let migrated = !cells::needs_migration(&replica) && !crate::shapes::needs_migration(&replica) && !crate::charts::needs_migration(&replica);
         let token = token_of(&replica);
         let mut session =
-            Self { replica, model, blobs, index, blob_log: Vec::new(), migrated, token, mine: HashSet::new(), ahead: BTreeMap::new(), stale: false };
+            Self { replica, model, blobs, index, blob_log: Vec::new(), token, mine: HashSet::new(), ahead: BTreeMap::new(), stale: false };
         // Best effort: a replica merged elsewhere may hold races no session recorded yet. The kept
         // side of one is always a `Cell` created ahead that an entry names (`record_races` records
         // no other), so the scan of every `Cell` runs only when the read met such an entry: a
@@ -154,11 +140,7 @@ impl SheetSession {
     /// then by position, correct but larger). Answers how many undo steps that made: 1, or 0 when
     /// nothing replicated changed or `origin` is a `system`/`import` one (never an undo step). On
     /// failure nothing is written and the view is unchanged.
-    ///
-    /// A replica written by 0.3 (cells as registers) is first rewritten in the object form, in a
-    /// `system` transaction of its own (K6: not an undo step).
     pub fn record(&mut self, origin: &Origin, after: &Workbook, edits: &[StructuralEdit]) -> Result<u32> {
-        self.migrate()?;
         let person = !matches!(origin.kind, OriginKind::System | OriginKind::Import);
         let mut ids = self.model.ids().clone();
         let mut before = self.replica.version();
@@ -217,8 +199,7 @@ impl SheetSession {
             return Err(kit_err(error));
         }
         self.model.adopt_written(&self.replica, after.clone(), ids, &changed);
-        let model = &self.model;
-        let moved = self.index.update(&self.replica, &changed, &|id| may_hold_pictures(model, true, id));
+        let moved = self.index.update(&self.replica, &changed);
         let wrote = self.replica.version() != before;
         let undoable = wrote && !matches!(origin.kind, OriginKind::System | OriginKind::Import);
         self.log_added(moved.added.iter().cloned());
@@ -227,38 +208,6 @@ impl SheetSession {
         }
         self.index.collect_garbage(&mut self.blobs);
         Ok(u32::from(undoable))
-    }
-
-    /// Rewrites a 0.3 replica's cell registers as `Cell` objects (`cells::migrate`), once, as a
-    /// `system` transaction: the view reads the same before and after.
-    fn migrate(&mut self) -> Result<()> {
-        if self.migrated {
-            return Ok(());
-        }
-        let had_shapes = crate::shapes::needs_migration(&self.replica) || crate::charts::needs_migration(&self.replica);
-        self.replica
-            .transact(&Origin::system("migrate"), |tx| {
-                cells::migrate(tx)?;
-                crate::shapes::migrate(tx)?;
-                crate::charts::migrate(tx).map(|_| ())
-            })
-            .map_err(kit_err)?;
-        // The view reads the same, but its shapes now have objects the next write must reuse.
-        if had_shapes {
-            let blobs: &dyn BlobSource = &self.blobs;
-            self.model.reload(&self.replica, blobs)?;
-        }
-        let changed = self.replica.take_changed();
-        let model = &self.model;
-        let moved = self.index.update(&self.replica, &changed, &|id| may_hold_pictures(model, true, id));
-        self.log_added(moved.added.iter().cloned());
-        self.migrated = true;
-        Ok(())
-    }
-
-    /// Whether the replica is in the object form (it was never a 0.3 replica, or it was migrated).
-    pub fn migrated(&self) -> bool {
-        self.migrated
     }
 
     /// Whether the replica holds `workbook`'s content, compared id-blind ([`normalize`]) as
@@ -365,7 +314,7 @@ impl SheetSession {
     ///
     /// Two sessions that typed into one empty cell at once each made a `Cell` object of their own
     /// for it, and the merge gave the cell's entry to one of them: the session records the other in
-    /// the kept one's `merged` (`cells`), so the cell shows both texts on every replica, and each
+    /// the kept one's `raced` (`cells`), so the cell shows both texts on every replica, and each
     /// person's undo reverts their own typing.
     pub fn import_changes(&mut self, bytes: &[u8]) -> Result<Damage> {
         self.replica.import_changes(bytes).map_err(kit_err)?;
@@ -377,7 +326,7 @@ impl SheetSession {
     }
 
     /// Records the races on one new cell `changed` shows (`None`: every `Cell` created ahead, when
-    /// opening a replica merged elsewhere) as the kept objects' `merged`, in a `system`
+    /// opening a replica merged elsewhere) as the kept objects' `raced`, in a `system`
     /// transaction (not an undo step). `shown`: objects the view showed as such parts before (one
     /// a concurrent record may have dropped). Answers whether it wrote.
     fn record_races(&mut self, changed: Option<&BTreeSet<ObjectId>>, shown: &[ObjectId]) -> Result<bool> {
@@ -420,20 +369,20 @@ impl SheetSession {
                 continue;
             }
             let set = merged.entry(held.clone()).or_insert_with(|| {
-                let v = self.replica.get(&held, cells::MERGED).unwrap_or(Value::Null);
+                let v = self.replica.get(&held, cells::RACED).unwrap_or(Value::Null);
                 v.as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned).collect()
             });
             set.insert(id.as_str().to_owned());
         }
         let replica = &self.replica;
         let string = |id: &ObjectId, field: &str| replica.get(id, field).ok().filter(|v| v.is_string());
-        // Each kept object's `merged`, and, where the kept one has no style, the style of an
+        // Each kept object's `raced`, and, where the kept one has no style, the style of an
         // object recorded now.
         let writes: Vec<(ObjectId, Value, Option<Value>)> = merged
             .into_iter()
             .filter_map(|(held, set)| {
                 let v = json!(set.iter().collect::<Vec<_>>());
-                let current = replica.get(&held, cells::MERGED).unwrap_or(Value::Null);
+                let current = replica.get(&held, cells::RACED).unwrap_or(Value::Null);
                 if current == v {
                     return None;
                 }
@@ -450,7 +399,7 @@ impl SheetSession {
         }
         let result = self.replica.transact(&Origin::system("repair"), |tx| {
             for (held, v, style) in &writes {
-                tx.set(held, cells::MERGED, v.clone())?;
+                tx.set(held, cells::RACED, v.clone())?;
                 if let Some(style) = style {
                     tx.set(held, "style", style.clone())?;
                 }
@@ -620,9 +569,7 @@ impl SheetSession {
             self.refresh(&changed)
         };
         self.stale = refreshed.is_err();
-        let exact = refreshed.is_ok();
-        let model = &self.model;
-        let moved = self.index.update(&self.replica, &changed, &|id| may_hold_pictures(model, exact, id));
+        let moved = self.index.update(&self.replica, &changed);
         let damage = refreshed.and_then(|damage| repaired.map(|()| damage));
         let damage = match damage {
             Ok(damage) => self.record_races(Some(&changed), &shown).map(|recorded| if recorded { Damage::Full } else { damage }),

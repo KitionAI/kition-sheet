@@ -1,5 +1,6 @@
-//! Read-only identity indexes for features whose editable content remains in sheet registers.
-//! Native table/pivot/group keys are stored by XLSX; immutable styles use their content hash.
+//! Read-only identity indexes: a sheet's shape groups (`Group`, by the groups its shapes name)
+//! and the workbook's styles (`Style`, immutable ones by their content hash, named cell styles by
+//! name, table styles by their native UID).
 use std::collections::{BTreeMap, BTreeSet};
 
 use kition_kit::kdm::{ObjectId, Tx};
@@ -9,8 +10,7 @@ use serde_json::{Map, Value, json};
 use crate::{KdmResult, list::sync_list, root_id};
 
 fn sync(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, ty: &str, values: Vec<(String, Map<String, Value>)>) -> KdmResult<bool> {
-    // Older replica objects cannot acquire missing containers with the pinned SDK.
-    let Ok(before) = tx.list_items(owner, field) else { return Ok(false) };
+    let before = tx.list_items(owner, field)?;
     let mut changed = false;
     let mut wanted = Vec::with_capacity(values.len());
     for (_, fields) in values {
@@ -39,40 +39,8 @@ fn sync(tx: &mut Tx<'_>, owner: &ObjectId, field: &str, ty: &str, values: Vec<(S
     Ok(changed)
 }
 
+/// Writes the `Group` objects of `sheet`'s shapes. Answers whether it wrote.
 pub(crate) fn sheet(tx: &mut Tx<'_>, owner: &ObjectId, sheet: &Sheet) -> KdmResult<bool> {
-    let sheet_id = tx.get(owner, "sheetId")?.as_u64().unwrap_or(0);
-    let mut tables = Vec::new();
-    for table in &sheet.tables {
-        let key = format!("{sheet_id}:{}", table.id);
-        tables.push((
-            key.clone(),
-            [
-                ("key".into(), json!(key)),
-                ("name".into(), json!(table.name)),
-                ("sheet".into(), json!(owner.as_str())),
-                ("range".into(), json!(table.range.a1())),
-                ("columns".into(), crate::features::to_json(&table.columns)?),
-            ]
-            .into_iter()
-            .collect(),
-        ));
-    }
-    let mut pivots = Vec::new();
-    for pivot in &sheet.pivots {
-        let key = format!("{sheet_id}:{}", pivot.id);
-        pivots.push((
-            key.clone(),
-            [
-                ("key".into(), json!(key)),
-                ("name".into(), json!(pivot.name)),
-                ("sheet".into(), json!(owner.as_str())),
-                ("anchor".into(), json!(pivot.anchor.a1())),
-                ("source".into(), json!(pivot.source)),
-            ]
-            .into_iter()
-            .collect(),
-        ));
-    }
     let mut groups: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::new();
     for shape in &sheet.shapes {
         for &group in &shape.groups {
@@ -94,10 +62,7 @@ pub(crate) fn sheet(tx: &mut Tx<'_>, owner: &ObjectId, sheet: &Sheet) -> KdmResu
             )
         })
         .collect();
-    let mut changed = sync(tx, owner, "tableObjects", "Table", tables)?;
-    changed |= sync(tx, owner, "pivotObjects", "Pivot", pivots)?;
-    changed |= sync(tx, owner, "groups", "Group", groups)?;
-    Ok(changed)
+    sync(tx, owner, "groups", "Group", groups)
 }
 
 /// Imported table styles without a native uid receive a deterministic initial identity.
@@ -155,8 +120,7 @@ pub(crate) fn styles(tx: &mut Tx<'_>) -> KdmResult<bool> {
         ));
     }
     let mut changed = sync(tx, &root, "styleObjects", "Style", values)?;
-    let Ok(old) = tx.map_entries(&root, "cellStyleDefinitions") else { return Ok(changed) };
-    let old: BTreeMap<_, _> = old.into_iter().collect();
+    let old: BTreeMap<_, _> = tx.map_entries(&root, "cellStyleDefinitions")?.into_iter().collect();
     let props = tx.get(&root, "props")?;
     let mut wanted = BTreeMap::new();
     for (name, style) in cell_styles {

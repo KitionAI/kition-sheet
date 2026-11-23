@@ -254,6 +254,8 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<(Workbook, ReadReport), IoError> {
 
     // Sheets. `file_to_model[i]` maps the i-th <sheet> to a model sheet index.
     let mut file_to_model: Vec<Option<usize>> = vec![];
+    // Each model sheet's worksheet part (for the identity part's fingerprints).
+    let mut sheet_parts: Vec<Option<String>> = vec![];
     let mut pivot_caches = crate::pivot::CachesIn::new(&wb_xml, &wb_rels);
     let sheet_els: Vec<El> = wb_xml.child("sheets").map(|s| s.kids("sheet").cloned().collect()).unwrap_or_default();
     for (i, se) in sheet_els.iter().enumerate() {
@@ -291,6 +293,7 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<(Workbook, ReadReport), IoError> {
             _ => Visibility::Visible,
         };
         file_to_model.push(Some(wb.sheets.len()));
+        sheet_parts.push(Some(rel.target.clone()));
         wb.sheets.push(Arc::new(sheet));
     }
     if wb.sheets.is_empty() {
@@ -402,7 +405,7 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<(Workbook, ReadReport), IoError> {
     // Calls of LAMBDA names are spelled like the names (the parser upper-cases them).
     wb.apply_name_call_case();
     wb.styles = cx.styles;
-    crate::identities::read(&mut wb, &mut cx.pkg)?;
+    crate::identities::read(&mut wb, &mut cx.pkg, &sheet_parts, &wb_part)?;
     Ok((wb, cx.report))
 }
 

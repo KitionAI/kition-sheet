@@ -95,10 +95,7 @@ pub(crate) fn facts(sheet: &Sheet) -> KdmResult<Value> {
 }
 
 pub(crate) fn write(tx: &mut Tx<'_>, object: &ObjectId, sheet: &Sheet) -> KdmResult<bool> {
-    // The pinned SDK cannot add a map container to an older replica's existing Sheet.
-    // Its caller holds feature registers conservatively when this metadata is unavailable.
-    let Ok(old) = tx.map_entries(object, "constraints") else { return Ok(false) };
-    let old: BTreeMap<_, _> = old.into_iter().collect();
+    let old: BTreeMap<_, _> = tx.map_entries(object, "constraints")?.into_iter().collect();
     let facts = facts(sheet)?;
     let Some(wanted) = facts.as_object() else { return Ok(false) };
     let mut changed = false;
