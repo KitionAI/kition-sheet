@@ -190,9 +190,8 @@ fn perf_100000_cells() {
 /// schema freeze's benchmark, 2026-11-22): the import (a new replica), the snapshot's size and
 /// time, opening it, how much of the snapshot the `cells` map's keys take, one cell edited (the
 /// median of 5) and a peer's import of one such edit (the median of 5). It prints to the test's
-/// own stderr (not captured, so the numbers show in CI's log). Cells stay in one `cells` map per
-/// sheet while one cell's edit and import take milliseconds here (rule P1): they read no other
-/// cell, so the map's size does not reach them.
+/// own stderr (not captured, so the numbers show in CI's log). CI builds tests without
+/// optimisation: the numbers compare runs, they are not the release build's.
 #[test]
 fn a_million_cells() {
     use std::io::Write;

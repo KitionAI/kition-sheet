@@ -217,15 +217,28 @@ impl Facts {
         false
     }
 
-    /// A sheet's tables and pivot tables are `Table` and `Pivot` objects with tool ids of their
-    /// own: what a fact holds of a sheet's `tables` or `pivots` (the list, or an item by name and
+    /// A sheet's tables, pivot tables and comments are `Table`, `Pivot` and `Comment` objects
+    /// with tool ids of their own: what a fact holds of a sheet's `tables` or `pivots` (the list, or an item by name and
     /// a path inside it) it holds of those objects too.
     pub fn with_feature_objects(mut self, cx: &Context) -> Self {
         const TABLE: [&str; 5] = ["key", "name", "range", "props", "columns"];
         const PIVOT: [&str; 6] = ["key", "name", "anchor", "source", "lastRange", "props"];
         let mut more: Vec<(String, Vec<String>)> = Vec::new();
         for fact in self.0.iter().filter(|fact| fact.kind == "field") {
-            let Some(sheet) = cx.wb.sheets.iter().find(|s| format!("sheet:{}", s.sheet_id) == fact.object) else { continue };
+            let Some((si, sheet)) = cx.wb.sheets.iter().enumerate().find(|(_, s)| format!("sheet:{}", s.sheet_id) == fact.object) else { continue };
+            // A cell's comment is a `Comment` with a tool id of its own (`comment:<sheetId>!B7`).
+            if let Some((row, col)) = fact.field.strip_prefix("comments.row:").and_then(|key| key.split_once(":col:"))
+                && let Some(axes) = cx.ids.sheets.get(si)
+                && let (Some(r), Some(c)) = (axes.rows.iter().position(|o| o.as_str() == row), axes.cols.iter().position(|o| o.as_str() == col))
+            {
+                let at = CellRef::new(r as u32, c as u32);
+                if sheet.comments.contains_key(&at) {
+                    more.push((
+                        format!("comment:{}!{at}", sheet.sheet_id),
+                        ["author", "text", "replies", "threaded", "resolved", "visible"].map(str::to_owned).to_vec(),
+                    ));
+                }
+            }
             for (list, prefix, all) in [("tables", "table", &TABLE[..]), ("pivots", "pivot", &PIVOT[..])] {
                 let named: Vec<(String, u32)> = if list == "tables" {
                     sheet.tables.iter().map(|t| (t.name.clone(), t.id)).collect()

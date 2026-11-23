@@ -1020,7 +1020,8 @@ impl<'w, 'tx> Writer<'w, 'tx> {
 
     /// Writes sheet `j`'s comments (see `comments`). `full`: every comment of `after` is written
     /// and the rest go; otherwise only those that differ from `before`'s. `fresh`: the map is new.
-    fn write_comments(&mut self, j: usize, full: bool, fresh: bool, was: Option<(&Sheet, &SheetIds)>, after: &Sheet) -> KdmResult<()> {
+    fn write_comments(&mut self, j: usize, full: bool, fresh: bool, was: Option<(&Sheet, &SheetIds)>, after: &Sheet, sheet_id: u32) -> KdmResult<()> {
+        let address = |c: &CellRef| format!("{sheet_id}!{c}");
         let before = was.map(|(b, _)| b);
         let Some(object) = self.sheets.get(j).map(|s| s.object.clone()) else { return Ok(()) };
         if full {
@@ -1036,7 +1037,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                         Some(c) => {
                             let old = was.as_ref().and_then(|(b, lines)| b.comments.get(&lines.position(&key)?));
                             if let Some(comment) = after.comments.get(&c) {
-                                self.wrote |= crate::comments::write(self.tx, &object, &key, old, comment)?;
+                                self.wrote |= crate::comments::write(self.tx, &object, &key, &address(&c), old, comment)?;
                             }
                         }
                         None => {
@@ -1049,7 +1050,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
             rest.sort_by(|a, b| a.0.cmp(&b.0));
             for (key, c) in rest {
                 if let Some(comment) = after.comments.get(&c) {
-                    self.wrote |= crate::comments::write(self.tx, &object, &key, None, comment)?;
+                    self.wrote |= crate::comments::write(self.tx, &object, &key, &address(&c), None, comment)?;
                 }
             }
             return Ok(());
@@ -1062,7 +1063,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
             match after.comments.get(&c) {
                 Some(comment) => {
                     let key = self.key_of(j, c, true)?;
-                    self.wrote |= crate::comments::write(self.tx, &object, &key, b.comments.get(&c), comment)?;
+                    self.wrote |= crate::comments::write(self.tx, &object, &key, &address(&c), b.comments.get(&c), comment)?;
                 }
                 None => {
                     let key = self.key_of(j, c, false)?;
@@ -1273,7 +1274,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
 
         // Comments (`Comment` objects, see `comments`) and links.
         if full || before.is_some_and(|b| b.comments != after.comments) {
-            self.write_comments(j, full, fresh, was_cells, after)?;
+            self.write_comments(j, full, fresh, was_cells, after, sheet_id)?;
         }
         if full || before.is_some_and(|b| b.hyperlinks != after.hyperlinks) {
             let mut entries = Vec::new();

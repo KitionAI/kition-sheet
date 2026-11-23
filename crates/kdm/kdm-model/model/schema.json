@@ -57,7 +57,7 @@
         "rows": { "kind": "list", "of": "Row" },
         "cols": { "kind": "list", "of": "Col" },
         "cells": { "kind": "map", "owns": true, "of": "Cell" },
-        "comments": { "kind": "map", "owns": true, "of": "Comment" },
+        "comments": { "kind": "map" },
         "hyperlinks": { "kind": "map" },
         "merges": { "kind": "list", "of": "Merge", "readOnly": true, "sample": false },
         "condFormats": { "kind": "list", "of": "CondFormat", "readOnly": true, "sample": false },
@@ -202,17 +202,16 @@
       "fields": {
         "key": { "kind": "string", "readOnly": true },
         "name": { "kind": "string", "readOnly": true },
-        "range": { "kind": "string", "readOnly": true, "position": true },
+        "range": { "kind": "string", "readOnly": true },
         "columns": { "kind": "list", "of": "TableColumn", "readOnly": true },
         "props": { "kind": "json", "readOnly": true }
       }
     },
     "TableColumn": {
       "batchOps": { "*": { "direct": true } },
-      "readOnly": true,
       "label": "name",
       "fields": {
-        "name": { "kind": "string", "readOnly": true },
+        "name": { "kind": "string", "label": "column name", "sample": false },
         "props": { "kind": "json", "readOnly": true }
       }
     },
@@ -224,7 +223,7 @@
       "fields": {
         "key": { "kind": "string", "readOnly": true },
         "name": { "kind": "string", "readOnly": true },
-        "anchor": { "kind": "string", "readOnly": true, "position": true },
+        "anchor": { "kind": "string", "readOnly": true },
         "source": { "kind": "string", "readOnly": true },
         "lastRange": { "kind": "string", "optional": true, "readOnly": true },
         "props": { "kind": "json", "readOnly": true }
@@ -266,7 +265,9 @@
     },
     "Comment": {
       "batchOps": { "*": { "direct": true } },
+      "toolId": { "field": "address", "prefix": "comment:" },
       "fields": {
+        "address": { "kind": "string", "optional": true, "readOnly": true, "sample": false },
         "author": { "kind": "string", "label": "comment author" },
         "text": { "kind": "text", "label": "comment text" },
         "replies": { "kind": "list", "of": "Reply" },

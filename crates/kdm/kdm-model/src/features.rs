@@ -755,16 +755,24 @@ pub(crate) fn hyperlink_value<E: Encode + ?Sized>(e: &mut E, s: usize, h: &Hyper
         // A place may be written behind a `#` (`#Sheet2!A1`), as a file's location is.
         let (hash, place) = h.target.strip_prefix('#').map_or(("", h.target.as_str()), |place| ("#", place));
         set(&mut v, "target", Json::String(format!("{hash}{}", encode_formula(e, place, None, Some(s))?)));
+        // As written, for a target whose sheet goes: the link keeps its text, as the engine does.
+        set(&mut v, "written", Json::String(h.target.clone()));
     }
     Ok(v)
 }
 
 /// A link back from its `hyperlinks` entry.
 pub(crate) fn read_hyperlink<D: Decode + ?Sized>(d: &D, s: usize, v: Json) -> Option<Hyperlink> {
+    let written = v.get("written").and_then(Json::as_str).map(str::to_owned);
     let mut h: Hyperlink = from_json(v)?;
     if !h.is_external() {
         let (hash, place) = h.target.strip_prefix('#').map_or(("", h.target.as_str()), |place| ("#", place));
-        h.target = format!("{hash}{}", decode_formula(d, place, Some(s)));
+        let target = format!("{hash}{}", decode_formula(d, place, Some(s)));
+        h.target = match written {
+            // A sheet it named is gone: the link reads as it was written.
+            Some(written) if target.contains("#REF!") => written,
+            _ => target,
+        };
     }
     Some(h)
 }

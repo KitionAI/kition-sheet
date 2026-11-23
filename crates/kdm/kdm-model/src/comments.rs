@@ -1,5 +1,8 @@
 //! Comments as `Comment` objects: a sheet's `comments` map names, under each cell's key
-//! (`<rowObject>:<colObject>`), the cell's `Comment`. A comment has its `author`, its `text` (a
+//! (`<rowObject>:<colObject>`), the cell's `Comment`. A comment's tool id is its cell's address
+//! (`comment:<sheetId>!B7`, its `address`, kept by the writer as rows and columns move): others'
+//! changes of it are told under that id, so a write holding one cell's comment is not touched by
+//! a comment made or changed on another cell. A comment has its `author`, its `text` (a
 //! KDM `text`: two people editing it at once merge by character), its `replies` (a list of `Reply`
 //! objects, each with its `author` and `text`: replies added at once are all kept), and
 //! `threaded`, `resolved` and `visible` registers. Deleting a comment deletes its replies.
@@ -68,16 +71,18 @@ fn registers(c: &Comment) -> Map<String, Value> {
 /// Writes `after` as the comment `key` of `sheet`, whose view held `before` (`None`: none, or not
 /// known): its `Comment` keeps its object, its registers set where they differ, its text and its
 /// replies' texts written by character, replies added and removed. Answers whether it wrote.
-pub(crate) fn write(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str, before: Option<&Comment>, after: &Comment) -> KdmResult<bool> {
+pub(crate) fn write(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str, address: &str, before: Option<&Comment>, after: &Comment) -> KdmResult<bool> {
     let current = tx.map_get(sheet, "comments", key)?;
     let Some(id) = object_of(tx, &current) else {
-        let id = tx.create(COMMENT, registers(after))?;
+        let mut fields = registers(after);
+        fields.insert("address".to_owned(), json!(address));
+        let id = tx.create(COMMENT, fields)?;
         tx.text_insert(&id, TEXT, 0, &after.text)?;
         write_replies(tx, &id, &[], &after.replies)?;
         tx.map_set(sheet, "comments", key, json!(id.as_str()))?;
         return Ok(true);
     };
-    let mut wrote = false;
+    let mut wrote = set(tx, &id, "address", json!(address))?;
     for (field, v) in registers(after) {
         wrote |= set(tx, &id, &field, v)?;
     }

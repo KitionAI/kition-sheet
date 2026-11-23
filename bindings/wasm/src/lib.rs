@@ -2528,9 +2528,10 @@ impl KitDocument for SheetDocument {
 
     fn under(&self, command: &str, params: &Json) -> Result<Option<kition_kit::Under>, String> {
         let under = self.shared_edit_premises(command, params, self.call_premises(command, params)?)?;
-        let wb = &self.doc_state()?.wb;
+        let state = self.doc_state()?;
+        let objects = state.kdm().map(|kdm| kdm.model().ids());
         Ok(under.map(|mut under| {
-            place::feature_object_premises(wb, &mut under);
+            place::feature_object_premises(&state.wb, objects, &mut under);
             under
         }))
     }

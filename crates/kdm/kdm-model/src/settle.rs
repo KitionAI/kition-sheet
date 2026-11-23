@@ -53,6 +53,18 @@ pub(crate) fn project_positions(
                 }
             }
         }
+        // Each comment's tool address, likewise.
+        for (key, value) in tx.map_entries(&ids.object, "comments")? {
+            let Some(object) = value.as_str().map(ObjectId::from_string).filter(|object| tx.exists(object)) else { continue };
+            let Some(at) = key.match_indices(':').find_map(|(i, _)| Some(CellRef::new(*rows.get(key.get(..i)?)?, *cols.get(key.get(i + 1..)?)?)))
+            else {
+                continue;
+            };
+            let address = json!(format!("{}!{at}", sheet.sheet_id));
+            if tx.object_type(&object).ok().as_deref() == Some(crate::comments::COMMENT) && tx.get(&object, "address")? != address {
+                tx.set(&object, "address", address)?;
+            }
+        }
     }
     Ok(())
 }

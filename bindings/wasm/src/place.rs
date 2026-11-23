@@ -190,6 +190,18 @@ fn property_fields(command: &str, params: &Value) -> Option<Vec<String>> {
     Some(fields.iter().map(|field| (*field).to_owned()).collect())
 }
 
+/// The fields of a `Comment` a premise on all of it holds.
+const COMMENT_FIELDS: [&str; 6] = ["author", "text", "replies", "threaded", "resolved", "visible"];
+
+/// The cell a `comments` key in tool ids (`row:<id>:col:<id>`) names on sheet `si`.
+fn comment_place(objects: Option<&kdm_model::Ids>, si: usize, key: &str) -> Option<kition_sheet_engine::core::CellRef> {
+    let (row, col) = key.strip_prefix("row:")?.split_once(":col:")?;
+    let sheet = objects?.sheets.get(si)?;
+    let r = sheet.rows.iter().position(|o| o.as_str() == row)?;
+    let c = sheet.cols.iter().position(|o| o.as_str() == col)?;
+    Some(kition_sheet_engine::core::CellRef::new(u32::try_from(r).ok()?, u32::try_from(c).ok()?))
+}
+
 /// The fields of a `Table` or `Pivot` object a premise on all of it holds.
 const FEATURE_OBJECT_FIELDS: [&str; 5] = ["key", "name", "range", "props", "columns"];
 const PIVOT_OBJECT_FIELDS: [&str; 6] = ["key", "name", "anchor", "source", "lastRange", "props"];
@@ -199,11 +211,19 @@ const PIVOT_OBJECT_FIELDS: [&str; 6] = ["key", "name", "anchor", "source", "last
 /// ids (`table:<key>`, `pivot:<key>`), so others' changes of them are told under those ids, not
 /// under the sheet's list. Each such premise gets one on the objects it names: every table (or
 /// pivot table) of the sheet for the whole list, the named one for an item, with the path inside.
-pub(super) fn feature_object_premises(wb: &kition_sheet_engine::model::Workbook, under: &mut Under) {
+pub(super) fn feature_object_premises(wb: &kition_sheet_engine::model::Workbook, objects: Option<&kdm_model::Ids>, under: &mut Under) {
     let mut more = Vec::new();
     for p in &under.premises {
-        let Some(sheet) = p.id.as_str().and_then(|id| wb.sheets.iter().find(|s| ids::sheet_tool_id(s) == id)) else { continue };
+        let Some((si, sheet)) = p.id.as_str().and_then(|id| wb.sheets.iter().enumerate().find(|(_, s)| ids::sheet_tool_id(s) == id)) else {
+            continue;
+        };
         for field in p.fields.iter().flatten() {
+            // A cell's comment (`comments.row:<id>:col:<id>`) is a `Comment` with its own tool id.
+            if let Some(at) = field.strip_prefix("comments.").and_then(|key| comment_place(objects, si, key))
+                && sheet.comments.contains_key(&at)
+            {
+                more.push(premise(format!("comment:{}!{at}", sheet.sheet_id), COMMENT_FIELDS));
+            }
             for (list, prefix, all) in [("tables", "table", &FEATURE_OBJECT_FIELDS[..]), ("pivots", "pivot", &PIVOT_OBJECT_FIELDS[..])] {
                 let named: Vec<(String, u32)> = if list == "tables" {
                     sheet.tables.iter().map(|t| (t.name.clone(), t.id)).collect()
