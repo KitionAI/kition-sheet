@@ -283,7 +283,15 @@ fn table(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
                 // structural tail handles pre-existing stale header names.
                 out.0.retain(|fact| fact.field != field);
                 let value = serde_json::to_value(table).unwrap();
-                out.add(&sid, value.as_object().unwrap().keys().filter(|key| key.as_str() != "columns").map(|key| format!("{field}.{key}")));
+                // The `Table` object's fields: its key (the id), name and range, the rest in `props`.
+                out.add(
+                    &sid,
+                    value.as_object().unwrap().keys().filter(|key| key.as_str() != "columns").map(|key| match key.as_str() {
+                        "id" => format!("{field}.key"),
+                        "name" | "range" => format!("{field}.{key}"),
+                        _ => format!("{field}.props.{key}"),
+                    }),
+                );
             }
             if on != table.header_row {
                 let row = if on { table.range.start.row - 1 } else { table.range.start.row };
