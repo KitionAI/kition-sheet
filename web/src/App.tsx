@@ -71,8 +71,13 @@ const TABS: Array<[string, string]> = [
  * (`bindings/wasm/src/drawn.rs`, checked command by command by `tests/agent_paint.rs`). Its "paint
  * nothing" must not replace a repaint the person's edit still owes when React takes both in one
  * render: `repaintFor` (`src/repaint.ts`) sees to that.
+ *
+ * A workbook changed outside Kition opens with its stored replica whatever the file's stamp
+ * (`replicaMergesFile`, Kit UI protocol UI-R1): the engine records what the file changed as one
+ * `import` change onto the replica (`open_with_replica`), so the sheets, rows, columns and cells
+ * keep their object ids and the history goes on (tests/reopen-changed.mjs).
  */
-const SESSION = { agentSkipsUnchangedPaint: true } as const
+const SESSION = { agentSkipsUnchangedPaint: true, replicaMergesFile: true } as const
 
 export function App({ host: given, phrase }: { host: HostConnection; phrase: Phrases }) {
   const t = useMemo(() => createKitStrings(CATALOGS, given.init.locale), [given])

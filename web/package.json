@@ -33,10 +33,11 @@
     "test:gate-table-style": "node tests/gate-table-style.mjs chromium && node tests/gate-table-style.mjs webkit",
     "test:gate-insert": "node tests/gate-insert.mjs chromium && node tests/gate-insert.mjs webkit",
     "test:gate-file": "node tests/gate-file.mjs chromium && node tests/gate-file.mjs webkit",
-    "test:gate-cleanup": "node tests/gate-cleanup.mjs chromium && node tests/gate-cleanup.mjs webkit"
+    "test:gate-cleanup": "node tests/gate-cleanup.mjs chromium && node tests/gate-cleanup.mjs webkit",
+    "test:reopen-changed": "node tests/reopen-changed.mjs chromium && node tests/reopen-changed.mjs webkit"
   },
   "dependencies": {
-    "@kition/sdk": "npm:@kitionstage/sdk@0.5.2-stage.16",
+    "@kition/sdk": "npm:@kitionstage/sdk@0.5.2-stage.19",
     "@kition/tessera": "npm:@kitionstage/tessera@0.1.1-stage.2",
     "loro-crdt": "1.16.4",
     "react": "^19.2.5",

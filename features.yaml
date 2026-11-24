@@ -555,6 +555,14 @@ features:
     paths: [bindings/headless/src/main.rs, bindings/headless/tests/identity.rs, kit.json]
     cases: [sheet.platform.document-identity/no-replica]
     since: "2026-11-20"
+  - id: sheet.platform.file-changed-outside
+    title: "A workbook changed outside Kition opens with its stored replica (replicaMergesFile, Kit UI protocol UI-R1): the engine records the file as one import, so the replica, its history and the object ids go on"
+    dimension: [platform, data-safety]
+    priority: P1
+    status: has
+    paths: [web/src/App.tsx, web/tests/reopen-changed.mjs, crates/engine/engine/src/kdm_bridge.rs, bindings/wasm/src/collab.rs, crates/formats/xlsx/src/identities.rs]
+    cases: [sheet.platform.file-changed-outside/merge-into-replica]
+    since: "2026-11-24"
   - id: sheet.editor.workbook-files
     title: "Workbook files as in WPS: open xlsx, xlsm, templates, Excel 97-2003 .xls, .xlsb, ODS, CSV (UTF-8 or GBK) and web pages named .xls, sized as WPS sizes columns and rows; refuse empty, damaged and non-spreadsheet files saying what they are; File › Export as PDF (Chinese text embedded, A4), picture, Excel workbook, CSV of what cells show and web page; Save as Template (.xltx); a read-only preview; copy and paste between workbooks with formats; form controls kept on save"
     dimension: [function, conversion, fidelity]
