@@ -24,7 +24,7 @@ async fn symbol_entry_holds_its_composed_input_and_formula_sources_but_allows_an
             };
             fixture.colleague(&[("cell.set", json!({"cell":changed_cell,"input":"42"}))]);
             let outside = fixture.bytes();
-            let result = fixture.call("run", json!({"basis":basis,"target":{"sheet":"sheet:1"},"steps":[{"command":"insert.symbol","on":["C5"],"params":{"char":if formula {"+C1"} else {"€"}}}]})).await;
+            let result = fixture.call("run", json!({"basis":basis,"target":{"sheet":"sheet:1"},"steps":[{"command":"symbol.insert","on":["C5"],"params":{"char":if formula {"+C1"} else {"€"}}}]})).await;
             if change == "unrelated" {
                 if let Err(error) = result {
                     failures.push(format!("formula={formula}: unrelated sheet must apply: {error}"));

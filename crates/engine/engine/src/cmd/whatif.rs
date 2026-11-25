@@ -1337,10 +1337,10 @@ mod tests {
     #[test]
     fn consolidate_by_position_and_label() {
         let mut s = s();
-        s.execute("home.insertSheet", json!({})).unwrap();
+        s.execute("sheet.insert", json!({})).unwrap();
         s.execute("sheet.rename", json!({"name": "East"})).unwrap();
         s.execute("range.setValues", json!({"range": "A1", "values": [["", "Q1", "Q2"], ["Apples", 10, 20], ["Pears", 5, 6]]})).unwrap();
-        s.execute("home.insertSheet", json!({})).unwrap();
+        s.execute("sheet.insert", json!({})).unwrap();
         s.execute("sheet.rename", json!({"name": "West"})).unwrap();
         s.execute("range.setValues", json!({"range": "A1", "values": [["", "Q2", "Q3"], ["Pears", 1, 2], ["Plums", 7, 8]]})).unwrap();
         s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();

@@ -30,15 +30,15 @@ pub const NO_OUTPUT: &[(&str, &str)] = &[
     ("window.activate", "it only brings a window to the front"),
     ("edit.clearClipboard", "it only cancels the pending copy or cut"),
     ("edit.beginEdit", "it only puts the editor into cell edit mode"),
-    ("sheet.next", "it only changes the active sheet, which document.inspect reports"),
-    ("sheet.previous", "it only changes the active sheet, which document.inspect reports"),
-    ("formulas.removeArrows", "it only hides trace arrows in the editor"),
+    ("sheet.next", "it only changes the active sheet, which file.inspect reports"),
+    ("sheet.previous", "it only changes the active sheet, which file.inspect reports"),
+    ("formula.removeArrows", "it only hides trace arrows in the editor"),
     ("view.arrangeAll", "it only arranges editor windows"),
     ("view.hideWindow", "it only hides the editor window"),
     ("view.unhideWindow", "it only shows an editor window"),
     ("view.ruler", "it only toggles the editor's ruler"),
-    ("draw.lasso", "it only selects an editor tool"),
-    ("review.addToDictionary", "it only adds a word to the spelling dictionary"),
+    ("ink.lasso", "it only selects an editor tool"),
+    ("spelling.addToDictionary", "it only adds a word to the spelling dictionary"),
 ];
 
 /// Fills each command's description, output schema, and typed parameters from the table.

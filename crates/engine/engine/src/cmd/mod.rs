@@ -1,5 +1,5 @@
-//! The command registry. Ids follow Excel's ribbon (`home.bold`, `insert.chart`,
-//! `data.sortAscending`) plus primitive editing commands (`cell.set`, `selection.set`).
+//! The command registry. Ids follow Excel's ribbon (`format.bold`, `chart.insert`,
+//! `data.sortAscending`) plus primitive editing commands (`cell.set`, `select.set`).
 
 pub mod chart_spec;
 pub mod data;

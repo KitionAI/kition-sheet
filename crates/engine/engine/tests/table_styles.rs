@@ -78,24 +78,24 @@ fn data(s: &mut Session) {
 fn format_as_table_from_one_cell_takes_the_data_around_it() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "selection.set", json!({"range": "B3"}));
+    run(&mut s, "select.set", json!({"range": "B3"}));
     let gallery = run(&mut s, "table.styles", json!({}));
     assert_eq!(gallery["range"], "A1:D10", "TS-C6: the range offered is the data around the cell");
-    let made = run(&mut s, "home.formatAsTable", json!({"style": "TableStyleMedium2"}));
+    let made = run(&mut s, "table.formatAs", json!({"style": "TableStyleMedium2"}));
     assert_eq!(made["range"], "A1:D10", "TS-C6");
     assert_eq!(table(&s).unwrap().range.a1(), "A1:D10");
     assert_eq!(fill(&own(&s, "F1")), None, "TS-C6: cells outside keep their format");
     // TS-C7: a range selected is taken as it is, never widened.
     let mut s = session();
     data(&mut s);
-    run(&mut s, "selection.set", json!({"range": "A1:B5"}));
-    run(&mut s, "home.formatAsTable", json!({"style": "TableStyleLight9"}));
+    run(&mut s, "select.set", json!({"range": "A1:B5"}));
+    run(&mut s, "table.formatAs", json!({"style": "TableStyleLight9"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:B5", "TS-C7");
     // Whole columns take the part of them holding something.
     let mut s = session();
     data(&mut s);
-    run(&mut s, "selection.set", json!({"range": "A:C"}));
-    run(&mut s, "home.formatAsTable", json!({"style": "TableStyleLight9"}));
+    run(&mut s, "select.set", json!({"range": "A:C"}));
+    run(&mut s, "table.formatAs", json!({"style": "TableStyleLight9"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:C10", "TS-C7: whole columns");
 }
 
@@ -103,8 +103,8 @@ fn format_as_table_from_one_cell_takes_the_data_around_it() {
 fn only_format_writes_the_look_into_the_cells() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "selection.set", json!({"range": "A1:D10"}));
-    run(&mut s, "home.formatAsTable", json!({"style": "TableStyleMedium2", "mode": "format", "titleRows": 1}));
+    run(&mut s, "select.set", json!({"range": "A1:D10"}));
+    run(&mut s, "table.formatAs", json!({"style": "TableStyleMedium2", "mode": "format", "titleRows": 1}));
     assert_eq!(tables_on(&s), 0, "TS-X1: Only Format As Table makes no table");
     let header = own(&s, "A1");
     assert_eq!(fill(&header), Some(Color::Theme(4, 0)), "the header takes Accent 1");
@@ -115,7 +115,7 @@ fn only_format_writes_the_look_into_the_cells() {
     // Two title rows.
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2", "mode": "format", "titleRows": 2}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2", "mode": "format", "titleRows": 2}));
     assert_eq!(fill(&own(&s, "A2")), Some(Color::Theme(4, 0)), "the second title row looks like the header");
     assert_eq!(fill(&own(&s, "A3")), Some(Color::Theme(4, 800)));
 }
@@ -124,8 +124,8 @@ fn only_format_writes_the_look_into_the_cells() {
 fn headers_get_names_keep_their_format_and_lose_formulas() {
     let mut s = session();
     run(&mut s, "range.setValues", json!({"range": "A1", "values": [[null, "地区", "=1+1"], [1, 2, 3], [4, 5, 6]]}));
-    run(&mut s, "home.bold", json!({"range": "B1", "on": true}));
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:C3", "style": "TableStyleMedium2", "header": true, "columnPrefix": "列"}));
+    run(&mut s, "format.bold", json!({"range": "B1", "on": true}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:C3", "style": "TableStyleMedium2", "header": true, "columnPrefix": "列"}));
     assert_eq!(value(&mut s, "A1"), json!("列1"), "TS-C73: an empty header is named");
     assert_eq!(value(&mut s, "B1"), json!("地区"), "TS-C75: text stays the header");
     assert!(own(&s, "B1").font.bold, "TS-C74: the header keeps its format");
@@ -141,28 +141,28 @@ fn headers_get_names_keep_their_format_and_lose_formulas() {
 fn merged_cells_come_apart_and_array_formulas_or_tables_refuse() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.mergeCells", json!({"range": "A2:B3"}));
-    run(&mut s, "selection.set", json!({"range": "C5"}));
-    run(&mut s, "home.formatAsTable", json!({"style": "TableStyleMedium2"}));
+    run(&mut s, "cell.merge", json!({"range": "A2:B3"}));
+    run(&mut s, "select.set", json!({"range": "C5"}));
+    run(&mut s, "table.formatAs", json!({"style": "TableStyleMedium2"}));
     let sheet = s.doc().unwrap().wb.active().unwrap().clone();
     assert!(sheet.merges.is_empty(), "TS-C13/C14/C96: merged cells in the range come apart");
     assert_eq!(value(&mut s, "A2"), json!("n2"), "TS-C96: the merged text stays in the first cell");
     // TS-C16: a range overlapping a table is refused, the table stays.
-    run(&mut s, "selection.set", json!({"range": "E1"}));
-    let err = s.execute("home.formatAsTable", json!({"range": "C3:F4", "style": "TableStyleLight1"})).unwrap_err().to_string();
+    run(&mut s, "select.set", json!({"range": "E1"}));
+    let err = s.execute("table.formatAs", json!({"range": "C3:F4", "style": "TableStyleLight1"})).unwrap_err().to_string();
     assert!(err.contains("overlap"), "{err}");
     assert_eq!((tables_on(&s), table(&s).unwrap().style), (1, "TableStyleMedium2".to_string()));
     // TS-C46: an array formula can't be in a table.
     let mut s = session();
-    run(&mut s, "selection.set", json!({"range": "A1:A3"}));
+    run(&mut s, "select.set", json!({"range": "A1:A3"}));
     run(&mut s, "cell.set", json!({"cell": "A1", "input": "=ROW(A1:A3)", "array": true}));
-    let err = s.execute("home.formatAsTable", json!({"range": "A1:B4", "style": "TableStyleMedium2"})).unwrap_err().to_string();
+    let err = s.execute("table.formatAs", json!({"range": "A1:B4", "style": "TableStyleMedium2"})).unwrap_err().to_string();
     assert!(err.contains("array"), "{err}");
     // TS-C9: several areas grey Format as Table.
     let mut s = session();
     data(&mut s);
-    run(&mut s, "selection.set", json!({"range": "A1:A2,C1:C2"}));
-    assert!(disabled(&s, "home.formatAsTable"), "TS-C9");
+    run(&mut s, "select.set", json!({"range": "A1:A2,C1:C2"}));
+    assert!(disabled(&s, "table.formatAs"), "TS-C9");
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn parts_of_a_style_layer_header_first_column_rows_then_columns() {
 fn the_options_change_what_the_table_shows() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
     assert_eq!(fill(&shown(&s, "B2")), Some(Color::Theme(4, 800)), "banded rows on by default");
     run(&mut s, "table.bandedRows", json!({"on": false}));
     assert_eq!(fill(&shown(&s, "B2")), None, "TS-C24");
@@ -214,7 +214,7 @@ fn the_options_change_what_the_table_shows() {
     let t = table(&s).unwrap();
     assert_eq!((t.header_row, t.range.a1()), (false, "A2:D11".to_string()));
     assert_eq!(value(&mut s, "A1"), Json::Null, "the header's text leaves the sheet");
-    run(&mut s, "selection.set", json!({"range": "B5"}));
+    run(&mut s, "select.set", json!({"range": "B5"}));
     run(&mut s, "table.headerRow", json!({"on": true}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:D11");
     assert_eq!(value(&mut s, "B1"), json!("地区"), "the names come back");
@@ -230,13 +230,13 @@ fn the_options_change_what_the_table_shows() {
 fn hidden_rows_keep_the_bands_alternate_and_a_cells_own_format_wins() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
-    run(&mut s, "home.hideRows", json!({"rows": "3"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "row.hide", json!({"rows": "3"}));
     assert_eq!(fill(&shown(&s, "A4")), None, "TS-C100: row 4 follows row 2 on screen, so it is not banded");
     assert_eq!(fill(&shown(&s, "A5")), Some(Color::Theme(4, 800)));
-    run(&mut s, "home.unhideRows", json!({"rows": "3"}));
+    run(&mut s, "row.show", json!({"rows": "3"}));
     assert_eq!(fill(&shown(&s, "A4")), Some(Color::Theme(4, 800)), "TS-C100: shown again, the bands are as before");
-    run(&mut s, "home.fillColor", json!({"range": "B2", "color": "#FF0000"}));
+    run(&mut s, "format.fillColor", json!({"range": "B2", "color": "#FF0000"}));
     assert_eq!(fill(&shown(&s, "B2")), Some(Color::Rgb(0xFF0000)), "TS-C53/C56: the cell's own fill wins");
     run(&mut s, "edit.clearFormats", json!({"range": "B2"}));
     assert_eq!(fill(&shown(&s, "B2")), Some(Color::Theme(4, 800)), "TS-C53/C122: cleared, the table's look shows again");
@@ -247,7 +247,7 @@ fn hidden_rows_keep_the_bands_alternate_and_a_cells_own_format_wins() {
 fn typing_or_pasting_beside_a_table_makes_it_larger() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
     run(&mut s, "cell.set", json!({"cell": "B11", "input": "新"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:D11", "TS-C57: typing under the table adds a row");
     run(&mut s, "cell.set", json!({"cell": "E5", "input": "x"}));
@@ -271,7 +271,7 @@ fn typing_or_pasting_beside_a_table_makes_it_larger() {
     // TS-C58: a block pasted under the table grows it by its rows.
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
     run(&mut s, "edit.paste", json!({"at": "A11", "text": "p\t1\nq\t2\n"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:D12", "TS-C58");
     // TS-C64: a block pasted inside the table and running past it does not.
@@ -287,15 +287,15 @@ fn typing_or_pasting_beside_a_table_makes_it_larger() {
 fn rows_and_columns_inserted_or_deleted_resize_the_table() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
-    run(&mut s, "home.insertRows", json!({"rows": "5"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "row.insert", json!({"rows": "5"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:D11", "TS-C69: a row inserted inside");
-    run(&mut s, "home.insertColumns", json!({"cols": "D"}));
+    run(&mut s, "column.insert", json!({"cols": "D"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:E11", "TS-C59: a column inserted at the last column");
-    run(&mut s, "home.insertColumns", json!({"cols": "G"}));
+    run(&mut s, "column.insert", json!({"cols": "G"}));
     assert_eq!(table(&s).unwrap().range.a1(), "A1:E11", "TS-C67: a column inserted past it does not");
-    run(&mut s, "home.deleteRows", json!({"rows": "2:3"}));
-    run(&mut s, "home.deleteColumns", json!({"cols": "B"}));
+    run(&mut s, "row.delete", json!({"rows": "2:3"}));
+    run(&mut s, "column.delete", json!({"cols": "B"}));
     let t = table(&s).unwrap();
     assert_eq!((t.range.a1(), t.columns.len()), ("A1:D9".to_string(), 4), "TS-C70/C89: deleting shrinks it");
     assert_eq!(fill(&shown(&s, "A2")), Some(Color::Theme(4, 800)), "TS-C70: the bands start again under the header");
@@ -305,12 +305,12 @@ fn rows_and_columns_inserted_or_deleted_resize_the_table() {
 fn clearing_merging_and_painting() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
-    run(&mut s, "selection.set", json!({"range": "B2:C3"}));
-    assert!(disabled(&s, "home.mergeCenter") && disabled(&s, "home.mergeCells"), "TS-C97: merging is greyed in a table");
-    assert!(s.execute("home.mergeCells", json!({"range": "B2:C3"})).is_err(), "TS-C97");
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "select.set", json!({"range": "B2:C3"}));
+    assert!(disabled(&s, "cell.mergeCenter") && disabled(&s, "cell.merge"), "TS-C97: merging is greyed in a table");
+    assert!(s.execute("cell.merge", json!({"range": "B2:C3"})).is_err(), "TS-C97");
     // TS-C54 and the format painter carrying a table's look out of it.
-    run(&mut s, "selection.set", json!({"range": "A1"}));
+    run(&mut s, "select.set", json!({"range": "A1"}));
     run(&mut s, "edit.formatPainter", json!({}));
     run(&mut s, "edit.formatPainter", json!({"apply": "F1"}));
     assert_eq!(fill(&own(&s, "F1")), Some(Color::Theme(4, 0)), "painting a header cell paints its look");
@@ -328,13 +328,13 @@ fn clearing_merging_and_painting() {
 fn convert_to_range_keeps_the_look_and_ends_the_table() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
     let before = shown(&s, "A2");
-    run(&mut s, "selection.set", json!({"range": "B2"}));
+    run(&mut s, "select.set", json!({"range": "B2"}));
     run(&mut s, "table.convertToRange", json!({}));
     assert_eq!(tables_on(&s), 0, "TS-C129");
     assert_eq!(fill(&own(&s, "A2")), fill(&before), "TS-C130: the look is now the cells' own");
-    run(&mut s, "home.formatAsTable", json!({"style": "TableStyleLight1"}));
+    run(&mut s, "table.formatAs", json!({"style": "TableStyleLight1"}));
     assert_eq!(tables_on(&s), 1, "TS-C131: it can be formatted as a table again");
 }
 
@@ -374,8 +374,8 @@ fn styles_of_the_workbooks_own_are_kept_and_saved() {
     let g = run(&mut s, "table.styles", json!({}));
     assert_eq!(g["custom"][0]["name"], "我的样式", "TS-C22/C115: the new style is listed");
     assert_eq!(g["default"], "我的样式", "TS-C30/C35: and is the default");
-    run(&mut s, "selection.set", json!({"range": "B2"}));
-    run(&mut s, "home.formatAsTable", json!({}));
+    run(&mut s, "select.set", json!({"range": "B2"}));
+    run(&mut s, "table.formatAs", json!({}));
     assert_eq!(table(&s).unwrap().style, "我的样式", "TS-C35: Format as Table takes the default");
     assert_eq!(fill(&shown(&s, "A1")), Some(Color::Rgb(0x123456)), "TS-C33: its colours");
     assert_eq!(fill(&shown(&s, "A2")), Some(Color::Rgb(0xEEDDCC)));
@@ -413,7 +413,7 @@ fn every_builtin_style_is_drawn_and_named_tables_round_trip() {
     assert!(tables::look("TableStyleDark12").is_none());
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleDark3"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleDark3"}));
     run(&mut s, "table.style", json!({"style": "None"}));
     let bytes = save_bytes(&s.doc().unwrap().wb, "Book.xlsx").unwrap();
     let wb = open_bytes("Book.xlsx", &bytes).unwrap().0;
@@ -426,9 +426,9 @@ fn every_builtin_style_is_drawn_and_named_tables_round_trip() {
 fn resize_table_takes_valid_ranges_on_its_sheet() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
-    run(&mut s, "home.formatAsTable", json!({"range": "H1:I3", "style": "TableStyleLight1", "header": true}));
-    run(&mut s, "selection.set", json!({"range": "B2"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "table.formatAs", json!({"range": "H1:I3", "style": "TableStyleLight1", "header": true}));
+    run(&mut s, "select.set", json!({"range": "B2"}));
     let range = |s: &Session| table(s).unwrap().range.a1();
     run(&mut s, "table.resize", json!({"range": "a1:c5"}));
     assert_eq!(range(&s), "A1:C5", "TS-C39/C48: a1:c5 is taken as A1:C5");
@@ -447,7 +447,7 @@ fn resize_table_takes_valid_ranges_on_its_sheet() {
 fn one_row_groups_alone() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "selection.set", json!({"range": "B3"}));
+    run(&mut s, "select.set", json!({"range": "B3"}));
     run(&mut s, "data.group", json!({"rows": "1"}));
     run(&mut s, "data.hideDetail", json!({"rows": "1"}));
     let sheet = s.doc().unwrap().wb.active().unwrap().clone();
@@ -458,7 +458,7 @@ fn one_row_groups_alone() {
 fn a_formula_pasted_into_a_header_becomes_its_value() {
     let mut s = session();
     data(&mut s);
-    run(&mut s, "home.formatAsTable", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
+    run(&mut s, "table.formatAs", json!({"range": "A1:D10", "style": "TableStyleMedium2"}));
     run(&mut s, "cell.set", json!({"cell": "H1", "input": "=10*3"}));
     run(&mut s, "edit.copy", json!({"range": "H1"}));
     run(&mut s, "edit.paste", json!({"at": "B1"}));

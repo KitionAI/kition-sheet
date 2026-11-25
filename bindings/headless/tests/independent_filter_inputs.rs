@@ -13,11 +13,11 @@ async fn reapply_holds_first_table_criterion_added_or_removed_outside_the_select
     for removed in [false, true] {
         for related in [true, false] {
             let fixture = Fixture::new();
-            fixture.colleague(&[("insert.table", json!({"range":"A1:D12","header":true,"name":"Sales"}))]);
+            fixture.colleague(&[("table.insert", json!({"range":"A1:D12","header":true,"name":"Sales"}))]);
             if removed {
                 fixture.colleague(&[("data.filterBy", json!({"table":"Sales","column":"B","values":[2]}))]);
             }
-            fixture.call("run", json!({"steps":[{"command":"selection.set","params":{"range":"E20"}}]})).await.unwrap();
+            fixture.call("run", json!({"steps":[{"command":"select.set","params":{"range":"E20"}}]})).await.unwrap();
             let basis = fixture.basis().await;
             if related {
                 if removed {

@@ -22,9 +22,9 @@ fn a_misspelled_parameter_names_the_one_it_resembles_and_changes_nothing() {
     let mut doc = book();
     doc.execute("cell.set", json!({ "cell": "A1", "input": "1" })).unwrap();
     let before = doc.save(None).unwrap();
-    let error = doc.execute("home.bold", json!({ "rnage": "A1" })).unwrap_err();
+    let error = doc.execute("format.bold", json!({ "rnage": "A1" })).unwrap_err();
     assert!(error.contains("`rnage`") && error.contains("did you mean `range`"), "{error}");
     assert_eq!(doc.save(None).unwrap(), before);
     // The target helpers' other spellings stay valid calls.
-    doc.execute("home.bold", json!({ "cell": "A1", "sheet": 0 })).unwrap();
+    doc.execute("format.bold", json!({ "cell": "A1", "sheet": 0 })).unwrap();
 }

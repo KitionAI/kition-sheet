@@ -54,7 +54,7 @@ async fn constant_fill_holds_source_style_and_other_destination_row_height_input
             let fixture = Fixture::new();
             fixture.colleague(&[
                 ("cell.set", json!({"cell":"B2","input":"copied\ntext"})),
-                ("home.fontSize", json!({"range":"B2","size":20})),
+                ("format.fontSize", json!({"range":"B2","size":20})),
                 ("cell.set", json!({"cell":"H3","input":"height input"})),
             ]);
             let basis = fixture.basis().await;
@@ -65,7 +65,7 @@ async fn constant_fill_holds_source_style_and_other_destination_row_height_input
             } else {
                 "H3"
             };
-            fixture.colleague(&[("home.fontSize", json!({"range":range,"size":40}))]);
+            fixture.colleague(&[("format.fontSize", json!({"range":range,"size":40}))]);
             let before = fixture.bytes();
             let result = fixture.run(basis, "edit.fillDown", json!({"range":"B2:B4"})).await;
             if related {

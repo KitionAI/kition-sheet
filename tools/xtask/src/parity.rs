@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn groups_by_tab_and_counts_unique_ids() {
-        let s = render(&[e("file.new", "File", true), e("file.open", "File", false), e("home.bold", "Home", true), e("file.new", "Home", false)]);
+        let s = render(&[e("file.new", "File", true), e("file.open", "File", false), e("format.bold", "Home", true), e("file.new", "Home", false)]);
         assert!(s.contains("**Overall: 2 / 3 commands implemented (66.7%).**"), "{s}");
         assert!(s.contains("| File | 1 | 2 | 50% |"), "{s}");
         assert!(s.contains("| Home | 1 | 1 | 100% |"), "{s}");

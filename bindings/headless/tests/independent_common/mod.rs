@@ -17,9 +17,9 @@ impl Fixture {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         let values: Vec<_> = (1..=12).map(|n| json!([format!("row{n}"), n, n * 2, n * 3])).collect();
         doc.execute("range.setValues", json!({"range":"A1","values":values})).unwrap();
-        doc.execute("home.insertSheet", json!({"name":"Sheet2","before":9})).unwrap();
+        doc.execute("sheet.insert", json!({"name":"Sheet2","before":9})).unwrap();
         doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
-        doc.execute("selection.set", json!({"range":"C5"})).unwrap();
+        doc.execute("select.set", json!({"range":"C5"})).unwrap();
         std::fs::write(dir.path().join("Book.xlsx"), doc.save(None).unwrap()).unwrap();
         let kit = KitDefinition::from_manifest_text(include_str!("../../../../kit.json")).unwrap();
         let kits = KitManager::new(Some(dir.path().to_path_buf()), vec![(kit, Some(PathBuf::from(env!("CARGO_BIN_EXE_kition-sheet"))))]);

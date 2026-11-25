@@ -791,7 +791,7 @@ mod tests {
         let mut s = Session::new();
         s.new_workbook();
         s.execute("range.setValues", json!({"range": "A1", "values": [["a", "b", "c"], [1, 2, 3]]})).unwrap();
-        s.execute("insert.table", json!({"range": "A1:C2", "header": true})).unwrap();
+        s.execute("table.insert", json!({"range": "A1:C2", "header": true})).unwrap();
         s.execute("cell.set", json!({"cell": "E1", "input": "=SUM(Table1[a])"})).unwrap();
         s.execute("cell.set", json!({"cell": "A1", "input": "zz"})).unwrap();
         s.execute("edit.clearContents", json!({"range": "B1"})).unwrap();
@@ -817,7 +817,7 @@ mod tests {
         let mut s = Session::new();
         s.new_workbook();
         s.execute("range.setValues", json!({"range": "A1", "values": [["a", "b"], [1, 2], [3, 4]]})).unwrap();
-        s.execute("insert.table", json!({"range": "A1:B3", "header": true})).unwrap();
+        s.execute("table.insert", json!({"range": "A1:B3", "header": true})).unwrap();
         assert_eq!(s.execute("edit.goTo", json!({"reference": "Table1"})).unwrap()["selection"], "A2:B3");
     }
 }

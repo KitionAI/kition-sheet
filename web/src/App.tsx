@@ -378,7 +378,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       case 'insertFunction':
         openInsertFunction({
           onChoose: async (name) => {
-            await editor.run('formulas.insertFunction', { name })
+            await editor.run('formula.insertFunction', { name })
             backToGrid()
           },
           onCancel: backToGrid,
@@ -470,7 +470,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     // Cmd+5 (Ctrl+5) strikes the selection through, as WPS and Excel for Windows have it (the
     // engine's own shortcut, Cmd+Shift+X, still works).
     if (command && !event.shiftKey && !event.altKey && event.key === '5') {
-      void editor.run('home.strikethrough', {})
+      void editor.run('format.strikethrough', {})
       return true
     }
     // Ctrl+; types today's date and Ctrl+Shift+; the time (WPS, Excel): at the caret while a cell
@@ -501,11 +501,11 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     if (event.ctrlKey && !event.metaKey && !event.altKey && state && !state.editing && !(state.lines.wholeRows && state.lines.wholeCols)) {
       const columns = state.lines.wholeCols
       if (event.shiftKey && (event.key === '=' || event.key === '+')) {
-        void editor.run(columns ? 'home.insertColumns' : 'home.insertRows', {})
+        void editor.run(columns ? 'column.insert' : 'row.insert', {})
         return true
       }
       if (!event.shiftKey && (event.key === '-' || event.key === '_')) {
-        void editor.run(columns ? 'home.deleteColumns' : 'home.deleteRows', {})
+        void editor.run(columns ? 'column.delete' : 'row.delete', {})
         return true
       }
     }
@@ -534,11 +534,11 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
             label={phrase('Insert Function')}
             size="large"
             primary
-            disabled={!editor.enabled('formulas.insertFunction')}
+            disabled={!editor.enabled('formula.insertFunction')}
             onClick={() =>
               openInsertFunction({
                 onChoose: async (name) => {
-                  await editor.run('formulas.insertFunction', { name })
+                  await editor.run('formula.insertFunction', { name })
                   backToGrid()
                 },
                 onCancel: backToGrid,
@@ -547,18 +547,18 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
             data-testid="sheet-insert-function-button"
           />
         </RibbonGroup>
-        <CommandTab menu="Formulas" exclude={['formulas.insertFunction']} primary={SHEET_PRIMARY.Formulas} />
+        <CommandTab menu="Formulas" exclude={['formula.insertFunction']} primary={SHEET_PRIMARY.Formulas} />
       </>
     ),
     insert: (
       <>
         {/* The engine's Illustrations (Pictures, Icons) join the kit's own; its Shapes is the kit's. */}
-        <DrawingInsertGroup testId="sheet-drawing" merge="Insert/Illustrations" exclude={['insert.shape']} primary={['insert.picture', 'insert.icons']} />
+        <DrawingInsertGroup testId="sheet-drawing" merge="Insert/Illustrations" exclude={['shape.insert']} primary={['image.insert', 'icon.insert']} />
         <RibbonGroup label={t('chartInsert')} icon={ChartColumn}>
           <ChartInsertMenu testId="sheet-chart" primary />
         </RibbonGroup>
         {/* Charts and Text Box are the shared controls'; Symbol is the kit's panel (WPS's). */}
-        <CommandTab menu="Insert" exclude={['insert.chart', 'insert.textBox', 'insert.symbol']} omit={['Illustrations']} primary={SHEET_PRIMARY.Insert} />
+        <CommandTab menu="Insert" exclude={['chart.insert', 'textBox.insert', 'symbol.insert']} omit={['Illustrations']} primary={SHEET_PRIMARY.Insert} />
         <SymbolGroup />
       </>
     ),
@@ -574,7 +574,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     draw: (
       <>
         <InkGroup testId="sheet-ink" />
-        <CommandTab menu="Draw" exclude={['draw.select', 'draw.pen', 'draw.pencil', 'draw.highlighter', 'draw.eraser', 'draw.state']} primary={SHEET_PRIMARY.Draw} />
+        <CommandTab menu="Draw" exclude={['ink.select', 'ink.pen', 'ink.pencil', 'ink.highlighter', 'ink.eraser', 'ink.state']} primary={SHEET_PRIMARY.Draw} />
       </>
     ),
   }

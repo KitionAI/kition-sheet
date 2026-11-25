@@ -90,7 +90,7 @@ fn add(s: &mut Session, p: &Json) -> Result<Json> {
     }
     let before = ink_ids(s);
     for call in calls {
-        s.execute("draw.stroke", call)?;
+        s.execute("ink.stroke", call)?;
     }
     let ids: Vec<String> = ink_ids(s).into_iter().filter(|id| !before.contains(id)).map(|id| id.to_string()).collect();
     Ok(json!({ "ids": ids }))
@@ -190,12 +190,12 @@ mod tests {
     fn pens_are_picked_up_with_their_own_look_and_bad_strokes_change_nothing() {
         let mut s = Session::new();
         s.new_workbook();
-        let st = s.execute("draw.highlighter", json!({})).unwrap();
+        let st = s.execute("ink.highlighter", json!({})).unwrap();
         assert_eq!((st["tool"].as_str(), st["width"].as_f64(), st["color"].as_str()), (Some("highlighter"), Some(12.0), Some("#FFFF00")));
         // Picking up the same pen again keeps it in hand.
-        assert_eq!(s.execute("draw.highlighter", json!({ "width": 8 })).unwrap()["tool"], "highlighter");
-        assert_eq!(s.execute("draw.state", json!({})).unwrap()["width"], 8.0);
-        assert_eq!(s.execute("draw.select", json!({})).unwrap()["tool"], "select");
+        assert_eq!(s.execute("ink.highlighter", json!({ "width": 8 })).unwrap()["tool"], "highlighter");
+        assert_eq!(s.execute("ink.state", json!({})).unwrap()["width"], 8.0);
+        assert_eq!(s.execute("ink.select", json!({})).unwrap()["tool"], "select");
         assert!(s.execute("drawing.ink", json!({ "strokes": [{ "points": [] }] })).is_err());
         assert!(inks(&mut s).is_empty());
         assert_eq!(s.execute("drawing.erase", json!({ "x": 5, "y": 5 })).unwrap()["erased"], 0);

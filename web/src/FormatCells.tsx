@@ -188,7 +188,7 @@ export function FormatCellsDialog({ info }: { info: SheetInfo }) {
   useEffect(() => {
     if (!shown) return
     const quoted = code.replace(/"/g, '""')
-    void query<unknown>('formulas.evaluate', { formula: `=TEXT(${info.active},"${quoted}")` }).then((value) => setSample(value == null ? '' : String(value)))
+    void query<unknown>('formula.evaluate', { formula: `=TEXT(${info.active},"${quoted}")` }).then((value) => setSample(value == null ? '' : String(value)))
   }, [code, info.active, query, shown])
 
   if (!shown) return null
@@ -224,7 +224,7 @@ export function FormatCellsDialog({ info }: { info: SheetInfo }) {
     if (edges.length) params.edges = edges
     if (merge) params.merge = true
     close()
-    if (Object.keys(params).length) await run('home.formatCells', params)
+    if (Object.keys(params).length) await run('format.cells', params)
   }
   const preset = (name: string) => {
     if (name === 'none') {

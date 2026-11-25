@@ -31,7 +31,7 @@ try {
   const cell = async (ref) => (await run([{ command: 'cell.get', params: { cell: ref } }]))[0].result
   const nameBox = kit.getByTestId('sheet-name-box')
   // The person goes to `range` through the Name Box, and the grid takes the keyboard back: an
-  // agent's selection.set moves only the agent's own editor state (KHP C3b).
+  // agent's select.set moves only the agent's own editor state (KHP C3b).
   const select = async (range) => {
     await nameBox.fill(range)
     await nameBox.press('Enter')

@@ -8,8 +8,8 @@ fn fixture() -> Session {
     let mut session = Session::new();
     session.new_workbook();
     session.execute("range.setValues", json!({"range":"A1","values":[["Name","Value","Other"],["One",1,2],["Two",3,4]]})).unwrap();
-    session.execute("insert.chart", json!({"range":"A1:C3","type":"column","title":"Original"})).unwrap();
-    session.execute("home.insertSheet", json!({"name":"Sheet2"})).unwrap();
+    session.execute("chart.insert", json!({"range":"A1:C3","type":"column","title":"Original"})).unwrap();
+    session.execute("sheet.insert", json!({"name":"Sheet2"})).unwrap();
     session.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
     session
 }
@@ -38,7 +38,7 @@ fn scalar_chart_writes_refuse_protected_sources_without_changing_charts() {
     let mut wrong = Vec::new();
     for (command, params) in calls() {
         let mut session = fixture();
-        session.execute("review.protectSheet", json!({})).unwrap();
+        session.execute("sheet.protect", json!({})).unwrap();
         let before = charts(&session);
         if session.execute(command, params).is_ok() {
             wrong.push(format!("{command} accepted a protected source"));
@@ -54,7 +54,7 @@ fn scalar_chart_writes_refuse_protected_sources_without_changing_charts() {
 fn moving_a_chart_refuses_a_protected_destination_without_changing_either_sheet() {
     let mut session = fixture();
     session.execute("sheet.activate", json!({"sheet":"Sheet2"})).unwrap();
-    session.execute("review.protectSheet", json!({})).unwrap();
+    session.execute("sheet.protect", json!({})).unwrap();
     session.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
     let before = charts(&session);
     let result = session.execute("chart.move", json!({"chart":1,"sheet":"Sheet2","at":"B2"}));

@@ -7,9 +7,9 @@
 //! steps its caller may not run.
 //!
 //! The workspace audit (sheet section) found every by-path command (`file.open`,
-//! `data.getData`, `data.fromTextCsv`, `insert.picture`, `pageLayout.background`, `file.save*`,
+//! `data.getData`, `data.fromTextCsv`, `image.insert`, `page.background`, `file.save*`,
 //! `file.exportCsv`, `file.exportHtml`, `file.exportPdf`, `file.print`) reading and writing the
-//! file system directly, `automate.runScript` running a workbook's stored steps with no check, and
+//! file system directly, `script.run` running a workbook's stored steps with no check, and
 //! spelling reading `/usr/share/dict`.
 #![allow(clippy::unwrap_used, clippy::panic, clippy::indexing_slicing)]
 
@@ -89,7 +89,7 @@ fn a_hosted_session_reads_a_file_only_through_its_host() {
     // Outside the workspace, however it is named: refused, nothing read.
     let secret = at(&outside, "secret.csv");
     for path in [secret.clone(), "../outside/secret.csv".to_owned(), format!("file://{secret}"), "/../outside/secret.csv".to_owned()] {
-        for command in ["data.fromTextCsv", "data.getData", "file.open", "insert.picture", "pageLayout.background"] {
+        for command in ["data.fromTextCsv", "data.getData", "file.open", "image.insert", "page.background"] {
             let answer = s.execute(command, json!({ "path": path }));
             assert!(answer.is_err(), "{command} {path} was read: {answer:?}");
         }
@@ -169,14 +169,14 @@ fn a_script_asks_the_hosts_gate_for_every_step_before_any_runs() {
         { "command": "file.saveAs", "params": { "path": leak } },
         { "command": "cell.set", "params": { "cell": "A2", "input": "last" } },
     ] });
-    s.execute("automate.newScript", leaking).unwrap();
+    s.execute("script.new", leaking).unwrap();
     let allowed = json!({ "name": "Fine", "commands": [{ "command": "cell.set", "params": { "cell": "A3", "input": "ran" } }] });
-    s.execute("automate.newScript", allowed).unwrap();
+    s.execute("script.new", allowed).unwrap();
     let gate = Arc::new(NoFiles { asked: Mutex::new(Vec::new()) });
     let (refused, fine) = dispatch::with_gate(gate.clone(), || {
-        let refused = s.execute("automate.runScript", json!({ "name": "Leak" }));
+        let refused = s.execute("script.run", json!({ "name": "Leak" }));
         let refusal = dispatch::take_refusal();
-        let fine = s.execute("automate.runScript", json!({ "name": "Fine" }));
+        let fine = s.execute("script.run", json!({ "name": "Fine" }));
         ((refused, refusal), fine)
     });
     let (refused, refusal) = refused;
@@ -197,7 +197,7 @@ fn a_hosted_session_reads_no_system_word_list() {
     s.new_workbook();
     s.set_hosted(true);
     s.execute("cell.set", json!({ "cell": "A1", "input": "Helllo wrold" })).unwrap();
-    let spelling = s.execute("review.spelling", json!({}));
+    let spelling = s.execute("spelling.check", json!({}));
     assert!(spelling.as_ref().is_err_and(|error| error.to_string().contains("isn't available here")), "{spelling:?}");
-    assert_eq!(s.execute("review.thesaurus", json!({ "word": "running" })).unwrap(), json!([]));
+    assert_eq!(s.execute("spelling.thesaurus", json!({ "word": "running" })).unwrap(), json!([]));
 }

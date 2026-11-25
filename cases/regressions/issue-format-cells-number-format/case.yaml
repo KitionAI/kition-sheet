@@ -2,7 +2,7 @@ format: 1
 id: regressions/issue-format-cells-number-format
 feature: sheet.editor.table-styles
 intent: >-
-  home.formatCells documented its number format as numFmt, but the style patch only knew num_fmt, so a number format given that way was silently ignored. numFmt now sets the format (FC-X2).
+  format.cells documented its number format as numFmt, but the style patch only knew num_fmt, so a number format given that way was silently ignored. numFmt now sets the format (FC-X2).
 layer: unit
 dimension: function
 source:

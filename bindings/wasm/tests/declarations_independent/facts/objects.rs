@@ -17,7 +17,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
     if row.holds == "none" {
         return out;
     }
-    if command.starts_with("drawing.") || command.starts_with("arrange.") || command == "draw.inkToShape" {
+    if command.starts_with("drawing.") || command.starts_with("arrange.") || command == "ink.toShape" {
         drawing(&mut out, command, params, cx);
         return out;
     }
@@ -50,8 +50,8 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
             out = super::view::expected(&freeze, &json!({}), cx);
         }
         "view.newWindow" => cx.whole(&mut out),
-        "automate.newScript" | "automate.deleteScript" => out.add("workbook", ["~storedScripts"]),
-        "automate.runScript" => {
+        "script.new" | "script.delete" => out.add("workbook", ["~storedScripts"]),
+        "script.run" => {
             out.add("workbook", ["~storedScripts"]);
             // extra.rs::run_script executes stored engine commands in order.
             let stored = cx.wb.names.iter().find(|name| name.name == "_sc_scripts").unwrap();
@@ -63,12 +63,12 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 cx.entry(&mut out, si, area(step["params"]["cell"].as_str().unwrap()).unwrap(), true);
             }
         }
-        "automate.recordActions" if params.get("stop").is_some() => out.add("workbook", ["~storedScripts"]),
-        "automate.recordActions" => {}
-        "formulas.watchWindow" => out.add("workbook", ["~storedWatch"]),
-        "pageLayout.themeColors" | "pageLayout.themeFonts" => {
+        "script.record" if params.get("stop").is_some() => out.add("workbook", ["~storedScripts"]),
+        "script.record" => {}
+        "formula.watchWindow" => out.add("workbook", ["~storedWatch"]),
+        "theme.colors" | "theme.fonts" => {
             out.add("workbook", ["theme.name", "theme.colors"]);
-            if command == "pageLayout.themeFonts" {
+            if command == "theme.fonts" {
                 for key in ["major", "minor"] {
                     if params.get(key).is_some() {
                         out.add("workbook", [format!("theme.{key}_font")]);
@@ -76,7 +76,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 }
             }
         }
-        "pageLayout.background" if params.get("clear").and_then(Value::as_bool) == Some(true) => {
+        "page.background" if params.get("clear").and_then(Value::as_bool) == Some(true) => {
             out.add(&sid, ["images"]);
             for image in &sheet.images {
                 out.add(&format!("drawing:{}", image.id), ["*"]);
@@ -84,18 +84,18 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
             }
             cx.shared(&mut out, si, None, false);
         }
-        "pageLayout.background" => insertion(&mut out, cx, si, CellRef::default(), false),
-        "draw.stroke" => {
+        "page.background" => insertion(&mut out, cx, si, CellRef::default(), false),
+        "ink.stroke" => {
             let point = params["points"][0].as_array().unwrap();
             cx.geometry(&mut out, si, sheet.row_at(point[1].as_f64().unwrap()), sheet.col_at(point[0].as_f64().unwrap()));
             out.add("workbook", ["~nextObjectId"]);
             cx.shared(&mut out, si, None, false);
         }
-        "insert.checkbox" | "cell.toggleCheckbox" => {
+        "checkbox.insert" | "cell.toggleCheckbox" => {
             let owner = cx.sheet(params);
             let range = cx.range(params);
             cx.lookup(&mut out, params, owner);
-            if command == "insert.checkbox" {
+            if command == "checkbox.insert" {
                 cx.entry(&mut out, owner, range, false);
             } else {
                 // extra.rs:1042 only mutates materialized boolean inputs.
@@ -108,12 +108,12 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 cx.shared(&mut out, owner, Some(range), false);
             }
         }
-        "home.drawBorder" => {
+        "format.drawBorder" => {
             let owner = cx.sheet(params);
             cx.lookup(&mut out, params, owner);
             super::edit::borders(&mut out, params, cx, owner);
         }
-        "home.newCellStyle" => {
+        "style.add" => {
             let at = params.get("fromCell").and_then(Value::as_str).and_then(area).map_or(cx.active_cell, |range| range.start);
             cx.address(&mut out, si, RangeRef::cell(at));
             cx.inherited_style(&mut out, si, at);
@@ -377,7 +377,7 @@ fn drawing(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
             "drawing.reconnect" if params.get("to").map(numeric) == Some(id) => vec!["look.kind", "look.preset", "look.geom"],
             "drawing.reconnect" => vec!["look.kind", "look.connection"],
             "drawing.group" | "drawing.ungroup" => vec!["look.kind", "look.groups"],
-            "draw.inkToShape" => vec!["look.kind", "look.fill", "look.line", "text"],
+            "ink.toShape" => vec!["look.kind", "look.fill", "look.line", "text"],
             "arrange.rotate" | "arrange.align" | "arrange.group" | "arrange.bringForward" | "arrange.sendBackward" | "drawing.arrange" => Vec::new(),
             "drawing.delete" => vec!["*"],
             _ => panic!("unprojected drawing {command}"),

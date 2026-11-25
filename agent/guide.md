@@ -25,10 +25,10 @@ Every tool takes `path`, the workbook's path in the workspace. With `draft: true
 your draft of the workbook and leave the file as it is; only the person merges or discards a draft.
 
 The kit reads and writes only the workbook Kition opened for you. Commands that name a file by
-path (`file.open`, `file.save`, `data.getData`, `insert.picture`, …) are not offered: enter data
+path (`file.open`, `file.save`, `data.getData`, `image.insert`, …) are not offered: enter data
 with `range.setValues`, or CSV text with `data.fromTextCsv {text}`, and write files with
-`sheet_export`. A stored script (`automate.runScript`) runs only steps you could run yourself; one
-that names a file is refused before any step runs. Spelling (`review.spelling`) is not available.
+`sheet_export`. A stored script (`script.run`) runs only steps you could run yourself; one
+that names a file is refused before any step runs. Spelling (`spelling.check`) is not available.
 
 ## Addressing, ids and coordinates
 
@@ -94,9 +94,9 @@ selected: name them.
   workbook has more than one sheet. A command whose parameter takes one range takes one `on` item.
 - A command given its sheet or range (`sheet`, `Data!B2`, a drawing's tool id) acts there and
   leaves the active sheet and the selection as they were, also when it fails. Only the commands
-  whose work is moving the editor (`sheet.activate`, `selection.set`, `view.*`) move it, and the
+  whose work is moving the editor (`sheet.activate`, `select.set`, `view.*`) move it, and the
   editor is put back after the call: a later call starts again from the person's sheet.
-- A sheet you insert (`home.insertSheet`) is where the next steps of the same run land when they
+- A sheet you insert (`sheet.insert`) is where the next steps of the same run land when they
   name no sheet, so "insert a sheet, then fill it" works in one run; name it in later calls.
 - The file saves the person's active sheet and cell, never where the run worked.
 
@@ -285,8 +285,8 @@ sheet_run {
 sheet_run {
   "path": "budget.xlsx", "basis": "qx7", "target": { "sheet": "sheet:2" },
   "steps": [
-    { "command": "home.bold", "on": ["A1:D1"], "params": { "on": true } },
-    { "command": "home.fillColor", "on": ["A1:D1"], "params": { "color": "#DDEBF7" } }
+    { "command": "format.bold", "on": ["A1:D1"], "params": { "on": true } },
+    { "command": "format.fillColor", "on": ["A1:D1"], "params": { "color": "#DDEBF7" } }
   ]
 }
 ```
@@ -336,7 +336,7 @@ only when it is what the person asked for. Every code the kit reports is on the
 - `sheet.broken-name` (error): a defined name points nowhere (`#REF!`, a deleted sheet). Fix the
   name's formula or delete it.
 - `sheet.merge-hides-data` (warning): a merge hides other values. Its `fix` is
-  [`home.unmergeCells`](/kits/sheet/commands/home.unmergeCells/) on that range.
+  [`cell.unmerge`](/kits/sheet/commands/cell.unmerge/) on that range.
 - `sheet.reference-outside-data` (warning): a formula reads one empty cell beyond the sheet's data,
   often a typo (`Z900` instead of `B9`). Ranges such as `SUM(A1:A1000)` are not reported.
 - `sheet.missing-glyph` (warning): a cell's text has characters no font the renderer has draws

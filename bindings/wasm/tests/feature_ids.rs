@@ -26,8 +26,8 @@ fn feature_identity_types_declare_their_read_only_contract() {
 fn feature_types_and_objects_have_persistent_tool_ids() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("range.setValues", json!({"range":"A1:B3","values":[["Item","Amount"],["First",12],["Second",24]]})).unwrap();
-    doc.execute("insert.table", json!({"range":"A1:B3","name":"Sales","header":true})).unwrap();
-    doc.execute("insert.pivotTable", json!({"source":"A1:B3","destination":"D1","rows":["Item"],"values":["Amount"]})).unwrap();
+    doc.execute("table.insert", json!({"range":"A1:B3","name":"Sales","header":true})).unwrap();
+    doc.execute("pivot.insert", json!({"source":"A1:B3","destination":"D1","rows":["Item"],"values":["Amount"]})).unwrap();
     let mut members = Vec::new();
     for x in [10, 40] {
         members.push(doc.execute("drawing.insert", json!({"kind":"shape","frame":{"x":x,"y":20,"w":20,"h":20}})).unwrap()["id"].clone());
@@ -69,7 +69,7 @@ fn feature_types_and_objects_have_persistent_tool_ids() {
 fn named_style_tool_ids_survive_redefinition_rename_and_reopen() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("table.newStyle", json!({"name":"First","elements":{"headerRow":{"bold":true}}})).unwrap();
-    doc.execute("home.newCellStyle", json!({"name":"Entry","fromCell":"A1"})).unwrap();
+    doc.execute("style.add", json!({"name":"Entry","fromCell":"A1"})).unwrap();
     let named = |doc: &mut SheetDocument, name: &str| {
         load(doc, "workbook")["fields"]["styleObjects"]
             .as_array()
@@ -83,11 +83,11 @@ fn named_style_tool_ids_survive_redefinition_rename_and_reopen() {
     let table = named(&mut doc, "First");
     let cell = named(&mut doc, "Entry");
     doc.execute("table.newStyle", json!({"name":"Renamed","replace":table,"elements":{"headerRow":{"italic":true}}})).unwrap();
-    doc.execute("home.bold", json!({"range":"A1","on":true})).unwrap();
-    doc.execute("home.newCellStyle", json!({"name":"Entry","fromCell":"A1"})).unwrap();
+    doc.execute("format.bold", json!({"range":"A1","on":true})).unwrap();
+    doc.execute("style.add", json!({"name":"Entry","fromCell":"A1"})).unwrap();
     assert_eq!(named(&mut doc, "Renamed"), table);
     assert_eq!(named(&mut doc, "Entry"), cell);
-    doc.execute("home.cellStyle", json!({"name":cell,"range":"B1"})).unwrap();
+    doc.execute("style.apply", json!({"name":cell,"range":"B1"})).unwrap();
     let mut saved = SheetDocument::open("Book.xlsx", &doc.save(None).unwrap()).unwrap();
     assert_eq!(named(&mut saved, "Renamed"), table);
     assert_eq!(named(&mut saved, "Entry"), cell);
@@ -98,7 +98,7 @@ fn named_style_tool_ids_survive_redefinition_rename_and_reopen() {
 fn distinct_non_ascii_style_names_do_not_share_a_tool_id() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     for name in ["\u{c4}", "\u{e4}"] {
-        doc.execute("home.newCellStyle", json!({"name":name})).unwrap();
+        doc.execute("style.add", json!({"name":name})).unwrap();
     }
     let styles = load(&mut doc, "workbook")["fields"]["styleObjects"].as_array().unwrap().clone();
     let names: Vec<_> =

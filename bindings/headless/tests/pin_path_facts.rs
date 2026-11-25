@@ -19,7 +19,7 @@ fn refused(result: &Result<Value, Value>, before: &[u8], fixture: &Fixture, labe
 async fn chart_move_holds_the_stack_order_it_replaces() {
     let fixture = Fixture::new();
     for title in ["One", "Two", "Three"] {
-        fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","title":title}))]);
+        fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","title":title}))]);
     }
     let basis = fixture.basis().await;
     fixture.colleague_rewrite(|wb| wb.sheet_mut(0).unwrap().charts.swap(0, 1));
@@ -35,8 +35,8 @@ async fn chart_move_holds_the_stack_order_it_replaces() {
 async fn displayed_filter_values_hold_workbook_date_interpretation() {
     let fixture = Fixture::new();
     fixture.colleague(&[
-        ("insert.table", json!({"range":"A1:D12","name":"Sales","header":true})),
-        ("home.numberFormat", json!({"range":"B2:B12","code":"yyyy-mm-dd"})),
+        ("table.insert", json!({"range":"A1:D12","name":"Sales","header":true})),
+        ("format.numberFormat", json!({"range":"B2:B12","code":"yyyy-mm-dd"})),
     ]);
     let basis = fixture.basis().await;
     fixture.colleague_rewrite(|wb| wb.date_system = kition_sheet_engine::core::DateSystem::D1904);
@@ -51,7 +51,7 @@ async fn displayed_filter_values_hold_workbook_date_interpretation() {
 #[tokio::test]
 async fn displayed_filter_values_hold_the_default_format() {
     let fixture = Fixture::new();
-    fixture.colleague(&[("insert.table", json!({"range":"A1:D12","name":"Sales","header":true}))]);
+    fixture.colleague(&[("table.insert", json!({"range":"A1:D12","name":"Sales","header":true}))]);
     let basis = fixture.basis().await;
     fixture.colleague_rewrite(|wb| {
         let mut style = wb.styles.get(kition_sheet_engine::model::StyleId::DEFAULT).clone();
@@ -70,13 +70,13 @@ async fn displayed_filter_values_hold_the_default_format() {
 async fn default_name_definition_holds_its_selection_address() {
     let fixture = Fixture::new();
     let basis = fixture.basis().await;
-    fixture.colleague(&[("home.insertRows", json!({"rows":"2"}))]);
+    fixture.colleague(&[("row.insert", json!({"rows":"2"}))]);
     let before = fixture.bytes();
     let result = fixture
         .call(
             "run",
             json!({"basis":basis,"target":{"sheet":"sheet:1"},"steps":[
-                {"command":"formulas.defineName","on":["C5"],"params":{"name":"Chosen"}}
+                {"command":"name.define","on":["C5"],"params":{"name":"Chosen"}}
             ]}),
         )
         .await;
@@ -91,11 +91,11 @@ async fn default_name_definition_holds_its_selection_address() {
 async fn chart_assignment_holds_the_destination_address() {
     let fixture = Fixture::new();
     fixture.colleague(&[
-        ("insert.chart", json!({"range":"A1:C4","at":"H1"})),
+        ("chart.insert", json!({"range":"A1:C4","at":"H1"})),
         ("object.setAnchorMode", json!({"kind":"chart","id":1,"mode":"moveOnly"})),
     ]);
     let basis = fixture.basis().await;
-    fixture.colleague(&[("home.insertRows", json!({"rows":"5"}))]);
+    fixture.colleague(&[("row.insert", json!({"rows":"5"}))]);
     let before = fixture.bytes();
     let result = fixture.run(basis, "chart.set", json!({"chart":1,"at":"C10"})).await;
     let mut failures = Vec::new();
@@ -115,7 +115,7 @@ async fn conditional_edits_hold_shared_connector_inputs() {
     let basis = fixture.basis().await;
     fixture.colleague(&[("drawing.transform", json!({"id":1,"dx":30}))]);
     let before = fixture.bytes();
-    let result = fixture.run(basis, "home.conditionalFormat", json!({"range":"B2","rule":{"type":"blanks"}})).await;
+    let result = fixture.run(basis, "conditionalFormat.apply", json!({"range":"B2","rule":{"type":"blanks"}})).await;
     let mut failures = Vec::new();
     refused(&result, &before, &fixture, "conditional connector tail", &mut failures);
     fixture.shutdown().await;
@@ -125,7 +125,7 @@ async fn conditional_edits_hold_shared_connector_inputs() {
 #[tokio::test]
 async fn automatic_calculation_holds_header_synchronization_inputs() {
     let fixture = Fixture::new();
-    fixture.colleague(&[("insert.table", json!({"range":"A1:D12","name":"Sales","header":true}))]);
+    fixture.colleague(&[("table.insert", json!({"range":"A1:D12","name":"Sales","header":true}))]);
     let basis = fixture.basis().await;
     // Reopening XLSX synchronizes header text to the stored column name. A raw
     // second caller's model write preserves the stale header this tail repairs.
@@ -140,7 +140,7 @@ async fn automatic_calculation_holds_header_synchronization_inputs() {
     .unwrap();
     assert!(outside.is_ok(), "outside header write: {outside:?}");
     let before = fixture.bytes();
-    let result = fixture.run(basis, "formulas.calculationOptions", json!({"mode":"automatic"})).await;
+    let result = fixture.run(basis, "formula.calculationOptions", json!({"mode":"automatic"})).await;
     let mut failures = Vec::new();
     refused(&result, &before, &fixture, "calculation header sync", &mut failures);
     fixture.shutdown().await;

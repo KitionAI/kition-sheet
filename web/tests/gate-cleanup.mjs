@@ -55,7 +55,7 @@ async function fresh() {
 }
 /** Whether row `row` (from 1) of the active sheet is hidden. */
 async function rowHidden(row) {
-  const inspected = await exec('document.inspect')
+  const inspected = await exec('file.inspect')
   const active = (await details()).sheet
   const sheet = inspected.sheets?.find((s) => s.name === active) ?? inspected.sheets?.[0]
   return (sheet?.hiddenRows ?? []).includes(row)
@@ -206,9 +206,9 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '合并' } },
-      { command: 'home.mergeCells', params: { range: 'A1:B1' } },
-      { command: 'review.newNote', params: { cell: 'A1', text: '备注' } },
-      { command: 'selection.set', params: { range: 'A1:B1' } },
+      { command: 'cell.merge', params: { range: 'A1:B1' } },
+      { command: 'note.add', params: { cell: 'A1', text: '备注' } },
+      { command: 'select.set', params: { range: 'A1:B1' } },
     ])
     await h.goTo('A1:B1')
     await settle()
@@ -230,10 +230,10 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['名称', '数量'], ['甲', 1], ['乙', 2]] } },
-      { command: 'insert.table', params: { range: 'A1:B3' } },
+      { command: 'table.insert', params: { range: 'A1:B3' } },
       { command: 'cell.set', params: { cell: 'E1', input: '外' } },
       { command: 'cell.set', params: { cell: 'A6', input: '行' } },
-      { command: 'selection.set', params: { range: 'E1' } },
+      { command: 'select.set', params: { range: 'E1' } },
     ])
     await h.goTo('E1')
     await settle()
@@ -254,7 +254,7 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['名称', '数量', '旁'], ['甲', 1, 'x'], ['乙', 2, 'y']] } },
-      { command: 'insert.table', params: { range: 'A1:B3' } },
+      { command: 'table.insert', params: { range: 'A1:B3' } },
       { command: 'range.setValues', params: { range: 'E1', values: [['新'], ['n1'], ['n2']] } },
     ])
     const box = await region()
@@ -273,8 +273,8 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['名称', '数量'], ['甲', 1], ['乙', 2], ['丙', 3], ['丁', 4], ['戊', 5]] } },
-      { command: 'insert.table', params: { range: 'A1:B6', style: 'TableStyleMedium2' } },
-      { command: 'selection.set', params: { range: 'D1' } },
+      { command: 'table.insert', params: { range: 'A1:B6', style: 'TableStyleMedium2' } },
+      { command: 'select.set', params: { range: 'D1' } },
     ])
     await h.goTo('D1')
     await settle(300)
@@ -295,9 +295,9 @@ try {
   await section('INSC-C282 拖拽勾选的复选框单元格到 C3', async () => {
     await fresh()
     await ai([
-      { command: 'insert.checkbox', params: { range: 'A1' } },
+      { command: 'checkbox.insert', params: { range: 'A1' } },
       { command: 'cell.set', params: { cell: 'A1', input: 'TRUE' } },
-      { command: 'selection.set', params: { range: 'A1' } },
+      { command: 'select.set', params: { range: 'A1' } },
     ])
     await h.goTo('A1')
     await settle()
@@ -312,9 +312,9 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '1' } },
-      { command: 'insert.checkbox', params: { range: 'B1' } },
+      { command: 'checkbox.insert', params: { range: 'B1' } },
       { command: 'edit.clearContents', params: { range: 'B1' } },
-      { command: 'selection.set', params: { range: 'A1' } },
+      { command: 'select.set', params: { range: 'A1' } },
     ])
     await h.goTo('A1')
     await settle()
@@ -330,8 +330,8 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['名称', '数量'], ['苹果', 3], ['香蕉', 8], ['苹果', 5], ['橙子', 1], [null, 9]] } },
-      asTable ? { command: 'insert.table', params: { range: 'A1:B6' } } : { command: 'data.filter', params: { range: 'A1:B6' } },
-      { command: 'selection.set', params: { range: 'D1' } },
+      asTable ? { command: 'table.insert', params: { range: 'A1:B6' } } : { command: 'data.filter', params: { range: 'A1:B6' } },
+      { command: 'select.set', params: { range: 'D1' } },
     ])
     await h.goTo('D1')
     await settle(300)
@@ -511,11 +511,11 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['甲', '乙'], [1, 2]] } },
-      { command: 'insert.table', params: { range: 'A1:B2' } },
+      { command: 'table.insert', params: { range: 'A1:B2' } },
     ])
     await clickCell(0, 1)
     await kit.getByTestId('ribbon-tab-insert').click()
-    await kit.getByTestId('sheet-cmd-insert.table').click()
+    await kit.getByTestId('sheet-cmd-table.insert').click()
     await until(async () => (await toasts()).includes('表格不能与另一个表格重叠'), 40)
     step('CLN-X14 提示「表格不能与另一个表格重叠。」而非英文', (await toasts()).includes('表格不能与另一个表格重叠') && !(await toasts()).includes("can't overlap"), await toasts())
   })
@@ -540,8 +540,8 @@ try {
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '永和九年' } },
       { command: 'cell.set', params: { cell: 'C1', input: '永和九年' } },
-      { command: 'home.fontName', params: { range: 'A1', name: '楷体' } },
-      { command: 'home.fontName', params: { range: 'C1', name: '黑体' } },
+      { command: 'format.fontName', params: { range: 'A1', name: '楷体' } },
+      { command: 'format.fontName', params: { range: 'C1', name: '黑体' } },
     ])
     await settle(500)
     const kai = await ink('A1')

@@ -47,7 +47,7 @@ fn spelling_inputs(sheet: &kition_sheet_engine::model::Sheet, include_numbers: b
 
 impl SheetDocument {
     pub(crate) fn view_covered(&self, command: &str, given: &Value, objects: &[CoveredAsk]) -> Result<Option<CoveredAt>, String> {
-        if command != "review.changeSpelling" || given.get("all").and_then(Value::as_bool) != Some(true) {
+        if command != "spelling.change" || given.get("all").and_then(Value::as_bool) != Some(true) {
             return Ok(None);
         }
         let mut params = given.clone();
@@ -302,7 +302,7 @@ impl SheetDocument {
         let point = |key: &str| params.get(key).and_then(Value::as_str).and_then(|text| text.rsplit('!').next()).and_then(CellRef::parse);
         let rectangle = |r: RangeRef| (Some((r.start.row, r.end.row)), Some((r.start.col, r.end.col)));
         match command {
-            "review.changeSpelling" if params.get("all").and_then(Value::as_bool) == Some(true) => {
+            "spelling.change" if params.get("all").and_then(Value::as_bool) == Some(true) => {
                 if params.get("word").and_then(Value::as_str) == Some("") {
                     return Ok(Some(under));
                 }
@@ -347,7 +347,7 @@ impl SheetDocument {
                 merged(&mut under);
                 return Ok(Some(under));
             }
-            "review.changeSpelling" if params.get("all").and_then(Value::as_bool) != Some(true) => {
+            "spelling.change" if params.get("all").and_then(Value::as_bool) != Some(true) => {
                 let (Some(at), Some(word), Some(to)) =
                     (point("cell"), params.get("word").and_then(Value::as_str), params.get("to").and_then(Value::as_str))
                 else {
@@ -361,7 +361,7 @@ impl SheetDocument {
                 merged(&mut under);
                 return Ok(Some(under));
             }
-            "pageLayout.theme" => {
+            "theme.set" => {
                 under.objects.push(json!("workbook"));
                 under.premises.push(premise("workbook", ["theme"]));
                 return Ok(Some(under));
@@ -394,7 +394,7 @@ impl SheetDocument {
                     }
                 }
             }
-            "pageLayout.printArea" => {
+            "page.printArea" => {
                 fields.push("props.print.print_area".into());
                 if params.get("clear").and_then(Value::as_bool) != Some(true) {
                     let r = params
@@ -408,7 +408,7 @@ impl SheetDocument {
                     spans.push(rectangle(r));
                 }
             }
-            "pageLayout.printTitles" => {
+            "page.printTitles" => {
                 fields.extend(["props.print.title_rows", "props.print.title_cols"].map(str::to_owned));
                 if let Some(r) = params.get("rows").and_then(Value::as_str).and_then(RangeRef::parse) {
                     spans.push((Some((r.start.row, r.end.row)), None));
@@ -417,13 +417,13 @@ impl SheetDocument {
                     spans.push((None, Some((r.start.col, r.end.col))));
                 }
             }
-            "pageLayout.breaks" => {
+            "page.breaks" => {
                 fields.extend(["props.print.row_breaks", "props.print.col_breaks"].map(str::to_owned));
                 if params.get("reset").and_then(Value::as_bool) != Some(true) {
                     spans.push(rectangle(RangeRef::cell(point("cell").unwrap_or(state.selection.active))));
                 }
             }
-            "pageLayout.pageSetup" => {
+            "page.pageSetup" => {
                 for (parameter, field) in [
                     ("orientation", "orientation"),
                     ("paper", "paper"),

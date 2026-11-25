@@ -34,7 +34,7 @@ async fn row_resize_holds_connector_endpoints_used_by_shared_rerouting() {
             fixture.colleague(&[("cell.set", json!({"cell":"Sheet2!D10","input":"unrelated"}))]);
         }
         let before = fixture.bytes();
-        let result = fixture.run(basis, "home.rowHeight", json!({"rows":"1:1","height":44})).await;
+        let result = fixture.run(basis, "row.setHeight", json!({"rows":"1:1","height":44})).await;
         let refused = result.as_ref().err().map(|error| &error["error"]["code"]) == Some(&json!("conflict"));
         check(result, related, "row resize rerouting", &mut failures);
         if related && refused {
@@ -57,11 +57,11 @@ async fn workbook_protection_only_holds_workbook_state() {
         ]);
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("review.protectWorkbook", json!({"on":true}))]);
+            fixture.colleague(&[("workbook.protect", json!({"on":true}))]);
         } else {
             fixture.colleague(&[("drawing.transform", json!({"id":1,"dx":30}))]);
         }
-        check(fixture.run(basis, "review.protectWorkbook", json!({"on":false})).await, related, "workbook protection dispatch", &mut failures);
+        check(fixture.run(basis, "workbook.protect", json!({"on":false})).await, related, "workbook protection dispatch", &mut failures);
         fixture.shutdown().await;
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -74,7 +74,7 @@ async fn header_rename_holds_cross_sheet_structured_formulas_it_rewrites() {
         let fixture = Fixture::new();
         fixture.colleague(&[
             ("range.setValues", json!({"range":"A1","values":[["Region","Amount"],["East",2],["West",3]]})),
-            ("insert.table", json!({"range":"A1:B3","header":true,"name":"Sales"})),
+            ("table.insert", json!({"range":"A1:B3","header":true,"name":"Sales"})),
             ("cell.set", json!({"cell":"Sheet2!D10","input":"=SUM(Sales[Region])"})),
         ]);
         let basis = fixture.basis().await;
@@ -101,7 +101,7 @@ async fn header_rename_only_holds_formulas_using_the_renamed_column() {
         let fixture = Fixture::new();
         fixture.colleague(&[
             ("range.setValues", json!({"range":"A1","values":[["Region","Amount"],["East",2],["West",3]]})),
-            ("insert.table", json!({"range":"A1:B3","header":true,"name":"Sales"})),
+            ("table.insert", json!({"range":"A1:B3","header":true,"name":"Sales"})),
             ("cell.set", json!({"cell":"Sheet2!D10","input":"=SUM(Sales[Region])"})),
             ("cell.set", json!({"cell":"Sheet2!D11","input":"=SUM(Sales[Amount])"})),
         ]);
@@ -127,18 +127,18 @@ async fn structural_name_edit_allows_unchanged_table_formula_inputs() {
         let fixture = Fixture::new();
         fixture.colleague(&[
             ("range.setValues", json!({"range":"A1","values":[["Region","Amount"],["East",2],["West",3]]})),
-            ("insert.table", json!({"range":"A1:B3","header":true,"name":"Sales"})),
+            ("table.insert", json!({"range":"A1:B3","header":true,"name":"Sales"})),
             ("cell.set", json!({"cell":"Sheet2!D10","input":"=SUM(Sales[Region])"})),
-            ("formulas.defineName", json!({"name":"Result","refersTo":"=40"})),
+            ("name.define", json!({"name":"Result","refersTo":"=40"})),
         ]);
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("formulas.defineName", json!({"name":"Result","refersTo":"=41"}))]);
+            fixture.colleague(&[("name.define", json!({"name":"Result","refersTo":"=41"}))]);
         } else {
             fixture.colleague(&[("cell.set", json!({"cell":"Sheet2!D10","input":"=SUM(Sales[Region])+1"}))]);
         }
         check(
-            fixture.run(basis, "formulas.defineName", json!({"name":"Result","refersTo":"=42"})).await,
+            fixture.run(basis, "name.define", json!({"name":"Result","refersTo":"=42"})).await,
             related,
             "structural header synchronization",
             &mut failures,
@@ -177,12 +177,12 @@ async fn sheet_rename_holds_internal_link_rewrite_inputs_and_allows_external_lin
     for related in [true, false] {
         let fixture = Fixture::new();
         fixture.colleague(&[
-            ("insert.link", json!({"cell":"Sheet2!E10","target":"#Sheet1!A1","text":"inside"})),
-            ("insert.link", json!({"cell":"Sheet2!E11","target":"https://example.org/old","text":"outside"})),
+            ("link.insert", json!({"cell":"Sheet2!E10","target":"#Sheet1!A1","text":"inside"})),
+            ("link.insert", json!({"cell":"Sheet2!E11","target":"https://example.org/old","text":"outside"})),
         ]);
         let basis = fixture.basis().await;
         fixture.colleague(&[(
-            "insert.link",
+            "link.insert",
             if related {
                 json!({"cell":"Sheet2!E10","target":"#Sheet1!A2","text":"inside"})
             } else {

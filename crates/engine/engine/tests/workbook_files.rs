@@ -65,8 +65,8 @@ fn a_web_page_named_xls_opens_as_its_table() {
 fn opened_rows_are_sized_as_wps_sizes_them() {
     let mut s = session();
     run(&mut s, "cell.set", json!({"cell": "A1", "input": "第一行\n第二行\n第三行\n第四行"}));
-    run(&mut s, "home.wrapText", json!({"range": "A1"}));
-    run(&mut s, "home.rowHeight", json!({"rows": "3", "height": 40}));
+    run(&mut s, "format.wrapText", json!({"range": "A1"}));
+    run(&mut s, "row.setHeight", json!({"rows": "3", "height": 40}));
     let bytes = save_bytes(&s.doc().unwrap().wb, "rows.xlsx").unwrap();
     let (wb, _) = open_bytes("rows.xlsx", &bytes).unwrap();
     let sheet = wb.sheet(0).unwrap();
@@ -106,17 +106,17 @@ fn templates_and_workbook_copies_export() {
 fn a_copy_pastes_into_another_workbook_with_its_formats() {
     let mut a = session();
     run(&mut a, "cell.set", json!({"cell": "A1", "input": "标题"}));
-    run(&mut a, "home.bold", json!({"range": "A1"}));
-    run(&mut a, "home.fillColor", json!({"range": "A1", "color": "#FFFF00"}));
-    run(&mut a, "home.mergeCells", json!({"range": "A1:B1"}));
+    run(&mut a, "format.bold", json!({"range": "A1"}));
+    run(&mut a, "format.fillColor", json!({"range": "A1", "color": "#FFFF00"}));
+    run(&mut a, "cell.merge", json!({"range": "A1:B1"}));
     run(&mut a, "cell.set", json!({"cell": "A2", "input": "TRUE"}));
-    run(&mut a, "insert.checkbox", json!({"range": "A2"}));
+    run(&mut a, "checkbox.insert", json!({"range": "A2"}));
     let copied = run(&mut a, "edit.copy", json!({"range": "A1:B2", "html": true}));
     let (text, html) = (copied["text"].as_str().unwrap().to_owned(), copied["html"].as_str().unwrap().to_owned());
     assert!(html.contains("data-kition-sheet=\""));
 
     let mut b = session();
-    run(&mut b, "selection.set", json!({"range": "C3"}));
+    run(&mut b, "select.set", json!({"range": "C3"}));
     run(&mut b, "edit.paste", json!({"text": text, "html": html}));
     let d = b.doc().unwrap();
     let sheet = d.wb.active().unwrap();
@@ -137,9 +137,9 @@ fn a_copy_pastes_into_another_workbook_with_its_formats() {
 fn csv_exports_what_cells_show() {
     let mut s = session();
     run(&mut s, "range.setValues", json!({"range": "A1", "values": [[46295, 0.125, 1234.5]]}));
-    run(&mut s, "home.numberFormat", json!({"range": "A1", "format": "yyyy-mm-dd"}));
-    run(&mut s, "home.numberFormat", json!({"range": "B1", "format": "0.0%"}));
-    run(&mut s, "home.numberFormat", json!({"range": "C1", "format": "#,##0.00"}));
+    run(&mut s, "format.numberFormat", json!({"range": "A1", "format": "yyyy-mm-dd"}));
+    run(&mut s, "format.numberFormat", json!({"range": "B1", "format": "0.0%"}));
+    run(&mut s, "format.numberFormat", json!({"range": "C1", "format": "#,##0.00"}));
     let answer = run(&mut s, "file.export", json!({"format": "csv"}));
     let csv = String::from_utf8(kition_sheet_engine::io::base64_decode(answer["data"].as_str().unwrap()).unwrap()).unwrap();
     assert_eq!(csv, "2026-09-30,12.5%,\"1,234.50\"\r\n");

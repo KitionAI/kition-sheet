@@ -11,13 +11,13 @@ use serde_json::json;
 #[tokio::test]
 async fn anchored_creation_holds_its_gap_and_allocator_but_allows_unrelated_cells() {
     let mut wrong = Vec::new();
-    for command in ["insert.shape", "insert.icons", "insert.textBox"] {
+    for command in ["shape.insert", "icon.insert", "textBox.insert"] {
         for change in ["anchor", "allocator", "unrelated"] {
             let fixture = Fixture::new();
             let basis = fixture.basis().await;
             match change {
-                "anchor" => fixture.colleague(&[("home.insertRows", json!({"rows":"1:1"}))]),
-                "allocator" => fixture.colleague(&[("insert.shape", json!({"at":"Sheet2!A1"}))]),
+                "anchor" => fixture.colleague(&[("row.insert", json!({"rows":"1:1"}))]),
+                "allocator" => fixture.colleague(&[("shape.insert", json!({"at":"Sheet2!A1"}))]),
                 _ => fixture.colleague(&[("cell.set", json!({"cell":"Sheet2!A1","input":"colleague"}))]),
             }
             let outside = fixture.bytes();
@@ -52,12 +52,12 @@ async fn insert_function_holds_checkbox_eligibility_but_allows_unrelated_cells()
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         fixture.colleague(&[if related {
-            ("insert.checkbox", json!({"range":"C5"}))
+            ("checkbox.insert", json!({"range":"C5"}))
         } else {
             ("cell.set", json!({"cell":"Sheet2!A1","input":"colleague"}))
         }]);
         let outside = fixture.bytes();
-        let answer = fixture.call("run", json!({"basis":basis,"target":{"sheet":"sheet:1"},"steps":[{"command":"formulas.insertFunction","on":["C5"],"params":{"name":"SUM"}}]})).await;
+        let answer = fixture.call("run", json!({"basis":basis,"target":{"sheet":"sheet:1"},"steps":[{"command":"formula.insertFunction","on":["C5"],"params":{"name":"SUM"}}]})).await;
         if related {
             if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                 wrong.push(format!("changed enabled prerequisite must conflict: {answer:?}"));

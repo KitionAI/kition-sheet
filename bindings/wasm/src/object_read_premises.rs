@@ -210,14 +210,12 @@ impl SheetDocument {
     }
 
     pub(crate) fn object_read_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        if matches!(command, "formulas.useInFormula" | "pageLayout.themeEffects")
-            || command == "automate.recordActions" && self.session.recording.is_none()
-        {
+        if matches!(command, "formula.useInFormula" | "theme.effects") || command == "script.record" && self.session.recording.is_none() {
             return Ok(Some(Under::default()));
         }
         let stash = match command {
-            "automate.newScript" | "automate.deleteScript" | "automate.recordActions" => Some("~storedScripts"),
-            "formulas.watchWindow" => Some("~storedWatch"),
+            "script.new" | "script.delete" | "script.record" => Some("~storedScripts"),
+            "formula.watchWindow" => Some("~storedWatch"),
             "view.customViews" => Some("~storedViews"),
             _ => None,
         };
@@ -274,13 +272,13 @@ impl SheetDocument {
             merged(&mut under);
             return Ok(Some(under));
         }
-        if matches!(command, "pageLayout.themeColors" | "pageLayout.themeFonts") {
+        if matches!(command, "theme.colors" | "theme.fonts") {
             let mut under = Under::default();
             under.objects.push(json!("workbook"));
             // same-field decision: theme name/colors and supplied
             // fonts are replacement destinations as well as retained defaults.
             let mut fields = vec!["theme.name", "theme.colors"];
-            if command == "pageLayout.themeFonts" {
+            if command == "theme.fonts" {
                 if params.get("major").is_some_and(Value::is_string) {
                     fields.push("theme.major_font");
                 }
@@ -296,7 +294,7 @@ impl SheetDocument {
             let unfreeze = state.wb.active().is_some_and(|sheet| sheet.freeze.is_some());
             return self.call_premises(if unfreeze { "view.unfreezePanes" } else { "view.freezePanes" }, &json!({}));
         }
-        if command == "draw.inkToShape" {
+        if command == "ink.toShape" {
             let state = self.doc_state()?;
             let Some(sheet) = state.wb.sheet(si) else { return Ok(None) };
             let explicit = params.get("id").and_then(Value::as_u64).map(|id| id.min(u64::from(u32::MAX)) as u32);
@@ -318,7 +316,7 @@ impl SheetDocument {
             merged(&mut under);
             return Ok(Some(under));
         }
-        if command == "insert.checkbox" {
+        if command == "checkbox.insert" {
             let state = self.doc_state()?;
             let Some(sheet) = state.wb.sheet(si) else { return Ok(None) };
             let ranges = if let Some(text) = params.get("range").or_else(|| params.get("cell")).and_then(Value::as_str) {

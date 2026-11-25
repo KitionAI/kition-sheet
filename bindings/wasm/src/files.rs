@@ -11,10 +11,10 @@ pub const FILES: &[FileParam] = &[
     FileParam::create("file.saveAs", "path", &[]),
     FileParam::create("file.exportCsv", "path", &[]),
     FileParam::create("file.exportHtml", "path", &[]),
-    FileParam::read("insert.picture", "path", &[]),
+    FileParam::read("image.insert", "path", &[]),
     FileParam::read("data.fromTextCsv", "path", &[]),
     FileParam::read("data.getData", "path", &[]),
-    FileParam::read("pageLayout.background", "path", &[]),
+    FileParam::read("page.background", "path", &[]),
     FileParam::create("file.exportPdf", "path", &[]),
     FileParam::create("file.print", "path", &[]),
 ];

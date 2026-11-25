@@ -121,7 +121,7 @@ impl SheetDocument {
                 Some(under),
             );
         }
-        if command == "formulas.calculationOptions" && params.get("mode").and_then(Value::as_str) == Some("automatic") {
+        if command == "formula.calculationOptions" && params.get("mode").and_then(Value::as_str) == Some("automatic") {
             self.hold_header_sync_reads(&mut under)?;
             merged(&mut under);
             return Ok(Some(under));
@@ -133,14 +133,14 @@ impl SheetDocument {
                 | "range.fill"
                 | "edit.clearAll"
                 | "edit.clearContents"
-                | "home.mergeCells"
-                | "home.mergeCenter"
+                | "cell.merge"
+                | "cell.mergeCenter"
                 | "data.sort"
                 | "data.sortAscending"
                 | "data.sortDescending"
-                | "insert.checkbox"
+                | "checkbox.insert"
         );
-        if command == "review.changeSpelling" {
+        if command == "spelling.change" {
             let Some(replacements) = self.spelling_replacements(&params, si)? else { return self.document_premises().map(Some) };
             let ranges: Vec<_> = replacements.into_iter().map(|(at, _)| RangeRef::cell(at)).collect();
             if !ranges.is_empty() {
@@ -151,18 +151,18 @@ impl SheetDocument {
         }
         let structural = matches!(
             command,
-            "home.insertRows"
-                | "home.insertColumns"
-                | "home.deleteRows"
-                | "home.deleteColumns"
-                | "home.deleteSheet"
-                | "home.insertSheet"
+            "row.insert"
+                | "column.insert"
+                | "row.delete"
+                | "column.delete"
+                | "sheet.delete"
+                | "sheet.insert"
                 | "sheet.rename"
                 | "sheet.move"
-                | "home.hideRows"
-                | "home.hideColumns"
-                | "home.unhideRows"
-                | "home.unhideColumns"
+                | "row.hide"
+                | "column.hide"
+                | "row.show"
+                | "column.show"
                 | "table.headerRow"
                 | "table.totalRow"
                 | "table.totalFunction"
@@ -170,8 +170,8 @@ impl SheetDocument {
                 | "table.resize"
                 | "table.removeDuplicates"
                 | "table.convertToRange"
-                | "formulas.defineName"
-                | "formulas.deleteName"
+                | "name.define"
+                | "name.delete"
                 | "data.hideDetail"
                 | "data.showDetail"
                 | "data.sort"
@@ -181,27 +181,27 @@ impl SheetDocument {
                 | "data.filterBy"
                 | "data.clearFilter"
                 | "data.reapply"
-                | "insert.table"
-                | "home.formatAsTable"
+                | "table.insert"
+                | "table.formatAs"
         );
-        if matches!(command, "formulas.defineName" | "formulas.deleteName") {
+        if matches!(command, "name.define" | "name.delete") {
             self.hold_header_sync_reads(&mut under)?;
             merged(&mut under);
             return Ok(Some(under));
         }
-        if matches!(command, "home.insertSheet" | "home.deleteSheet" | "sheet.move") {
+        if matches!(command, "sheet.insert" | "sheet.delete" | "sheet.move") {
             self.hold_header_sync_reads(&mut under)?;
             let count = state.wb.sheets.len();
             let copied = params.get("copy").and_then(Value::as_bool) == Some(true);
             let destination = params
-                .get(if command == "home.insertSheet" { "before" } else { "to" })
+                .get(if command == "sheet.insert" { "before" } else { "to" })
                 .and_then(Value::as_u64)
                 .and_then(|index| usize::try_from(index).ok())
                 .unwrap_or_else(|| state.wb.active_sheet.saturating_add(1))
                 .min(if command == "sheet.move" && !copied { count.saturating_sub(1) } else { count });
             let (first, last) = match command {
-                "home.insertSheet" => (destination, count),
-                "home.deleteSheet" => (si, count),
+                "sheet.insert" => (destination, count),
+                "sheet.delete" => (si, count),
                 _ if copied => (destination, count),
                 _ => (si.min(destination), si.max(destination).saturating_add(1)),
             };
@@ -211,9 +211,9 @@ impl SheetDocument {
             merged(&mut under);
             return Ok(Some(under));
         }
-        let conditional = command == "home.conditionalFormat" && params.get("rule").is_some()
-            || command == "home.clearRules"
-            || command == "home.manageRules" && ["delete", "moveUp", "moveDown"].iter().any(|key| params.get(*key).is_some());
+        let conditional = command == "conditionalFormat.apply" && params.get("rule").is_some()
+            || command == "conditionalFormat.clearRules"
+            || command == "conditionalFormat.manageRules" && ["delete", "moveUp", "moveDown"].iter().any(|key| params.get(*key).is_some());
         let target_sheet = content
             || conditional
             || matches!(
@@ -222,57 +222,57 @@ impl SheetDocument {
                     | "edit.clearFormats"
                     | "edit.clearComments"
                     | "edit.clearHyperlinks"
-                    | "home.bold"
-                    | "home.italic"
-                    | "home.underline"
-                    | "home.doubleUnderline"
-                    | "home.strikethrough"
-                    | "home.superscript"
-                    | "home.subscript"
-                    | "home.fontName"
-                    | "home.fontSize"
-                    | "home.increaseFontSize"
-                    | "home.decreaseFontSize"
-                    | "home.fontColor"
-                    | "home.fillColor"
-                    | "home.borders"
-                    | "home.drawBorder"
-                    | "home.alignLeft"
-                    | "home.alignCenter"
-                    | "home.alignRight"
-                    | "home.justify"
-                    | "home.alignTop"
-                    | "home.alignMiddle"
-                    | "home.alignBottom"
-                    | "home.wrapText"
-                    | "home.shrinkToFit"
-                    | "home.increaseIndent"
-                    | "home.decreaseIndent"
-                    | "home.orientation"
-                    | "home.mergeAcross"
-                    | "home.unmergeCells"
-                    | "home.numberFormat"
-                    | "home.accounting"
-                    | "home.percent"
-                    | "home.comma"
-                    | "home.increaseDecimal"
-                    | "home.decreaseDecimal"
-                    | "home.cellStyle"
-                    | "home.lockCell"
-                    | "home.rowHeight"
-                    | "home.columnWidth"
-                    | "home.autofitRowHeight"
-                    | "home.autofitColumnWidth"
-                    | "home.defaultWidth"
-                    | "home.hideRows"
-                    | "home.hideColumns"
-                    | "home.unhideRows"
-                    | "home.unhideColumns"
-                    | "home.insertRows"
-                    | "home.insertColumns"
-                    | "home.deleteRows"
-                    | "home.deleteColumns"
-                    | "home.formatAsTable"
+                    | "format.bold"
+                    | "format.italic"
+                    | "format.underline"
+                    | "format.doubleUnderline"
+                    | "format.strikethrough"
+                    | "format.superscript"
+                    | "format.subscript"
+                    | "format.fontName"
+                    | "format.fontSize"
+                    | "format.increaseFontSize"
+                    | "format.decreaseFontSize"
+                    | "format.color"
+                    | "format.fillColor"
+                    | "format.borders"
+                    | "format.drawBorder"
+                    | "format.alignLeft"
+                    | "format.alignCenter"
+                    | "format.alignRight"
+                    | "format.justify"
+                    | "format.alignTop"
+                    | "format.alignMiddle"
+                    | "format.alignBottom"
+                    | "format.wrapText"
+                    | "format.shrinkToFit"
+                    | "format.increaseIndent"
+                    | "format.decreaseIndent"
+                    | "format.orientation"
+                    | "cell.mergeAcross"
+                    | "cell.unmerge"
+                    | "format.numberFormat"
+                    | "format.accounting"
+                    | "format.percent"
+                    | "format.comma"
+                    | "format.increaseDecimal"
+                    | "format.decreaseDecimal"
+                    | "style.apply"
+                    | "cell.lock"
+                    | "row.setHeight"
+                    | "column.setWidth"
+                    | "row.autofitHeight"
+                    | "column.autofitWidth"
+                    | "column.setDefaultWidth"
+                    | "row.hide"
+                    | "column.hide"
+                    | "row.show"
+                    | "column.show"
+                    | "row.insert"
+                    | "column.insert"
+                    | "row.delete"
+                    | "column.delete"
+                    | "table.formatAs"
                     | "sheet.rename"
                     | "sheet.tabColor"
                     | "sheet.hide"
@@ -289,14 +289,14 @@ impl SheetDocument {
                     | "table.firstColumn"
                     | "table.lastColumn"
                     | "table.style"
-                    | "review.protectSheet"
-                    | "review.unprotectSheet"
-                    | "review.newNote"
-                    | "review.newComment"
-                    | "review.replyComment"
-                    | "review.resolveComment"
-                    | "review.deleteComment"
-                    | "review.showNote"
+                    | "sheet.protect"
+                    | "sheet.unprotect"
+                    | "note.add"
+                    | "comment.add"
+                    | "comment.reply"
+                    | "comment.resolve"
+                    | "comment.delete"
+                    | "note.show"
                     | "data.validation"
                     | "data.group"
                     | "data.ungroup"
@@ -306,15 +306,15 @@ impl SheetDocument {
                     | "data.filterBy"
                     | "data.clearFilter"
                     | "data.reapply"
-                    | "insert.table"
-                    | "insert.chart"
-                    | "insert.recommendedCharts"
-                    | "insert.picture"
-                    | "insert.shape"
-                    | "insert.textBox"
-                    | "insert.artText"
-                    | "insert.icons"
-                    | "insert.link"
+                    | "table.insert"
+                    | "chart.insert"
+                    | "chart.recommended"
+                    | "image.insert"
+                    | "shape.insert"
+                    | "textBox.insert"
+                    | "artText.insert"
+                    | "icon.insert"
+                    | "link.insert"
                     | "drawing.insert"
                     | "drawing.delete"
                     | "drawing.transform"
@@ -328,8 +328,8 @@ impl SheetDocument {
                     | "drawing.arrange"
                     | "drawing.ink"
                     | "drawing.erase"
-                    | "draw.stroke"
-                    | "draw.inkToShape"
+                    | "ink.stroke"
+                    | "ink.toShape"
                     | "chart.set"
                     | "chart.delete"
                     | "chart.switchRowColumn"
@@ -352,7 +352,7 @@ impl SheetDocument {
                     | "object.move"
                     | "object.setAnchorMode"
             )
-            || command == "home.formatCells" && (params.get("style").is_some() || params.get("edges").is_some())
+            || command == "format.cells" && (params.get("style").is_some() || params.get("edges").is_some())
             || command == "sheet.unhide" && params.get("sheet").is_some();
         if !target_sheet {
             return Ok(Some(under));

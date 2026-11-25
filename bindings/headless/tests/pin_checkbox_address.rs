@@ -17,14 +17,14 @@ async fn named_checkbox_creation_ignores_other_sheet_insertion_but_holds_numeric
         let f = Fixture::new();
         let basis = f.basis().await;
         f.colleague(&[match change {
-            "other sheet" | "numeric sheet" => ("home.insertSheet", json!({"before":0,"name":"Outside"})),
-            "earlier row" => ("home.insertRows", json!({"rows":"Sheet1!2"})),
+            "other sheet" | "numeric sheet" => ("sheet.insert", json!({"before":0,"name":"Outside"})),
+            "earlier row" => ("row.insert", json!({"rows":"Sheet1!2"})),
             "same field" => ("cell.set", json!({"cell":"C5","input":"99"})),
             _ => panic!("unknown change"),
         }]);
         let before = f.bytes();
         let params = if change == "numeric sheet" { json!({"sheet":0,"range":"C5"}) } else { json!({"sheet":"Sheet1","range":"C5"}) };
-        let result = f.run(basis, "insert.checkbox", params).await;
+        let result = f.run(basis, "checkbox.insert", params).await;
         if change == "other sheet" {
             if let Err(error) = result {
                 failures.push(format!("inserting another sheet refused a named checkbox: {error}"));

@@ -405,18 +405,18 @@ try {
     await build(numbered(3), { fill: false })
     await ai([
       { command: 'cell.set', params: { cell: `${q('工作表2')}!B1`, input: '0.25' } },
-      { command: 'home.numberFormat', params: { range: `${q('工作表2')}!B1`, format: '0.00%' } },
+      { command: 'format.numberFormat', params: { range: `${q('工作表2')}!B1`, format: '0.00%' } },
       { command: 'cell.set', params: { cell: `${q('工作表2')}!B2`, input: '3.14159' } },
-      { command: 'home.numberFormat', params: { range: `${q('工作表2')}!B2`, format: '0.00' } },
+      { command: 'format.numberFormat', params: { range: `${q('工作表2')}!B2`, format: '0.00' } },
       { command: 'cell.set', params: { cell: `${q('工作表2')}!B3`, input: '2026/9/29' } },
-      { command: 'home.numberFormat', params: { range: `${q('工作表2')}!B3`, format: 'yyyy/m/d' } },
+      { command: 'format.numberFormat', params: { range: `${q('工作表2')}!B3`, format: 'yyyy/m/d' } },
       { command: 'cell.set', params: { cell: `${q('工作表2')}!D1`, input: '格式' } },
-      { command: 'home.formatCells', params: { range: `${q('工作表2')}!D1`, style: { font: { bold: true, color: '#FF0000' }, fill: '#FFFF00', align: { h: 'Center' }, borders: { top: { style: 'Thin', color: 'Auto' }, bottom: { style: 'Thin', color: 'Auto' }, left: { style: 'Thin', color: 'Auto' }, right: { style: 'Thin', color: 'Auto' } } } } },
+      { command: 'format.cells', params: { range: `${q('工作表2')}!D1`, style: { font: { bold: true, color: '#FF0000' }, fill: '#FFFF00', align: { h: 'Center' }, borders: { top: { style: 'Thin', color: 'Auto' }, bottom: { style: 'Thin', color: 'Auto' }, left: { style: 'Thin', color: 'Auto' }, right: { style: 'Thin', color: 'Auto' } } } } },
       { command: 'cell.set', params: { cell: `${q('工作表2')}!F1`, input: '合并' } },
-      { command: 'home.mergeCells', params: { range: `${q('工作表2')}!F1:H1` } },
+      { command: 'cell.merge', params: { range: `${q('工作表2')}!F1:H1` } },
       { command: 'sheet.activate', params: { sheet: '工作表2' } },
-      { command: 'home.rowHeight', params: { rows: '1:1', height: 40 } },
-      { command: 'home.columnWidth', params: { cols: 'F:F', chars: 25 } },
+      { command: 'row.setHeight', params: { rows: '1:1', height: 40 } },
+      { command: 'column.setWidth', params: { cols: 'F:F', chars: 25 } },
       { command: 'sheet.activate', params: { sheet: '工作表1' } },
     ])
     await copyOf('工作表2')
@@ -454,7 +454,7 @@ try {
     await ai([
       { command: 'range.setValues', params: { range: `${q('工作表2')}!A1`, values: [[10], [20], [30]] } },
       { command: 'sheet.activate', params: { sheet: '工作表2' } },
-      { command: 'home.conditionalFormat', params: { range: 'A1:A10', rule: { type: 'cellIs', operator: 'greaterThan', value: '50', style: { fill: '#FF0000' } } } },
+      { command: 'conditionalFormat.apply', params: { range: 'A1:A10', rule: { type: 'cellIs', operator: 'greaterThan', value: '50', style: { fill: '#FF0000' } } } },
       { command: 'sheet.activate', params: { sheet: '工作表1' } },
     ])
     await copyOf('工作表2')
@@ -484,10 +484,10 @@ try {
     await build(numbered(3), { fill: false })
     await ai([
       { command: 'range.setValues', params: { range: `${q('工作表2')}!A1`, values: [['项', '值'], ['a', 3], ['b', 5]] } },
-      { command: 'review.newNote', params: { cell: `${q('工作表2')}!E1`, text: '待复核' } },
+      { command: 'note.add', params: { cell: `${q('工作表2')}!E1`, text: '待复核' } },
       { command: 'sheet.activate', params: { sheet: '工作表2' } },
-      { command: 'insert.chart', params: { range: 'A1:B3', type: 'column', at: 'G2' } },
-      { command: 'insert.picture', params: { base64: PNG, at: 'C8', width: 80, height: 60 } },
+      { command: 'chart.insert', params: { range: 'A1:B3', type: 'column', at: 'G2' } },
+      { command: 'image.insert', params: { base64: PNG, at: 'C8', width: 80, height: 60 } },
       { command: 'sheet.activate', params: { sheet: '工作表1' } },
     ])
     await copyOf('工作表2')
@@ -504,8 +504,8 @@ try {
     await build(numbered(3))
     await ai([
       { command: 'sheet.activate', params: { sheet: '工作表2' } },
-      { command: 'home.hideRows', params: { rows: '3' } },
-      { command: 'home.hideColumns', params: { cols: 'C' } },
+      { command: 'row.hide', params: { rows: '3' } },
+      { command: 'column.hide', params: { cols: 'C' } },
       { command: 'sheet.activate', params: { sheet: '工作表1' } },
     ])
     await copyOf('工作表2')
@@ -741,11 +741,11 @@ try {
 
   await section('MENU-C232 被保护工作表上的改色', async () => {
     await build(numbered(3))
-    await exec('review.protectSheet', {})
+    await exec('sheet.protect', {})
     await until(async () => (await kit.getByTestId('sheet-lock-工作表1').count()) === 1)
     await colorTab('工作表1', RED)
     step('MENU-C232 工作表保护不影响改色：标签底部呈所选颜色', (await colorOf('工作表1')) === '#FF0000')
-    await exec('review.unprotectSheet', {})
+    await exec('sheet.unprotect', {})
   })
 
   await section('MENU-C289/C290/C298/C291 颜色随拖拽、重命名与隐藏保留', async () => {
@@ -1315,7 +1315,7 @@ try {
 
   await section('MENU-C320 删除被保护的工作表', async () => {
     await build(numbered(3))
-    await exec('review.protectSheet', {})
+    await exec('sheet.protect', {})
     await deleteSheet('工作表1')
     step('MENU-C320 工作表1 连同保护一并删除，当前表为工作表2', same(await tabNames(), ['工作表2', '工作表3']) && same(await selectedTabs(), ['工作表2']))
   })
@@ -1411,7 +1411,7 @@ try {
     const tabsShown14 = await showsTabs(['Sheet1', 'Sheet2', 'Sheet3', 'Sheet4'])
     step('MENU-C166 在末张后：Sheet1、Sheet2、Sheet3、Sheet4', tabsShown14 && (await order()).length === 4)
     await build(sheets(3), { active: 'Sheet2' })
-    await exec('home.bold', { range: `Sheet2!A1` })
+    await exec('format.bold', { range: `Sheet2!A1` })
     await insertAt('Sheet2', 'after')
     await showsTabs(['Sheet1', 'Sheet2', 'Sheet4', 'Sheet3'])
     const info = (await workbook()).sheets.find((sheet) => sheet.name === 'Sheet4')
@@ -1741,7 +1741,7 @@ try {
     await build(numbered(3))
     await ai([
       { command: 'sheet.activate', params: { sheet: '工作表2' } },
-      { command: 'review.protectSheet', params: {} },
+      { command: 'sheet.protect', params: {} },
       { command: 'sheet.activate', params: { sheet: '工作表1' } },
     ])
     await copyOf('工作表2')
@@ -1877,7 +1877,7 @@ try {
 
   await section('MENU-C333 导入件上创建副本', async () => {
     await imported(sheets(2))
-    await exec('home.bold', { range: 'Sheet1!A1' })
+    await exec('format.bold', { range: 'Sheet1!A1' })
     const copy = await copyOf('Sheet1')
     const [a, b] = [await cellOf('Sheet1!A1'), await cellOf(`${q(copy)}!A1`)]
     step('MENU-C333 命名规则同自建件（Sheet1(2)），内容格式一致，2 → 3 张', copy === 'Sheet1(2)' && same(a.style, b.style) && a.value === b.value && (await order()).length === 3)

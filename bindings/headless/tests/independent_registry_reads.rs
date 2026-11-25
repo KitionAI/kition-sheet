@@ -16,7 +16,7 @@ async fn table_style_writes_hold_selected_registry_inputs_without_holding_cells(
             let fixture = Fixture::new();
             fixture.colleague(&[
                 ("table.newStyle", json!({"name":"OldStyle","default":true,"elements":{"wholeTable":{"bold":true}}})),
-                ("insert.table", json!({"range":"A1:C4","name":"Sales","header":true,"style":"OldStyle"})),
+                ("table.insert", json!({"range":"A1:C4","name":"Sales","header":true,"style":"OldStyle"})),
             ]);
             let basis = fixture.basis().await;
             fixture.colleague(&[if related {
@@ -67,9 +67,9 @@ async fn showing_formulas_holds_its_flag_without_holding_sheet_cells() {
     for related in [true, false] {
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
-        fixture.colleague(&[if related { ("formulas.showFormulas", json!({"on":true})) } else { ("cell.set", json!({"cell":"Z20","input":"999"})) }]);
+        fixture.colleague(&[if related { ("formula.showFormulas", json!({"on":true})) } else { ("cell.set", json!({"cell":"Z20","input":"999"})) }]);
         let before = fixture.bytes();
-        let result = fixture.run(basis, "formulas.showFormulas", json!({})).await;
+        let result = fixture.run(basis, "formula.showFormulas", json!({})).await;
         if related {
             if result.as_ref().err().and_then(|error| error["error"]["code"].as_str()) != Some("conflict") {
                 wrong.push(format!("changed formula-view flag must conflict: {result:?}"));

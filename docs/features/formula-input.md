@@ -36,7 +36,7 @@
 - Escape cancels; a misspelt function shows `#NAME?`; the formula bar shows the formula while the
   cell shows its value; text from an input method (Chinese) goes through the editor's text sink.
 - A circular reference shows 0 (WPS); Formulas › Error Checking lists its cells. With iterative
-  calculation on (`formulas.calculationOptions` `iterative`, `maxIterations`, `maxChange`, saved in
+  calculation on (`formula.calculationOptions` `iterative`, `maxIterations`, `maxChange`, saved in
   the file's `calcPr`) it settles to a number.
 - Not yet: a dialog on a new circular reference, WPS's 函数参数 (Function Arguments) dialog after
   Insert Function (the argument hint shows instead), and Chinese descriptions beyond the most used

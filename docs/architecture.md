@@ -32,8 +32,8 @@ Layering is enforced by `cargo xtask layers`. Line counts are Rust lines includi
 1. **Every action is a command.** The kit's editor (`web/`) and the headless kit executable
    (`bindings/headless`) both call `Session::execute(id, params)` through `KitTools`. Commands are
    `CommandSpec { id, label, menu, shortcut, params, enabled, run, journal, undoable }`; ids
-   follow Excel's ribbon (`home.bold`, `insert.chart`, `data.sortAscending`) plus primitives
-   (`cell.set`, `selection.set`, `range.setValues`). `Session::execute` catches escaped panics and
+   follow Excel's ribbon (`format.bold`, `chart.insert`, `data.sortAscending`) plus primitives
+   (`cell.set`, `select.set`, `range.setValues`). `Session::execute` catches escaped panics and
    restores the workbook (never-crash guard).
 2. **Edits** change the model through copy-on-write bands; undo keeps the previous snapshot.
 3. **Recalc** marks dependents of changed cells dirty through the dependency graph (with range

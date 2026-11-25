@@ -94,9 +94,9 @@ try {
   step('the ✓ button enters the formula field', (await cell('D4')).input === '96')
 
   // Bold and a fill color from the ribbon.
-  await kit.getByTestId('sheet-cmd-home.bold').click()
-  await until(async () => (await kit.getByTestId('sheet-cmd-home.bold').getAttribute('aria-pressed')) === 'true')
-  step('bolds the cell', (await kit.getByTestId('sheet-cmd-home.bold').getAttribute('aria-pressed')) === 'true')
+  await kit.getByTestId('sheet-cmd-format.bold').click()
+  await until(async () => (await kit.getByTestId('sheet-cmd-format.bold').getAttribute('aria-pressed')) === 'true')
+  step('bolds the cell', (await kit.getByTestId('sheet-cmd-format.bold').getAttribute('aria-pressed')) === 'true')
   await kit.getByTestId('sheet-fill').click()
   await kit.getByTestId('sheet-fill-colors').locator('button').nth(43).click()
   await until(async () => JSON.stringify((await cell('D4')).style?.fill ?? {}).includes('Rgb'))

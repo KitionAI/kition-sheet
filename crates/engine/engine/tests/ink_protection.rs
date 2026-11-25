@@ -6,16 +6,16 @@ use serde_json::{Value, json};
 
 fn calls() -> [(&'static str, Value); 3] {
     [
-        ("draw.stroke", json!({"points":[[10,10],[80,40]],"color":"#123456","width":2,"tool":"pen"})),
+        ("ink.stroke", json!({"points":[[10,10],[80,40]],"color":"#123456","width":2,"tool":"pen"})),
         ("drawing.ink", json!({"strokes":[{"points":[[10,10],[80,40]],"color":"#123456","width":2,"tool":"pen"}]})),
-        ("draw.inkToShape", json!({"id":1})),
+        ("ink.toShape", json!({"id":1})),
     ]
 }
 
 fn with_stroke() -> Session {
     let mut session = Session::new();
     session.new_workbook();
-    session.execute("draw.stroke", json!({"points":[[100,100],[140,120]],"color":"#654321","width":2,"tool":"pen"})).unwrap();
+    session.execute("ink.stroke", json!({"points":[[100,100],[140,120]],"color":"#654321","width":2,"tool":"pen"})).unwrap();
     session
 }
 
@@ -24,7 +24,7 @@ fn ink_writes_refuse_protected_sheets_and_leave_existing_shapes_unchanged() {
     let mut wrong = Vec::new();
     for (command, params) in calls() {
         let mut session = with_stroke();
-        session.execute("review.protectSheet", json!({})).unwrap();
+        session.execute("sheet.protect", json!({})).unwrap();
         let before = session.doc().unwrap().wb.active().unwrap().shapes.clone();
         let result = session.execute(command, params);
         if result.is_ok() {

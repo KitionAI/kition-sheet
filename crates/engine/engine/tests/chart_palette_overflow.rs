@@ -20,7 +20,7 @@ fn generated_palette_tints_saturate_before_series_index_arithmetic_overflows() {
         // Two areas keep the 200 columns as series rather than switching to rows.
         let left = RangeRef::new(CellRef::new(0, 0), CellRef::new(1, 100)).a1();
         let right = RangeRef::new(CellRef::new(0, 101), CellRef::new(1, 200)).a1();
-        session.execute("insert.chart", json!({"range":format!("{left},{right}"),"type":"column"})).unwrap();
+        session.execute("chart.insert", json!({"range":format!("{left},{right}"),"type":"column"})).unwrap();
         assert_eq!(session.doc().unwrap().wb.active().unwrap().charts[0].series.len(), 200);
         if let Err(error) = session.execute("chart.changeColors", json!({"chart":1,"palette":palette})) {
             failures.push(format!("{palette}: {error}"));

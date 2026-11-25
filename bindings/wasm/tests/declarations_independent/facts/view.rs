@@ -31,7 +31,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
     let address = |out: &mut Facts, range| cx.address(out, si, range);
     let at = |key: &str| params.get(key).and_then(Value::as_str).and_then(area).map(|range| range.start);
     match row.command {
-        "review.protectSheet" | "review.unprotectSheet" => out.add(&sid, ["~editConnectors"]),
+        "sheet.protect" | "sheet.unprotect" => out.add(&sid, ["~editConnectors"]),
         "view.freezePanes" | "view.freezeTopRow" | "view.freezeFirstColumn" | "view.freezeRows" | "view.freezeColumns" => {
             if row.command == "view.freezePanes" && params.get("cell").is_none() && cx.wb.sheets[si].freeze.is_some() {
                 return out;
@@ -48,8 +48,8 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 out.position(&cx.axis(si, false, point.col), &["index"]);
             }
         }
-        "pageLayout.printArea" if params.get("clear").and_then(Value::as_bool) != Some(true) => address(&mut out, cx.range(params)),
-        "pageLayout.printTitles" => {
+        "page.printArea" if params.get("clear").and_then(Value::as_bool) != Some(true) => address(&mut out, cx.range(params)),
+        "page.printTitles" => {
             for (key, rows) in [("rows", true), ("cols", false)] {
                 if let Some(range) = params.get(key).and_then(Value::as_str).and_then(area) {
                     let (first, last) = if rows { (range.start.row, range.end.row) } else { (range.start.col, range.end.col) };
@@ -60,10 +60,10 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 }
             }
         }
-        "pageLayout.breaks" if params.get("reset").and_then(Value::as_bool) != Some(true) => {
+        "page.breaks" if params.get("reset").and_then(Value::as_bool) != Some(true) => {
             address(&mut out, RangeRef::cell(at("cell").unwrap_or(cx.selected.start)))
         }
-        "pageLayout.pageSetup" => {
+        "page.pageSetup" => {
             for (key, rows) in [("titleRows", true), ("titleCols", false)] {
                 if let Some(range) = params.get(key).and_then(Value::as_str).and_then(area) {
                     let (first, last, field) = if rows { (range.start.row, range.end.row, "rows") } else { (range.start.col, range.end.col, "cols") };
@@ -83,7 +83,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 address(&mut out, range);
             }
         }
-        "review.changeSpelling" => spelling(&mut out, params, cx, si),
+        "spelling.change" => spelling(&mut out, params, cx, si),
         _ => {}
     }
     out

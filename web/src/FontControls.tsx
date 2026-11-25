@@ -102,7 +102,7 @@ export function FontNamePicker({ info }: { info: SheetInfo }) {
   const [typed, setTyped] = useState<string | null>(null)
   // Narrower in Single line's row, so Home fits there.
   const inline = useContext(RibbonPresentationContext) === 'primary'
-  const disabled = readOnly || !enabled('home.fontName')
+  const disabled = readOnly || !enabled('format.fontName')
   const apply = (name: string) => {
     const clean = name.trim()
     setTyped(null)
@@ -110,7 +110,7 @@ export function FontNamePicker({ info }: { info: SheetInfo }) {
     const known = FONTS.find((font) => [font.name, ...font.also].some((other) => other.toLowerCase() === clean.toLowerCase()))
     const chosen = known?.name ?? clean
     remember('recentFonts', chosen, RECENT_FONTS)
-    void run('home.fontName', { name: chosen }).finally(backToGrid)
+    void run('format.fontName', { name: chosen }).finally(backToGrid)
   }
   const keyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     event.stopPropagation()
@@ -225,7 +225,7 @@ export function FontSizePicker({ info }: { info: SheetInfo }) {
   const size = info.style.font?.size ?? 11
   const [typed, setTyped] = useState<string | null>(null)
   const inline = useContext(RibbonPresentationContext) === 'primary'
-  const disabled = readOnly || !enabled('home.fontSize')
+  const disabled = readOnly || !enabled('format.fontSize')
   const apply = (value: string) => {
     setTyped(null)
     const number = Number(value.trim())
@@ -234,7 +234,7 @@ export function FontSizePicker({ info }: { info: SheetInfo }) {
       backToGrid()
       return
     }
-    void run('home.fontSize', { size: number }).finally(backToGrid)
+    void run('format.fontSize', { size: number }).finally(backToGrid)
   }
   return (
     <span className="sheet-combo" data-primary="true">
@@ -276,7 +276,7 @@ export function FontSizePicker({ info }: { info: SheetInfo }) {
               role="menuitemcheckbox"
               aria-checked={value === size}
               className="kui-menu-item sheet-font-row"
-              onClick={() => void run('home.fontSize', { size: value }).finally(backToGrid)}
+              onClick={() => void run('format.fontSize', { size: value }).finally(backToGrid)}
               data-testid={`sheet-size-item-${value}`}
             >
               <span className="sheet-font-check" aria-hidden="true">

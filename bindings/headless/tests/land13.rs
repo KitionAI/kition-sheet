@@ -17,7 +17,7 @@ fn book() -> Vec<u8> {
         doc.execute("drawing.insert", json!({"kind":"textBox","text":"before","frame":{"x":x,"y":10,"w":50,"h":30}})).unwrap();
     }
     doc.execute("drawing.ink", json!({"strokes":[{"points":[[10,100],[90,100]],"width":2}]})).unwrap();
-    doc.execute("home.insertSheet", json!({"name":"Notes","before":9})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Notes","before":9})).unwrap();
     doc.execute("sheet.activate", json!({"sheet":"Data"})).unwrap();
     doc.save(None).unwrap()
 }
@@ -89,7 +89,7 @@ impl Fixture {
 async fn insert_after_the_address_is_unrelated() {
     let f = Fixture::new();
     let basis = f.basis().await;
-    f.colleague(&[("home.insertRows", json!({"rows":"Data!11:11"}))]);
+    f.colleague(&[("row.insert", json!({"rows":"Data!11:11"}))]);
     f.run(basis, "cell.set", json!({"sheet":"Data","cell":"B7","input":"42"})).await.unwrap();
     assert_eq!(f.cell("B7"), 42.0);
     f.shutdown().await;
@@ -113,13 +113,13 @@ async fn formatting_holds_destination_and_fitted_rows_but_allows_other_rows() {
         let other = match change {
             "other-row" => ("cell.set", json!({"cell":"Data!Z20","input":"99"})),
             "other-sheet" => ("cell.set", json!({"cell":"Notes!A1","input":"99"})),
-            "destination" => ("home.italic", json!({"range":"Data!B7","on":true})),
+            "destination" => ("format.italic", json!({"range":"Data!B7","on":true})),
             "new-row-cell" => ("cell.set", json!({"cell":"Data!Z7","input":"new"})),
-            _ => ("home.insertRows", json!({"rows":"Data!2"})),
+            _ => ("row.insert", json!({"rows":"Data!2"})),
         };
         f.colleague(&[other]);
         let before = f.bytes();
-        let result = f.run(basis, "home.bold", json!({"range":"Data!A7:B7","on":true})).await;
+        let result = f.run(basis, "format.bold", json!({"range":"Data!A7:B7","on":true})).await;
         if matches!(change, "other-row" | "other-sheet") {
             result.unwrap_or_else(|error| panic!("{change}: {error}"));
         } else {
@@ -135,17 +135,17 @@ async fn formatting_holds_destination_and_fitted_rows_but_allows_other_rows() {
 async fn explicit_formats_and_rich_text_hold_their_inputs_without_the_active_cell() {
     let mut problems = Vec::new();
     for (command, params) in [
-        ("home.fontName", json!({"range":"Data!A7:B7","name":"Arial"})),
-        ("home.numberFormat", json!({"range":"Data!A7:B7","format":"Number"})),
-        ("home.fillColor", json!({"range":"Data!A7:B7","color":"#224466"})),
-        ("home.increaseIndent", json!({"range":"Data!A7:B7"})),
+        ("format.fontName", json!({"range":"Data!A7:B7","name":"Arial"})),
+        ("format.numberFormat", json!({"range":"Data!A7:B7","format":"Number"})),
+        ("format.fillColor", json!({"range":"Data!A7:B7","color":"#224466"})),
+        ("format.increaseIndent", json!({"range":"Data!A7:B7"})),
         ("cell.formatText", json!({"cell":"Data!A7","start":0,"end":2,"bold":true})),
     ] {
         for change in ["active", "destination"] {
             let f = Fixture::new();
             let basis = f.basis().await;
             let range = if change == "active" { "Data!A1" } else { "Data!A7" };
-            f.colleague(&[("home.italic", json!({"range":range,"on":true}))]);
+            f.colleague(&[("format.italic", json!({"range":range,"on":true}))]);
             let before = f.bytes();
             let answer = f.run(basis, command, params.clone()).await;
             if change == "destination" {
@@ -166,29 +166,28 @@ async fn explicit_formats_and_rich_text_hold_their_inputs_without_the_active_cel
 #[tokio::test(flavor = "multi_thread")]
 async fn borders_and_merges_hold_only_their_style_or_content_footprints() {
     let mut problems = Vec::new();
-    for mode in ["home.borders", "home.drawBorder", "home.mergeCells", "home.mergeCenter", "home.mergeAcross", "home.unmergeCells", "edges", "merge"]
-    {
-        let command = if matches!(mode, "edges" | "merge") { "home.formatCells" } else { mode };
+    for mode in ["format.borders", "format.drawBorder", "cell.merge", "cell.mergeCenter", "cell.mergeAcross", "cell.unmerge", "edges", "merge"] {
+        let command = if matches!(mode, "edges" | "merge") { "format.cells" } else { mode };
         for change in ["unrelated", "value", "style", "neighbor", "tall-neighbor", "overlap", "unrelated-merge"] {
             let f = Fixture::new();
-            let border = matches!(mode, "home.borders" | "home.drawBorder" | "edges");
-            if command == "home.unmergeCells" {
-                f.colleague(&[("home.mergeAcross", json!({"range":"Data!A7:B8"}))]);
+            let border = matches!(mode, "format.borders" | "format.drawBorder" | "edges");
+            if command == "cell.unmerge" {
+                f.colleague(&[("cell.mergeAcross", json!({"range":"Data!A7:B8"}))]);
             }
             let basis = f.basis().await;
             let other = match change {
                 "unrelated" => ("cell.set", json!({"cell":"Data!A1","input":"unrelated"})),
                 "value" => ("cell.set", json!({"cell":"Data!B7","input":"99"})),
-                "style" => ("home.italic", json!({"range":"Data!B7","on":true})),
-                "neighbor" => ("home.italic", json!({"range":"Data!C7","on":true})),
-                "tall-neighbor" => ("home.fontSize", json!({"range":"Data!C7","size":40})),
-                "unrelated-merge" => ("home.mergeAcross", json!({"range":"Data!C1:D2"})),
-                _ => ("home.mergeAcross", json!({"range":"Data!A6:C7"})),
+                "style" => ("format.italic", json!({"range":"Data!B7","on":true})),
+                "neighbor" => ("format.italic", json!({"range":"Data!C7","on":true})),
+                "tall-neighbor" => ("format.fontSize", json!({"range":"Data!C7","size":40})),
+                "unrelated-merge" => ("cell.mergeAcross", json!({"range":"Data!C1:D2"})),
+                _ => ("cell.mergeAcross", json!({"range":"Data!A6:C7"})),
             };
             f.colleague(&[other]);
             let before = f.bytes();
             let params = match mode {
-                "home.borders" => json!({"range":"Data!A7:B8","preset":"none"}),
+                "format.borders" => json!({"range":"Data!A7:B8","preset":"none"}),
                 "edges" => json!({"range":"Data!A7:B8","edges":[{"preset":"none"}]}),
                 "merge" => json!({"range":"Data!A7:B8","merge":true}),
                 _ => json!({"range":"Data!A7:B8"}),
@@ -197,9 +196,9 @@ async fn borders_and_merges_hold_only_their_style_or_content_footprints() {
             // Borders read styles, including adjacent facing edges only for removal.
             // Across and Unmerge change merge metadata, without reading cell entries.
             let necessary = border && change == "style"
-                || matches!(mode, "home.borders" | "edges") && matches!(change, "neighbor" | "tall-neighbor")
+                || matches!(mode, "format.borders" | "edges") && matches!(change, "neighbor" | "tall-neighbor")
                 || !border && change == "overlap"
-                || matches!(mode, "home.mergeCells" | "home.mergeCenter" | "merge") && matches!(change, "value" | "style" | "tall-neighbor");
+                || matches!(mode, "cell.merge" | "cell.mergeCenter" | "merge") && matches!(change, "value" | "style" | "tall-neighbor");
             if necessary {
                 if !answer.as_ref().is_err_and(|error| error.to_string().contains("conflict")) {
                     problems.push(format!("{mode}/{change}: required refusal, got {answer:?}"));
@@ -229,16 +228,16 @@ async fn outline_controls_hold_selected_levels_and_discovered_boundaries() {
                 }
                 f.colleague(&[("data.group", json!({(key):if rows { "4:9" } else { "D:I" }}))]);
                 if command == "data.showDetail" {
-                    f.colleague(&[(if rows { "home.hideRows" } else { "home.hideColumns" }, json!({(key):if rows { "6" } else { "F" }}))]);
+                    f.colleague(&[(if rows { "row.hide" } else { "column.hide" }, json!({(key):if rows { "6" } else { "F" }}))]);
                 }
                 let basis = f.basis().await;
                 let other = match change {
                     "unrelated" => ("cell.set", json!({"cell":if rows { "Data!B7" } else { "Data!F7" },"input":"99"})),
                     "level" => ("data.group", json!({(key):selected})),
                     "visibility" if command == "data.showDetail" => {
-                        (if rows { "home.unhideRows" } else { "home.unhideColumns" }, json!({(key):if rows { "6" } else { "F" }}))
+                        (if rows { "row.show" } else { "column.show" }, json!({(key):if rows { "6" } else { "F" }}))
                     }
-                    "visibility" => (if rows { "home.hideRows" } else { "home.hideColumns" }, json!({(key):if rows { "6" } else { "F" }})),
+                    "visibility" => (if rows { "row.hide" } else { "column.hide" }, json!({(key):if rows { "6" } else { "F" }})),
                     "boundary" => ("data.group", json!({(key):if rows { "3" } else { "C" }})),
                     _ => ("sheet.rename", json!({"name":"Renamed"})),
                 };
@@ -271,25 +270,25 @@ async fn named_cell_styles_hold_the_chosen_definition_and_written_styles() {
         for change in ["unrelated", "other-style", "chosen-style", "source-or-destination"] {
             let f = Fixture::new();
             f.colleague(&[
-                ("home.bold", json!({"range":"Data!A1","on":true})),
-                ("home.newCellStyle", json!({"name":"Entry","fromCell":"A1"})),
-                ("home.newCellStyle", json!({"name":"OtherStyle","fromCell":"B1"})),
+                ("format.bold", json!({"range":"Data!A1","on":true})),
+                ("style.add", json!({"name":"Entry","fromCell":"A1"})),
+                ("style.add", json!({"name":"OtherStyle","fromCell":"B1"})),
             ]);
             let basis = f.basis().await;
             let chosen = if form == "builtin" { "Good" } else { "Entry" };
             match change {
                 "unrelated" => f.colleague(&[("cell.set", json!({"cell":"Data!Z20","input":"99"}))]),
                 "other-style" | "chosen-style" => f.colleague(&[
-                    ("home.italic", json!({"range":"Data!B1","on":true})),
-                    ("home.newCellStyle", json!({"name":if change == "other-style" { "OtherStyle" } else { chosen },"fromCell":"B1"})),
+                    ("format.italic", json!({"range":"Data!B1","on":true})),
+                    ("style.add", json!({"name":if change == "other-style" { "OtherStyle" } else { chosen },"fromCell":"B1"})),
                 ]),
-                _ => f.colleague(&[("home.italic", json!({"range":if form == "definition" { "Data!A1" } else { "Data!B7" },"on":true}))]),
+                _ => f.colleague(&[("format.italic", json!({"range":if form == "definition" { "Data!A1" } else { "Data!B7" },"on":true}))]),
             }
             let before = f.bytes();
             let (command, params) = if form == "definition" {
-                ("home.newCellStyle", json!({"name":chosen,"fromCell":"A1"}))
+                ("style.add", json!({"name":chosen,"fromCell":"A1"}))
             } else {
-                ("home.cellStyle", json!({"name":chosen,"range":"Data!B7"}))
+                ("style.apply", json!({"name":chosen,"range":"Data!B7"}))
             };
             let answer = f.run(basis, command, params).await;
             if matches!(change, "chosen-style" | "source-or-destination") {
@@ -314,8 +313,8 @@ async fn table_rename_holds_only_its_own_formula_membership() {
         let f = Fixture::new();
         f.colleague(&[
             ("range.setValues", json!({"range":"Data!D1","values":[["Code","Value"],["a",10],["b",20],["c",30],["d",40]]})),
-            ("insert.table", json!({"range":"Data!A1:B5","name":"Sales","header":true})),
-            ("insert.table", json!({"range":"Data!D1:E5","name":"Other","header":true})),
+            ("table.insert", json!({"range":"Data!A1:B5","name":"Sales","header":true})),
+            ("table.insert", json!({"range":"Data!D1:E5","name":"Other","header":true})),
             ("cell.set", json!({"cell":"Data!G1","input":"=SUM(Sales[#All])"})),
             ("cell.set", json!({"cell":"Data!G2","input":"=SUM(Other[#All])"})),
         ]);
@@ -348,35 +347,35 @@ async fn table_rename_holds_only_its_own_formula_membership() {
 async fn conditional_format_writes_hold_rules_and_windows_without_cell_values() {
     let mut problems = Vec::new();
     for (command, params) in [
-        ("home.conditionalFormat", json!({"range":"Data!A7:B8","rule":{"type":"cellIs","value":9}})),
-        ("home.clearRules", json!({"range":"Data!A7:B8"})),
-        ("home.clearRules", json!({"sheet":true})),
-        ("home.manageRules", json!({"moveDown":0})),
+        ("conditionalFormat.apply", json!({"range":"Data!A7:B8","rule":{"type":"cellIs","value":9}})),
+        ("conditionalFormat.clearRules", json!({"range":"Data!A7:B8"})),
+        ("conditionalFormat.clearRules", json!({"sheet":true})),
+        ("conditionalFormat.manageRules", json!({"moveDown":0})),
     ] {
         for change in ["rules", "other-rules", "value", "before", "after"] {
             let f = Fixture::new();
             f.colleague(&[
-                ("home.conditionalFormat", json!({"range":"Data!A7:B8","rule":{"type":"cellIs","value":3}})),
-                ("home.conditionalFormat", json!({"range":"Data!D7:E8","rule":{"type":"cellIs","value":4}})),
+                ("conditionalFormat.apply", json!({"range":"Data!A7:B8","rule":{"type":"cellIs","value":3}})),
+                ("conditionalFormat.apply", json!({"range":"Data!D7:E8","rule":{"type":"cellIs","value":4}})),
             ]);
             let basis = f.basis().await;
             let colleague = match change {
-                "rules" => ("home.conditionalFormat", json!({"range":"Data!Z20","rule":{"type":"cellIs","value":8}})),
-                "other-rules" => ("home.conditionalFormat", json!({"range":"Notes!A1","rule":{"type":"cellIs","value":8}})),
+                "rules" => ("conditionalFormat.apply", json!({"range":"Data!Z20","rule":{"type":"cellIs","value":8}})),
+                "other-rules" => ("conditionalFormat.apply", json!({"range":"Notes!A1","rule":{"type":"cellIs","value":8}})),
                 "value" => ("cell.set", json!({"cell":"Data!A7","input":"99"})),
-                "before" => ("home.insertRows", json!({"rows":"Data!2"})),
-                _ => ("home.insertRows", json!({"rows":"Data!12"})),
+                "before" => ("row.insert", json!({"rows":"Data!2"})),
+                _ => ("row.insert", json!({"rows":"Data!12"})),
             };
             f.colleague(&[colleague]);
             let before = f.bytes();
             let result = f.run(basis, command, params.clone()).await;
             let before_is_read = match (command, params.get("sheet").and_then(Value::as_bool)) {
                 // approved (necessity review): moving rules retains their current ranges.
-                ("home.manageRules", _) => false,
+                ("conditionalFormat.manageRules", _) => false,
                 // same-field decision: deleting rules holds their replaced ranges.
-                ("home.clearRules", Some(true)) => true,
+                ("conditionalFormat.clearRules", Some(true)) => true,
                 // same-field decision: an intersecting rule is removed with its ranges.
-                ("home.clearRules", _) => true,
+                ("conditionalFormat.clearRules", _) => true,
                 _ => true,
             };
             let necessary = change == "rules" || change == "before" && before_is_read;
@@ -384,7 +383,7 @@ async fn conditional_format_writes_hold_rules_and_windows_without_cell_values() 
                 if !result.as_ref().is_err_and(|error| error.to_string().contains("conflict")) {
                     problems.push(format!("{command} {params} {change}: required refusal, got {result:?}"));
                 } else {
-                    if command == "home.clearRules" && change == "before" {
+                    if command == "conditionalFormat.clearRules" && change == "before" {
                         assert!(result.as_ref().unwrap_err()["conflicts"].to_string().contains("changed"));
                     }
                     assert_eq!(f.bytes(), before);
@@ -396,7 +395,7 @@ async fn conditional_format_writes_hold_rules_and_windows_without_cell_values() 
                 let sheet = saved.sheet(0).unwrap();
                 assert_eq!(sheet.value(kition_sheet_engine::core::CellRef::parse("B8").unwrap()).display(), "7", "outside insertion survives");
                 let ranges: Vec<_> = sheet.cond_formats.iter().flat_map(|rule| rule.ranges.iter().map(|range| range.a1())).collect();
-                let expected = if command == "home.manageRules" {
+                let expected = if command == "conditionalFormat.manageRules" {
                     vec!["A8:B9", "D8:E9"]
                 } else if params.get("sheet").and_then(Value::as_bool) == Some(true) {
                     vec![]
@@ -416,8 +415,8 @@ async fn conditional_format_numeric_sheet_holds_its_tab_position() {
     for change in ["tab-before", "cell"] {
         let f = Fixture::new();
         f.colleague(&[
-            ("home.conditionalFormat", json!({"range":"Data!A7:B8","rule":{"type":"cellIs","value":3}})),
-            ("home.conditionalFormat", json!({"range":"Data!D7:E8","rule":{"type":"cellIs","value":4}})),
+            ("conditionalFormat.apply", json!({"range":"Data!A7:B8","rule":{"type":"cellIs","value":3}})),
+            ("conditionalFormat.apply", json!({"range":"Data!D7:E8","rule":{"type":"cellIs","value":4}})),
         ]);
         let basis = f.basis().await;
         if change == "tab-before" {
@@ -426,7 +425,7 @@ async fn conditional_format_numeric_sheet_holds_its_tab_position() {
             f.colleague(&[("cell.set", json!({"cell":"Notes!A1","input":"99"}))]);
         }
         let before = f.bytes();
-        let answer = f.run(basis, "home.manageRules", json!({"sheet":0,"moveDown":0})).await;
+        let answer = f.run(basis, "conditionalFormat.manageRules", json!({"sheet":0,"moveDown":0})).await;
         if change == "tab-before" {
             assert!(answer.as_ref().is_err_and(|error| error.to_string().contains("conflict")), "{answer:?}");
             assert_eq!(f.bytes(), before);
@@ -444,18 +443,18 @@ async fn clear_families_hold_the_metadata_or_cells_they_actually_clear() {
         for change in ["unrelated", "target-note", "target-link", "target-style", "target-value", "before", "other-note"] {
             let f = Fixture::new();
             f.colleague(&[
-                ("review.newNote", json!({"cell":"Data!B7","text":"observed"})),
-                ("insert.link", json!({"cell":"Data!B7","target":"https://example.org","tooltip":"observed"})),
+                ("note.add", json!({"cell":"Data!B7","text":"observed"})),
+                ("link.insert", json!({"cell":"Data!B7","target":"https://example.org","tooltip":"observed"})),
             ]);
             let basis = f.basis().await;
             let colleague = match change {
                 "unrelated" => ("cell.set", json!({"cell":"Data!B12","input":"99"})),
-                "target-note" => ("review.newNote", json!({"cell":"Data!B7","text":"changed"})),
-                "target-link" => ("insert.link", json!({"cell":"Data!B7","target":"https://example.org","tooltip":"changed"})),
-                "target-style" => ("home.bold", json!({"range":"Data!B7","on":true})),
+                "target-note" => ("note.add", json!({"cell":"Data!B7","text":"changed"})),
+                "target-link" => ("link.insert", json!({"cell":"Data!B7","target":"https://example.org","tooltip":"changed"})),
+                "target-style" => ("format.bold", json!({"range":"Data!B7","on":true})),
                 "target-value" => ("cell.set", json!({"cell":"Data!B7","input":"99"})),
-                "before" => ("home.insertRows", json!({"rows":"Data!2"})),
-                _ => ("review.newNote", json!({"cell":"Data!A12","text":"unrelated"})),
+                "before" => ("row.insert", json!({"rows":"Data!2"})),
+                _ => ("note.add", json!({"cell":"Data!A12","text":"unrelated"})),
             };
             f.colleague(&[colleague]);
             let before = f.bytes();
@@ -494,7 +493,7 @@ async fn filters_hold_scopes_sources_and_visibility_but_allow_unrelated_cells() 
                 "unrelated" => ("cell.set", json!({"cell":"Data!Z20","input":"99"})),
                 "source" | "new-source" => ("cell.set", json!({"cell":"Data!B7","input":"99"})),
                 "criteria" => ("data.filterBy", json!({"column":"B","custom":{"op":">","value":"6"}})),
-                _ => ("home.hideRows", json!({"rows":"Data!12"})),
+                _ => ("row.hide", json!({"rows":"Data!12"})),
             };
             f.colleague(&[other]);
             let before = f.bytes();
@@ -531,13 +530,13 @@ async fn automatic_sizing_holds_only_the_fitted_lines() {
                 "unrelated" => ("cell.set", json!({"cell":"Data!Z20","input":"99"})),
                 "source" => ("cell.set", json!({"cell":"Data!B7","input":"longer\nsource"})),
                 "new-source" => ("cell.set", json!({"cell":if rows {"Data!Z7"} else {"Data!B20"},"input":"new\nsource"})),
-                _ if rows => ("home.insertRows", json!({"rows":"Data!2"})),
-                _ => ("home.insertColumns", json!({"cols":"Data!A"})),
+                _ if rows => ("row.insert", json!({"rows":"Data!2"})),
+                _ => ("column.insert", json!({"cols":"Data!A"})),
             };
             f.colleague(&[other]);
             let before = f.bytes();
             let (command, params) =
-                if rows { ("home.autofitRowHeight", json!({"rows":"Data!7"})) } else { ("home.autofitColumnWidth", json!({"cols":"Data!B"})) };
+                if rows { ("row.autofitHeight", json!({"rows":"Data!7"})) } else { ("column.autofitWidth", json!({"cols":"Data!B"})) };
             let answer = f.run(basis, command, params).await;
             if change == "unrelated" {
                 if let Err(error) = answer {
@@ -565,7 +564,7 @@ async fn structural_table_controls_hold_their_table_and_written_cells() {
     ] {
         for change in ["unrelated", "destination", "definition"] {
             let f = Fixture::new();
-            f.colleague(&[("insert.table", json!({"range":"Data!A1:B4","name":"Sales","header":true}))]);
+            f.colleague(&[("table.insert", json!({"range":"Data!A1:B4","name":"Sales","header":true}))]);
             if command == "table.totalFunction" {
                 f.colleague(&[("table.totalRow", json!({"table":"Sales","on":true}))]);
             }
@@ -625,7 +624,7 @@ async fn table_creation_rename_and_duplicates_hold_their_actual_inputs() {
             let f = Fixture::new();
             if family != "insert" {
                 f.colleague(&[
-                    ("insert.table", json!({"range":"Data!A1:B4","header":true,"name":"Sales"})),
+                    ("table.insert", json!({"range":"Data!A1:B4","header":true,"name":"Sales"})),
                     ("cell.set", json!({"cell":"Data!D1","input":"=SUM(Sales[1])"})),
                 ]);
             }
@@ -634,17 +633,17 @@ async fn table_creation_rename_and_duplicates_hold_their_actual_inputs() {
                 "unrelated" => ("cell.set", json!({"cell":"Data!Z20","input":"99"})),
                 "unrelated-formula" => ("cell.set", json!({"cell":"Data!D20","input":"=1+1"})),
                 "other-body" => ("cell.set", json!({"cell":"Data!B3","input":"99"})),
-                "inside" => ("home.insertRows", json!({"rows":"Data!3"})),
+                "inside" => ("row.insert", json!({"rows":"Data!3"})),
                 "source" if family == "rename" => ("cell.set", json!({"cell":"Data!D1","input":"=SUM(Sales[1])+1"})),
                 "source" => ("cell.set", json!({"cell":"Data!B2","input":"99"})),
                 _ if family == "rename" => ("cell.set", json!({"cell":"Data!D20","input":"=SUM(Sales[1])"})),
-                _ if family == "insert" => ("insert.table", json!({"range":"Data!A7:B10","header":true,"name":"NewSales"})),
+                _ if family == "insert" => ("table.insert", json!({"range":"Data!A7:B10","header":true,"name":"NewSales"})),
                 _ => ("table.bandedRows", json!({"table":"Sales","on":false})),
             };
             f.colleague(&[other]);
             let before = f.bytes();
             let (command, params) = match family {
-                "insert" => ("insert.table", json!({"range":"Data!A2:B4","header":true,"name":"NewSales"})),
+                "insert" => ("table.insert", json!({"range":"Data!A2:B4","header":true,"name":"NewSales"})),
                 "rename" => ("table.rename", json!({"table":"Sales","name":"Revenue"})),
                 _ => ("table.removeDuplicates", json!({"table":"Sales"})),
             };
@@ -674,11 +673,11 @@ async fn formula_fill_holds_every_translated_source_and_its_windows() {
         let basis = f.basis().await;
         let other = match change {
             "unrelated" => ("cell.set", json!({"cell":"Data!Z20","input":"99"})),
-            "after" => ("home.insertRows", json!({"rows":"Data!11:11"})),
+            "after" => ("row.insert", json!({"rows":"Data!11:11"})),
             "relative" => ("cell.set", json!({"cell":"Data!B5","input":"99"})),
             "absolute" => ("cell.set", json!({"cell":"Data!B1","input":"99"})),
-            "before" => ("home.insertRows", json!({"rows":"Data!2:2"})),
-            _ => ("home.insertRows", json!({"rows":"Data!4:4"})),
+            "before" => ("row.insert", json!({"rows":"Data!2:2"})),
+            _ => ("row.insert", json!({"rows":"Data!4:4"})),
         };
         f.colleague(&[other]);
         let before = f.bytes();
@@ -702,8 +701,8 @@ async fn narrowed_families_allow_unrelated_changes_and_refuse_their_dependencies
         for related in [false, true] {
             let f = Fixture::new();
             f.colleague(&[
-                ("formulas.defineName", json!({"name":"Rate","refersTo":"=Data!B7"})),
-                ("insert.table", json!({"range":"Data!A1:B4","header":false,"name":"Sales"})),
+                ("name.define", json!({"name":"Rate","refersTo":"=Data!B7"})),
+                ("table.insert", json!({"range":"Data!A1:B4","header":false,"name":"Sales"})),
             ]);
             let basis = f.basis().await;
             let other = if !related {
@@ -712,7 +711,7 @@ async fn narrowed_families_allow_unrelated_changes_and_refuse_their_dependencies
                 match family {
                     "paste" => ("cell.set", json!({"cell":"Data!B2","input":"99"})),
                     "sort" => ("cell.set", json!({"cell":"Data!B7","input":"99"})),
-                    "name" => ("formulas.defineName", json!({"name":"Rate","refersTo":"=Data!B8"})),
+                    "name" => ("name.define", json!({"name":"Rate","refersTo":"=Data!B8"})),
                     "validation" => ("data.validation", json!({"range":"Data!B7","type":"whole","formula1":"2","formula2":"9"})),
                     _ => ("cell.set", json!({"cell":"Data!B1","input":"Changed header"})),
                 }
@@ -722,7 +721,7 @@ async fn narrowed_families_allow_unrelated_changes_and_refuse_their_dependencies
             let (command, params) = match family {
                 "paste" => ("edit.paste", json!({"at":"B7","text":"=B2\t43\n44\t45"})),
                 "sort" => ("data.sort", json!({"range":"Data!A5:B8","header":false,"keys":[{"column":"B","order":"desc"}]})),
-                "name" => ("formulas.defineName", json!({"name":"Rate","refersTo":"=Data!B9"})),
+                "name" => ("name.define", json!({"name":"Rate","refersTo":"=Data!B9"})),
                 "validation" => ("data.validation", json!({"range":"Data!B7:B8","type":"whole","formula1":"1","formula2":"10"})),
                 _ => ("table.resize", json!({"table":"Sales","range":"Data!A1:B5"})),
             };
@@ -753,29 +752,29 @@ async fn narrowed_families_allow_unrelated_changes_and_refuse_their_dependencies
 async fn named_cell_writes_follow_identity_and_hold_definition_and_content() {
     for change in ["unrelated", "other-name", "before", "rename-sheet", "destination", "definition", "delete", "rename-name", "picture"] {
         let f = Fixture::new();
-        f.colleague(&[("formulas.defineName", json!({"name":"Destination","refersTo":"=Data!$B$7"}))]);
+        f.colleague(&[("name.define", json!({"name":"Destination","refersTo":"=Data!$B$7"}))]);
         let picture = json!({"at":"B7","base64":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==","placement":"cell","alt":"before"});
         if change == "picture" {
-            f.colleague(&[("insert.picture", picture.clone())]);
+            f.colleague(&[("image.insert", picture.clone())]);
         }
         let basis = f.basis().await;
         let other = match change {
             "unrelated" => ("cell.set", json!({"cell":"Data!Z20","input":"99"})),
-            "other-name" => ("formulas.defineName", json!({"name":"Other","refersTo":"0.2"})),
-            "before" => ("home.insertRows", json!({"rows":"Data!2"})),
+            "other-name" => ("name.define", json!({"name":"Other","refersTo":"0.2"})),
+            "before" => ("row.insert", json!({"rows":"Data!2"})),
             "rename-sheet" => ("sheet.rename", json!({"sheet":"Data","name":"Renamed"})),
             "destination" => ("cell.set", json!({"cell":"Data!B7","input":"99"})),
-            "delete" | "rename-name" => ("formulas.deleteName", json!({"name":"Destination"})),
+            "delete" | "rename-name" => ("name.delete", json!({"name":"Destination"})),
             "picture" => {
                 let mut updated = picture;
                 updated["alt"] = json!("theirs");
-                ("insert.picture", updated)
+                ("image.insert", updated)
             }
-            _ => ("formulas.defineName", json!({"name":"Destination","refersTo":"=Data!$B$8"})),
+            _ => ("name.define", json!({"name":"Destination","refersTo":"=Data!$B$8"})),
         };
         f.colleague(&[other]);
         if change == "rename-name" {
-            f.colleague(&[("formulas.defineName", json!({"name":"MovedName","refersTo":"=Data!$B$7"}))]);
+            f.colleague(&[("name.define", json!({"name":"MovedName","refersTo":"=Data!$B$7"}))]);
         }
         let before = f.bytes();
         let answer = f.run(basis, "cell.set", json!({"name":"Destination","input":"42"})).await;
@@ -797,23 +796,23 @@ async fn named_cell_writes_follow_identity_and_hold_definition_and_content() {
 #[tokio::test(flavor = "multi_thread")]
 async fn comment_commands_hold_the_target_comment_and_its_address() {
     for (command, params) in [
-        ("review.newNote", json!({"text":"A note"})),
-        ("review.newComment", json!({"text":"A thread"})),
-        ("review.replyComment", json!({"text":"A reply"})),
-        ("review.resolveComment", json!({"resolved":true})),
-        ("review.showNote", json!({})),
-        ("review.deleteComment", json!({})),
+        ("note.add", json!({"text":"A note"})),
+        ("comment.add", json!({"text":"A thread"})),
+        ("comment.reply", json!({"text":"A reply"})),
+        ("comment.resolve", json!({"resolved":true})),
+        ("note.show", json!({})),
+        ("comment.delete", json!({})),
     ] {
         for change in ["value", "other-note", "after", "before", "target-note"] {
             let f = Fixture::new();
-            f.colleague(&[("review.newComment", json!({"sheet":"Data","cell":"B7","text":"Observed"}))]);
+            f.colleague(&[("comment.add", json!({"sheet":"Data","cell":"B7","text":"Observed"}))]);
             let basis = f.basis().await;
             let other = match change {
                 "value" => ("cell.set", json!({"sheet":"Data","cell":"B7","input":"99"})),
-                "other-note" => ("review.newNote", json!({"sheet":"Data","cell":"Z20","text":"Unrelated"})),
-                "after" => ("home.insertRows", json!({"rows":"Data!11:11"})),
-                "before" => ("home.insertRows", json!({"rows":"Data!2:2"})),
-                _ => ("review.newNote", json!({"sheet":"Data","cell":"B7","text":"Changed"})),
+                "other-note" => ("note.add", json!({"sheet":"Data","cell":"Z20","text":"Unrelated"})),
+                "after" => ("row.insert", json!({"rows":"Data!11:11"})),
+                "before" => ("row.insert", json!({"rows":"Data!2:2"})),
+                _ => ("note.add", json!({"sheet":"Data","cell":"B7","text":"Changed"})),
             };
             f.colleague(&[other]);
             let before = f.bytes();
@@ -838,35 +837,33 @@ async fn comment_commands_hold_the_target_comment_and_its_address() {
 #[tokio::test(flavor = "multi_thread")]
 async fn fixed_axis_properties_hold_their_fields_and_address_windows() {
     for (command, write, rows, unhide) in [
-        ("home.rowHeight", json!({"rows":"Data!7","height":28}), true, false),
-        ("home.columnWidth", json!({"cols":"Data!B","width":90}), false, false),
-        ("home.hideRows", json!({"rows":"Data!7"}), true, false),
-        ("home.hideColumns", json!({"cols":"Data!B"}), false, false),
-        ("home.unhideRows", json!({"rows":"Data!7"}), true, true),
-        ("home.unhideColumns", json!({"cols":"Data!B"}), false, true),
+        ("row.setHeight", json!({"rows":"Data!7","height":28}), true, false),
+        ("column.setWidth", json!({"cols":"Data!B","width":90}), false, false),
+        ("row.hide", json!({"rows":"Data!7"}), true, false),
+        ("column.hide", json!({"cols":"Data!B"}), false, false),
+        ("row.show", json!({"rows":"Data!7"}), true, true),
+        ("column.show", json!({"cols":"Data!B"}), false, true),
     ] {
         for change in ["value", "other-axis", "after", "before", "property", "neighbour"] {
             let f = Fixture::new();
             if !rows {
                 f.colleague(&[("cell.set", json!({"sheet":"Data","cell":"C12","input":"13"}))]);
             }
-            let size = if rows { "home.rowHeight" } else { "home.columnWidth" };
+            let size = if rows { "row.setHeight" } else { "column.setWidth" };
             let target = if rows { json!({"sheet":"Data","rows":"7","height":25}) } else { json!({"sheet":"Data","cols":"B","width":85}) };
             if unhide {
-                f.colleague(&[(if rows { "home.hideRows" } else { "home.hideColumns" }, write.clone())]);
+                f.colleague(&[(if rows { "row.hide" } else { "column.hide" }, write.clone())]);
             }
             let basis = f.basis().await;
             let other = match change {
                 "value" => ("cell.set", json!({"sheet":"Data","cell":"B7","input":"99"})),
                 "other-axis" => (size, if rows { json!({"rows":"Data!20","height":25}) } else { json!({"cols":"Data!Z","width":85}) }),
-                "after" => (
-                    if rows { "home.insertRows" } else { "home.insertColumns" },
-                    if rows { json!({"rows":"Data!11"}) } else { json!({"cols":"Data!E"}) },
-                ),
-                "before" => (
-                    if rows { "home.insertRows" } else { "home.insertColumns" },
-                    if rows { json!({"rows":"Data!2"}) } else { json!({"cols":"Data!A"}) },
-                ),
+                "after" => {
+                    (if rows { "row.insert" } else { "column.insert" }, if rows { json!({"rows":"Data!11"}) } else { json!({"cols":"Data!E"}) })
+                }
+                "before" => {
+                    (if rows { "row.insert" } else { "column.insert" }, if rows { json!({"rows":"Data!2"}) } else { json!({"cols":"Data!A"}) })
+                }
                 "neighbour" => (size, if rows { json!({"rows":"Data!6","height":25}) } else { json!({"cols":"Data!A","width":85}) }),
                 _ if command.starts_with("home.hide") => (command, write.clone()),
                 _ => (size, target),
@@ -892,15 +889,15 @@ async fn fixed_axis_properties_hold_their_fields_and_address_windows() {
 #[tokio::test(flavor = "multi_thread")]
 async fn property_commands_allow_cells_but_refuse_changes_to_the_held_property() {
     for (command, write, other) in [
-        ("review.protectSheet", json!({"formatCells":true}), json!({"formatRows":true})),
-        ("review.protectWorkbook", json!({"on":true}), json!({"on":true})),
+        ("sheet.protect", json!({"formatCells":true}), json!({"formatRows":true})),
+        ("workbook.protect", json!({"on":true}), json!({"on":true})),
         ("view.gridlines", json!({"on":false}), json!({"on":false})),
         ("view.headings", json!({"on":false}), json!({"on":false})),
         ("view.showZeros", json!({"on":false}), json!({"on":false})),
         ("view.rightToLeft", json!({"on":true}), json!({"on":true})),
-        ("pageLayout.orientation", json!({"orientation":"landscape"}), json!({"orientation":"landscape"})),
-        ("pageLayout.size", json!({"paper":"A3"}), json!({"paper":"A3"})),
-        ("pageLayout.headerFooter", json!({"header":"New header"}), json!({"header":"Other header"})),
+        ("page.orientation", json!({"orientation":"landscape"}), json!({"orientation":"landscape"})),
+        ("page.size", json!({"paper":"A3"}), json!({"paper":"A3"})),
+        ("page.headerFooter", json!({"header":"New header"}), json!({"header":"Other header"})),
     ] {
         for necessary in [false, true] {
             let f = Fixture::new();
@@ -928,8 +925,8 @@ async fn property_commands_allow_cells_but_refuse_changes_to_the_held_property()
 #[tokio::test(flavor = "multi_thread")]
 async fn cell_constraints_hold_only_regions_that_cover_the_destination() {
     for (command, field, near, far, rest) in [
-        ("home.mergeCells", "range", "B7:C8", "Z20:AA21", json!({})),
-        ("insert.table", "range", "B5:C9", "Z20:AA22", json!({"name":"ReceiptTable","header":true})),
+        ("cell.merge", "range", "B7:C8", "Z20:AA21", json!({})),
+        ("table.insert", "range", "B5:C9", "Z20:AA22", json!({"name":"ReceiptTable","header":true})),
         ("data.validation", "range", "B7:C8", "Z20:AA21", json!({"type":"whole","formula1":"1","formula2":"100"})),
     ] {
         for necessary in [false, true] {
@@ -957,8 +954,8 @@ async fn cell_constraints_hold_only_regions_that_cover_the_destination() {
 async fn workbook_property_writes_hold_only_the_properties_they_read() {
     for (command, write, sibling, changed) in [
         ("file.properties", json!({"title":"Receipt"}), json!({"author":"Colleague"}), json!({"title":"Colleague"})),
-        ("formulas.calculationOptions", json!({"mode":"manual"}), json!({"maxIterations":200}), json!({"mode":"manual"})),
-        ("formulas.calculationOptions", json!({"iterative":true}), json!({"maxChange":0.01}), json!({"iterative":true})),
+        ("formula.calculationOptions", json!({"mode":"manual"}), json!({"maxIterations":200}), json!({"mode":"manual"})),
+        ("formula.calculationOptions", json!({"iterative":true}), json!({"maxChange":0.01}), json!({"iterative":true})),
     ] {
         for change in ["cell", "sibling", "property"] {
             let f = Fixture::new();
@@ -985,9 +982,9 @@ async fn table_appearance_writes_hold_the_chosen_table() {
         for change in ["cell", "other-table", "chosen-table", "rename-away"] {
             let f = Fixture::new();
             f.colleague(&[
-                ("insert.table", json!({"range":"Data!A1:B12","header":true,"name":"Observed"})),
+                ("table.insert", json!({"range":"Data!A1:B12","header":true,"name":"Observed"})),
                 ("range.setValues", json!({"range":"Data!D1:E3","values":[["Item","Value"],["Other",1],["Last",2]]})),
-                ("insert.table", json!({"range":"Data!D1:E3","header":true,"name":"Unrelated"})),
+                ("table.insert", json!({"range":"Data!D1:E3","header":true,"name":"Unrelated"})),
             ]);
             let basis = f.basis().await;
             let other = match change {
@@ -1020,7 +1017,7 @@ async fn chart_handlers_hold_the_source_cells_they_read() {
         ("drawing.chart", json!({"id":"drawing:4","title":"New title"})),
     ] {
         let f = Fixture::new();
-        f.colleague(&[("insert.chart", json!({"range":"Data!A1:B12","type":"pie"}))]);
+        f.colleague(&[("chart.insert", json!({"range":"Data!A1:B12","type":"pie"}))]);
         let basis = f.basis().await;
         f.colleague(&[("cell.set", json!({"sheet":"Data","cell":"A1","input":"Changed header"}))]);
         let before = f.bytes();
@@ -1061,7 +1058,7 @@ async fn chart_formula_sources(existing: bool) {
             }
             f.colleague(&[
                 ("cell.set", json!({"sheet":"Data","cell":"B2","input":"=D1*2"})),
-                ("insert.chart", json!({"range":"Data!A1:B12","type":"pie"})),
+                ("chart.insert", json!({"range":"Data!A1:B12","type":"pie"})),
             ]);
             let doc = SheetDocument::open("Book.xlsx", &f.bytes()).unwrap();
             let under = doc.under(command, &params).unwrap().unwrap();
@@ -1079,13 +1076,13 @@ async fn chart_formula_sources(existing: bool) {
 async fn formula_metadata_changes_refuse_stale_meaning_but_allow_unrelated_cells() {
     let mut wrong = Vec::new();
     for (formula, other, nested) in [
-        ("=SUBTOTAL(109,B2:B9)", ("home.hideRows", json!({"rows":4})), false),
-        ("=AGGREGATE(9,1,B2:B9)", ("home.hideRows", json!({"rows":4})), false),
-        ("=CELL(\"width\",B7)", ("home.columnWidth", json!({"cols":"Data!B","width":140})), false),
+        ("=SUBTOTAL(109,B2:B9)", ("row.hide", json!({"rows":4})), false),
+        ("=AGGREGATE(9,1,B2:B9)", ("row.hide", json!({"rows":4})), false),
+        ("=CELL(\"width\",B7)", ("column.setWidth", json!({"cols":"Data!B","width":140})), false),
         ("=CELL(\"sheetname\",B7)", ("sheet.rename", json!({"sheet":"Data","name":"Renamed"})), false),
         ("=SHEET(\"Data\")", ("sheet.move", json!({"sheet":"Data","to":1})), false),
-        ("=SHEETS()", ("home.insertSheet", json!({"name":"Added"})), false),
-        ("=D4", ("home.columnWidth", json!({"cols":"Data!D","width":140})), true),
+        ("=SHEETS()", ("sheet.insert", json!({"name":"Added"})), false),
+        ("=D4", ("column.setWidth", json!({"cols":"Data!D","width":140})), true),
     ] {
         for necessary in [false, true] {
             let f = Fixture::new();
@@ -1154,7 +1151,7 @@ async fn formula_dependency_audit_includes_large_dynamic_and_structured_sources(
         let f = Fixture::new();
         f.colleague(&[
             ("range.setValues", json!({"range":"A1:B1","values":[["Item","Amount"]]})),
-            ("insert.table", json!({"range":"A1:B12","name":"Sales","header":true})),
+            ("table.insert", json!({"range":"A1:B12","name":"Sales","header":true})),
         ]);
         let basis = f.basis().await;
         f.colleague(&[("cell.set", json!({"cell":"B7","input":"99"}))]);
@@ -1172,10 +1169,10 @@ async fn formula_dependency_audit_includes_large_dynamic_and_structured_sources(
 async fn conservative_handlers_hold_child_cells_they_read() {
     let mut failures = Vec::new();
     for (command, params) in [
-        ("home.bold", json!({"range":"B7","on":true})),
+        ("format.bold", json!({"range":"B7","on":true})),
         ("data.sortAscending", json!({"range":"A2:B9","header":false})),
         ("edit.fillDown", json!({"range":"B2:B9"})),
-        ("review.changeSpelling", json!({"cell":"B7","word":"7","to":"seven"})),
+        ("spelling.change", json!({"cell":"B7","word":"7","to":"seven"})),
     ] {
         let f = Fixture::new();
         let basis = f.basis().await;
@@ -1200,7 +1197,7 @@ async fn structured_formula_allows_changes_outside_its_source_column() {
         let f = Fixture::new();
         f.colleague(&[
             ("range.setValues", json!({"range":"A1:B1","values":[["Item","Amount"]]})),
-            ("insert.table", json!({"range":"A1:B12","name":"Sales","header":true})),
+            ("table.insert", json!({"range":"A1:B12","name":"Sales","header":true})),
         ]);
         let basis = f.basis().await;
         f.colleague(&[(command, params)]);
@@ -1216,7 +1213,7 @@ async fn formula_premises_follow_signed_and_text_formatted_entry() {
     for (input, text_format, refuse) in [("+SUM(B2:B9)", false, true), ("-SUM(B2:B9)", false, true), ("=SUM(B2:B9)", true, false)] {
         let f = Fixture::new();
         if text_format {
-            f.colleague(&[("home.numberFormat", json!({"range":"D1","format":"@"}))]);
+            f.colleague(&[("format.numberFormat", json!({"range":"D1","format":"@"}))]);
         }
         let basis = f.basis().await;
         f.colleague(&[("cell.set", json!({"cell":"B7","input":"99"}))]);
@@ -1237,7 +1234,7 @@ async fn structured_formula_refuses_a_changed_table_definition() {
         let f = Fixture::new();
         f.colleague(&[
             ("range.setValues", json!({"range":"A1:B1","values":[["Item","Amount"]]})),
-            ("insert.table", json!({"range":"A1:B12","name":"Sales","header":true})),
+            ("table.insert", json!({"range":"A1:B12","name":"Sales","header":true})),
         ]);
         let basis = f.basis().await;
         f.colleague(&[(command, params)]);
@@ -1255,10 +1252,7 @@ async fn formula_sheet_context_preserves_meaning_across_tab_edits() {
     for kind in ["current-rename", "named-rename-away", "span-move-out"] {
         let f = Fixture::new();
         if kind != "current-rename" {
-            f.colleague(&[
-                ("home.insertSheet", json!({"name":"Source","before":1})),
-                ("cell.set", json!({"sheet":"Source","cell":"B7","input":"70"})),
-            ]);
+            f.colleague(&[("sheet.insert", json!({"name":"Source","before":1})), ("cell.set", json!({"sheet":"Source","cell":"B7","input":"70"}))]);
         }
         let basis = f.basis().await;
         let (command, params, input, refuse) = match kind {
@@ -1337,9 +1331,9 @@ async fn epoch_premise_and_off_have_different_stale_write_contracts() {
 async fn deletion_before_an_empty_insertion_window() {
     let f = Fixture::new();
     let basis = f.basis().await;
-    f.colleague(&[("home.deleteRows", json!({"rows":"Data!2:2"}))]);
+    f.colleague(&[("row.delete", json!({"rows":"Data!2:2"}))]);
     // The gap retains its original predecessors through the outside reread.
-    let result = f.run(basis, "home.insertRows", json!({"rows":"Data!7:7"})).await;
+    let result = f.run(basis, "row.insert", json!({"rows":"Data!7:7"})).await;
     assert!(result.is_err(), "SDK accepted deletion before the observed gap");
     let error = result.unwrap_err();
     assert!(error.to_string().contains("relocated"), "{error}");
@@ -1351,7 +1345,7 @@ async fn move_out_before_an_empty_insertion_window() {
     let f = Fixture::new();
     let basis = f.basis().await;
     f.colleague(&[("edit.moveCells", json!({"from":"Data!2:2","to":"Data!12:12","insert":"down"}))]);
-    let result = f.run(basis, "home.insertRows", json!({"rows":"Data!7:7"})).await;
+    let result = f.run(basis, "row.insert", json!({"rows":"Data!7:7"})).await;
     assert!(result.is_err(), "SDK accepted moving a row out before the observed gap");
     let error = result.unwrap_err();
     assert!(error.to_string().contains("relocated"), "{error}");
@@ -1405,8 +1399,8 @@ async fn fifty_unrelated_changes_table() {
 const CHANGES: &[(&str, &str, &str, [bool; 4])] = &[
     ("other-cell", "cell.set", r#"{"sheet":"Data","cell":"B12","input":"99"}"#, [false, false, false, false]),
     ("target-cell", "cell.set", r#"{"sheet":"Data","cell":"B7","input":"99"}"#, [false, true, false, false]),
-    ("insert-before", "home.insertRows", r#"{"rows":"Data!2:2"}"#, [false, true, true, true]),
-    ("insert-after", "home.insertRows", r#"{"rows":"Data!11:11"}"#, [false, false, false, false]),
+    ("insert-before", "row.insert", r#"{"rows":"Data!2:2"}"#, [false, true, true, true]),
+    ("insert-after", "row.insert", r#"{"rows":"Data!11:11"}"#, [false, false, false, false]),
     ("target-text", "drawing.text", r#"{"id":1,"text":"theirs"}"#, [true, false, false, false]),
     ("move-ink", "drawing.transform", r#"{"ids":[3],"dx":200}"#, [false, false, true, false]),
     ("rename-target", "sheet.rename", r#"{"sheet":0,"name":"OldData"}"#, [false, false, false, true]),
@@ -1419,7 +1413,7 @@ async fn fifty_rounds_mixed_table_with_fixed_necessity_rules() {
         ("id", "drawing.text", json!({"id":"drawing:1","text":"mine"})),
         ("index", "cell.set", json!({"sheet":0,"cell":"B7","input":"42"})),
         ("point", "drawing.erase", json!({"x":50,"y":100})),
-        ("structural", "home.insertRows", json!({"rows":"Data!7:7"})),
+        ("structural", "row.insert", json!({"rows":"Data!7:7"})),
     ];
     // rounds, applied, necessary refusal, false refusal, wrong application, kit failure.
     let mut table = vec![vec![[0usize; 6]; 4]; CHANGES.len()];
@@ -1481,7 +1475,7 @@ const FAMILY_NECESSARY: [[bool; 4]; 8] = [
 #[tokio::test(flavor = "multi_thread")]
 async fn fifty_rounds_added_families_with_fixed_necessity_rules() {
     let forms = [
-        ("formatting", "home.bold", json!({"range":"Data!A7:B7","on":true})),
+        ("formatting", "format.bold", json!({"range":"Data!A7:B7","on":true})),
         ("paste", "edit.paste", json!({"at":"B7","text":"42\t43\n44\t45"})),
         ("sort", "data.sort", json!({"range":"Data!A5:B8","header":false,"keys":[{"column":"B","order":"desc"}]})),
         ("named", "cell.set", json!({"name":"Destination","input":"42"})),
@@ -1493,7 +1487,7 @@ async fn fifty_rounds_added_families_with_fixed_necessity_rules() {
         let (_, command, params, _) = CHANGES[kind];
         for (form, (name, write, params_write)) in forms.iter().enumerate() {
             let f = Fixture::new();
-            f.colleague(&[("formulas.defineName", json!({"name":"Destination","refersTo":"=Data!$B$7"}))]);
+            f.colleague(&[("name.define", json!({"name":"Destination","refersTo":"=Data!$B$7"}))]);
             let basis = f.basis().await;
             f.colleague(&[(command, serde_json::from_str(params).unwrap())]);
             let before = f.bytes();
@@ -1577,9 +1571,9 @@ async fn creating_the_previously_empty_destination_refuses_a_stale_cell_write() 
 #[tokio::test(flavor = "multi_thread")]
 async fn formula_text_holds_referenced_values_and_coordinate_windows() {
     for (command, params, refused) in [
-        ("home.insertRows", json!({"rows":"Data!2:2"}), true),
-        ("home.insertRows", json!({"rows":"Data!6:6"}), true),
-        ("home.insertRows", json!({"rows":"Data!11:11"}), false),
+        ("row.insert", json!({"rows":"Data!2:2"}), true),
+        ("row.insert", json!({"rows":"Data!6:6"}), true),
+        ("row.insert", json!({"rows":"Data!11:11"}), false),
         ("cell.set", json!({"sheet":"Data","cell":"B5","input":"99"}), true),
         ("cell.set", json!({"sheet":"Data","cell":"Z20","input":"99"}), false),
     ] {
@@ -1588,7 +1582,7 @@ async fn formula_text_holds_referenced_values_and_coordinate_windows() {
         f.colleague(&[(command, params.clone())]);
         let result = f.run(basis, "cell.set", json!({"sheet":"Data","cell":"D1","input":"=SUM(B2:B9)"})).await;
         assert_eq!(result.is_err(), refused, "{command} {params}: {result:?}");
-        if refused && command == "home.insertRows" {
+        if refused && command == "row.insert" {
             assert!(result.unwrap_err().to_string().contains("relocated"));
         }
         f.shutdown().await;
@@ -1597,11 +1591,9 @@ async fn formula_text_holds_referenced_values_and_coordinate_windows() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_formula_using_a_deleted_or_redefined_name_is_refused() {
-    for (command, params) in
-        [("formulas.deleteName", json!({"name":"Revenue"})), ("formulas.defineName", json!({"name":"Revenue","refersTo":"Data!B2:B5"}))]
-    {
+    for (command, params) in [("name.delete", json!({"name":"Revenue"})), ("name.define", json!({"name":"Revenue","refersTo":"Data!B2:B5"}))] {
         let f = Fixture::new();
-        f.colleague(&[("formulas.defineName", json!({"name":"Revenue","refersTo":"Data!B2:B9"}))]);
+        f.colleague(&[("name.define", json!({"name":"Revenue","refersTo":"Data!B2:B9"}))]);
         let basis = f.basis().await;
         f.colleague(&[(command, params)]);
         let result = f.run(basis, "cell.set", json!({"sheet":"Data","cell":"D1","input":"=SUM(Revenue)"})).await;
@@ -1615,13 +1607,13 @@ async fn formula_dependencies_follow_names_and_other_formulas_but_ignore_other_n
     for (formula, other, refused) in [("=SUM(Revenue)", "B5", true), ("=D2", "B5", true), ("=SUM(Revenue)", "name", false)] {
         let f = Fixture::new();
         f.colleague(&[
-            ("formulas.defineName", json!({"name":"Revenue","refersTo":"Data!B2:B9"})),
-            ("formulas.defineName", json!({"name":"Expenses","refersTo":"Data!B10:B12"})),
+            ("name.define", json!({"name":"Revenue","refersTo":"Data!B2:B9"})),
+            ("name.define", json!({"name":"Expenses","refersTo":"Data!B10:B12"})),
             ("cell.set", json!({"sheet":"Data","cell":"D2","input":"=SUM(B2:B9)"})),
         ]);
         let basis = f.basis().await;
         if other == "name" {
-            f.colleague(&[("formulas.defineName", json!({"name":"Expenses","refersTo":"Data!B10:B11"}))]);
+            f.colleague(&[("name.define", json!({"name":"Expenses","refersTo":"Data!B10:B11"}))]);
         } else {
             f.colleague(&[("cell.set", json!({"sheet":"Data","cell":other,"input":"99"}))]);
         }
@@ -1683,7 +1675,7 @@ async fn a_parent_move_holds_child_position_but_not_child_text() {
 async fn an_insert_before_b7_changes_what_the_address_names() {
     let f = Fixture::new();
     let basis = f.basis().await;
-    f.colleague(&[("home.insertRows", json!({"rows":"Data!2:2"}))]);
+    f.colleague(&[("row.insert", json!({"rows":"Data!2:2"}))]);
     let before = f.bytes();
     let error = f.run(basis, "cell.set", json!({"sheet":"Data","cell":"B7","input":"42"})).await.expect_err("B7 now names the former B6");
     assert!(error.to_string().contains("changed") || error.to_string().contains("relocated"), "{error}");
@@ -1695,9 +1687,9 @@ async fn an_insert_before_b7_changes_what_the_address_names() {
 #[tokio::test(flavor = "multi_thread")]
 async fn blank_axes_do_not_hide_insertions_before_a_structural_gap() {
     for (command, before, stale) in [
-        ("home.insertRows", json!({"rows":"Data!2:2"}), json!({"rows":"Data!7:7"})),
-        ("home.insertColumns", json!({"cols":"Data!B:B"}), json!({"cols":"Data!G:G"})),
-        ("home.insertSheet", json!({"name":"Before","before":0}), json!({"name":"Stale","before":1})),
+        ("row.insert", json!({"rows":"Data!2:2"}), json!({"rows":"Data!7:7"})),
+        ("column.insert", json!({"cols":"Data!B:B"}), json!({"cols":"Data!G:G"})),
+        ("sheet.insert", json!({"name":"Before","before":0}), json!({"name":"Stale","before":1})),
     ] {
         let f = Fixture::new();
         f.colleague(&[("cell.set", json!({"sheet":"Data","cell":"J12","input":"boundary"}))]);

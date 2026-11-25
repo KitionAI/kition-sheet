@@ -348,7 +348,7 @@ features:
     dimension: [function]
     priority: P1
     status: has
-    commands: [home.insertSheet, home.deleteSheet, sheet.rename, sheet.move, sheet.tabColor, sheet.hide, sheet.unhide]
+    commands: [sheet.insert, sheet.delete, sheet.rename, sheet.move, sheet.tabColor, sheet.hide, sheet.unhide]
     paths:
       - web/src/SheetTabs.tsx
       - web/src/SheetDialogs.tsx
@@ -395,7 +395,7 @@ features:
     dimension: [function]
     priority: P1
     status: has
-    commands: [view.formulaBar, editor.formula, formulas.insertFunction, edit.beginEdit, view.zoom]
+    commands: [view.formulaBar, editor.formula, formula.insertFunction, edit.beginEdit, view.zoom]
     paths:
       - crates/engine/engine/src/cmd/view.rs
       - bindings/wasm/src/bar.rs
@@ -417,7 +417,7 @@ features:
     dimension: [function]
     priority: P1
     status: has
-    commands: [home.insertRows, home.insertColumns, home.deleteRows, home.deleteColumns, home.insertCells, home.deleteCells, editor.contextMenu]
+    commands: [row.insert, column.insert, row.delete, column.delete, cell.insert, cell.delete, editor.contextMenu]
     paths:
       - crates/engine/engine/src/cmd/sheet.rs
       - crates/engine/engine/src/cmd/inspect.rs
@@ -464,7 +464,7 @@ features:
     dimension: [function]
     priority: P1
     status: has
-    commands: [edit.formatPainter, home.fontName, home.fontSize, home.increaseFontSize, home.decreaseFontSize, home.bold, home.italic, home.underline, home.strikethrough, home.fontColor, home.fillColor, cell.formatText]
+    commands: [edit.formatPainter, format.fontName, format.fontSize, format.increaseFontSize, format.decreaseFontSize, format.bold, format.italic, format.underline, format.strikethrough, format.color, format.fillColor, cell.formatText]
     paths:
       - crates/engine/engine/src/cmd/edit.rs
       - crates/engine/engine/src/cmd/format.rs
@@ -517,7 +517,7 @@ features:
     dimension: [function, fidelity]
     priority: P1
     status: has
-    commands: [insert.checkbox, cell.toggleCheckbox, insert.symbol, editor.insertText]
+    commands: [checkbox.insert, cell.toggleCheckbox, symbol.insert, editor.insertText]
     paths:
       - crates/engine/model/src/style.rs
       - crates/engine/engine/src/cmd/extra.rs
@@ -579,7 +579,7 @@ features:
     dimension: [function, conversion, fidelity]
     priority: P1
     status: has
-    commands: [file.export, file.exportPdf, file.open, edit.copy, edit.paste, document.inspect]
+    commands: [file.export, file.exportPdf, file.open, edit.copy, edit.paste, file.inspect]
     paths:
       - crates/engine/model/src/units.rs
       - crates/engine/model/src/features.rs
@@ -692,7 +692,7 @@ features:
     dimension: [ai]
     priority: P0
     status: has
-    commands: [formulas.functions, formulas.evaluate, document.inspect, sheet.read, cell.get, selection.stats, history.list, app.commands]
+    commands: [formula.functions, formula.evaluate, file.inspect, sheet.read, cell.get, select.stats, history.list, app.commands]
     requirements: [AX13]
     cases: [sheet.agent.observe/best-region, regressions/issue-6, regressions/issue-agent-reads-repaint, regressions/issue-agent-reads-repaint-editor]
     since: "2026-11-17"
@@ -725,7 +725,7 @@ features:
     dimension: [ai]
     priority: P0
     status: has
-    commands: [file.render, sheet.read, selection.set, sheet.activate]
+    commands: [file.render, sheet.read, select.set, sheet.activate]
     paths: [bindings/wasm/src/context.rs, bindings/wasm/src/render.rs, bindings/wasm/src/acts.rs, crates/engine/engine/src/context.rs, bindings/headless/src/main.rs]
     requirements: [AX13]
     cases: [sheet.agent.context/check-context, sheet.agent.context/editor-state-hidden, sheet.agent.context/explicit-targets, sheet.agent.context/failed-run, sheet.agent.context/headless-run, sheet.agent.context/published-commands, sheet.agent.context/reads-declared, sheet.agent.context/refused-contexts, sheet.agent.context/render-explicit-view, sheet.agent.context/render-named-view, sheet.agent.context/saved-person-view, sheet.agent.context/tool-refusals, sheet.agent.context/two-sheets-one-run]
@@ -776,7 +776,7 @@ features:
     dimension: [function]
     priority: P0
     status: has
-    commands: [cell.set, cell.formatText, range.setValues, range.fill, edit.beginEdit, cell.toggleCheckbox, commandLine]
+    commands: [cell.set, cell.formatText, range.setValues, range.fill, edit.beginEdit, cell.toggleCheckbox, command.runLine]
     paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/extra.rs, bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for text, numbers, booleans and formulas (arithmetic, SUM, IF, CONCAT); the feature's other commands are covered by engine tests only.
@@ -787,7 +787,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [selection.set, selection.move, selection.next, edit.selectAll, selection.currentRegion, selection.row, selection.column, edit.goTo, edit.goToSpecial]
+    commands: [select.set, select.move, select.next, edit.selectAll, select.currentRegion, select.row, select.column, edit.goTo, edit.goToSpecial]
     paths: [crates/engine/engine/src/cmd/edit.rs, bindings/wasm/src/lib.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/extra.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -829,7 +829,7 @@ features:
     dimension: [function, fidelity]
     priority: P0
     status: has
-    commands: [home.bold, home.italic, home.underline, home.doubleUnderline, home.strikethrough, home.superscript, home.subscript, home.fontName, home.fontSize, home.increaseFontSize, home.decreaseFontSize, home.fontColor, home.fillColor, home.borders, home.formatCells, home.cellStyle, home.drawBorder, home.newCellStyle]
+    commands: [format.bold, format.italic, format.underline, format.doubleUnderline, format.strikethrough, format.superscript, format.subscript, format.fontName, format.fontSize, format.increaseFontSize, format.decreaseFontSize, format.color, format.fillColor, format.borders, format.cells, style.apply, format.drawBorder, style.add]
     paths: [crates/engine/engine/src/cmd/format.rs, web/src/ribbon/HomeTab.tsx, bindings/wasm/src/edit.rs, crates/engine/engine/src/sample.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for bold, italic, double underline, strikethrough, font, size, font colour, fill and borders; the feature's other commands are covered by engine tests only.
@@ -840,7 +840,7 @@ features:
     dimension: [function, fidelity]
     priority: P1
     status: partial
-    commands: [home.conditionalFormat, home.clearRules, home.manageRules]
+    commands: [conditionalFormat.apply, conditionalFormat.clearRules, conditionalFormat.manageRules]
     paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cf.rs, bindings/wasm/src/icons.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/sample.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -851,7 +851,7 @@ features:
     dimension: [function, fidelity]
     priority: P0
     status: has
-    commands: [home.alignLeft, home.alignCenter, home.alignRight, home.justify, home.alignTop, home.alignMiddle, home.alignBottom, home.wrapText, home.shrinkToFit, home.increaseIndent, home.decreaseIndent, home.orientation, home.mergeCenter, home.mergeAcross, home.mergeCells, home.unmergeCells]
+    commands: [format.alignLeft, format.alignCenter, format.alignRight, format.justify, format.alignTop, format.alignMiddle, format.alignBottom, format.wrapText, format.shrinkToFit, format.increaseIndent, format.decreaseIndent, format.orientation, cell.mergeCenter, cell.mergeAcross, cell.merge, cell.unmerge]
     paths: [crates/engine/engine/src/cmd/format.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/print.rs, bindings/wasm/src/check.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for merge and centre, horizontal and vertical alignment, wrap, indent and rotation; the feature's other commands are covered by engine tests only.
@@ -862,7 +862,7 @@ features:
     dimension: [function, fidelity]
     priority: P0
     status: has
-    commands: [home.numberFormat, home.accounting, home.percent, home.comma, home.increaseDecimal, home.decreaseDecimal]
+    commands: [format.numberFormat, format.accounting, format.percent, format.comma, format.increaseDecimal, format.decreaseDecimal]
     paths: [crates/engine/engine/src/cmd/format.rs, web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/sample.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for accounting, percent, comma and custom number and date formats; the feature's other commands are covered by engine tests only.
@@ -873,7 +873,7 @@ features:
     dimension: [function]
     priority: P0
     status: has
-    commands: [home.rowHeight, home.columnWidth, home.autofitRowHeight, home.autofitColumnWidth, home.defaultWidth, home.hideRows, home.hideColumns, home.unhideRows, home.unhideColumns, home.insertRows, home.insertColumns, home.deleteRows, home.deleteColumns, home.insertCells, home.deleteCells]
+    commands: [row.setHeight, column.setWidth, row.autofitHeight, column.autofitWidth, column.setDefaultWidth, row.hide, column.hide, row.show, column.show, row.insert, column.insert, row.delete, column.delete, cell.insert, cell.delete]
     paths: [web/src/ribbon/HomeTab.tsx, crates/engine/engine/src/cmd/format.rs, crates/engine/engine/src/cmd/sheet.rs, crates/engine/engine/src/cmd/print.rs, bindings/wasm/src/resize.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for column width, row height, inserting rows and columns, and hiding columns; the feature's other commands are covered by engine tests only.
@@ -884,7 +884,7 @@ features:
     dimension: [function]
     priority: P0
     status: has
-    commands: [home.insertSheet, home.deleteSheet, sheet.rename, sheet.move, sheet.tabColor, sheet.hide, sheet.unhide, sheet.activate, sheet.next, sheet.previous]
+    commands: [sheet.insert, sheet.delete, sheet.rename, sheet.move, sheet.tabColor, sheet.hide, sheet.unhide, sheet.activate, sheet.next, sheet.previous]
     paths: [crates/engine/engine/src/cmd/sheet.rs, crates/engine/engine/src/cmd/whatif.rs, bindings/wasm/src/describe.rs, crates/engine/engine/src/cmd/extra.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for inserting, renaming, colouring, moving and hiding sheets; the feature's other commands are covered by engine tests only.
@@ -895,7 +895,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [insert.table, insert.chart, insert.recommendedCharts, insert.sparkline, insert.picture, insert.shape, insert.icons, insert.textBox, insert.artText, shape.setText, object.delete, object.move, object.setAnchorMode, insert.link, insert.symbol, insert.checkbox, insert.pivotTable, insert.recommendedPivotTables]
+    commands: [table.insert, chart.insert, chart.recommended, sparkline.insert, image.insert, shape.insert, icon.insert, textBox.insert, artText.insert, shape.setText, object.delete, object.move, object.setAnchorMode, link.insert, symbol.insert, checkbox.insert, pivot.insert, pivot.recommended]
     paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cmd/drawing.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/pivot.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -905,7 +905,7 @@ features:
     dimension: [function, fidelity]
     priority: P1
     status: partial
-    commands: [home.formatAsTable, table.totalRow, table.bandedRows, table.bandedColumns, table.headerRow, table.firstColumn, table.lastColumn, table.style, table.rename, table.convertToRange, table.totalFunction, table.resize, table.removeDuplicates, table.summarizePivot]
+    commands: [table.formatAs, table.totalRow, table.bandedRows, table.bandedColumns, table.headerRow, table.firstColumn, table.lastColumn, table.style, table.rename, table.convertToRange, table.totalFunction, table.resize, table.removeDuplicates, table.summarizePivot]
     paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/sample.rs, crates/engine/engine/src/cmd/pivot.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -936,7 +936,7 @@ features:
     dimension: [function, collab]
     priority: P1
     status: partial
-    commands: [review.newNote, review.newComment, review.replyComment, review.resolveComment, review.deleteComment, review.showNote]
+    commands: [note.add, comment.add, comment.reply, comment.resolve, comment.delete, note.show]
     paths: [crates/engine/engine/src/cmd/insert.rs, crates/engine/engine/src/sample.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -965,7 +965,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [home.lockCell, review.protectSheet, review.unprotectSheet, review.protectWorkbook, review.workbookStatistics, review.checkAccessibility, review.spelling, review.addToDictionary, review.changeSpelling, review.thesaurus]
+    commands: [cell.lock, sheet.protect, sheet.unprotect, workbook.protect, workbook.statistics, accessibility.check, spelling.check, spelling.addToDictionary, spelling.change, spelling.thesaurus]
     paths: [crates/engine/engine/src/cmd/review.rs, crates/engine/engine/src/cmd/spelling.rs, bindings/wasm/src/describe.rs, crates/engine/engine/src/cmd/format.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -1016,7 +1016,7 @@ features:
     dimension: [function, fidelity]
     priority: P1
     status: partial
-    commands: [formulas.autoSum, formulas.insertFunction, formulas.recentlyUsed, formulas.financial, formulas.logical, formulas.text, formulas.dateTime, formulas.lookupReference, formulas.mathTrig, formulas.moreFunctions]
+    commands: [formula.autoSum, formula.insertFunction, formula.recentlyUsed, formula.financial, formula.logical, formula.text, formula.dateTime, formula.lookupReference, formula.mathTrig, formula.moreFunctions]
     paths: [crates/engine/engine/src/cmd/extra.rs, crates/engine/engine/src/cmd/formulas.rs, web/src/ribbon/HomeTab.tsx]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -1050,7 +1050,7 @@ features:
     dimension: [function]
     priority: P0
     status: has
-    commands: [home.insertRows, home.deleteRows, home.insertColumns, home.deleteColumns, home.deleteSheet, sheet.rename, sheet.move, edit.copy, edit.cut, edit.paste, data.sort, formulas.calculationOptions, formulas.calculateNow]
+    commands: [row.insert, row.delete, column.insert, column.delete, sheet.delete, sheet.rename, sheet.move, edit.copy, edit.cut, edit.paste, data.sort, formula.calculationOptions, formula.calculateNow]
     paths:
       - crates/engine/engine/src/cmd/sheet.rs
       - crates/engine/engine/src/cmd/formulas.rs
@@ -1067,7 +1067,7 @@ features:
     dimension: [function]
     priority: P1
     status: has
-    commands: [formulas.defineName, formulas.deleteName, formulas.nameManager, formulas.createFromSelection, formulas.useInFormula]
+    commands: [name.define, name.delete, name.manage, name.addFromSelection, formula.useInFormula]
     paths: [crates/engine/engine/src/cmd/formulas.rs, bindings/wasm/src/check.rs, crates/engine/engine/src/cmd/extra.rs]
     target: "Excel for Mac 16.113.4"
     gap: Save and reopen as .xlsx is proven by command for defining a name and using it in a formula; the feature's other commands are covered by engine tests only.
@@ -1078,7 +1078,7 @@ features:
     dimension: [function]
     priority: P1
     status: partial
-    commands: [formulas.tracePrecedents, formulas.traceDependents, formulas.removeArrows, formulas.showFormulas, formulas.errorChecking, formulas.evaluateFormula, formulas.calculateNow, formulas.calculateSheet, formulas.calculationOptions, formulas.watchWindow]
+    commands: [formula.tracePrecedents, formula.traceDependents, formula.removeArrows, formula.showFormulas, formula.errorChecking, formula.evaluateFormula, formula.calculateNow, formula.calculateSheet, formula.calculationOptions, formula.watchWindow]
     paths: [crates/engine/engine/src/cmd/formulas.rs, bindings/wasm/src/describe.rs, crates/engine/engine/src/cmd/extra.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -1099,7 +1099,7 @@ features:
     dimension: [function, fidelity]
     priority: P1
     status: partial
-    commands: [pageLayout.orientation, pageLayout.size, pageLayout.margins, pageLayout.printArea, pageLayout.printTitles, pageLayout.scaleToFit, pageLayout.printGridlines, pageLayout.printHeadings, pageLayout.breaks, pageLayout.headerFooter, pageLayout.pageSetup]
+    commands: [page.orientation, page.size, page.margins, page.printArea, page.printTitles, page.scaleToFit, page.printGridlines, page.printHeadings, page.breaks, page.headerFooter, page.pageSetup]
     paths: [crates/engine/engine/src/cmd/view.rs, crates/engine/engine/src/cmd/print.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -1109,7 +1109,7 @@ features:
     dimension: [function, fidelity]
     priority: P2
     status: partial
-    commands: [pageLayout.theme, pageLayout.themeColors, pageLayout.themeFonts, pageLayout.themeEffects, pageLayout.background]
+    commands: [theme.set, theme.colors, theme.fonts, theme.effects, page.background]
     paths: [crates/engine/engine/src/cmd/extra.rs, bindings/wasm/src/files.rs, crates/engine/engine/src/cmd/view.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -1144,7 +1144,7 @@ features:
     dimension: [function]
     priority: P2
     status: partial
-    commands: [draw.pen, draw.pencil, draw.highlighter, draw.eraser, draw.select, draw.shape, draw.state, draw.lasso, draw.stroke, draw.inkToShape]
+    commands: [ink.pen, ink.pencil, ink.highlighter, ink.eraser, ink.select, ink.shape, ink.state, ink.lasso, ink.stroke, ink.toShape]
     paths: [crates/engine/engine/src/cmd/draw.rs, bindings/wasm/src/objects.rs, crates/engine/engine/src/cmd/ink.rs, bindings/wasm/src/describe.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
@@ -1154,7 +1154,7 @@ features:
     dimension: [function]
     priority: P2
     status: partial
-    commands: [automate.recordActions, automate.newScript, automate.allScripts, automate.runScript, automate.deleteScript, home.addIns]
+    commands: [script.record, script.new, script.list, script.run, script.delete, addIn.manage]
     paths: [crates/engine/engine/src/cmd/extra.rs]
     target: "Excel for Mac 16.113.4"
     gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.

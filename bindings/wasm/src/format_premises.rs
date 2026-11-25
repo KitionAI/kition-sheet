@@ -15,47 +15,47 @@ fn extend(under: &mut Under, other: Under) {
 
 fn style_command(command: &str, params: &Value) -> bool {
     match command {
-        "home.bold"
-        | "home.italic"
-        | "home.underline"
-        | "home.doubleUnderline"
-        | "home.strikethrough"
-        | "home.superscript"
-        | "home.subscript"
-        | "home.fontName"
-        | "home.fontSize"
-        | "home.increaseFontSize"
-        | "home.decreaseFontSize"
-        | "home.fontColor"
-        | "home.fillColor"
-        | "home.alignLeft"
-        | "home.alignCenter"
-        | "home.alignRight"
-        | "home.justify"
-        | "home.alignTop"
-        | "home.alignMiddle"
-        | "home.alignBottom"
-        | "home.wrapText"
-        | "home.shrinkToFit"
-        | "home.increaseIndent"
-        | "home.decreaseIndent"
-        | "home.orientation"
-        | "home.numberFormat"
-        | "home.accounting"
-        | "home.percent"
-        | "home.comma"
-        | "home.increaseDecimal"
-        | "home.decreaseDecimal"
-        | "home.lockCell"
+        "format.bold"
+        | "format.italic"
+        | "format.underline"
+        | "format.doubleUnderline"
+        | "format.strikethrough"
+        | "format.superscript"
+        | "format.subscript"
+        | "format.fontName"
+        | "format.fontSize"
+        | "format.increaseFontSize"
+        | "format.decreaseFontSize"
+        | "format.color"
+        | "format.fillColor"
+        | "format.alignLeft"
+        | "format.alignCenter"
+        | "format.alignRight"
+        | "format.justify"
+        | "format.alignTop"
+        | "format.alignMiddle"
+        | "format.alignBottom"
+        | "format.wrapText"
+        | "format.shrinkToFit"
+        | "format.increaseIndent"
+        | "format.decreaseIndent"
+        | "format.orientation"
+        | "format.numberFormat"
+        | "format.accounting"
+        | "format.percent"
+        | "format.comma"
+        | "format.increaseDecimal"
+        | "format.decreaseDecimal"
+        | "cell.lock"
         | "cell.formatText" => true,
-        "home.formatCells" => params.get("edges").is_none() && params.get("merge").is_none(),
+        "format.cells" => params.get("edges").is_none() && params.get("merge").is_none(),
         _ => false,
     }
 }
 
 impl SheetDocument {
     fn border_merge_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        let border = matches!(command, "home.borders" | "home.drawBorder");
+        let border = matches!(command, "format.borders" | "format.drawBorder");
         let state = self.doc_state()?;
         let Some(sheet) = state.wb.sheet(si) else { return Ok(None) };
         let ranges = params
@@ -72,12 +72,12 @@ impl SheetDocument {
         }
         let Some(axes) = state.kdm().and_then(|kdm| kdm.model().ids().sheets.get(si)) else { return Ok(None) };
         let sid = ids::sheet_tool_id(sheet);
-        let unmerge = command == "home.unmergeCells" || command == "home.mergeCenter" && ranges.iter().all(|range| sheet.merges.contains(range));
-        let content = !border && !unmerge && command != "home.mergeAcross";
+        let unmerge = command == "cell.unmerge" || command == "cell.mergeCenter" && ranges.iter().all(|range| sheet.merges.contains(range));
+        let content = !border && !unmerge && command != "cell.mergeAcross";
         let mut under = if content {
             let mut params = params.clone();
             params["on"] = json!(true);
-            let Some(mut under) = self.format_premises("home.bold", &params, si)? else { return Ok(None) };
+            let Some(mut under) = self.format_premises("format.bold", &params, si)? else { return Ok(None) };
             for premise in &mut under.premises {
                 if let Some(fields) = &mut premise.fields {
                     for field in fields.iter_mut().filter(|field| field.as_str() == "~layout") {
@@ -109,7 +109,7 @@ impl SheetDocument {
             if border {
                 for at in range.iter() {
                     styled.insert(at);
-                    if command == "home.borders" && params.get("preset").and_then(Value::as_str) == Some("none") {
+                    if command == "format.borders" && params.get("preset").and_then(Value::as_str) == Some("none") {
                         for (edge, dr, dc) in [
                             (at.row == range.start.row, -1, 0),
                             (at.row == range.end.row, 1, 0),
@@ -149,7 +149,7 @@ impl SheetDocument {
     }
 
     fn autofit_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        let rows = command == "home.autofitRowHeight";
+        let rows = command == "row.autofitHeight";
         let spans = kition_sheet_engine::cmd::format::line_targets(&self.session, params, rows).map_err(crate::engine_error)?;
         if spans.iter().try_fold(0u64, |count, (first, last)| count.checked_add(u64::from(last - first) + 1)).is_none_or(|count| count > 100_000) {
             return Ok(None);
@@ -300,10 +300,10 @@ impl SheetDocument {
     }
 
     pub(crate) fn format_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        if matches!(command, "home.borders" | "home.drawBorder" | "home.mergeCells" | "home.mergeCenter" | "home.mergeAcross" | "home.unmergeCells") {
+        if matches!(command, "format.borders" | "format.drawBorder" | "cell.merge" | "cell.mergeCenter" | "cell.mergeAcross" | "cell.unmerge") {
             return self.border_merge_premises(command, params, si);
         }
-        if command == "home.formatCells" && (params.get("edges").is_some() || params.get("merge").is_some()) {
+        if command == "format.cells" && (params.get("edges").is_some() || params.get("merge").is_some()) {
             let mut base = params.clone();
             if let Some(object) = base.as_object_mut() {
                 object.remove("edges");
@@ -321,11 +321,11 @@ impl SheetDocument {
                         params[key] = value.clone();
                     }
                 }
-                let Some(edge) = self.border_merge_premises("home.borders", &params, si)? else { return Ok(None) };
+                let Some(edge) = self.border_merge_premises("format.borders", &params, si)? else { return Ok(None) };
                 extend(&mut under, edge);
             }
             if let Some(merge) = params.get("merge").and_then(Value::as_bool) {
-                let Some(merge) = self.border_merge_premises(if merge { "home.mergeCells" } else { "home.unmergeCells" }, &base, si)? else {
+                let Some(merge) = self.border_merge_premises(if merge { "cell.merge" } else { "cell.unmerge" }, &base, si)? else {
                     return Ok(None);
                 };
                 extend(&mut under, merge);
@@ -333,7 +333,7 @@ impl SheetDocument {
             merged(&mut under);
             return Ok(Some(under));
         }
-        if matches!(command, "home.autofitRowHeight" | "home.autofitColumnWidth") {
+        if matches!(command, "row.autofitHeight" | "column.autofitWidth") {
             return self.autofit_premises(command, params, si);
         }
         if !style_command(command, params) {
@@ -372,7 +372,7 @@ impl SheetDocument {
         let mut under = Under::default();
         under.objects.push(json!(sid));
         let mut fields = vec!["props.protection".to_owned(), "autofilter".into()];
-        if command != "home.formatCells" || params.get("style").is_some() {
+        if command != "format.cells" || params.get("style").is_some() {
             fields.push("props.defaultRowHeight".into());
         }
         if params.get("sheet").is_some_and(Value::is_string)
@@ -389,12 +389,12 @@ impl SheetDocument {
             window(&mut under, &sid, "cols", range.start.col as usize, range.end.col as usize + 1);
             for row in range.start.row..=range.end.row {
                 if let Some(raw) = axes.rows.get(row as usize) {
-                    let layout = if command == "home.bold" && !range.is_single() { "~layout" } else { "~fit" };
+                    let layout = if command == "format.bold" && !range.is_single() { "~layout" } else { "~fit" };
                     under.premises.push(premise(format!("row:{raw}"), [layout, "info"]).positions(["index"]));
                 }
             }
             for cell in range.iter() {
-                if (command != "home.formatCells" || params.get("style").is_some()) && sheet.style_id(cell).0 != 0 {
+                if (command != "format.cells" || params.get("style").is_some()) && sheet.style_id(cell).0 != 0 {
                     let Some(key) = kdm.model().ids().styles.get(sheet.style_id(cell).0 as usize) else { return Ok(None) };
                     styles.insert(format!("styles.{key}.style"));
                 }
@@ -411,24 +411,24 @@ impl SheetDocument {
         // Toggles and decimal/font stepping read the active cell even for an explicit range.
         let toggles_active = matches!(
             command,
-            "home.bold"
-                | "home.italic"
-                | "home.underline"
-                | "home.doubleUnderline"
-                | "home.strikethrough"
-                | "home.superscript"
-                | "home.subscript"
-                | "home.wrapText"
-                | "home.shrinkToFit"
-                | "home.lockCell"
-                | "home.alignLeft"
-                | "home.alignCenter"
-                | "home.alignRight"
-                | "home.justify"
+            "format.bold"
+                | "format.italic"
+                | "format.underline"
+                | "format.doubleUnderline"
+                | "format.strikethrough"
+                | "format.superscript"
+                | "format.subscript"
+                | "format.wrapText"
+                | "format.shrinkToFit"
+                | "cell.lock"
+                | "format.alignLeft"
+                | "format.alignCenter"
+                | "format.alignRight"
+                | "format.justify"
         );
         if toggles_active && params.get("on").is_none()
-            || matches!(command, "home.increaseFontSize" | "home.decreaseFontSize" | "home.increaseDecimal" | "home.decreaseDecimal")
-            || command == "home.formatCells" && params.get("style").is_some()
+            || matches!(command, "format.increaseFontSize" | "format.decreaseFontSize" | "format.increaseDecimal" | "format.decreaseDecimal")
+            || command == "format.cells" && params.get("style").is_some()
         {
             let active = state.selection.active;
             if sheet.style_id(active).0 != 0 {

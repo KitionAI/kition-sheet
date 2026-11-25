@@ -3,7 +3,7 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Modal
 import { backToGrid } from './sheet'
 import { functionText } from './strings'
 
-/** A function as `formulas.functions` lists it. */
+/** A function as `formula.functions` lists it. */
 type Listed = { name: string; category: string; signature: string; description: string }
 
 /** What the dialog does with the function chosen, and when it is closed without one. */
@@ -45,7 +45,7 @@ export function InsertFunctionDialog() {
     if (!request) return
     setSearch('')
     setCategory('common')
-    if (!all.length) void query<Listed[]>('formulas.functions', {}).then((found) => setAll(Array.isArray(found) ? found : []))
+    if (!all.length) void query<Listed[]>('formula.functions', {}).then((found) => setAll(Array.isArray(found) ? found : []))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per opening
   }, [request])
   const shown = useMemo(() => {

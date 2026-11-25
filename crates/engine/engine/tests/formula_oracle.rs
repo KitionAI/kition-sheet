@@ -80,7 +80,7 @@ fn formulas_match_the_reference_application() {
     let mut s = Session::new();
     s.new_workbook();
     if s.doc().unwrap().wb.sheet_index("Sheet2").is_none() {
-        s.execute("home.insertSheet", json!({"name": "Sheet2"})).unwrap();
+        s.execute("sheet.insert", json!({"name": "Sheet2"})).unwrap();
     }
     s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();
     let mut cases = Vec::new();
@@ -94,7 +94,7 @@ fn formulas_match_the_reference_application() {
             let mut parts = rest.splitn(3, '\t');
             let (target, kind, value) = (parts.next().unwrap(), parts.next().unwrap(), parts.next().unwrap_or(""));
             if kind == "name" {
-                s.execute("formulas.defineName", json!({"name": target, "refersTo": value})).unwrap();
+                s.execute("name.define", json!({"name": target, "refersTo": value})).unwrap();
                 continue;
             }
             let (sheet, cell) = target.split_once('!').unwrap();

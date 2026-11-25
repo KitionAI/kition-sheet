@@ -12,10 +12,10 @@ use serde_json::{Value, json};
 fn charts() -> Fixture {
     let fixture = Fixture::new();
     fixture.colleague(&[
-        ("insert.chart", json!({"range":"A1:D12"})),
+        ("chart.insert", json!({"range":"A1:D12"})),
         ("sheet.activate", json!({"sheet":"Sheet2"})),
         ("range.setValues", json!({"range":"A1","values":[["Name","Value"],["A",1],["B",2]]})),
-        ("insert.chart", json!({"range":"A1:B3"})),
+        ("chart.insert", json!({"range":"A1:B3"})),
         ("sheet.activate", json!({"sheet":"Sheet1"})),
     ]);
     fixture

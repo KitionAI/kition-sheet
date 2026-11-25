@@ -13,7 +13,7 @@ fn axes(doc: &mut SheetDocument, field: &str) -> Vec<Value> {
 
 #[test]
 fn inserted_blank_rows_and_columns_keep_distinct_saved_identities() {
-    for (field, command, params) in [("rows", "home.insertRows", json!({"rows":"2:2"})), ("cols", "home.insertColumns", json!({"cols":"B:B"}))] {
+    for (field, command, params) in [("rows", "row.insert", json!({"rows":"2:2"})), ("cols", "column.insert", json!({"cols":"B:B"}))] {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         doc.execute("cell.set", json!({"cell":"D12","input":"end"})).unwrap();
         let before = axes(&mut doc, field);

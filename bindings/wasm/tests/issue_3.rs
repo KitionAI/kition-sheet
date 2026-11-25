@@ -1,5 +1,5 @@
 //! The grid draws what Excel draws: sparklines (and lists them in
-//! `document.inspect`), checkboxes, strikethrough, rotated text, note and comment indicators,
+//! `file.inspect`), checkboxes, strikethrough, rotated text, note and comment indicators,
 //! AutoFilter buttons and the outline's group brackets; the frozen-pane line stays under charts;
 //! right-aligned text wider than its cell spills into empty cells on its left.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
@@ -88,7 +88,7 @@ fn strikethrough_is_drawn() {
     run(&mut plain, "cell.set", json!({ "cell": "B2", "input": "MMMM" }));
     let mut struck = new_doc();
     run(&mut struck, "cell.set", json!({ "cell": "B2", "input": "MMMM" }));
-    run(&mut struck, "home.strikethrough", json!({ "range": "B2" }));
+    run(&mut struck, "format.strikethrough", json!({ "range": "B2" }));
     let (a, b) = (Shot::cells(&plain, 1, 1, 1, 1), Shot::cells(&struck, 1, 1, 1, 1));
     assert!(b.dark(0, 0, W, H, 120) > a.dark(0, 0, W, H, 120) + 10, "a strikethrough adds a line across the text");
 }
@@ -97,13 +97,13 @@ fn strikethrough_is_drawn() {
 fn rotated_text_is_drawn_rotated() {
     let mut doc = new_doc();
     run(&mut doc, "cell.set", json!({ "cell": "B2", "input": "Rotated" }));
-    run(&mut doc, "home.rowHeight", json!({ "rows": "2", "height": 80 }));
+    run(&mut doc, "row.setHeight", json!({ "rows": "2", "height": 80 }));
     let flat = Shot::take(&doc, HEADER_W + CELL_W, HEADER_H + CELL_H, W as u32, 80).ink(140);
-    run(&mut doc, "home.orientation", json!({ "range": "B2", "angle": "up" }));
+    run(&mut doc, "format.orientation", json!({ "range": "B2", "angle": "up" }));
     let up = Shot::take(&doc, HEADER_W + CELL_W, HEADER_H + CELL_H, W as u32, 80).ink(140);
     assert!(flat.0 > flat.1, "flat text is wider than tall: {flat:?}");
     assert!(up.1 > up.0, "text turned up is taller than wide: {up:?}");
-    run(&mut doc, "home.orientation", json!({ "range": "B2", "angle": "vertical" }));
+    run(&mut doc, "format.orientation", json!({ "range": "B2", "angle": "vertical" }));
     let stacked = Shot::take(&doc, HEADER_W + CELL_W, HEADER_H + CELL_H, W as u32, 80).ink(140);
     assert!(stacked.1 > stacked.0 * 2, "stacked letters run down: {stacked:?}");
 }
@@ -111,7 +111,7 @@ fn rotated_text_is_drawn_rotated() {
 #[test]
 fn checkboxes_are_drawn_with_their_value() {
     let mut doc = new_doc();
-    run(&mut doc, "insert.checkbox", json!({ "range": "B2:B3" }));
+    run(&mut doc, "checkbox.insert", json!({ "range": "B2:B3" }));
     run(&mut doc, "cell.set", json!({ "cell": "B3", "input": "TRUE" }));
     let empty = Shot::cells(&doc, 1, 1, 1, 1);
     let checked = Shot::cells(&doc, 1, 2, 1, 1);
@@ -124,17 +124,17 @@ fn sparklines_are_drawn_and_inspected() {
     let mut doc = new_doc();
     run(&mut doc, "range.setValues", json!({ "range": "A1", "values": [[1, 5, 2, 8, 3, 9]] }));
     let before = Shot::cells(&doc, 6, 0, 1, 1);
-    run(&mut doc, "insert.sparkline", json!({ "range": "A1:F1", "location": "G1" }));
+    run(&mut doc, "sparkline.insert", json!({ "range": "A1:F1", "location": "G1" }));
     let after = Shot::cells(&doc, 6, 0, 1, 1);
     assert_ne!(before.px, after.px, "the sparkline draws in G1");
-    let inspected = run(&mut doc, "document.inspect", json!({}));
+    let inspected = run(&mut doc, "file.inspect", json!({}));
     assert_eq!(inspected["sheets"][0]["sparklines"], json!([{ "cell": "G1", "source": "A1:F1", "type": "line" }]), "{inspected}");
 }
 
 #[test]
 fn notes_and_comments_show_an_indicator() {
     let mut doc = new_doc();
-    run(&mut doc, "review.newNote", json!({ "cell": "B2", "text": "Check this" }));
+    run(&mut doc, "note.add", json!({ "cell": "B2", "text": "Check this" }));
     let shot = Shot::cells(&doc, 1, 1, 1, 1);
     let corner = shot.at(W - 3, 2);
     assert!(corner[0] > 180 && corner[1] < 90 && corner[2] < 90, "a red mark in the top-right corner: {corner:?}");
@@ -171,7 +171,7 @@ fn the_freeze_line_stays_under_charts() {
     let mut doc = new_doc();
     run(&mut doc, "range.setValues", json!({ "range": "A1", "values": [["M", "V"], ["a", 1], ["b", 2]] }));
     run(&mut doc, "view.freezePanes", json!({ "cell": "A4" }));
-    run(&mut doc, "insert.chart", json!({ "range": "A1:B3", "type": "column", "at": "D2", "width": 300, "height": 200 }));
+    run(&mut doc, "chart.insert", json!({ "range": "A1:B3", "type": "column", "at": "D2", "width": 300, "height": 200 }));
     // The freeze line runs under row 3 (y = 21 + 60); inside the chart's card (from x = 46 + 192)
     // it is hidden.
     let shot = Shot::take(&doc, HEADER_W + 3.0 * CELL_W + 40.0, HEADER_H + 3.0 * CELL_H - 3.0, 60, 6);
@@ -186,7 +186,7 @@ fn the_freeze_line_stays_under_charts() {
 fn right_aligned_text_spills_left() {
     let mut doc = new_doc();
     run(&mut doc, "cell.set", json!({ "cell": "C1", "input": "A rather long label that is right aligned" }));
-    run(&mut doc, "home.alignRight", json!({ "range": "C1" }));
+    run(&mut doc, "format.alignRight", json!({ "range": "C1" }));
     let left = Shot::cells(&doc, 1, 0, 1, 1);
     assert!(left.dark(0, 0, W, H, 140) > 20, "the text runs into B1");
 }

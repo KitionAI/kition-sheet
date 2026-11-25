@@ -28,7 +28,7 @@ async fn replaced_chart_fields_and_preserved_defaults_refuse_outside_changes() {
         ("chart.selectData", json!({"chart":1,"range":"A1:C4"}), "cell.set", json!({"cell":"B2","input":"77"}), true),
     ] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
+        fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[(other_command, other_params.clone())]);
         let outside = fixture.bytes();
@@ -66,7 +66,7 @@ async fn shape_colors_replace_the_previous_color_but_still_name_the_observed_sha
         for explicit in [true, false] {
             for change in ["identity", "same color", "other color", "other shape"] {
                 let fixture = Fixture::new();
-                fixture.colleague(&[("insert.shape", json!({"at":"B2"})), ("insert.shape", json!({"at":"F5"}))]);
+                fixture.colleague(&[("shape.insert", json!({"at":"B2"})), ("shape.insert", json!({"at":"F5"}))]);
                 let basis = fixture.basis().await;
                 if change == "identity" && explicit {
                     fixture.colleague(&[("object.delete", json!({"id":2}))]);

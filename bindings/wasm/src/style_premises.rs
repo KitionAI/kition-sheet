@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 impl SheetDocument {
     pub(crate) fn cell_style_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        if !matches!(command, "home.cellStyle" | "home.newCellStyle") {
+        if !matches!(command, "style.apply" | "style.add") {
             return Ok(None);
         }
         let state = self.doc_state()?;
@@ -20,8 +20,8 @@ impl SheetDocument {
             return Ok(None);
         }
         let name = params.get("name").and_then(Value::as_str).unwrap_or("Normal");
-        let mut under = if command == "home.cellStyle" {
-            let Some(under) = self.format_premises("home.fontName", params, si)? else { return Ok(None) };
+        let mut under = if command == "style.apply" {
+            let Some(under) = self.format_premises("format.fontName", params, si)? else { return Ok(None) };
             under
         } else {
             let Some(sheet) = wb.sheet(si) else { return Ok(None) };
@@ -47,7 +47,7 @@ impl SheetDocument {
         };
         let chosen = kdm_model::cell_style_name_key(name);
         under.premises.push(premise("workbook", [format!("cellStyleDefinitions.{chosen}")]));
-        if command == "home.cellStyle" && name == "Title" && !wb.cell_styles.iter().any(|(stored, _)| stored.eq_ignore_ascii_case(name)) {
+        if command == "style.apply" && name == "Title" && !wb.cell_styles.iter().any(|(stored, _)| stored.eq_ignore_ascii_case(name)) {
             under.premises.push(premise("workbook", ["theme.major_font"]));
         }
         merged(&mut under);

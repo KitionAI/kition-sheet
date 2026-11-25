@@ -53,46 +53,46 @@ ROW table.removeDuplicates | params={"range":"A1:C5"} | resolves=no matching sel
 ROW data.fromTextCsv | params={"text":"Name,Value\nA,1","sheet":"Imported"} | resolves=sheet is NEW sheet name not target; text literal or external path; delimiter explicit else first-line tab/comma | holds=workbook sheet-name uniqueness and tab insertion edge; table names/id uniqueness; input bytes; data parser defaults | reads=part | writes=insertSheet then A1 values then table then autofit; table/autofit errors swallowed | note=extra.rs:813 -> from_csv:840; failed named insertion retries default name
 ROW data.getData | params={"text":"[{\"Name\":\"A\",\"Value\":1}]"} | resolves=JSON object keys union becomes header row; source path or text; optional sheet names new sheet | holds=sheet-name uniqueness,tab insertion edge,table uniqueness,id allocator,input bytes,CSV/date parsing defaults if CSV | reads=part | writes=new sheet,static values,new table,autofit | note=extra.rs:813 JSON branch; missing input requests open dialog
 ROW data.fromTableRange | params={"range":"Sheet2!A1:C5"} | resolves=range strips sheet prefix but source is ACTIVE sheet; absent range selection; singleton expands current region | holds=active sheet name,source values,source number formats/effective styles/date system,source region empty boundary,source addresses; import sheet/table uniqueness | reads=part | writes=formatted TSV snapshot imported to new sheet named source (2) | note=extra.rs:855; missing range additionally selection; prefix does not change source sheet
-ROW automate.recordActions | params={} | resolves=no object name; recording marker is session journal index | holds=none | reads=recording,journal | writes=recording=start current journal length | note=extra.rs:882 start path
-ROW automate.recordActions | params={"stop":true,"name":"Work"} | resolves=name is JSON script key in _sc_scripts hidden defined name; fallback Script recording-start-index | holds=_sc_scripts stored JSON/name slot | reads=recording,journal | writes=stop recording and save non-automate journal calls as script | note=extra.rs:883 stop OR already-recording path; absent recording returns false without name write
-ROW automate.newScript | params={"name":"Work","commands":[{"command":"cell.set","params":{"cell":"A1","input":"1"}}]} | resolves=name JSON key in exact-case _sc_scripts hidden defined name; commands remain stored data | holds=_sc_scripts formula and membership; no invoked-command sources at creation | reads=none | writes=replace named script retaining other scripts; stash replaces duplicate exact-name definitions | note=extra.rs:899
-ROW automate.runScript | params={"name":"Work"} | resolves=name JSON key inside exact-case _sc_scripts hidden name; each nested command resolves its own params at execution time | holds=_sc_scripts formula; union of nested handlers workbook and editor prerequisites,including editor state modified by earlier steps; max100000 steps | reads=part,selection,active,mode,journal | writes=execute each non-automate nested command after all host gates pass | note=extra.rs:925 arbitrary stored commands; cannot narrow independently without expanding script
-ROW automate.deleteScript | params={"name":"Work"} | resolves=name JSON key inside exact-case _sc_scripts hidden name | holds=_sc_scripts formula | reads=none | writes=remove script key and replace hidden definition | note=extra.rs:955
-ROW insert.checkbox | params={"sheet":"Sheet2","range":"A1:B2"} | resolves=sheet by INDEX integer or NAME string,prefix else active; range A1 list else selection; merged non-anchor cells skipped | holds=destination input/formula,array membership incl overlapping arrays,merge coverage,effective inherited style,protection,fit rows; destination address windows | reads=none | writes=checkbox style centered,boolean value preserves existing literal bool otherwise false,remove formula/rich/picture | note=extra.rs:997 explicit target path; absent sheet adds part,absent range adds selection
-ROW insert.checkbox | params={} | resolves=active sheet and selected ranges; merged anchors only | holds=destination values/formulas,arrays,merges,styles,protection,fit rows,address windows | reads=part,selection | writes=checkbox styles and bool values; max100000 cells | note=extra.rs:997 implicit target
+ROW script.record | params={} | resolves=no object name; recording marker is session journal index | holds=none | reads=recording,journal | writes=recording=start current journal length | note=extra.rs:882 start path
+ROW script.record | params={"stop":true,"name":"Work"} | resolves=name is JSON script key in _sc_scripts hidden defined name; fallback Script recording-start-index | holds=_sc_scripts stored JSON/name slot | reads=recording,journal | writes=stop recording and save non-automate journal calls as script | note=extra.rs:883 stop OR already-recording path; absent recording returns false without name write
+ROW script.new | params={"name":"Work","commands":[{"command":"cell.set","params":{"cell":"A1","input":"1"}}]} | resolves=name JSON key in exact-case _sc_scripts hidden defined name; commands remain stored data | holds=_sc_scripts formula and membership; no invoked-command sources at creation | reads=none | writes=replace named script retaining other scripts; stash replaces duplicate exact-name definitions | note=extra.rs:899
+ROW script.run | params={"name":"Work"} | resolves=name JSON key inside exact-case _sc_scripts hidden name; each nested command resolves its own params at execution time | holds=_sc_scripts formula; union of nested handlers workbook and editor prerequisites,including editor state modified by earlier steps; max100000 steps | reads=part,selection,active,mode,journal | writes=execute each non-automate nested command after all host gates pass | note=extra.rs:925 arbitrary stored commands; cannot narrow independently without expanding script
+ROW script.delete | params={"name":"Work"} | resolves=name JSON key inside exact-case _sc_scripts hidden name | holds=_sc_scripts formula | reads=none | writes=remove script key and replace hidden definition | note=extra.rs:955
+ROW checkbox.insert | params={"sheet":"Sheet2","range":"A1:B2"} | resolves=sheet by INDEX integer or NAME string,prefix else active; range A1 list else selection; merged non-anchor cells skipped | holds=destination input/formula,array membership incl overlapping arrays,merge coverage,effective inherited style,protection,fit rows; destination address windows | reads=none | writes=checkbox style centered,boolean value preserves existing literal bool otherwise false,remove formula/rich/picture | note=extra.rs:997 explicit target path; absent sheet adds part,absent range adds selection
+ROW checkbox.insert | params={} | resolves=active sheet and selected ranges; merged anchors only | holds=destination values/formulas,arrays,merges,styles,protection,fit rows,address windows | reads=part,selection | writes=checkbox styles and bool values; max100000 cells | note=extra.rs:997 implicit target
 ROW cell.toggleCheckbox | params={"sheet":"Sheet2","cell":"B2"} | resolves=sheet index/name or cell prefix else active; A1 cell redirects merge to top-left | holds=destination merge coverage,effective style checkbox bit,existing bool and formula status,protection,fit row facts,address windows | reads=none | writes=invert bool only if materialized literal boolean checkbox | note=extra.rs:1049 explicit path
 ROW cell.toggleCheckbox | params={} | resolves=active sheet; every selection cell checked using merged-anchor style/value but selected coordinate itself retained | holds=selected cells and merge-anchor styles/values,merges,formula status,protection,fit rows,address windows | reads=part,selection | writes=literal boolean at selected coordinate only; formula checkbox or merged non-anchor counted but not written | note=extra.rs:1053 selection path
-ROW pageLayout.themeColors | params={"colors":["#000000","#FFFFFF","#222222","#EEEEEE","#112233","#223344","#334455","#445566","#556677","#667788","#778899","#8899AA"]} | resolves=missing name defaults workbook theme name; supplied name chooses original theme preset | holds=current theme name when missing; current theme font defaults retained by pageLayout.theme; replaced values: theme name,colors and supplied font fields | reads=none | writes=delegates pageLayout.theme replacing colors/name,retaining fonts unless supplied | note=extra.rs:1081 -> view.rs:444; same-field decision
-ROW pageLayout.themeFonts | params={"major":"Kition Sans","minor":"Kition Sans"} | resolves=major/minor literal font family names,not object ids | holds=current theme name and all twelve colors; omitted font fields preserve current fonts; replaced values: theme name,colors,major_font,minor_font | reads=none | writes=delegates pageLayout.theme keeping old colors/name | note=extra.rs:1089; same-field decision
-ROW pageLayout.themeEffects | params={"name":"Simple"} | resolves=none | holds=none | reads=none | writes=none | note=extra.rs:198 handler is ok()
-ROW pageLayout.background | params={"clear":true} | resolves=active sheet; images selected by exact alt text Sheet background | holds=matching-image membership incl absence and image alt; active sheet identity; replaced values: entire removed background images | reads=part | writes=remove every image whose alt equals Sheet background | note=extra.rs:1095 clear branch; same-field decision
-ROW pageLayout.background | params={"data":"AA=="} | resolves=delegates insert.picture with forced at=A1,alt=Sheet background; picture source from data/path/url | holds=image id allocator,destination A1 address window,source bytes; image insertion footprint | reads=part | writes=append image on active sheet with background alt | note=extra.rs:1103 insert branch
-ROW home.drawBorder | params={"sheet":"Sheet2","range":"A1:B2","edge":"top"} | resolves=delegates home.borders using preset from edge; sheet index/name/prefix; A1 ranges else selection | holds=destination effective styles,edge-neighbour border styles,merge coverage,protection,address windows,fit rows affected by formatting | reads=none | writes=border edges; unspecified edge defaults all; outline maps outside | note=extra.rs:1110 -> format.rs::borders; absent target adds part/selection
-ROW home.newCellStyle | params={"name":"Review","fromCell":"Sheet2!B2"} | resolves=name case-insensitive cell-style definition; fromCell A1 strips sheet prefix and ALWAYS uses active sheet | holds=source effective cell/row/column style and definition,source address windows; existing case-insensitive cell_style_info builtin metadata and chosen definition | reads=part | writes=replace case-insensitive named style; preserve builtin metadata marked custom_builtin | note=extra.rs:1128 source prefix ignored
-ROW home.newCellStyle | params={"name":"Review"} | resolves=name case-insensitive style; source active cell on active sheet | holds=active-cell effective inherited style,source address windows,existing style builtin metadata | reads=part,selection | writes=named style definition | note=extra.rs:1133 fallback to selection.active
-ROW formulas.useInFormula | params={"name":"Revenue"} | resolves=name literal text; never resolves defined name here | holds=none | reads=none | writes=UI EditCell request with =Revenue only | note=extra.rs:1154 no workbook write
-ROW formulas.watchWindow | params={"add":"Sheet2!B2"} | resolves=add literal watch-address string; hidden name exact _sc_watch; referenced sheet NAME else active,invalid name falls back active,invalid cell falls back A1 | holds=_sc_watch list; for returned values watched cells,formulas and sheet-name lookup; watch list update itself needs only prior list | reads=part | writes=hidden name directly via Arc::make_mut despite query-marked registry | note=extra.rs:1161 add/remove mutate wb with no undo
-ROW formulas.watchWindow | params={"remove":"Sheet2!B2"} | resolves=remove exact watch-address string key; no A1 normalization | holds=_sc_watch stored list; remaining watched-cell data for response | reads=part | writes=replace watch list excluding exact string | note=extra.rs:1177 query-marked mutation
+ROW theme.colors | params={"colors":["#000000","#FFFFFF","#222222","#EEEEEE","#112233","#223344","#334455","#445566","#556677","#667788","#778899","#8899AA"]} | resolves=missing name defaults workbook theme name; supplied name chooses original theme preset | holds=current theme name when missing; current theme font defaults retained by theme.set; replaced values: theme name,colors and supplied font fields | reads=none | writes=delegates theme.set replacing colors/name,retaining fonts unless supplied | note=extra.rs:1081 -> view.rs:444; same-field decision
+ROW theme.fonts | params={"major":"Kition Sans","minor":"Kition Sans"} | resolves=major/minor literal font family names,not object ids | holds=current theme name and all twelve colors; omitted font fields preserve current fonts; replaced values: theme name,colors,major_font,minor_font | reads=none | writes=delegates theme.set keeping old colors/name | note=extra.rs:1089; same-field decision
+ROW theme.effects | params={"name":"Simple"} | resolves=none | holds=none | reads=none | writes=none | note=extra.rs:198 handler is ok()
+ROW page.background | params={"clear":true} | resolves=active sheet; images selected by exact alt text Sheet background | holds=matching-image membership incl absence and image alt; active sheet identity; replaced values: entire removed background images | reads=part | writes=remove every image whose alt equals Sheet background | note=extra.rs:1095 clear branch; same-field decision
+ROW page.background | params={"data":"AA=="} | resolves=delegates image.insert with forced at=A1,alt=Sheet background; picture source from data/path/url | holds=image id allocator,destination A1 address window,source bytes; image insertion footprint | reads=part | writes=append image on active sheet with background alt | note=extra.rs:1103 insert branch
+ROW format.drawBorder | params={"sheet":"Sheet2","range":"A1:B2","edge":"top"} | resolves=delegates format.borders using preset from edge; sheet index/name/prefix; A1 ranges else selection | holds=destination effective styles,edge-neighbour border styles,merge coverage,protection,address windows,fit rows affected by formatting | reads=none | writes=border edges; unspecified edge defaults all; outline maps outside | note=extra.rs:1110 -> format.rs::borders; absent target adds part/selection
+ROW style.add | params={"name":"Review","fromCell":"Sheet2!B2"} | resolves=name case-insensitive cell-style definition; fromCell A1 strips sheet prefix and ALWAYS uses active sheet | holds=source effective cell/row/column style and definition,source address windows; existing case-insensitive cell_style_info builtin metadata and chosen definition | reads=part | writes=replace case-insensitive named style; preserve builtin metadata marked custom_builtin | note=extra.rs:1128 source prefix ignored
+ROW style.add | params={"name":"Review"} | resolves=name case-insensitive style; source active cell on active sheet | holds=active-cell effective inherited style,source address windows,existing style builtin metadata | reads=part,selection | writes=named style definition | note=extra.rs:1133 fallback to selection.active
+ROW formula.useInFormula | params={"name":"Revenue"} | resolves=name literal text; never resolves defined name here | holds=none | reads=none | writes=UI EditCell request with =Revenue only | note=extra.rs:1154 no workbook write
+ROW formula.watchWindow | params={"add":"Sheet2!B2"} | resolves=add literal watch-address string; hidden name exact _sc_watch; referenced sheet NAME else active,invalid name falls back active,invalid cell falls back A1 | holds=_sc_watch list; for returned values watched cells,formulas and sheet-name lookup; watch list update itself needs only prior list | reads=part | writes=hidden name directly via Arc::make_mut despite query-marked registry | note=extra.rs:1161 add/remove mutate wb with no undo
+ROW formula.watchWindow | params={"remove":"Sheet2!B2"} | resolves=remove exact watch-address string key; no A1 normalization | holds=_sc_watch stored list; remaining watched-cell data for response | reads=part | writes=replace watch list excluding exact string | note=extra.rs:1177 query-marked mutation
 
 # cmd/draw.rs and cmd/ink.rs: ink geometry is sheet points converted through active-sheet axes.
-ROW draw.pen | params={"on":true} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session draw_tool,default color/width when changing tool,clear on off only if same tool | note=draw.rs:66; explicit color/width override defaults
-ROW draw.pencil | params={"on":true} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session pencil tool and tool-specific defaults when changing | note=draw.rs:66
-ROW draw.highlighter | params={"on":true} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session highlighter tool and defaults when changing | note=draw.rs:66
-ROW draw.eraser | params={"on":false} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session draw_tool only; returns draw_state | note=draw.rs:90 off retains another tool
-ROW draw.select | params={} | resolves=none | holds=none | reads=draw_color,draw_width | writes=clear draw_tool and draw_shape; returns draw_state | note=draw.rs:16
-ROW draw.shape | params={"preset":"rect"} | resolves=preset via shared preset table/line presets | holds=none | reads=none | writes=session draw_shape and clear draw_tool when preset supplied; null clears draw_shape only | note=draw.rs:23
-ROW draw.lasso | params={} | resolves=none | holds=none | reads=none | writes=clear session draw_tool | note=draw.rs:38
-ROW draw.stroke | params={"points":[[10,10],[80,40]],"color":"#123456","width":2,"tool":"pen"} | resolves=active sheet only,points min bounding corner converted to anchor using row_at/col_at | holds=sheet row/column sizes/hidden geometry from origin through minimum point; object id allocator | reads=part | writes=append absolute-anchor Ink shape with relative point text,width/alpha/color | note=draw.rs:115 explicit pen; geometry used even though ink is absolute
-ROW draw.stroke | params={"points":[[10,10],[80,40]]} | resolves=active sheet; missing tool/color/width from session pen defaults | holds=axis geometry through anchor; object id allocator | reads=part,mode,draw_color,draw_width | writes=append Ink shape | note=draw.rs:140 omitted pen settings
-ROW draw.inkToShape | params={"id":1} | resolves=id INTEGER active-sheet shape id with kind=Ink; omitted id LAST ink in shape order | holds=chosen ink kind,text points,frame width/height,line color; shape order/membership when default; replaced values: kind,fill,text | reads=part | writes=kind inferred from closedness/corners,fill=line for open line else Auto,clear text | note=draw.rs:203 does not read selected_shape; same-field decision
-ROW drawing.ink | params={"strokes":[{"points":[[10,10],[80,40]]}]} | resolves=active sheet; shared stroke parser; omitted pen members current session; each stroke delegates draw.stroke | holds=axis geometry through each anchor; object id allocator; existing ink-id set for returned ids | reads=part,mode,draw_color,draw_width | writes=append one Ink per stroke; one-point dot duplicates its point | note=ink.rs:73; pressure dropped when delegated to draw.stroke
+ROW ink.pen | params={"on":true} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session draw_tool,default color/width when changing tool,clear on off only if same tool | note=draw.rs:66; explicit color/width override defaults
+ROW ink.pencil | params={"on":true} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session pencil tool and tool-specific defaults when changing | note=draw.rs:66
+ROW ink.highlighter | params={"on":true} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session highlighter tool and defaults when changing | note=draw.rs:66
+ROW ink.eraser | params={"on":false} | resolves=no workbook object | holds=none | reads=mode,draw_color,draw_width | writes=session draw_tool only; returns draw_state | note=draw.rs:90 off retains another tool
+ROW ink.select | params={} | resolves=none | holds=none | reads=draw_color,draw_width | writes=clear draw_tool and draw_shape; returns draw_state | note=draw.rs:16
+ROW ink.shape | params={"preset":"rect"} | resolves=preset via shared preset table/line presets | holds=none | reads=none | writes=session draw_shape and clear draw_tool when preset supplied; null clears draw_shape only | note=draw.rs:23
+ROW ink.lasso | params={} | resolves=none | holds=none | reads=none | writes=clear session draw_tool | note=draw.rs:38
+ROW ink.stroke | params={"points":[[10,10],[80,40]],"color":"#123456","width":2,"tool":"pen"} | resolves=active sheet only,points min bounding corner converted to anchor using row_at/col_at | holds=sheet row/column sizes/hidden geometry from origin through minimum point; object id allocator | reads=part | writes=append absolute-anchor Ink shape with relative point text,width/alpha/color | note=draw.rs:115 explicit pen; geometry used even though ink is absolute
+ROW ink.stroke | params={"points":[[10,10],[80,40]]} | resolves=active sheet; missing tool/color/width from session pen defaults | holds=axis geometry through anchor; object id allocator | reads=part,mode,draw_color,draw_width | writes=append Ink shape | note=draw.rs:140 omitted pen settings
+ROW ink.toShape | params={"id":1} | resolves=id INTEGER active-sheet shape id with kind=Ink; omitted id LAST ink in shape order | holds=chosen ink kind,text points,frame width/height,line color; shape order/membership when default; replaced values: kind,fill,text | reads=part | writes=kind inferred from closedness/corners,fill=line for open line else Auto,clear text | note=draw.rs:203 does not read selected_shape; same-field decision
+ROW drawing.ink | params={"strokes":[{"points":[[10,10],[80,40]]}]} | resolves=active sheet; shared stroke parser; omitted pen members current session; each stroke delegates ink.stroke | holds=axis geometry through each anchor; object id allocator; existing ink-id set for returned ids | reads=part,mode,draw_color,draw_width | writes=append one Ink per stroke; one-point dot duplicates its point | note=ink.rs:73; pressure dropped when delegated to ink.stroke
 ROW drawing.ink | params={"strokes":[{"points":[[10,10],[80,40]],"color":"#123456","width":2,"tool":"pen"}]} | resolves=active sheet; all pen members explicit | holds=axis geometry through stroke anchors; object id allocator; existing ink ids for result | reads=part | writes=append ink shape | note=ink.rs:73 explicit settings still current_pen constructed but does not determine output
 ROW drawing.erase | params={"x":10,"y":10,"radius":4} | resolves=active sheet; hit-tests EVERY ink shape in sheet coordinates with shared eraser algorithm | holds=active sheet protection; all ink geometry potentially entering/leaving gesture incl previously unhit strokes; axis geometry affecting ink positions | reads=part,active | writes=remove hit shapes,clear selected_shape if hit | note=ink.rs:99; hit set empty returns no mutation
 
 # cmd/drawing.rs: ids are numeric strings/numbers resolved in ACTIVE sheet, groups via group keys.
 ROW drawing.insert | params={"kind":"shape","frame":{"x":10,"y":10,"w":80,"h":40},"geometry":{"preset":"rect"}} | resolves=active sheet; frame in sheet points maps through axes; no target object | holds=sheet protection,axis geometry from origin through frame anchor,object id allocator; connector reroute footprint on changed sheet | reads=part | writes=append shape default theme-relative fill/line and optional supplied look/text; selects new id | note=drawing.rs:205 explicit frame; next_object_id scans all sheets
 ROW drawing.insert | params={"kind":"textBox","text":"Note"} | resolves=active sheet and active cell for frame origin; default144x48 (shape144x96) | holds=protection,active-cell address windows,axis geometry through active anchor,object id allocator | reads=part,selection | writes=append text box/shape and select it | note=drawing.rs:228 implicit frame
-ROW drawing.insert | params={"kind":"chart","range":"A1:C5","chart":{"kind":"column"}} | resolves=delegates insert.chart using range; source sheet prefix forwarded; later apply always active sheet; range absent selection/current region | holds=source values,first-column effective number formats,source name/windows,default-title source,object id allocator; requested frame axis geometry and protection | reads=part | writes=insert chart then supplied shared chart fields and optional frame transform; select id | note=drawing.rs:270; missing range adds selection/current-region boundary
+ROW drawing.insert | params={"kind":"chart","range":"A1:C5","chart":{"kind":"column"}} | resolves=delegates chart.insert using range; source sheet prefix forwarded; later apply always active sheet; range absent selection/current region | holds=source values,first-column effective number formats,source name/windows,default-title source,object id allocator; requested frame axis geometry and protection | reads=part | writes=insert chart then supplied shared chart fields and optional frame transform; select id | note=drawing.rs:270; missing range adds selection/current-region boundary
 ROW drawing.delete | params={"ids":[1]} | resolves=numeric-string/number ids on active sheet; id may identify shape,chart,or group key | holds=chosen membership/kind/group membership,active sheet protection; matching group descendants; connector geometry during post-edit reroute; replaced values: entire selected shapes/charts/group descendants | reads=part,active | writes=remove named shapes/charts or every group descendant; selected_shape cleared only if named id | note=drawing.rs:318 delete path; removed content is held under the same-field decision; same-field decision
 ROW drawing.transform | params={"ids":[1],"dx":10,"dy":20} | resolves=numeric ids active sheet; group keys select descendant shapes; chart id selects chart | holds=chosen frame/placement and group membership,protection,axis geometry through old/new anchors; connector connections/endpoints/geometry; chart sources evaluated for response frames on chart path | reads=part | writes=relative transform or group proportional member transforms,reroute connectors | note=drawing.rs:318 relative frame path; group rotate/flip refused
 ROW drawing.transform | params={"id":1,"frame":{"x":10,"y":10,"w":80,"h":40}} | resolves=single numeric shape/chart id active sheet; group allowed for move/scale | holds=old frame for change detection and untouched placement/group restrictions; sheet protection; axes mapping new point; grouped members frames; connector dependencies | reads=part | writes=replace supplied absolute frame; preserve anchor mode; chart sizes clamp20..10000 | note=drawing.rs:318 absolute path; old frame can affect no-op and group scale result
@@ -113,10 +113,10 @@ ROW drawing.chart | params={"id":1,"series":[{"name":"Sales","values":[1,2],"col
 // Pinned after reviewing the complete delegated paths. The original blind rows
 // above remain unchanged; these complete state sets replace their projections.
 pub const REVIEWED_EDITOR: &[(&str, &[&str], &str)] = &[
-    ("home.drawBorder", &["part", "selection"], "extra::draw_border delegates home.borders, including its selected-range default"),
+    ("format.drawBorder", &["part", "selection"], "extra::draw_border delegates format.borders, including its selected-range default"),
     ("data.fromTextCsv", &["part", "selection"], "from_csv delegates insertSheet, which remembers the old selection"),
     ("data.getData", &["part", "selection"], "get_data delegates insertSheet, which remembers the old selection"),
-    ("pageLayout.background", &["part"], "extra.rs background fixes at=A1; insert.rs insert_picture_at takes the fixed origin without selection"),
+    ("page.background", &["part"], "extra.rs background fixes at=A1; insert.rs insert_picture_at takes the fixed origin without selection"),
     ("view.newWindow", &["part", "selection"], "extra.rs::new_window copies wb.active_sheet as well as selection into the newly activated DocState"),
 ];
 
@@ -201,7 +201,7 @@ mod tests {
             let (candidate, references, places): (Option<&str>, &[(&str, &[&str])], &[&str]) = match id {
                 "arrange.align" | "arrange.group" => (Some("ids"), &[("ids", &["Shape", "Chart", "Image"])], &[]),
                 "arrange.bringForward" | "arrange.sendBackward" => (Some("id"), &[("id", &["Shape", "Chart", "Image"])], &[]),
-                "arrange.rotate" | "chart.shapeOutline" | "draw.inkToShape" => (Some("id"), &[("id", &["Shape"])], &[]),
+                "arrange.rotate" | "chart.shapeOutline" | "ink.toShape" => (Some("id"), &[("id", &["Shape"])], &[]),
                 "chart.addElement" | "chart.changeColors" | "chart.changeType" | "chart.formatSelection" | "chart.quickLayout" => {
                     (Some("chart"), &[("chart", &["Chart"])], &[])
                 }
@@ -224,27 +224,27 @@ mod tests {
                 // The pinned SDK reads top-level place keys literally; the
                 // precise point dependencies remain in Under.
                 "drawing.ink" => (None, &[], &["strokes"]),
-                "draw.stroke" => (None, &[], &["points"]),
+                "ink.stroke" => (None, &[], &["points"]),
                 "drawing.insert" => (None, &[], &["range", "frame"]),
                 "cell.toggleCheckbox" => (Some("cell"), &[], &["sheet", "cell"]),
-                "insert.checkbox" => (Some("range"), &[], &["sheet", "range", "cell"]),
-                "home.drawBorder" => (Some("range"), &[], &["sheet", "range", "cell"]),
-                "home.newCellStyle" => (None, &[], &["name", "fromCell"]),
+                "checkbox.insert" => (Some("range"), &[], &["sheet", "range", "cell"]),
+                "format.drawBorder" => (Some("range"), &[], &["sheet", "range", "cell"]),
+                "style.add" => (None, &[], &["name", "fromCell"]),
                 "data.fromTableRange" => (Some("range"), &[], &["range"]),
                 "table.resize" => (Some("range"), &[], &["table", "range"]),
                 "table.removeDuplicates" => (Some("range"), &[], &["table", "range", "columns"]),
-                "automate.deleteScript"
-                | "automate.newScript"
-                | "automate.recordActions"
-                | "automate.runScript"
+                "script.delete"
+                | "script.new"
+                | "script.record"
+                | "script.run"
                 | "data.fromTextCsv"
                 | "data.getData"
-                | "formulas.useInFormula"
-                | "formulas.watchWindow"
-                | "pageLayout.background"
-                | "pageLayout.themeColors"
-                | "pageLayout.themeEffects"
-                | "pageLayout.themeFonts"
+                | "formula.useInFormula"
+                | "formula.watchWindow"
+                | "page.background"
+                | "theme.colors"
+                | "theme.effects"
+                | "theme.fonts"
                 | "view.customViews"
                 | "view.newWindow"
                 | "view.split" => (None, &[], &[]),
@@ -273,22 +273,19 @@ mod tests {
                     .find(|key| accepts(key))
                     .filter(|key| kition_kit::schema::check_targets(schema, key).is_ok())
             };
-            let baseline_objects: BTreeSet<_> = references
-                .iter()
-                .map(|(key, _)| *key)
-                .filter(|key| id != "draw.inkToShape" && accepts(key) && Some(*key) != baseline_target)
-                .collect();
+            let baseline_objects: BTreeSet<_> =
+                references.iter().map(|(key, _)| *key).filter(|key| id != "ink.toShape" && accepts(key) && Some(*key) != baseline_target).collect();
             let mut baseline_places: BTreeSet<_> =
                 ["sheet", "scope", "table", "pivot", "cell", "range", "rows", "cols"].into_iter().filter(|key| accepts(key)).collect();
             match id {
                 "drawing.erase" => baseline_places.extend(["path", "x", "y"]),
-                "home.newCellStyle" | "formulas.useInFormula" => {
+                "style.add" | "formula.useInFormula" => {
                     baseline_places.insert("name");
                 }
                 _ => {}
             }
             let mut baseline_types: BTreeSet<_> = match id {
-                "draw.inkToShape" => BTreeSet::new(),
+                "ink.toShape" => BTreeSet::new(),
                 "drawing.group" | "drawing.ungroup" | "arrange.group" => [("ids", "Shape")].into_iter().collect(),
                 "arrange.align"
                 | "arrange.bringForward"
@@ -365,7 +362,7 @@ mod tests {
         use serde_json::json;
         let mut doc = kition_sheet_kit::SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         doc.execute("range.setValues", json!({"range":"A1","values":[["Name","Value","Other"],["One",1,2],["Two",3,4],["Three",5,6]]})).unwrap();
-        doc.execute("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"})).unwrap();
+        doc.execute("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"})).unwrap();
         doc.version().unwrap();
         let mut less = BTreeSet::new();
         let mut more = BTreeSet::new();
@@ -422,9 +419,9 @@ mod tests {
         if kinds != BTreeSet::from(["Shape", "Chart", "Image"]) {
             wrong.push(format!("arrange.group: kind chooses Shape, Chart or Image anchors, declared {kinds:?}"));
         }
-        let literal = commands.iter().find(|command| command.id == "formulas.useInFormula").unwrap();
+        let literal = commands.iter().find(|command| command.id == "formula.useInFormula").unwrap();
         if literal.places.contains(&"name") || literal.objects.contains(&"name") {
-            wrong.push("formulas.useInFormula: name is unparsed formula-bar text".into());
+            wrong.push("formula.useInFormula: name is unparsed formula-bar text".into());
         }
         assert!(wrong.is_empty(), "{}", wrong.join("\n"));
     }
@@ -441,8 +438,8 @@ mod tests {
             ("drawing.text", &["part"][..]),
             ("drawing.reconnect", &["part"][..]),
             ("drawing.chart", &["part"][..]),
-            ("insert.pivotTable", &["part", "selection"][..]),
-            ("insert.recommendedPivotTables", &["part", "selection"][..]),
+            ("pivot.insert", &["part", "selection"][..]),
+            ("pivot.recommended", &["part", "selection"][..]),
             ("table.summarizePivot", &["part", "selection"][..]),
             ("file.new", &[][..]),
             ("file.open", &[][..]),
@@ -488,7 +485,7 @@ mod tests {
         ] {
             expected.extend(command_ids(source));
         }
-        expected.insert("formulas.watchWindow");
+        expected.insert("formula.watchWindow");
         let mut observed = BTreeSet::new();
         let mut unique_paths = BTreeSet::new();
         let mut rows = 0;
@@ -566,8 +563,8 @@ mod tests {
         for x in [10, 180] {
             doc.execute("drawing.insert", json!({"kind":"shape","frame":{"x":x,"y":10,"w":80,"h":40}})).unwrap();
         }
-        doc.execute("insert.chart", json!({"range":"A1:C3","type":"column"})).unwrap();
-        doc.execute("insert.table", json!({"range":"A1:C3","name":"Sales","header":true})).unwrap();
+        doc.execute("chart.insert", json!({"range":"A1:C3","type":"column"})).unwrap();
+        doc.execute("table.insert", json!({"range":"A1:C3","name":"Sales","header":true})).unwrap();
         let connector = doc.execute("drawing.connect", json!({"from":2,"to":3})).unwrap()["id"].as_str().unwrap().parse::<u32>().unwrap();
         let mut grouped = Vec::new();
         for x in [400, 600] {
@@ -582,11 +579,11 @@ mod tests {
         let group = doc.execute("drawing.group", json!({"ids":grouped})).unwrap()["id"].as_str().unwrap().parse::<u32>().unwrap();
         let reconnect_target = grouped.first().copied().unwrap();
         let reconnect_target_tool = format!("drawing:{reconnect_target}");
-        doc.execute("home.insertSheet", json!({"name":"Sheet2"})).unwrap();
+        doc.execute("sheet.insert", json!({"name":"Sheet2"})).unwrap();
         doc.execute("cell.set", json!({"cell":"D12","input":"sentinel"})).unwrap();
         doc.execute("range.setValues", json!({"range":"A1","values":[["Name","Value","Other"],["One",1,2],["Two",3,4]]})).unwrap();
         doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
-        doc.execute("selection.set", json!({"range":"B2"})).unwrap();
+        doc.execute("select.set", json!({"range":"B2"})).unwrap();
         doc.version().unwrap();
 
         fn field_held(under: &Under, object: &str, field: &str) -> bool {
@@ -619,7 +616,7 @@ mod tests {
             if params.get("id").is_some() {
                 params["id"] = json!(if chart_path {
                     4
-                } else if id == "draw.inkToShape" {
+                } else if id == "ink.toShape" {
                     1
                 } else if id == "drawing.reconnect" {
                     connector
@@ -666,7 +663,7 @@ mod tests {
                     // same-field decision: hold the replaced line only.
                     required.push(("drawing:2", "look.line"));
                 }
-                "draw.inkToShape" => {
+                "ink.toShape" => {
                     required.extend([("drawing:1", "text"), ("drawing:1", "look.kind"), ("drawing:1", "look.line"), ("drawing:1", "look.fill")])
                 }
                 "drawing.ink" => required.push(("sheet:1", "props.protection")),
@@ -680,10 +677,10 @@ mod tests {
                     required.extend([(reconnect_target_tool.as_str(), "look.preset"), (reconnect_target_tool.as_str(), "look.geom")]);
                 }
                 "drawing.chart" => required.extend([("drawing:4", "parts.series"), ("cell:1!B2", "input")]),
-                "home.newCellStyle" => required.push(("cell:1!B2", "style")),
+                "style.add" => required.push(("cell:1!B2", "style")),
                 "data.fromTableRange" => required.push(("cell:2!B2", "input")),
-                "pageLayout.themeColors" => required.extend([("workbook", "theme.name"), ("workbook", "theme.colors")]),
-                "pageLayout.themeFonts" => required.extend([
+                "theme.colors" => required.extend([("workbook", "theme.name"), ("workbook", "theme.colors")]),
+                "theme.fonts" => required.extend([
                     ("workbook", "theme.name"),
                     ("workbook", "theme.colors"),
                     ("workbook", "theme.major_font"),
@@ -711,17 +708,17 @@ mod tests {
                     }
                 }
             }
-            if !matches!(id, "automate.runScript" | "view.newWindow") && field_held(&under, "cell:2!D12", "input") {
+            if !matches!(id, "script.run" | "view.newWindow") && field_held(&under, "cell:2!D12", "input") {
                 more.insert(id);
                 unrelated_more.insert(id);
             }
         }
         eprintln!("object footprint projection: {} commands; LESS {less:?}; MORE {more:?}", total.len());
         let excessive =
-            BTreeSet::from(["data.fromTableRange", "data.fromTextCsv", "data.getData", "drawing.insert", "pageLayout.background", "table.resize"]);
+            BTreeSet::from(["data.fromTableRange", "data.fromTextCsv", "data.getData", "drawing.insert", "page.background", "table.resize"]);
         assert!(less.is_empty(), "new missing held facts: {less:?}");
         assert!(unrelated_more.is_subset(&excessive), "new unrelated-cell holds: {unrelated_more:?}");
-        let allowed = excessive.union(&BTreeSet::from(["pageLayout.themeColors", "pageLayout.themeFonts"])).copied().collect();
+        let allowed = excessive.union(&BTreeSet::from(["theme.colors", "theme.fonts"])).copied().collect();
         assert!(more.is_subset(&allowed), "new excessive object facts: {more:?}");
     }
 }

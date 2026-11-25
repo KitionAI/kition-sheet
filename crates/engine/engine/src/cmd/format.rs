@@ -9,20 +9,20 @@ use super::*;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         // Font
-        cmd!("home.bold", "Bold", ["Home", "Font"], Some("Cmd+B"), "{range?, on?: bool}", has_doc, |s, p| toggle(
+        cmd!("format.bold", "Bold", ["Home", "Font"], Some("Cmd+B"), "{range?, on?: bool}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.font.bold,
             |st, v| st.font.bold = v
         )),
-        cmd!("home.italic", "Italic", ["Home", "Font"], Some("Cmd+I"), "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("format.italic", "Italic", ["Home", "Font"], Some("Cmd+I"), "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.font.italic,
             |st, v| st.font.italic = v
         )),
         cmd!(
-            "home.underline",
+            "format.underline",
             "Underline",
             ["Home", "Font"],
             Some("Cmd+U"),
@@ -30,38 +30,38 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             underline
         ),
-        cmd!("home.doubleUnderline", "Double Underline", ["Home", "Font"], None, "{range?}", has_doc, |s, p| underline(
+        cmd!("format.doubleUnderline", "Double Underline", ["Home", "Font"], None, "{range?}", has_doc, |s, p| underline(
             s,
             &with(p, "style", json!("double"))
         )),
-        cmd!("home.strikethrough", "Strikethrough", ["Home", "Font"], Some("Cmd+Shift+X"), "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("format.strikethrough", "Strikethrough", ["Home", "Font"], Some("Cmd+Shift+X"), "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.font.strike,
             |st, v| st.font.strike = v
         )),
-        cmd!("home.superscript", "Superscript", ["Home", "Font"], None, "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("format.superscript", "Superscript", ["Home", "Font"], None, "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.font.vert == VertAlign::Superscript,
             |st, v| st.font.vert = if v { VertAlign::Superscript } else { VertAlign::Baseline }
         )),
-        cmd!("home.subscript", "Subscript", ["Home", "Font"], None, "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("format.subscript", "Subscript", ["Home", "Font"], None, "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.font.vert == VertAlign::Subscript,
             |st, v| st.font.vert = if v { VertAlign::Subscript } else { VertAlign::Baseline }
         )),
-        cmd!("home.fontName", "Font", ["Home", "Font"], None, "{range?, name: \"Calibri\"}", has_doc, font_name),
-        cmd!("home.fontSize", "Font Size", ["Home", "Font"], None, "{range?, size: 11}", has_doc, font_size),
-        cmd!("home.increaseFontSize", "Increase Font Size", ["Home", "Font"], Some("Cmd+Shift+>"), "{range?}", can_grow, |s, p| step_font(
+        cmd!("format.fontName", "Font", ["Home", "Font"], None, "{range?, name: \"Calibri\"}", has_doc, font_name),
+        cmd!("format.fontSize", "Font Size", ["Home", "Font"], None, "{range?, size: 11}", has_doc, font_size),
+        cmd!("format.increaseFontSize", "Increase Font Size", ["Home", "Font"], Some("Cmd+Shift+>"), "{range?}", can_grow, |s, p| step_font(
             s, p, true
         )),
-        cmd!("home.decreaseFontSize", "Decrease Font Size", ["Home", "Font"], Some("Cmd+Shift+<"), "{range?}", can_shrink, |s, p| step_font(
+        cmd!("format.decreaseFontSize", "Decrease Font Size", ["Home", "Font"], Some("Cmd+Shift+<"), "{range?}", can_shrink, |s, p| step_font(
             s, p, false
         )),
         cmd!(
-            "home.fontColor",
+            "format.color",
             "Font Color",
             ["Home", "Font"],
             None,
@@ -69,9 +69,17 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             font_color
         ),
-        cmd!("home.fillColor", "Fill Color", ["Home", "Font"], None, "{range?, color: \"#FFFF00\" | \"none\" | {theme, tint}}", has_doc, fill_color),
         cmd!(
-            "home.borders",
+            "format.fillColor",
+            "Fill Color",
+            ["Home", "Font"],
+            None,
+            "{range?, color: \"#FFFF00\" | \"none\" | {theme, tint}}",
+            has_doc,
+            fill_color
+        ),
+        cmd!(
+            "format.borders",
             "Borders",
             ["Home", "Font"],
             None,
@@ -80,7 +88,7 @@ pub fn specs() -> Vec<CommandSpec> {
             borders
         ),
         cmd!(
-            "home.formatCells",
+            "format.cells",
             "Format Cells…",
             ["Home", "Cells", "Format"],
             Some("Cmd+1"),
@@ -89,31 +97,31 @@ pub fn specs() -> Vec<CommandSpec> {
             format_cells
         ),
         // Alignment
-        cmd!("home.alignLeft", "Align Left", ["Home", "Alignment"], Some("Cmd+L"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Left)),
-        cmd!("home.alignCenter", "Center", ["Home", "Alignment"], Some("Cmd+E"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Center)),
-        cmd!("home.alignRight", "Align Right", ["Home", "Alignment"], Some("Cmd+R"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Right)),
-        cmd!("home.justify", "Justify", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| halign(s, p, HAlign::Justify)),
-        cmd!("home.alignTop", "Top Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Top)),
-        cmd!("home.alignMiddle", "Middle Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Center)),
-        cmd!("home.alignBottom", "Bottom Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Bottom)),
-        cmd!("home.wrapText", "Wrap Text", ["Home", "Alignment"], None, "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("format.alignLeft", "Align Left", ["Home", "Alignment"], Some("Cmd+L"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Left)),
+        cmd!("format.alignCenter", "Center", ["Home", "Alignment"], Some("Cmd+E"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Center)),
+        cmd!("format.alignRight", "Align Right", ["Home", "Alignment"], Some("Cmd+R"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Right)),
+        cmd!("format.justify", "Justify", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| halign(s, p, HAlign::Justify)),
+        cmd!("format.alignTop", "Top Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Top)),
+        cmd!("format.alignMiddle", "Middle Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Center)),
+        cmd!("format.alignBottom", "Bottom Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Bottom)),
+        cmd!("format.wrapText", "Wrap Text", ["Home", "Alignment"], None, "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.align.wrap,
             |st, v| st.align.wrap = v
         )),
-        cmd!("home.shrinkToFit", "Shrink to Fit", [], None, "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("format.shrinkToFit", "Shrink to Fit", [], None, "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.align.shrink,
             |st, v| st.align.shrink = v
         )),
-        cmd!("home.increaseIndent", "Increase Indent", ["Home", "Alignment"], Some("Ctrl+Alt+Tab"), "{range?}", has_doc, |s, p| indent(s, p, 1)),
-        cmd!("home.decreaseIndent", "Decrease Indent", ["Home", "Alignment"], Some("Ctrl+Alt+Shift+Tab"), "{range?}", has_doc, |s, p| indent(
+        cmd!("format.increaseIndent", "Increase Indent", ["Home", "Alignment"], Some("Ctrl+Alt+Tab"), "{range?}", has_doc, |s, p| indent(s, p, 1)),
+        cmd!("format.decreaseIndent", "Decrease Indent", ["Home", "Alignment"], Some("Ctrl+Alt+Shift+Tab"), "{range?}", has_doc, |s, p| indent(
             s, p, -1
         )),
         cmd!(
-            "home.orientation",
+            "format.orientation",
             "Orientation",
             ["Home", "Alignment"],
             None,
@@ -121,13 +129,13 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             orientation
         ),
-        cmd!("home.mergeCenter", "Merge & Center", ["Home", "Alignment"], None, "{range?}", can_merge, |s, p| merge(s, p, "center")),
-        cmd!("home.mergeAcross", "Merge Across", ["Home", "Alignment"], None, "{range?}", can_merge, |s, p| merge(s, p, "across")),
-        cmd!("home.mergeCells", "Merge Cells", ["Home", "Alignment"], None, "{range?}", can_merge, |s, p| merge(s, p, "cells")),
-        cmd!("home.unmergeCells", "Unmerge Cells", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| merge(s, p, "unmerge")),
+        cmd!("cell.mergeCenter", "Merge & Center", ["Home", "Alignment"], None, "{range?}", can_merge, |s, p| merge(s, p, "center")),
+        cmd!("cell.mergeAcross", "Merge Across", ["Home", "Alignment"], None, "{range?}", can_merge, |s, p| merge(s, p, "across")),
+        cmd!("cell.merge", "Merge Cells", ["Home", "Alignment"], None, "{range?}", can_merge, |s, p| merge(s, p, "cells")),
+        cmd!("cell.unmerge", "Unmerge Cells", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| merge(s, p, "unmerge")),
         // Number
         cmd!(
-            "home.numberFormat",
+            "format.numberFormat",
             "Number Format",
             ["Home", "Number"],
             None,
@@ -135,16 +143,16 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             number_format
         ),
-        cmd!("home.accounting", "Accounting Number Format", ["Home", "Number"], None, "{range?, symbol?: \"$\"}", has_doc, |s, p| set_fmt(
+        cmd!("format.accounting", "Accounting Number Format", ["Home", "Number"], None, "{range?, symbol?: \"$\"}", has_doc, |s, p| set_fmt(
             s, p, ACCOUNTING
         )),
-        cmd!("home.percent", "Percent Style", ["Home", "Number"], Some("Ctrl+Shift+%"), "{range?}", has_doc, |s, p| set_fmt(s, p, "0%")),
-        cmd!("home.comma", "Comma Style", ["Home", "Number"], None, "{range?}", has_doc, |s, p| set_fmt(s, p, COMMA)),
-        cmd!("home.increaseDecimal", "Increase Decimal", ["Home", "Number"], None, "{range?}", has_doc, |s, p| decimals(s, p, 1)),
-        cmd!("home.decreaseDecimal", "Decrease Decimal", ["Home", "Number"], None, "{range?}", has_doc, |s, p| decimals(s, p, -1)),
+        cmd!("format.percent", "Percent Style", ["Home", "Number"], Some("Ctrl+Shift+%"), "{range?}", has_doc, |s, p| set_fmt(s, p, "0%")),
+        cmd!("format.comma", "Comma Style", ["Home", "Number"], None, "{range?}", has_doc, |s, p| set_fmt(s, p, COMMA)),
+        cmd!("format.increaseDecimal", "Increase Decimal", ["Home", "Number"], None, "{range?}", has_doc, |s, p| decimals(s, p, 1)),
+        cmd!("format.decreaseDecimal", "Decrease Decimal", ["Home", "Number"], None, "{range?}", has_doc, |s, p| decimals(s, p, -1)),
         // Styles
         cmd!(
-            "home.cellStyle",
+            "style.apply",
             "Cell Styles",
             ["Home", "Styles"],
             None,
@@ -154,7 +162,7 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         // Cells › Format
         cmd!(
-            "home.rowHeight",
+            "row.setHeight",
             "Row Height…",
             ["Home", "Cells", "Format"],
             None,
@@ -163,7 +171,7 @@ pub fn specs() -> Vec<CommandSpec> {
             row_height
         ),
         cmd!(
-            "home.columnWidth",
+            "column.setWidth",
             "Column Width…",
             ["Home", "Cells", "Format"],
             None,
@@ -171,28 +179,20 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             col_width
         ),
-        cmd!("home.autofitRowHeight", "AutoFit Row Height", ["Home", "Cells", "Format"], None, "{rows?}", has_doc, autofit_rows),
-        cmd!("home.autofitColumnWidth", "AutoFit Column Width", ["Home", "Cells", "Format"], None, "{cols?}", has_doc, autofit_cols),
-        cmd!("home.defaultWidth", "Default Width…", ["Home", "Cells", "Format"], None, "{width: 64}", has_doc, default_width),
-        cmd!("home.hideRows", "Hide Rows", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+9"), "{rows?}", has_doc, |s, p| hide(
-            s, p, true, true
-        )),
-        cmd!("home.hideColumns", "Hide Columns", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+0"), "{cols?}", has_doc, |s, p| hide(
+        cmd!("row.autofitHeight", "AutoFit Row Height", ["Home", "Cells", "Format"], None, "{rows?}", has_doc, autofit_rows),
+        cmd!("column.autofitWidth", "AutoFit Column Width", ["Home", "Cells", "Format"], None, "{cols?}", has_doc, autofit_cols),
+        cmd!("column.setDefaultWidth", "Default Width…", ["Home", "Cells", "Format"], None, "{width: 64}", has_doc, default_width),
+        cmd!("row.hide", "Hide Rows", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+9"), "{rows?}", has_doc, |s, p| hide(s, p, true, true)),
+        cmd!("column.hide", "Hide Columns", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+0"), "{cols?}", has_doc, |s, p| hide(
             s, p, false, true
         )),
-        cmd!("home.unhideRows", "Unhide Rows", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+Shift+9"), "{rows?}", has_doc, |s, p| hide(
+        cmd!("row.show", "Unhide Rows", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+Shift+9"), "{rows?}", has_doc, |s, p| hide(
             s, p, true, false
         )),
-        cmd!(
-            "home.unhideColumns",
-            "Unhide Columns",
-            ["Home", "Cells", "Format", "Hide & Unhide"],
-            Some("Cmd+Shift+0"),
-            "{cols?}",
-            has_doc,
-            |s, p| hide(s, p, false, false)
-        ),
-        cmd!("home.lockCell", "Lock Cell", ["Home", "Cells", "Format"], None, "{range?, on?}", has_doc, |s, p| toggle(
+        cmd!("column.show", "Unhide Columns", ["Home", "Cells", "Format", "Hide & Unhide"], Some("Cmd+Shift+0"), "{cols?}", has_doc, |s, p| hide(
+            s, p, false, false
+        )),
+        cmd!("cell.lock", "Lock Cell", ["Home", "Cells", "Format"], None, "{range?, on?}", has_doc, |s, p| toggle(
             s,
             p,
             |st| st.protection.locked,
@@ -335,12 +335,12 @@ fn underline(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn font_name(s: &mut Session, p: &Json) -> Result<Json> {
-    let Some(name) = str_param(p, "name").map(str::to_string) else { return Err(bad("home.fontName", "missing `name`")) };
+    let Some(name) = str_param(p, "name").map(str::to_string) else { return Err(bad("format.fontName", "missing `name`")) };
     apply_style(s, p, |st| st.font.set_name(name.clone()))
 }
 
 fn font_size(s: &mut Session, p: &Json) -> Result<Json> {
-    let size = f64_param(p, "size").ok_or_else(|| bad("home.fontSize", "missing `size`"))?;
+    let size = f64_param(p, "size").ok_or_else(|| bad("format.fontSize", "missing `size`"))?;
     if !(1.0..=409.0).contains(&size) {
         return Err(EngineError::Other("The number must be between 1 and 409.".into()));
     }
@@ -398,12 +398,12 @@ pub(crate) fn color_param(v: Option<&Json>) -> Option<Color> {
 }
 
 fn font_color(s: &mut Session, p: &Json) -> Result<Json> {
-    let c = color_param(p.get("color")).ok_or_else(|| bad("home.fontColor", "missing or invalid `color`"))?;
+    let c = color_param(p.get("color")).ok_or_else(|| bad("format.color", "missing or invalid `color`"))?;
     apply_style(s, p, |st| st.font.color = c)
 }
 
 fn fill_color(s: &mut Session, p: &Json) -> Result<Json> {
-    let c = color_param(p.get("color")).ok_or_else(|| bad("home.fillColor", "missing or invalid `color`"))?;
+    let c = color_param(p.get("color")).ok_or_else(|| bad("format.fillColor", "missing or invalid `color`"))?;
     apply_style(s, p, |st| st.fill = if c == Color::Auto { Fill::default() } else { Fill::solid(c) })
 }
 
@@ -437,7 +437,7 @@ fn borders(s: &mut Session, p: &Json) -> Result<Json> {
     edit(s, |cx| {
         for r in &ranges {
             if r.count() > 2_000_000 {
-                return Err(bad("home.borders", "selection too large"));
+                return Err(bad("format.borders", "selection too large"));
             }
             for c in r.iter() {
                 let (top, bottom, left, right) = (c.row == r.start.row, c.row == r.end.row, c.col == r.start.col, c.col == r.end.col);
@@ -609,11 +609,11 @@ fn format_cells(s: &mut Session, p: &Json) -> Result<Json> {
         }
         return format_cells_extras(s, p, &edges, merge);
     };
-    let patch = style_patch("home.formatCells", patch)?;
+    let patch = style_patch("format.cells", patch)?;
     // Validate by merging into the active style once.
     let base = serde_json::to_value(active_style(s)?).map_err(|e| EngineError::Other(e.to_string()))?;
     let merged = merge_json(base, &patch);
-    let _: Style = serde_json::from_value(merged).map_err(|e| bad("home.formatCells", e.to_string()))?;
+    let _: Style = serde_json::from_value(merged).map_err(|e| bad("format.cells", e.to_string()))?;
     apply_style(s, p, |st| {
         if let Ok(cur) = serde_json::to_value(&*st)
             && let Ok(new) = serde_json::from_value::<Style>(merge_json(cur, &patch))
@@ -624,7 +624,7 @@ fn format_cells(s: &mut Session, p: &Json) -> Result<Json> {
     format_cells_extras(s, p, &edges, merge)
 }
 
-/// The Format Cells dialog's borders (each a `home.borders` preset with its line and colour) and
+/// The Format Cells dialog's borders (each a `format.borders` preset with its line and colour) and
 /// its Merge Cells box, in the same undo step as its formats.
 fn format_cells_extras(s: &mut Session, p: &Json, edges: &[Json], merge: Option<bool>) -> Result<Json> {
     let mut range = serde_json::Map::new();
@@ -641,16 +641,16 @@ fn format_cells_extras(s: &mut Session, p: &Json, edges: &[Json], merge: Option<
             }
         }
         if !params.contains_key("preset") {
-            return Err(bad("home.formatCells", "`edges`: each needs a `preset`"));
+            return Err(bad("format.cells", "`edges`: each needs a `preset`"));
         }
-        s.execute("home.borders", Json::Object(params))?;
+        s.execute("format.borders", Json::Object(params))?;
     }
     match merge {
         Some(true) => {
-            s.execute("home.mergeCells", Json::Object(range))?;
+            s.execute("cell.merge", Json::Object(range))?;
         }
         Some(false) => {
-            s.execute("home.unmergeCells", Json::Object(range))?;
+            s.execute("cell.unmerge", Json::Object(range))?;
         }
         None => {}
     }
@@ -792,7 +792,7 @@ fn number_format(s: &mut Session, p: &Json) -> Result<Json> {
     let code = str_param(p, "code")
         .map(str::to_string)
         .or_else(|| str_param(p, "format").map(|f| format_code_for(f).to_string()))
-        .ok_or_else(|| bad("home.numberFormat", "missing `format` or `code`"))?;
+        .ok_or_else(|| bad("format.numberFormat", "missing `format` or `code`"))?;
     set_fmt(s, p, &code)
 }
 
@@ -1056,7 +1056,7 @@ fn cell_style(s: &mut Session, p: &Json) -> Result<Json> {
             .find(|(n, _)| n.eq_ignore_ascii_case(&name))
             .map(|(_, s)| s.clone())
             .or_else(|| builtin_cell_style(&name, &d.wb.theme));
-    let Some(style) = style else { return Err(bad("home.cellStyle", format!("unknown cell style `{name}`"))) };
+    let Some(style) = style else { return Err(bad("style.apply", format!("unknown cell style `{name}`"))) };
     // Number-format styles only change the number format.
     let only_fmt = matches!(name.as_str(), "Comma" | "Comma [0]" | "Currency" | "Currency [0]" | "Percent");
     apply_style(s, p, move |st| {
@@ -1128,7 +1128,7 @@ fn line_sheet(s: &Session, p: &Json, rows: bool) -> Result<usize> {
 }
 
 fn row_height(s: &mut Session, p: &Json) -> Result<Json> {
-    let h = f64_param(p, "height").ok_or_else(|| bad("home.rowHeight", "missing `height`"))?;
+    let h = f64_param(p, "height").ok_or_else(|| bad("row.setHeight", "missing `height`"))?;
     if !(0.0..=546.0).contains(&h) {
         return Err(EngineError::Other("Row height must be between 0 and 409 points.".into()));
     }
@@ -1152,7 +1152,7 @@ fn col_width(s: &mut Session, p: &Json) -> Result<Json> {
     let w = match (f64_param(p, "width"), f64_param(p, "chars")) {
         (Some(w), _) => w,
         (None, Some(c)) => chars_to_points(c),
-        _ => return Err(bad("home.columnWidth", "missing `width`")),
+        _ => return Err(bad("column.setWidth", "missing `width`")),
     };
     if !(0.0..=1800.0).contains(&w) {
         return Err(EngineError::Other("Column width must be between 0 and 255 characters.".into()));
@@ -1263,7 +1263,7 @@ fn autofit_rows(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn default_width(s: &mut Session, p: &Json) -> Result<Json> {
-    let w = f64_param(p, "width").ok_or_else(|| bad("home.defaultWidth", "missing `width`"))?;
+    let w = f64_param(p, "width").ok_or_else(|| bad("column.setDefaultWidth", "missing `width`"))?;
     edit(s, |cx| {
         let si = cx.sheet_index();
         cx.sheet_mut(si)?.default_col_width = w.clamp(0.0, 1800.0) as f32;

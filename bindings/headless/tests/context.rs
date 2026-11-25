@@ -34,7 +34,7 @@ fn open(name: &str) -> (Headless<SheetDocument>, String, std::path::PathBuf) {
     book.execute("sheet.rename", json!({ "name": "Data" })).unwrap();
     book.execute("range.setValues", json!({ "range": "A1", "values": [["Region", "Sales"], ["North", 120], ["South", 80]] })).unwrap();
     for name in ["Notes", "Summary"] {
-        book.execute("home.insertSheet", json!({ "name": name, "before": 9 })).unwrap();
+        book.execute("sheet.insert", json!({ "name": name, "before": 9 })).unwrap();
         book.execute("range.setValues", json!({ "range": "A1", "values": [[name]] })).unwrap();
     }
     book.execute("sheet.activate", json!({ "sheet": "Data" })).unwrap();
@@ -56,7 +56,7 @@ fn what_an_agent_reads_of_the_workbook_leaves_out_the_editors_state() {
     let before = kit.describe(&id).unwrap().state;
     // The person goes to another sheet, selects a range there, and starts the format painter.
     run(&mut kit, &id, "sheet.activate", json!({ "sheet": "Summary" }), Origin::User);
-    run(&mut kit, &id, "selection.set", json!({ "range": "B2:C4" }), Origin::User);
+    run(&mut kit, &id, "select.set", json!({ "range": "B2:C4" }), Origin::User);
     let moved = kit.describe(&id).unwrap().state;
     let shown = Value::Object(moved.clone());
     assert_eq!(moved, before, "the active sheet and the selection changed what the agent reads of the workbook");
@@ -109,13 +109,13 @@ fn every_sheet_is_listed_with_its_id_name_and_position_and_read_by_its_tool_id()
 fn a_run_sets_each_steps_sheet_and_selection_and_puts_the_editor_back() {
     let (mut kit, id, root) = open("run");
     // The person is on Data with A2:B3 selected.
-    run(&mut kit, &id, "selection.set", json!({ "range": "A2:B3" }), Origin::User);
+    run(&mut kit, &id, "select.set", json!({ "range": "A2:B3" }), Origin::User);
     let saved = kit.context_get(&id).unwrap();
     let (notes, summary) = (sheet_id(&mut kit, &id, "Notes"), sheet_id(&mut kit, &id, "Summary"));
-    // Step 1: bold on Notes' B2:C3 through `on` (`home.bold` reads the selection).
+    // Step 1: bold on Notes' B2:C3 through `on` (`format.bold` reads the selection).
     kit.context_set(&id, &params(json!({ "part": { "sheet": notes }, "on": ["B2:C3"] }))).unwrap();
     run(&mut kit, &id, "range.setValues", json!({ "range": "B2", "values": [["x", "y"], ["z", "w"]] }), Origin::Agent);
-    run(&mut kit, &id, "home.bold", json!({ "on": true }), Origin::Agent);
+    run(&mut kit, &id, "format.bold", json!({ "on": true }), Origin::Agent);
     // Step 2: values on Summary (`at.part` by tool id).
     kit.context_set(&id, &params(json!({ "part": { "sheet": format!("sheet:{summary}") } }))).unwrap();
     run(&mut kit, &id, "range.setValues", json!({ "range": "A5", "values": [["Total", 200]] }), Origin::Agent);
@@ -165,12 +165,12 @@ fn a_context_the_workbook_lacks_is_invalid_params_and_says_where_ids_come_from()
 #[test]
 fn an_agents_command_given_its_sheet_moves_nothing() {
     let (mut kit, id, root) = open("named");
-    run(&mut kit, &id, "selection.set", json!({ "range": "B2" }), Origin::User);
+    run(&mut kit, &id, "select.set", json!({ "range": "B2" }), Origin::User);
     let saved = kit.context_get(&id).unwrap();
-    run(&mut kit, &id, "home.bold", json!({ "range": "Summary!A1:B2", "on": true }), Origin::Agent);
+    run(&mut kit, &id, "format.bold", json!({ "range": "Summary!A1:B2", "on": true }), Origin::Agent);
     run(&mut kit, &id, "range.setValues", json!({ "range": "Notes!C1", "values": [[1]] }), Origin::Agent);
     let notes = format!("sheet:{}", sheet_id(&mut kit, &id, "Notes"));
-    run(&mut kit, &id, "home.italic", json!({ "sheet": notes, "range": "C1", "on": true }), Origin::Agent);
+    run(&mut kit, &id, "format.italic", json!({ "sheet": notes, "range": "C1", "on": true }), Origin::Agent);
     // A chart of Summary's cells is made on Summary, and the person's selection stays: the
     // insert selects what it made only for the agent's call.
     run(&mut kit, &id, "range.setValues", json!({ "range": "Summary!A2", "values": [["x", 1], ["y", 2]] }), Origin::Agent);
@@ -180,7 +180,7 @@ fn an_agents_command_given_its_sheet_moves_nothing() {
     assert_eq!(on("Summary").as_array().map(Vec::len), Some(1), "the chart is on the sheet its range names: {state}");
     assert_eq!(on("Data"), json!([]), "{state}");
     assert_eq!(kit.context_get(&id).unwrap(), saved, "an agent's command given its sheet moved the editor");
-    let failed = kit.execute(&id, "home.bold", params(json!({ "range": "Nowhere!A1", "on": true })), Origin::Agent);
+    let failed = kit.execute(&id, "format.bold", params(json!({ "range": "Nowhere!A1", "on": true })), Origin::Agent);
     assert!(failed.is_err(), "a sheet the workbook lacks is refused");
     assert_eq!(kit.context_get(&id).unwrap(), saved, "a failed command moved the editor");
     let italic = run(&mut kit, &id, "cell.get", json!({ "sheet": "Notes", "cell": "C1" }), Origin::Agent);
@@ -188,7 +188,7 @@ fn an_agents_command_given_its_sheet_moves_nothing() {
     // Navigation keeps its effect; a new sheet takes the steps that name no sheet.
     run(&mut kit, &id, "sheet.activate", json!({ "sheet": "Summary" }), Origin::Agent);
     assert_ne!(kit.context_get(&id).unwrap(), saved, "sheet.activate is the agent's move");
-    run(&mut kit, &id, "home.insertSheet", json!({ "name": "Q4" }), Origin::Agent);
+    run(&mut kit, &id, "sheet.insert", json!({ "name": "Q4" }), Origin::Agent);
     run(&mut kit, &id, "range.setValues", json!({ "range": "A1", "values": [["fresh"]] }), Origin::Agent);
     assert_eq!(read(&mut kit, &id, "Q4", "A1"), json!([["fresh"]]), "create a sheet, then fill it");
     kit.context_restore(&id, &saved).unwrap();
@@ -201,7 +201,7 @@ fn an_agents_command_given_its_sheet_moves_nothing() {
 #[test]
 fn the_editor_state_hooks_pass_the_sdks_contract_check() {
     let mut book = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    book.execute("home.insertSheet", json!({ "name": "Other", "before": 9 })).unwrap();
+    book.execute("sheet.insert", json!({ "name": "Other", "before": 9 })).unwrap();
     book.execute("sheet.activate", json!({ "sheet": 0 })).unwrap();
     let other = book.inspect().unwrap()["workbook"]["sheets"][1]["id"].clone();
     let context = kition_kit::CallContext { on: vec![json!("C3:D4")], part: Some(json!({ "sheet": other })), time: None };
@@ -219,8 +219,8 @@ fn the_agents_commands_say_what_they_read_and_the_view_the_render_takes() {
     let (mut kit, id, root) = open("published");
     let commands = kit.agent_commands(Some(&id)).unwrap();
     let params = |command: &str| commands.iter().find(|listed| listed.id == command).map(|listed| listed.params.clone()).unwrap();
-    assert_eq!(params("home.bold")["x-khp-reads"], json!(["selection", "part"]));
-    assert_eq!(params("home.bold")["properties"]["range"]["x-khp-role"], "place");
+    assert_eq!(params("format.bold")["x-khp-reads"], json!(["selection", "part"]));
+    assert_eq!(params("format.bold")["properties"]["range"]["x-khp-role"], "place");
     assert_eq!(params("cell.set")["properties"]["cell"]["x-khp-role"], "place");
     assert_eq!(params("drawing.delete")["properties"]["ids"]["x-khp-role"], "targets");
     assert_eq!(params("chart.delete")["properties"]["chart"]["x-khp-role"], "targets");

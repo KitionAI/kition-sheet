@@ -161,22 +161,14 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         cmd!(query "data.queriesConnections", "Queries & Connections", ["Data", "Queries & Connections"], None, "{} → imported tables", has_doc, queries),
         // Automate
-        cmd!(noundo "automate.recordActions", "Record Actions", ["Automate", "Scripting Tools"], None, "{stop?: bool, name?: script name when stopping}", has_doc, record),
-        cmd!(
-            "automate.newScript",
-            "New Script",
-            ["Automate", "Scripting Tools"],
-            None,
-            "{name, commands: [{command, params}] }",
-            has_doc,
-            new_script
-        ),
-        cmd!(query "automate.allScripts", "All Scripts", ["Automate", "Scripting Tools"], None, "{} → saved scripts", has_doc, all_scripts),
-        cmd!("automate.runScript", "Run Script", [], None, "{name}", has_doc, run_script),
-        cmd!("automate.deleteScript", "Delete Script", [], None, "{name}", has_doc, delete_script),
+        cmd!(noundo "script.record", "Record Actions", ["Automate", "Scripting Tools"], None, "{stop?: bool, name?: script name when stopping}", has_doc, record),
+        cmd!("script.new", "New Script", ["Automate", "Scripting Tools"], None, "{name, commands: [{command, params}] }", has_doc, new_script),
+        cmd!(query "script.list", "All Scripts", ["Automate", "Scripting Tools"], None, "{} → saved scripts", has_doc, all_scripts),
+        cmd!("script.run", "Run Script", [], None, "{name}", has_doc, run_script),
+        cmd!("script.delete", "Delete Script", [], None, "{name}", has_doc, delete_script),
         // Cell controls, themes, borders, styles
         cmd!(
-            "insert.checkbox",
+            "checkbox.insert",
             "Checkbox",
             ["Insert", "Cell Controls"],
             None,
@@ -185,10 +177,10 @@ pub fn specs() -> Vec<CommandSpec> {
             checkbox
         ),
         cmd!("cell.toggleCheckbox", "Toggle Checkbox", [], Some("Space"), "{cell?}", has_doc, toggle_checkbox),
-        cmd!("pageLayout.themeColors", "Colors", ["Page Layout", "Themes"], None, "{name: theme name | colors: [12 hex]}", has_doc, theme_colors),
-        cmd!("pageLayout.themeFonts", "Fonts", ["Page Layout", "Themes"], None, "{major, minor}", has_doc, theme_fonts),
+        cmd!("theme.colors", "Colors", ["Page Layout", "Themes"], None, "{name: theme name | colors: [12 hex]}", has_doc, theme_colors),
+        cmd!("theme.fonts", "Fonts", ["Page Layout", "Themes"], None, "{major, minor}", has_doc, theme_fonts),
         cmd!(
-            "pageLayout.themeEffects",
+            "theme.effects",
             "Effects",
             ["Page Layout", "Themes"],
             None,
@@ -197,7 +189,7 @@ pub fn specs() -> Vec<CommandSpec> {
             |_, _| ok()
         ),
         cmd!(
-            "pageLayout.background",
+            "page.background",
             "Background",
             ["Page Layout", "Page Setup"],
             None,
@@ -206,7 +198,7 @@ pub fn specs() -> Vec<CommandSpec> {
             background
         ),
         cmd!(
-            "home.drawBorder",
+            "format.drawBorder",
             "Draw Border",
             ["Home", "Font"],
             None,
@@ -214,26 +206,18 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             draw_border
         ),
+        cmd!("style.add", "New Cell Style…", ["Home", "Styles"], None, "{name, fromCell?: \"A1\" (default: active cell)}", has_doc, new_cell_style),
+        cmd!(query "addIn.manage", "Add-ins", ["Home", "Add-ins"], None, "{} → Kition Sheet extends through the agent and scripts instead of add-ins", always, |_, _| Ok(json!({"addIns": [], "hint": "Use Kition's agent or Automate › scripts"}))),
+        cmd!(query "formula.recentlyUsed", "Recently Used", ["Formulas", "Function Library"], None, "{} → recently used functions in this workbook", has_doc, recently_used),
+        cmd!(query "formula.financial", "Financial", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formula.functions", json!({"category": "Financial"}))),
+        cmd!(query "formula.logical", "Logical", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formula.functions", json!({"category": "Logical"}))),
+        cmd!(query "formula.text", "Text", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formula.functions", json!({"category": "Text"}))),
+        cmd!(query "formula.dateTime", "Date & Time", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formula.functions", json!({"category": "DateTime"}))),
+        cmd!(query "formula.lookupReference", "Lookup & Reference", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formula.functions", json!({"category": "Lookup"}))),
+        cmd!(query "formula.mathTrig", "Math & Trig", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formula.functions", json!({"category": "MathTrig"}))),
+        cmd!(query "formula.moreFunctions", "More Functions", ["Formulas", "Function Library"], None, "{category?: Statistical|Engineering|Information|Database|Compatibility|Web|Cube}", always, |s, p| s.execute("formula.functions", json!({"category": str_param(p, "category").unwrap_or("Statistical")}))),
         cmd!(
-            "home.newCellStyle",
-            "New Cell Style…",
-            ["Home", "Styles"],
-            None,
-            "{name, fromCell?: \"A1\" (default: active cell)}",
-            has_doc,
-            new_cell_style
-        ),
-        cmd!(query "home.addIns", "Add-ins", ["Home", "Add-ins"], None, "{} → Kition Sheet extends through the agent and scripts instead of add-ins", always, |_, _| Ok(json!({"addIns": [], "hint": "Use Kition's agent or Automate › scripts"}))),
-        cmd!(query "formulas.recentlyUsed", "Recently Used", ["Formulas", "Function Library"], None, "{} → recently used functions in this workbook", has_doc, recently_used),
-        cmd!(query "formulas.financial", "Financial", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formulas.functions", json!({"category": "Financial"}))),
-        cmd!(query "formulas.logical", "Logical", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formulas.functions", json!({"category": "Logical"}))),
-        cmd!(query "formulas.text", "Text", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formulas.functions", json!({"category": "Text"}))),
-        cmd!(query "formulas.dateTime", "Date & Time", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formulas.functions", json!({"category": "DateTime"}))),
-        cmd!(query "formulas.lookupReference", "Lookup & Reference", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formulas.functions", json!({"category": "Lookup"}))),
-        cmd!(query "formulas.mathTrig", "Math & Trig", ["Formulas", "Function Library"], None, "{}", always, |s, _| s.execute("formulas.functions", json!({"category": "MathTrig"}))),
-        cmd!(query "formulas.moreFunctions", "More Functions", ["Formulas", "Function Library"], None, "{category?: Statistical|Engineering|Information|Database|Compatibility|Web|Cube}", always, |s, p| s.execute("formulas.functions", json!({"category": str_param(p, "category").unwrap_or("Statistical")}))),
-        cmd!(
-            "formulas.useInFormula",
+            "formula.useInFormula",
             "Use in Formula",
             ["Formulas", "Defined Names"],
             None,
@@ -241,7 +225,7 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             use_in_formula
         ),
-        cmd!(query "formulas.watchWindow", "Watch Window", ["Formulas", "Formula Auditing"], None, "{add?: \"Sheet1!B5\", remove?: \"…\"} → watched cells with current values", has_doc, watch_window),
+        cmd!(query "formula.watchWindow", "Watch Window", ["Formulas", "Formula Auditing"], None, "{add?: \"Sheet1!B5\", remove?: \"…\"} → watched cells with current values", has_doc, watch_window),
     ]
 }
 
@@ -629,7 +613,7 @@ fn custom_views(s: &mut Session, p: &Json) -> Result<Json> {
             s.execute("sheet.activate", json!({"sheet": si}))?;
         }
         if let Some(sel) = v["selection"].as_str() {
-            s.execute("selection.set", json!({"range": sel}))?;
+            s.execute("select.set", json!({"range": sel}))?;
         }
         if let Some(z) = v["zoom"].as_u64() {
             s.execute("view.zoom", json!({"percent": z}))?;
@@ -862,12 +846,12 @@ fn from_csv(s: &mut Session, p: &Json) -> Result<Json> {
     let name = str_param(p, "sheet").map(str::to_string).or_else(|| {
         str_param(p, "path").and_then(|x| std::path::Path::new(x).file_stem().and_then(|f| f.to_str()).map(|f| f.chars().take(31).collect()))
     });
-    let r = s.execute("home.insertSheet", json!({"name": name})).or_else(|_| s.execute("home.insertSheet", json!({})))?;
+    let r = s.execute("sheet.insert", json!({"name": name})).or_else(|_| s.execute("sheet.insert", json!({})))?;
     let w = rows.iter().map(Vec::len).max().unwrap_or(1).max(1);
     s.execute("range.setValues", json!({"range": "A1", "values": rows}))?;
     let range = RangeRef::new(CellRef::new(0, 0), CellRef::new(rows.len() as u32 - 1, w as u32 - 1));
-    let _ = s.execute("insert.table", json!({"range": range.a1(), "header": true}));
-    let _ = s.execute("home.autofitColumnWidth", json!({"cols": RangeRef::cols(0, w as u32 - 1).a1()}));
+    let _ = s.execute("table.insert", json!({"range": range.a1(), "header": true}));
+    let _ = s.execute("column.autofitWidth", json!({"cols": RangeRef::cols(0, w as u32 - 1).a1()}));
     Ok(json!({"sheet": r["name"], "rows": rows.len(), "cols": w}))
 }
 
@@ -901,7 +885,7 @@ fn record(s: &mut Session, p: &Json) -> Result<Json> {
         let cmds: Vec<Json> =
             s.journal.iter().skip(start).filter(|(id, _)| !id.starts_with("automate.")).map(|(id, p)| json!({"command": id, "params": p})).collect();
         let name = str_param(p, "name").map(str::to_string).unwrap_or_else(|| format!("Script {}", start));
-        s.execute("automate.newScript", json!({"name": name, "commands": cmds}))?;
+        s.execute("script.new", json!({"name": name, "commands": cmds}))?;
         return Ok(json!({"recording": false, "saved": name, "steps": cmds.len()}));
     }
     s.recording = Some(s.journal.len());
@@ -909,10 +893,10 @@ fn record(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn new_script(s: &mut Session, p: &Json) -> Result<Json> {
-    let name = str_param(p, "name").ok_or_else(|| bad("automate.newScript", "missing `name`"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("script.new", "missing `name`"))?.to_string();
     let cmds = p.get("commands").cloned().unwrap_or(json!([]));
     if !cmds.is_array() {
-        return Err(bad("automate.newScript", "`commands` must be an array"));
+        return Err(bad("script.new", "`commands` must be an array"));
     }
     edit(s, |cx| {
         let mut all = stash_get(&cx.wb, SCRIPTS_NAME);
@@ -930,9 +914,9 @@ fn all_scripts(s: &mut Session, _: &Json) -> Result<Json> {
 }
 
 fn run_script(s: &mut Session, p: &Json) -> Result<Json> {
-    let name = str_param(p, "name").ok_or_else(|| bad("automate.runScript", "missing `name`"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("script.run", "missing `name`"))?;
     let all = stash_get(&s.doc()?.wb, SCRIPTS_NAME);
-    let steps = all.get(name).and_then(Json::as_array).cloned().ok_or_else(|| bad("automate.runScript", "no such script"))?;
+    let steps = all.get(name).and_then(Json::as_array).cloned().ok_or_else(|| bad("script.run", "no such script"))?;
     let steps: Vec<(&str, Json)> = steps
         .iter()
         .take(100_000)
@@ -944,7 +928,7 @@ fn run_script(s: &mut Session, p: &Json) -> Result<Json> {
     // command the caller runs itself passes, before any step runs. Without a host everything
     // may run.
     for (id, params) in &steps {
-        kdm_model::kition_kit::dispatch::may_run(id, params).map_err(|why| bad("automate.runScript", why))?;
+        kdm_model::kition_kit::dispatch::may_run(id, params).map_err(|why| bad("script.run", why))?;
     }
     let mut n = 0;
     for (id, params) in steps {
@@ -955,7 +939,7 @@ fn run_script(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn delete_script(s: &mut Session, p: &Json) -> Result<Json> {
-    let name = str_param(p, "name").ok_or_else(|| bad("automate.deleteScript", "missing `name`"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("script.delete", "missing `name`"))?.to_string();
     edit(s, |cx| {
         let mut all = stash_get(&cx.wb, SCRIPTS_NAME);
         if let Some(o) = all.as_object_mut() {
@@ -998,7 +982,7 @@ fn checkbox(s: &mut Session, p: &Json) -> Result<Json> {
     let ranges = target_ranges(s, p)?;
     let si = target_sheet(s, p)?;
     if ranges.iter().map(RangeRef::count).sum::<u64>() > 100_000 {
-        return Err(bad("insert.checkbox", "range too large"));
+        return Err(bad("checkbox.insert", "range too large"));
     }
     {
         let d = s.doc()?;
@@ -1071,13 +1055,13 @@ fn theme_colors(s: &mut Session, p: &Json) -> Result<Json> {
     if params.get("name").is_none() {
         params["name"] = json!(s.doc()?.wb.theme.name.clone());
     }
-    s.execute("pageLayout.theme", params)
+    s.execute("theme.set", params)
 }
 
 fn theme_fonts(s: &mut Session, p: &Json) -> Result<Json> {
     let name = s.doc()?.wb.theme.name.clone();
     let colors: Vec<String> = s.doc()?.wb.theme.colors.iter().map(|c| format!("#{c:06X}")).collect();
-    s.execute("pageLayout.theme", json!({"name": name, "colors": colors, "majorFont": p.get("major"), "minorFont": p.get("minor")}))
+    s.execute("theme.set", json!({"name": name, "colors": colors, "majorFont": p.get("major"), "minorFont": p.get("minor")}))
 }
 
 fn background(s: &mut Session, p: &Json) -> Result<Json> {
@@ -1106,11 +1090,11 @@ fn draw_border(s: &mut Session, p: &Json) -> Result<Json> {
     };
     let mut params = p.clone();
     params["preset"] = json!(preset);
-    s.execute("home.borders", params)
+    s.execute("format.borders", params)
 }
 
 fn new_cell_style(s: &mut Session, p: &Json) -> Result<Json> {
-    let name = str_param(p, "name").ok_or_else(|| bad("home.newCellStyle", "missing `name`"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("style.add", "missing `name`"))?.to_string();
     let d = s.doc()?;
     let sh = d.wb.active().ok_or(EngineError::NoDocument)?;
     let c = cell_param(p, "fromCell").unwrap_or(d.selection.active);
@@ -1151,7 +1135,7 @@ fn recently_used(s: &mut Session, _: &Json) -> Result<Json> {
 }
 
 fn use_in_formula(s: &mut Session, p: &Json) -> Result<Json> {
-    let name = str_param(p, "name").ok_or_else(|| bad("formulas.useInFormula", "missing `name`"))?;
+    let name = str_param(p, "name").ok_or_else(|| bad("formula.useInFormula", "missing `name`"))?;
     s.ui_requests.push(crate::UiRequest::EditCell(Some(format!("={name}"))));
     ok()
 }

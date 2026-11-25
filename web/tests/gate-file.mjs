@@ -19,7 +19,7 @@ const settle = (ms = 250) => page.waitForTimeout(ms)
 const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
 const enc = new TextEncoder()
 const b64 = (bytes) => Buffer.from(bytes).toString('base64')
-const workbook = () => exec('document.inspect')
+const workbook = () => exec('file.inspect')
 const sheetOf = async (name) => (await workbook()).sheets.find((s) => s.name === name)
 const toasts = (level) => kit.locator(`.kui-toast${level ? `[data-level=${level}]` : ''}`).allTextContents().then((all) => all.join(' | '))
 const dismiss = async () => {
@@ -105,61 +105,61 @@ async function buildFeatureBook() {
   await ai([
     { command: 'sheet.activate', params: { sheet: '字体格式' } },
     { command: 'range.setValues', params: { range: 'A1', values: [['宋体加粗红'], ['黑体'], ['微软雅黑'], ['Arial'], ['Calibri']] } },
-    { command: 'home.fontName', params: { range: 'A1', name: '宋体' } },
-    { command: 'home.bold', params: { range: 'A1' } },
-    { command: 'home.fontColor', params: { range: 'A1', color: '#C00000' } },
-    { command: 'home.fontSize', params: { range: 'A1', size: 14 } },
-    { command: 'home.fontName', params: { range: 'A2', name: '黑体' } },
-    { command: 'home.fontName', params: { range: 'A3', name: '微软雅黑' } },
-    { command: 'home.fontName', params: { range: 'A4', name: 'Arial' } },
+    { command: 'format.fontName', params: { range: 'A1', name: '宋体' } },
+    { command: 'format.bold', params: { range: 'A1' } },
+    { command: 'format.color', params: { range: 'A1', color: '#C00000' } },
+    { command: 'format.fontSize', params: { range: 'A1', size: 14 } },
+    { command: 'format.fontName', params: { range: 'A2', name: '黑体' } },
+    { command: 'format.fontName', params: { range: 'A3', name: '微软雅黑' } },
+    { command: 'format.fontName', params: { range: 'A4', name: 'Arial' } },
     { command: 'range.setValues', params: { range: 'B1', values: [['黄底'], [longText], ['居中'], ['右上']] } },
-    { command: 'home.fillColor', params: { range: 'B1', color: '#FFFF00' } },
-    { command: 'home.wrapText', params: { range: 'B2' } },
-    { command: 'home.alignCenter', params: { range: 'B3' } },
-    { command: 'home.alignMiddle', params: { range: 'B3' } },
-    { command: 'home.alignRight', params: { range: 'B4' } },
-    { command: 'home.alignTop', params: { range: 'B4' } },
+    { command: 'format.fillColor', params: { range: 'B1', color: '#FFFF00' } },
+    { command: 'format.wrapText', params: { range: 'B2' } },
+    { command: 'format.alignCenter', params: { range: 'B3' } },
+    { command: 'format.alignMiddle', params: { range: 'B3' } },
+    { command: 'format.alignRight', params: { range: 'B4' } },
+    { command: 'format.alignTop', params: { range: 'B4' } },
     { command: 'cell.set', params: { cell: 'C1', input: '合并' } },
-    { command: 'home.mergeCells', params: { range: 'C1:D2' } },
-    { command: 'home.borders', params: { range: 'C4', preset: 'outside', style: 'thick', color: '#FF0000' } },
-    { command: 'home.borders', params: { range: 'C5', preset: 'bottom', style: 'dashed' } },
-    { command: 'home.rowHeight', params: { rows: '7', height: 40 } },
-    { command: 'home.columnWidth', params: { cols: 'E', width: 120 } },
+    { command: 'cell.merge', params: { range: 'C1:D2' } },
+    { command: 'format.borders', params: { range: 'C4', preset: 'outside', style: 'thick', color: '#FF0000' } },
+    { command: 'format.borders', params: { range: 'C5', preset: 'bottom', style: 'dashed' } },
+    { command: 'row.setHeight', params: { rows: '7', height: 40 } },
+    { command: 'column.setWidth', params: { cols: 'E', width: 120 } },
     { command: 'cell.set', params: { cell: 'A9', input: '隐藏行' } },
-    { command: 'home.hideRows', params: { rows: '9' } },
+    { command: 'row.hide', params: { rows: '9' } },
     { command: 'cell.set', params: { cell: 'F1', input: '隐藏列' } },
-    { command: 'home.hideColumns', params: { cols: 'F' } },
+    { command: 'column.hide', params: { cols: 'F' } },
     { command: 'view.freezePanes', params: { cell: 'B2' } },
     { command: 'cell.set', params: { cell: 'A10', input: '网站' } },
-    { command: 'insert.link', params: { cell: 'A10', target: 'https://example.com/', tooltip: '打开网站' } },
+    { command: 'link.insert', params: { cell: 'A10', target: 'https://example.com/', tooltip: '打开网站' } },
     { command: 'cell.set', params: { cell: 'A11', input: '邮件' } },
-    { command: 'insert.link', params: { cell: 'A11', target: 'mailto:a@example.com' } },
+    { command: 'link.insert', params: { cell: 'A11', target: 'mailto:a@example.com' } },
     { command: 'cell.set', params: { cell: 'A12', input: '跳到公式' } },
-    { command: 'insert.link', params: { cell: 'A12', target: "'公式'!A1" } },
+    { command: 'link.insert', params: { cell: 'A12', target: "'公式'!A1" } },
     { command: 'range.setValues', params: { range: 'G1', values: [[0.125], [46295], [1234567.891], [88.5], [12]] } },
-    { command: 'home.numberFormat', params: { range: 'G1', format: '0.00%' } },
-    { command: 'home.numberFormat', params: { range: 'G2', format: 'yyyy-mm-dd' } },
-    { command: 'home.numberFormat', params: { range: 'G3', format: '#,##0.00' } },
-    { command: 'home.numberFormat', params: { range: 'G4', format: '"¥"#,##0.00' } },
-    { command: 'home.numberFormat', params: { range: 'G5', format: '0"件"' } },
+    { command: 'format.numberFormat', params: { range: 'G1', format: '0.00%' } },
+    { command: 'format.numberFormat', params: { range: 'G2', format: 'yyyy-mm-dd' } },
+    { command: 'format.numberFormat', params: { range: 'G3', format: '#,##0.00' } },
+    { command: 'format.numberFormat', params: { range: 'G4', format: '"¥"#,##0.00' } },
+    { command: 'format.numberFormat', params: { range: 'G5', format: '0"件"' } },
     { command: 'cell.set', params: { cell: 'H1', input: '有备注' } },
-    { command: 'review.newNote', params: { cell: 'H1', text: '备注内容', author: '测试' } },
+    { command: 'note.add', params: { cell: 'H1', text: '备注内容', author: '测试' } },
     { command: 'cell.set', params: { cell: 'A13', input: '红色加粗部分普通部分' } },
     { command: 'cell.formatText', params: { cell: 'A13', start: 0, end: 6, bold: true, color: '#FF0000' } },
     { command: 'range.setValues', params: { range: 'I1', values: [[1, 1, 1, 1], [2, 2, 2, 2], [3, 3, 3, 3], [4, 4, 4, 4], [5, 5, 5, 5]] } },
-    { command: 'home.conditionalFormat', params: { range: 'I1:I5', rule: { type: 'dataBar' } } },
-    { command: 'home.conditionalFormat', params: { range: 'J1:J5', rule: { type: 'colorScale' } } },
-    { command: 'home.conditionalFormat', params: { range: 'K1:K5', rule: { type: 'iconSet' } } },
-    { command: 'home.conditionalFormat', params: { range: 'L1:L5', rule: { type: 'cellIs', operator: 'greaterThan', value: 3, style: { fill: '#FFC7CE' } } } },
+    { command: 'conditionalFormat.apply', params: { range: 'I1:I5', rule: { type: 'dataBar' } } },
+    { command: 'conditionalFormat.apply', params: { range: 'J1:J5', rule: { type: 'colorScale' } } },
+    { command: 'conditionalFormat.apply', params: { range: 'K1:K5', rule: { type: 'iconSet' } } },
+    { command: 'conditionalFormat.apply', params: { range: 'L1:L5', rule: { type: 'cellIs', operator: 'greaterThan', value: 3, style: { fill: '#FFC7CE' } } } },
     { command: 'data.validation', params: { range: 'M1', type: 'list', formula1: '"是,否"', errorMessage: '只能选择是或否' } },
     { command: 'range.setValues', params: { range: 'N1', values: [[true], [false]] } },
-    { command: 'insert.checkbox', params: { range: 'N1:N2' } },
+    { command: 'checkbox.insert', params: { range: 'N1:N2' } },
     { command: 'range.setValues', params: { range: 'O1', values: [[3, 5, 2, 8]] } },
-    { command: 'insert.sparkline', params: { range: 'O1:R1', location: 'S1', type: 'line' } },
+    { command: 'sparkline.insert', params: { range: 'O1:R1', location: 'S1', type: 'line' } },
     { command: 'range.setValues', params: { range: 'T1', values: [['=1/0'], ['=NA()'], ['="a"+1'], ['=INDEX(A1:A2,5)']] } },
     { command: 'sheet.tabColor', params: { sheet: '字体格式', color: '#FF0000' } },
     { command: 'range.setValues', params: { range: 'U1', values: [['品名', '数量'], ['甲', 3], ['乙', 4]] } },
-    { command: 'insert.table', params: { range: 'U1:V3', name: '销售表' } },
+    { command: 'table.insert', params: { range: 'U1:V3', name: '销售表' } },
     { command: 'cell.set', params: { cell: 'W2', input: '=SUM(销售表[数量])' } },
     { command: 'range.setValues', params: { range: 'X1', values: [['地区', '额'], ['东', 1], ['西', 2], ['东', 3]] } },
     { command: 'data.filter', params: { range: 'X1:Y4' } },
@@ -168,21 +168,21 @@ async function buildFeatureBook() {
   await ai([
     { command: 'sheet.activate', params: { sheet: '公式' } },
     { command: 'range.setValues', params: { range: 'A1', values: [[1], [2], [3]] } },
-    { command: 'formulas.defineName', params: { name: '合计区', refersTo: '=公式!$A$1:$A$3' } },
+    { command: 'name.define', params: { name: '合计区', refersTo: '=公式!$A$1:$A$3' } },
     { command: 'range.setValues', params: { range: 'B1', values: [['=SUM(A1:A3)'], ['=$A$1*2'], ["='字体格式'!G1*100"], ['=SUM(合计区)*2']] } },
     { command: 'cell.set', params: { cell: 'B5', input: '=FOOBAR(1)' } },
     { command: 'sheet.activate', params: { sheet: '对象' } },
     { command: 'range.setValues', params: { range: 'A1', values: [['月', '收入', '成本'], ['一月', 10, 6], ['二月', 14, 8], ['三月', 9, 5]] } },
-    { command: 'insert.chart', params: { range: 'A1:C4', type: 'column', at: 'E2' } },
-    { command: 'insert.chart', params: { range: 'A1:C4', type: 'line', at: 'E18' } },
-    { command: 'insert.chart', params: { range: 'A1:B4', type: 'pie', at: 'M2' } },
-    { command: 'insert.shape', params: { kind: 'rectangle', at: 'A8', width: 120, height: 40, text: '形状文字' } },
-    { command: 'insert.textBox', params: { at: 'A12', width: 140, height: 40, text: '文本框文字' } },
+    { command: 'chart.insert', params: { range: 'A1:C4', type: 'column', at: 'E2' } },
+    { command: 'chart.insert', params: { range: 'A1:C4', type: 'line', at: 'E18' } },
+    { command: 'chart.insert', params: { range: 'A1:B4', type: 'pie', at: 'M2' } },
+    { command: 'shape.insert', params: { kind: 'rectangle', at: 'A8', width: 120, height: 40, text: '形状文字' } },
+    { command: 'textBox.insert', params: { at: 'A12', width: 140, height: 40, text: '文本框文字' } },
     { command: 'view.gridlines', params: { on: false } },
     { command: 'sheet.activate', params: { sheet: '隐藏表' } },
     { command: 'cell.set', params: { cell: 'A1', input: '隐藏的工作表' } },
     { command: 'sheet.activate', params: { sheet: '对象' } },
-    { command: 'insert.pivotTable', params: { source: '对象!$A$1:$C$4', destination: '对象!R2', rows: ['月'], values: ['收入'] } },
+    { command: 'pivot.insert', params: { source: '对象!$A$1:$C$4', destination: '对象!R2', rows: ['月'], values: ['收入'] } },
     { command: 'sheet.hide', params: { sheet: '隐藏表' } },
     { command: 'sheet.activate', params: { sheet: '字体格式' } },
   ])
@@ -273,7 +273,7 @@ try {
     const sheet = await sheetOf('字体格式')
     step('IMP-C39 下拉列表规则保留', sheet.validationRanges.includes('M1'), JSON.stringify(sheet.validationRanges))
     // Typed in the grid: the rule's message, and the value stays out.
-    // The person goes to M1 (an agent's selection.set moves only its own editor state, KHP C3b).
+    // The person goes to M1 (an agent's select.set moves only its own editor state, KHP C3b).
     await h.goTo('M1')
     await settle(200)
     await kit.locator('.kui-text-sink').focus()
@@ -352,7 +352,7 @@ try {
   })
 
   await section('IMP-C55 工作表保护', async () => {
-    await ai([{ command: 'sheet.activate', params: { sheet: '公式' } }, { command: 'review.protectSheet', params: {} }])
+    await ai([{ command: 'sheet.activate', params: { sheet: '公式' } }, { command: 'sheet.protect', params: {} }])
     const bytes = await workbookBytes()
     await openFile('保护.xlsx', bytes)
     await h.choose('公式')
@@ -541,7 +541,7 @@ try {
     for (let i = 1; i <= 150; i += 1) rows.push([i, `第${i}行`])
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: rows } },
-      { command: 'pageLayout.pageSetup', params: { titleRows: '1:1' } },
+      { command: 'page.pageSetup', params: { titleRows: '1:1' } },
     ])
     const answer = await exec('file.export', { format: 'pdf' })
     const text = Buffer.from(answer.data, 'base64').toString('latin1')
@@ -734,8 +734,8 @@ try {
     await openFile('来源.xlsx', biffWorkbook())
     await ai([
       { command: 'cell.set', params: { cell: 'D1', input: 'TRUE' } },
-      { command: 'insert.checkbox', params: { range: 'D1' } },
-      { command: 'selection.set', params: { range: 'A1:D2' } },
+      { command: 'checkbox.insert', params: { range: 'D1' } },
+      { command: 'select.set', params: { range: 'A1:D2' } },
     ])
     const copied = await exec('edit.copy', { range: 'A1:D2', html: true })
     step('IMP-X1 复制时剪贴板 HTML 带有本应用的单元格副本', (copied.html ?? '').includes('data-kition-sheet="'))
@@ -769,7 +769,7 @@ try {
     step('PRV-C49 双击、输入、删除都不改单元格', (await cellOf('A1')).value === '宋体加粗红' && (await cellOf('B1')).value === '黄底')
     const home = kit.getByTestId('ribbon-tab-home')
     if ((await home.count()) > 0 && (await home.isVisible())) await home.click()
-    const bold = kit.getByTestId('sheet-cmd-home.bold')
+    const bold = kit.getByTestId('sheet-cmd-format.bold')
     const tabs = await kit.locator('[data-testid^="ribbon-tab-"]').evaluateAll((all) => all.filter((t) => t.getBoundingClientRect().width > 0).map((t) => t.textContent))
     step('PRV-C8 编辑类按钮不可用（置灰或不显示）', (await bold.count()) === 0 || !(await bold.isVisible()) || (await bold.isDisabled()), JSON.stringify(tabs))
   })

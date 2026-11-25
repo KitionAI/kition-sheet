@@ -5,13 +5,13 @@ intent: >-
   The headless kit reads and writes only inside its workspace, through its host, and starts no
   program (KHP A29, A42, A58, section 10.6): whatever an agent runs, directly, as a command step of
   model.batch (as a script, as the agent, as a person it claims to be) or as a step of a script of
-  the kit's own (automate.newScript and automate.runScript, also inside one batch), and whatever
+  the kit's own (script.new and script.run, also inside one batch), and whatever
   scripts a workbook of the workspace carries, nothing appears in the process's current, home or
   temporary folder, nothing outside the workspace (nor a file planted in the private runtime
   folder, nor a hidden file or a link out of the workspace) is read into an answer, changed or
-  deleted, and no print or opener program starts. An audit found that automate.runScript, which
+  deleted, and no print or opener program starts. An audit found that script.run, which
   the agent is offered, ran every by-path command (file.open, data.getData, data.fromTextCsv,
-  insert.picture, file.save, file.saveAs, file.export*, file.print) with no check, that a
+  image.insert, file.save, file.saveAs, file.export*, file.print) with no check, that a
   workbook could carry such a script, and that spelling read the machine's word list.
 layer: gate
 tags: [headless, security]

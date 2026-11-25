@@ -37,7 +37,7 @@ fn custom_view_show_restores_saved_frozen_or_unfrozen_panes_after_reopen() {
 fn arrange_rotate_honors_flip_without_swapping_the_frame_and_can_toggle_it_back() {
     let mut session = Session::new();
     session.new_workbook();
-    run(&mut session, "insert.shape", json!({"kind":"triangle","at":"C3","width":120,"height":60}));
+    run(&mut session, "shape.insert", json!({"kind":"triangle","at":"C3","width":120,"height":60}));
     let original = session.doc().unwrap().wb.active().unwrap().shapes[0].clone();
     for (flip, horizontal, vertical) in [("horizontal", true, false), ("vertical", true, true), ("horizontal", false, true)] {
         run(&mut session, "arrange.rotate", json!({"kind":"shape","id":original.id,"flip":flip}));
@@ -60,7 +60,7 @@ fn table_range_import_reads_the_named_source_sheet_and_keeps_its_name() {
         let mut session = Session::new();
         session.new_workbook();
         run(&mut session, "range.setValues", json!({"range":"A1","values":[["Item","Amount"],["left one",1],["left two",2]]}));
-        run(&mut session, "home.insertSheet", json!({"name":"Sheet2","before":9}));
+        run(&mut session, "sheet.insert", json!({"name":"Sheet2","before":9}));
         run(&mut session, "range.setValues", json!({"range":"A1","values":[["Item","Amount"],["right one",100],["right two",200]]}));
         run(&mut session, "sheet.activate", json!({"sheet":"Sheet1"}));
 

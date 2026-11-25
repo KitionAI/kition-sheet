@@ -409,7 +409,7 @@ impl SheetDocument {
     /// being typed: it formats all of their text, as Excel and WPS do (`None`: not theirs). The
     /// shape being typed takes its text first.
     pub(crate) fn shape_font(&mut self, command: &str, params: &serde_json::Value) -> Option<Result<serde_json::Value, String>> {
-        if !matches!(command, "home.bold" | "home.italic" | "home.underline" | "home.fontName" | "home.fontSize" | "home.fontColor") {
+        if !matches!(command, "format.bold" | "format.italic" | "format.underline" | "format.fontName" | "format.fontSize" | "format.color") {
             return None;
         }
         let mut ids: Vec<u32> = self.shape_edit.as_ref().map(|e| e.id).into_iter().collect();
@@ -436,40 +436,40 @@ impl SheetDocument {
             objects.iter().flat_map(|o| o.text.iter().flat_map(|t| t.paragraphs.iter().flat_map(|p| p.runs.iter()))).all(test)
         };
         let set: Box<dyn Fn(&mut kition_office_core::model::Run)> = match command {
-            "home.bold" => {
+            "format.bold" => {
                 let v = on.unwrap_or_else(|| !all(&|r| r.bold == Some(true)));
                 Box::new(move |r| r.bold = v.then_some(true))
             }
-            "home.italic" => {
+            "format.italic" => {
                 let v = on.unwrap_or_else(|| !all(&|r| r.italic == Some(true)));
                 Box::new(move |r| r.italic = v.then_some(true))
             }
-            "home.underline" => {
+            "format.underline" => {
                 let v = on.unwrap_or_else(|| {
                     params.get("style").and_then(serde_json::Value::as_str).map_or_else(|| !all(&|r| r.underline == Some(true)), |s| s != "none")
                 });
                 Box::new(move |r| r.underline = v.then_some(true))
             }
-            "home.fontName" => {
+            "format.fontName" => {
                 let name = params
                     .get("name")
                     .and_then(serde_json::Value::as_str)
                     .map(str::trim)
                     .filter(|n| !n.is_empty())
-                    .ok_or("home.fontName: missing `name`")?
+                    .ok_or("format.fontName: missing `name`")?
                     .to_owned();
                 Box::new(move |r| r.font = Some(name.clone()))
             }
-            "home.fontSize" => {
+            "format.fontSize" => {
                 let size = params
                     .get("size")
                     .and_then(serde_json::Value::as_f64)
                     .filter(|n| (1.0..=409.0).contains(n))
-                    .ok_or("home.fontSize: `size` is 1 to 409")?;
+                    .ok_or("format.fontSize: `size` is 1 to 409")?;
                 Box::new(move |r| r.size = Some(size))
             }
             _ => {
-                let color = params.get("color").and_then(kition_office_core::model::Color::from_value).ok_or("home.fontColor: missing `color`")?;
+                let color = params.get("color").and_then(kition_office_core::model::Color::from_value).ok_or("format.color: missing `color`")?;
                 Box::new(move |r| r.color = Some(color.clone()))
             }
         };
@@ -658,7 +658,7 @@ mod tests {
     fn a_shape_chosen_in_insert_shapes_is_drawn_by_a_drag_and_a_line_between_shapes_glues() {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         let count = |doc: &SheetDocument| doc.session.doc().unwrap().wb.active().unwrap().shapes.len();
-        doc.execute("draw.shape", json!({ "preset": "ellipse" })).unwrap();
+        doc.execute("ink.shape", json!({ "preset": "ellipse" })).unwrap();
         doc.pointer(&ev(PointerAction::Down, 100.0, 60.0)).unwrap();
         let r = doc.pointer(&ev(PointerAction::Drag, 220.0, 120.0)).unwrap();
         assert!(r.overlays.iter().any(|o| matches!(o, kition_kit::tools::ToolOverlay::Path { width, .. } if *width == 1.5)), "the outline previews");
@@ -678,7 +678,7 @@ mod tests {
         let from = kition_office_core::connect::sites(&shape(&mut doc, &ellipse)).into_iter().max_by(|a, b| a.y.total_cmp(&b.y)).unwrap();
         let to = kition_office_core::connect::sites(&shape(&mut doc, &rect)).into_iter().min_by(|a, b| a.y.total_cmp(&b.y)).unwrap();
         let before = count(&doc);
-        doc.execute("draw.shape", json!({ "preset": "line" })).unwrap();
+        doc.execute("ink.shape", json!({ "preset": "line" })).unwrap();
         doc.pointer(&ev(PointerAction::Down, from.x + 2.0, from.y)).unwrap();
         doc.pointer(&ev(PointerAction::Drag, to.x, to.y - 3.0)).unwrap();
         doc.pointer(&ev(PointerAction::Up, to.x, to.y - 3.0)).unwrap();
@@ -689,10 +689,10 @@ mod tests {
         assert_eq!(count(&doc), before + 1);
         doc.execute("edit.undo", json!({})).unwrap();
         assert_eq!(count(&doc), before);
-        doc.execute("draw.shape", json!({ "preset": "rect" })).unwrap();
+        doc.execute("ink.shape", json!({ "preset": "rect" })).unwrap();
         doc.key("Escape", kition_kit::tools::ToolMods::default(), 1.0).unwrap();
         assert_eq!(doc.session.draw_shape, None);
-        assert!(doc.execute("draw.shape", json!({ "preset": "notAShape" })).is_err());
+        assert!(doc.execute("ink.shape", json!({ "preset": "notAShape" })).is_err());
     }
 
     #[test]
@@ -749,7 +749,7 @@ mod tests {
                 .filter(|o| o.kind == kition_office_core::model::ObjectKind::Ink)
                 .collect()
         };
-        doc.execute("draw.pen", json!({ "color": "#C00000", "width": 3 })).unwrap();
+        doc.execute("ink.pen", json!({ "color": "#C00000", "width": 3 })).unwrap();
         let steps = undo_steps(&doc);
         doc.pointer(&ev(PointerAction::Down, 100.0, 80.0)).unwrap();
         for i in 1..=10 {
@@ -771,13 +771,13 @@ mod tests {
         doc.pointer(&ev(PointerAction::Up, 180.0, 150.0)).unwrap();
         assert_eq!(inks(&mut doc).len(), 1);
         // The eraser's drag across the stroke takes it.
-        doc.execute("draw.eraser", json!({})).unwrap();
+        doc.execute("ink.eraser", json!({})).unwrap();
         doc.pointer(&ev(PointerAction::Down, 150.0, 60.0)).unwrap();
         doc.pointer(&ev(PointerAction::Drag, 150.0, 100.0)).unwrap();
         doc.pointer(&ev(PointerAction::Up, 150.0, 100.0)).unwrap();
         assert!(inks(&mut doc).is_empty());
         // Back to selecting: the pointer selects cells again.
-        doc.execute("draw.select", json!({})).unwrap();
+        doc.execute("ink.select", json!({})).unwrap();
         doc.pointer(&ev(PointerAction::Down, 100.0, 200.0)).unwrap();
         doc.pointer(&ev(PointerAction::Up, 140.0, 200.0)).unwrap();
         assert!(inks(&mut doc).is_empty());

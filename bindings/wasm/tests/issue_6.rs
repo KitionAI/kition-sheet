@@ -24,7 +24,7 @@ fn ink(doc: &SheetDocument, col: u32) -> usize {
 fn substituted_fonts_and_missing_glyphs_are_reported() {
     let mut doc = SheetDocument::create("Fonts.xlsx", 0, 0).unwrap();
     doc.execute("range.setValues", json!({ "range": "A1", "values": [["Plain", "Fancy", "Done ✓", "★", "☐"]] })).unwrap();
-    doc.execute("home.fontName", json!({ "range": "B1", "name": "Segoe UI" })).unwrap();
+    doc.execute("format.fontName", json!({ "range": "B1", "name": "Segoe UI" })).unwrap();
 
     // A font with no face and no metric-compatible stand-in: drawn in the built-in sans face.
     let found = doc.check();
@@ -51,12 +51,12 @@ fn substituted_fonts_and_missing_glyphs_are_reported() {
     let substituted = codes(&found, "sheet.font-substituted");
     assert!(substituted.iter().any(|m| m.contains("Calibri") && m.contains("Carlito")), "{substituted:?}");
     // A font the host adds draws the cells set in its family (Hack for `Hack`), not reported.
-    doc.execute("home.fontName", json!({ "range": "A1", "name": "Hack" })).unwrap();
+    doc.execute("format.fontName", json!({ "range": "A1", "name": "Hack" })).unwrap();
     let before = ink(&doc, 0);
     let substituted = codes(&doc.check(), "sheet.font-substituted");
     assert!(!substituted.iter().any(|m| m.starts_with("Hack ")), "{substituted:?}");
     let mut sans = SheetDocument::create("Sans.xlsx", 0, 0).unwrap();
     sans.execute("range.setValues", json!({ "range": "A1", "values": [["Plain"]] })).unwrap();
-    sans.execute("home.fontName", json!({ "range": "A1", "name": "Some Sans" })).unwrap();
+    sans.execute("format.fontName", json!({ "range": "A1", "name": "Some Sans" })).unwrap();
     assert_ne!(before, ink(&sans, 0), "Hack draws the text, not the built-in sans");
 }

@@ -30,7 +30,7 @@ fn icon_halves(doc: &SheetDocument, row: u32) -> (usize, usize, Vec<u8>) {
 fn icon_sets_draw_their_icons() {
     let mut doc = SheetDocument::create("Icons.xlsx", 0, 0).unwrap();
     doc.execute("range.setValues", json!({ "range": "A1", "values": [[0], [50], [100]] })).unwrap();
-    doc.execute("home.conditionalFormat", json!({ "range": "A1:A3", "rule": { "type": "iconSet", "set": "3Arrows" } })).unwrap();
+    doc.execute("conditionalFormat.apply", json!({ "range": "A1:A3", "rule": { "type": "iconSet", "set": "3Arrows" } })).unwrap();
     let (down_top, down_bottom, down) = icon_halves(&doc, 1);
     let (up_top, up_bottom, up) = icon_halves(&doc, 3);
     // An arrow's head is wider than its shaft: most of an up arrow is in its top half.
@@ -40,10 +40,10 @@ fn icon_sets_draw_their_icons() {
 
     let mut symbols = SheetDocument::create("Symbols.xlsx", 0, 0).unwrap();
     symbols.execute("range.setValues", json!({ "range": "A1", "values": [[0], [50], [100]] })).unwrap();
-    symbols.execute("home.conditionalFormat", json!({ "range": "A1:A3", "rule": { "type": "iconSet", "set": "3Symbols" } })).unwrap();
+    symbols.execute("conditionalFormat.apply", json!({ "range": "A1:A3", "rule": { "type": "iconSet", "set": "3Symbols" } })).unwrap();
     let mut lights = SheetDocument::create("Lights.xlsx", 0, 0).unwrap();
     lights.execute("range.setValues", json!({ "range": "A1", "values": [[0], [50], [100]] })).unwrap();
-    lights.execute("home.conditionalFormat", json!({ "range": "A1:A3", "rule": { "type": "iconSet", "set": "3TrafficLights1" } })).unwrap();
+    lights.execute("conditionalFormat.apply", json!({ "range": "A1:A3", "rule": { "type": "iconSet", "set": "3TrafficLights1" } })).unwrap();
     // A check mark in a green circle is not a plain green dot.
     assert_ne!(icon_halves(&symbols, 3).2, icon_halves(&lights, 3).2);
 }

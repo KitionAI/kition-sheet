@@ -35,7 +35,7 @@ try {
 
   await section('UI-C7 来回切换后的内容对应', async () => {
     await build(numbered(2))
-    await exec('home.bold', { range: `${q('工作表2')}!A1` })
+    await exec('format.bold', { range: `${q('工作表2')}!A1` })
     const seen = []
     for (const name of ['工作表1', '工作表2', '工作表1']) {
       await choose(name)
@@ -84,7 +84,7 @@ try {
     await ai([
       { command: 'range.setValues', params: { range: `${q('工作表2')}!C1`, values: [[1], [2], [3]] } },
       { command: 'cell.set', params: { cell: `${q('工作表2')}!C4`, input: '=SUM(C1:C3)' } },
-      { command: 'home.bold', params: { range: `${q('工作表2')}!C4` } },
+      { command: 'format.bold', params: { range: `${q('工作表2')}!C4` } },
     ])
     const direct = await cellOf(`${q('工作表2')}!C4`)
     await choose('工作表2')
@@ -232,8 +232,8 @@ try {
   await section('UI-C21 隐藏行列各工作表互不影响', async () => {
     await build(numbered(2))
     await ai([
-      { command: 'home.hideColumns', params: { cols: 'C' } },
-      { command: 'home.hideRows', params: { rows: '5' } },
+      { command: 'column.hide', params: { cols: 'C' } },
+      { command: 'row.hide', params: { rows: '5' } },
     ])
     await choose('工作表2')
     await clickCell(2, 4)
@@ -405,9 +405,9 @@ try {
     await build(numbered(2))
     await ai([
       { command: 'cell.set', params: { cell: `${q('工作表2')}!C1`, input: '=B2*2' } },
-      { command: 'home.bold', params: { range: `${q('工作表2')}!C1` } },
-      { command: 'home.mergeCenter', params: { range: `${q('工作表1')}!D1:E1` } },
-      { command: 'home.columnWidth', params: { cols: 'B', width: 120 } },
+      { command: 'format.bold', params: { range: `${q('工作表2')}!C1` } },
+      { command: 'cell.mergeCenter', params: { range: `${q('工作表1')}!D1:E1` } },
+      { command: 'column.setWidth', params: { cols: 'B', width: 120 } },
     ])
     const snapshot = async () => [await cellOf(`${q('工作表1')}!A1`), await cellOf(`${q('工作表2')}!C1`), (await workbook()).sheets.map((sheet) => [sheet.name, sheet.merges])]
     const [a, b, merges] = await snapshot()
@@ -630,7 +630,7 @@ try {
 
   await section('UI-C59 批注移动后仍跟随原单元格', async () => {
     await build(numbered(2))
-    await exec('review.newNote', { cell: `${q('工作表1')}!A1`, text: '批注内容' })
+    await exec('note.add', { cell: `${q('工作表1')}!A1`, text: '批注内容' })
     await drag('工作表1', await end())
     await showsTabs(['工作表2', '工作表1'])
     const note1 = await cellOf(`${q('工作表1')}!A1`)
@@ -642,7 +642,7 @@ try {
     await build(numbered(2))
     // A 2 x 2 PNG.
     const png = 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DAwMDAxMDAwMDAAAANHQEDasKb6QAAAABJRU5ErkJggg=='
-    await exec('insert.picture', { base64: png, at: 'C3', width: 80, height: 60 })
+    await exec('image.insert', { base64: png, at: 'C3', width: 80, height: 60 })
     const images = async () => Object.fromEntries((await workbook()).sheets.map((sheet) => [sheet.name, sheet.images]))
     const before_ = await images()
     await drag('工作表1', await end())
@@ -655,7 +655,7 @@ try {
     await build(numbered(2), { fill: false })
     await ai([
       { command: 'range.setValues', params: { range: `${q('工作表1')}!A1`, values: [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]] } },
-      { command: 'formulas.defineName', params: { name: '测试区', refersTo: '=工作表1!$A$1:$A$10' } },
+      { command: 'name.define', params: { name: '测试区', refersTo: '=工作表1!$A$1:$A$10' } },
       { command: 'cell.set', params: { cell: `${q('工作表2')}!B1`, input: '=SUM(测试区)' } },
     ])
     await drag('工作表1', await end())
@@ -776,8 +776,8 @@ try {
     await build(numbered(2))
     await ai([
       { command: 'sheet.activate', params: { sheet: '工作表2' } },
-      { command: 'home.formatCells', params: { range: 'B1', style: { protection: { locked: false, hidden: false } } } },
-      { command: 'review.protectSheet', params: {} },
+      { command: 'format.cells', params: { range: 'B1', style: { protection: { locked: false, hidden: false } } } },
+      { command: 'sheet.protect', params: {} },
       { command: 'sheet.activate', params: { sheet: '工作表1' } },
     ])
     await until(async () => (await kit.getByTestId('sheet-lock-工作表2').count()) === 1)
@@ -792,7 +792,7 @@ try {
     await page.keyboard.press('Enter')
     await until(async () => (await cellOf(`${q('工作表2')}!B1`)).value === '可改', 20)
     step('UI-C70 可切入；锁定范围不可编辑、未锁定范围可编辑', (await cellOf(`${q('工作表2')}!A1`)).value === '工作表2内容' && (await cellOf(`${q('工作表2')}!B1`)).value === '可改')
-    await exec('review.unprotectSheet', {})
+    await exec('sheet.unprotect', {})
   })
 
   await section('UI-C73 仅 1 张工作表时的拖拽', async () => {
@@ -919,7 +919,7 @@ try {
   await section('UI-C93 迭代计算：切换不触发额外重算', async () => {
     await build(numbered(2), { fill: false })
     await ai([
-      { command: 'formulas.calculationOptions', params: { mode: 'automatic', iterative: true, maxIterations: 50 } },
+      { command: 'formula.calculationOptions', params: { mode: 'automatic', iterative: true, maxIterations: 50 } },
       { command: 'cell.set', params: { cell: `${q('工作表1')}!A1`, input: '=A1+1' } },
     ])
     const first = (await cellOf(`${q('工作表1')}!A1`)).value
@@ -929,7 +929,7 @@ try {
       seen.push((await cellOf(`${q('工作表1')}!A1`)).value)
     }
     step('UI-C93 来回切换不触发额外重算，循环引用的结果前后一致', first != null && seen.every((value) => same(value, first)), JSON.stringify([first, ...seen]))
-    await exec('formulas.calculationOptions', { mode: 'automatic', iterative: false })
+    await exec('formula.calculationOptions', { mode: 'automatic', iterative: false })
   })
 
   await section('UI-C95 撤销对拖拽移动的作用', async () => {
@@ -1102,7 +1102,7 @@ try {
     await ai([
       { command: 'sheet.tabColor', params: { sheet: '一季度', color: '#FF0000' } },
       { command: 'sheet.tabColor', params: { sheet: '三季度', color: '#00B050' } },
-      { command: 'home.bold', params: { range: `${q('二季度')}!A1` } },
+      { command: 'format.bold', params: { range: `${q('二季度')}!A1` } },
     ])
     await saveAndReopen('季度数据.xlsx')
     let same_ = true

@@ -14,7 +14,7 @@ async fn external_duplicate_keys_hold_letter_and_relative_numeric_columns_withou
     for columns in [json!(["E"]), json!([3])] {
         for related in [true, false] {
             let f = Fixture::new();
-            f.colleague(&[("insert.table", json!({"range":"B1:D4","name":"Data","header":true}))]);
+            f.colleague(&[("table.insert", json!({"range":"B1:D4","name":"Data","header":true}))]);
             let basis = f.basis().await;
             f.colleague(&[("cell.set", json!({"cell":if related {"E3"} else {"F3"},"input":"6"}))]);
             let before = f.bytes();

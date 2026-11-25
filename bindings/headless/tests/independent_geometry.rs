@@ -19,8 +19,8 @@ async fn drawing_coordinates_hold_axis_sizes_without_holding_another_sheets_cell
         ("drawing.text", json!({"id":1,"text":"updated"})),
     ] {
         for (size_command, initial, changed) in [
-            ("home.columnWidth", json!({"cols":"A:A","width":20}), json!({"cols":"A:A","width":30})),
-            ("home.rowHeight", json!({"rows":"1:1","height":24}), json!({"rows":"1:1","height":34})),
+            ("column.setWidth", json!({"cols":"A:A","width":20}), json!({"cols":"A:A","width":30})),
+            ("row.setHeight", json!({"rows":"1:1","height":24}), json!({"rows":"1:1","height":34})),
         ] {
             for related in [true, false] {
                 let fixture = Fixture::new();

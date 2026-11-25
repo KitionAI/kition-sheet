@@ -11,17 +11,17 @@ use serde_json::json;
 async fn clear_rules_refuses_changed_rule_ranges_and_accepts_unrelated_shifts() {
     for (range, command, rows, necessary) in [
         // same-field decision: the shifted range belongs to the removed rule.
-        ("A7:B8", "home.insertRows", "Sheet1!2", true),
-        ("A8:B9", "home.insertRows", "Sheet1!2", true),
-        ("A9:B10", "home.deleteRows", "Sheet1!2", true),
-        ("A7:B8", "home.insertRows", "Sheet1!12", false),
+        ("A7:B8", "row.insert", "Sheet1!2", true),
+        ("A8:B9", "row.insert", "Sheet1!2", true),
+        ("A9:B10", "row.delete", "Sheet1!2", true),
+        ("A7:B8", "row.insert", "Sheet1!12", false),
     ] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("home.conditionalFormat", json!({"range":format!("Sheet1!{range}"),"rule":{"type":"blanks"}}))]);
+        fixture.colleague(&[("conditionalFormat.apply", json!({"range":format!("Sheet1!{range}"),"rule":{"type":"blanks"}}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[(command, json!({"rows":rows}))]);
         let outside = fixture.bytes();
-        let result = fixture.run(basis, "home.clearRules", json!({"range":"Sheet1!A7:B8"})).await;
+        let result = fixture.run(basis, "conditionalFormat.clearRules", json!({"range":"Sheet1!A7:B8"})).await;
         if necessary {
             assert!(result.as_ref().is_err_and(|error| error.to_string().contains("conflict")), "{range}/{command}: {result:?}");
             if range == "A7:B8" {
@@ -45,12 +45,12 @@ async fn clearing_one_rule_preserves_another_rules_shifted_range() {
     // same-field decision: the other rule's ranges are not removed.
     let fixture = Fixture::new();
     fixture.colleague(&[
-        ("home.conditionalFormat", json!({"range":"Sheet1!D9:E10","rule":{"type":"blanks"}})),
-        ("home.conditionalFormat", json!({"range":"Sheet1!A2:B3","rule":{"type":"blanks"}})),
+        ("conditionalFormat.apply", json!({"range":"Sheet1!D9:E10","rule":{"type":"blanks"}})),
+        ("conditionalFormat.apply", json!({"range":"Sheet1!A2:B3","rule":{"type":"blanks"}})),
     ]);
     let basis = fixture.basis().await;
-    fixture.colleague(&[("home.insertRows", json!({"rows":"Sheet1!8"}))]);
-    fixture.run(basis, "home.clearRules", json!({"range":"Sheet1!A2:B3"})).await.expect("an unremoved rule's range is unrelated");
+    fixture.colleague(&[("row.insert", json!({"rows":"Sheet1!8"}))]);
+    fixture.run(basis, "conditionalFormat.clearRules", json!({"range":"Sheet1!A2:B3"})).await.expect("an unremoved rule's range is unrelated");
     let (saved, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &fixture.bytes()).unwrap();
     let rules = &saved.sheet(0).unwrap().cond_formats;
     assert_eq!(rules.len(), 1);

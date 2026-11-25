@@ -12,12 +12,12 @@ impl SheetDocument {
     /// Returns false when a source lies beyond materialized axes and needs the caller's
     /// conservative fallback. All positions here are before the insertion.
     pub(crate) fn add_edit_read_premises(&self, command: &str, params: &Value, si: usize, under: &mut Under) -> Result<bool, String> {
-        if matches!(command, "home.insertSheet" | "home.deleteSheet" | "sheet.move") {
+        if matches!(command, "sheet.insert" | "sheet.delete" | "sheet.move") {
             under.premises.push(premise("workbook", ["props.protectedStructure"]));
         }
         let copy = command == "sheet.move" && params.get("copy").and_then(Value::as_bool) == Some(true);
         let state = self.doc_state()?;
-        if matches!(command, "home.insertSheet" | "sheet.rename") || copy {
+        if matches!(command, "sheet.insert" | "sheet.rename") || copy {
             // The tab digest plus each existing name covers a newly added
             // sheet. Holding the owning list itself would include child edits
             // in the pinned SDK. Tab reordering remains conservative here.
@@ -26,7 +26,7 @@ impl SheetDocument {
                 under.premises.push(premise(ids::sheet_tool_id(sheet), ["name"]));
             }
         }
-        if matches!(command, "home.deleteSheet" | "sheet.hide") {
+        if matches!(command, "sheet.delete" | "sheet.hide") {
             under.premises.push(premise("workbook", ["~tabs"]));
             for sheet in &state.wb.sheets {
                 under.premises.push(premise(ids::sheet_tool_id(sheet), ["props.visibility"]));
@@ -55,10 +55,10 @@ impl SheetDocument {
                 under.premises.push(kition_kit::Premise::on(format!("cell:{}!{at}", sheet.sheet_id)));
             }
         }
-        if !matches!(command, "home.insertRows" | "home.insertColumns") {
+        if !matches!(command, "row.insert" | "column.insert") {
             return Ok(true);
         }
-        let rows = command == "home.insertRows";
+        let rows = command == "row.insert";
         let key = if rows { "rows" } else { "cols" };
         let after = params.get(if rows { "below" } else { "right" }).and_then(Value::as_bool).unwrap_or(false);
         let Some(sheet) = state.wb.sheet(si) else { return Ok(false) };

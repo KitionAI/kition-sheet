@@ -12,7 +12,7 @@ async fn stored_name_and_validation_references_do_not_hold_source_values() {
     let mut failures = Vec::new();
     for (command, initial, changed, write) in [
         (
-            "formulas.defineName",
+            "name.define",
             json!({"name":"Result","refersTo":"=Sheet2!$A$1"}),
             json!({"name":"Result","refersTo":"=Sheet2!$A$2"}),
             json!({"name":"Result","refersTo":"=Sheet2!$A$1"}),

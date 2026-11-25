@@ -30,7 +30,7 @@ async fn checkbox_toggle_holds_its_literal_input_and_allows_other_plain_cells() 
         for changed in ["B2", "D2", "Sheet2!D10"] {
             let fixture = Fixture::new();
             fixture.colleague(&[
-                ("insert.checkbox", json!({"range":"B2:C2"})),
+                ("checkbox.insert", json!({"range":"B2:C2"})),
                 ("cell.set", json!({"cell":"B2","input":"TRUE"})),
                 ("cell.set", json!({"cell":"C2","input":"TRUE"})),
             ]);
@@ -66,13 +66,13 @@ async fn checkbox_toggle_holds_the_explicit_cells_merge_anchor() {
     for related in [true, false] {
         let fixture = Fixture::new();
         fixture.colleague(&[
-            ("home.mergeCells", json!({"range":"B2:C2"})),
-            ("insert.checkbox", json!({"range":"B2"})),
+            ("cell.merge", json!({"range":"B2:C2"})),
+            ("checkbox.insert", json!({"range":"B2"})),
             ("cell.set", json!({"cell":"B2","input":"TRUE"})),
         ]);
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("home.unmergeCells", json!({"range":"B2:C2"}))]);
+            fixture.colleague(&[("cell.unmerge", json!({"range":"B2:C2"}))]);
         } else {
             fixture.colleague(&[("cell.set", json!({"cell":"Sheet2!D10","input":"colleague"}))]);
         }
@@ -119,9 +119,9 @@ async fn direct_ink_holds_anchor_geometry_and_id_allocation_but_keeps_unrelated_
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         match change {
-            "anchor row" => fixture.colleague(&[("home.rowHeight", json!({"rows":"1:1","height":44}))]),
-            "object allocation" => fixture.colleague(&[("insert.shape", json!({"kind":"triangle","at":"Sheet2!B2"}))]),
-            "distant row" => fixture.colleague(&[("home.rowHeight", json!({"rows":"50:50","height":44}))]),
+            "anchor row" => fixture.colleague(&[("row.setHeight", json!({"rows":"1:1","height":44}))]),
+            "object allocation" => fixture.colleague(&[("shape.insert", json!({"kind":"triangle","at":"Sheet2!B2"}))]),
+            "distant row" => fixture.colleague(&[("row.setHeight", json!({"rows":"50:50","height":44}))]),
             "same sheet cell" => fixture.colleague(&[("cell.set", json!({"cell":"Z20","input":"colleague"}))]),
             _ => fixture.colleague(&[("cell.set", json!({"cell":"Sheet2!D10","input":"colleague"}))]),
         }
@@ -133,8 +133,8 @@ async fn direct_ink_holds_anchor_geometry_and_id_allocation_but_keeps_unrelated_
             .call(
                 "run",
                 json!({"basis":basis,"steps":[
-                    {"command":"draw.highlighter","params":{"color":"#336699","width":7}},
-                    {"command":"draw.stroke","params":{"points":[[160,120],[240,160]]}}
+                    {"command":"ink.highlighter","params":{"color":"#336699","width":7}},
+                    {"command":"ink.stroke","params":{"points":[[160,120],[240,160]]}}
                 ]}),
             )
             .await;
@@ -162,21 +162,21 @@ async fn direct_ink_holds_anchor_geometry_and_id_allocation_but_keeps_unrelated_
 #[test]
 fn primitive_defaults_follow_the_restored_editor_state_in_the_direct_binding() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("insert.checkbox", json!({"range":"B2:C2"})).unwrap();
+    doc.execute("checkbox.insert", json!({"range":"B2:C2"})).unwrap();
     for cell in ["B2", "C2"] {
         doc.execute("cell.set", json!({"cell":cell,"input":"TRUE"})).unwrap();
     }
-    doc.execute("selection.set", json!({"range":"B2:C2"})).unwrap();
-    doc.execute("draw.highlighter", json!({"color":"#336699","width":7})).unwrap();
+    doc.execute("select.set", json!({"range":"B2:C2"})).unwrap();
+    doc.execute("ink.highlighter", json!({"color":"#336699","width":7})).unwrap();
     let personal = doc.editor_state();
-    doc.execute("selection.set", json!({"range":"D10"})).unwrap();
-    doc.execute("draw.pen", json!({"color":"#123456","width":2})).unwrap();
+    doc.execute("select.set", json!({"range":"D10"})).unwrap();
+    doc.execute("ink.pen", json!({"color":"#123456","width":2})).unwrap();
     doc.restore_editor_state(&personal).unwrap();
     assert_eq!(doc.editor_state(), personal, "the kit restores selection and current pen without relying on cross-call state");
 
     let toggle = doc.execute("cell.toggleCheckbox", json!({})).unwrap();
     assert_eq!(toggle["toggled"], 2);
-    doc.execute("draw.stroke", json!({"points":[[160,120],[240,160]]})).unwrap();
+    doc.execute("ink.stroke", json!({"points":[[160,120],[240,160]]})).unwrap();
     let (saved, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &doc.save(None).unwrap()).unwrap();
     let sheet = saved.sheet(0).unwrap();
     for cell in ["B2", "C2"] {

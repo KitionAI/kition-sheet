@@ -27,9 +27,9 @@ fn book() -> SheetDocument {
     )
     .unwrap();
     doc.execute("cell.set", json!({ "cell": "B4", "input": "=SUM(B2:B3)" })).unwrap();
-    doc.execute("home.fillColor", json!({ "range": "C2", "color": "#FFFF00" })).unwrap();
-    doc.execute("home.fontColor", json!({ "range": "D2", "color": "#FF0000" })).unwrap();
-    doc.execute("selection.set", json!({ "range": "A1:B2" })).unwrap();
+    doc.execute("format.fillColor", json!({ "range": "C2", "color": "#FFFF00" })).unwrap();
+    doc.execute("format.color", json!({ "range": "D2", "color": "#FF0000" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1:B2" })).unwrap();
     doc
 }
 

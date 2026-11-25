@@ -132,7 +132,7 @@ export function HostCommentGroup({ onCreate, busy }: { onCreate: () => void; bus
   return (
     <RibbonGroup label={p('Comments')} icon={MessageSquarePlus}>
       <RibbonButton icon={MessageSquarePlus} size="large" label={p('New Comment')} disabled={busy || !session.doc} onClick={onCreate} data-testid="sheet-host-comment" primary />
-      <CommandGroupButtons path="Review/Comments" exclude={['review.newComment']} />
+      <CommandGroupButtons path="Review/Comments" exclude={['comment.add']} />
     </RibbonGroup>
   )
 }

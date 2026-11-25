@@ -73,7 +73,7 @@ const home = async () => {
 const painter = () => kit.getByTestId('sheet-format-painter')
 const painterState = async () => (await details()).formatPainter ?? null
 const pressed = async (testId) => (await kit.getByTestId(testId).getAttribute('aria-pressed')) === 'true'
-const boldButton = () => kit.getByTestId('sheet-cmd-home.bold')
+const boldButton = () => kit.getByTestId('sheet-cmd-format.bold')
 const cursor = () => kit.locator('.kui-canvas-surface').first().evaluate((canvas) => canvas.style.cursor)
 const fontBox = () => kit.getByTestId('sheet-font')
 const sizeBox = () => kit.getByTestId('sheet-size')
@@ -181,20 +181,20 @@ async function fresh() {
 async function styledA1() {
   await ai([
     { command: 'cell.set', params: { cell: 'A1', input: '0.5' } },
-    { command: 'home.fontName', params: { range: 'A1', name: '楷体' } },
-    { command: 'home.fontSize', params: { range: 'A1', size: 14 } },
-    { command: 'home.bold', params: { range: 'A1', on: true } },
-    { command: 'home.italic', params: { range: 'A1', on: true } },
-    { command: 'home.underline', params: { range: 'A1', on: true } },
-    { command: 'home.strikethrough', params: { range: 'A1', on: true } },
-    { command: 'home.fontColor', params: { range: 'A1', color: '#FF0000' } },
-    { command: 'home.fillColor', params: { range: 'A1', color: '#FFFF00' } },
-    { command: 'home.numberFormat', params: { range: 'A1', format: '0.00%' } },
-    { command: 'home.alignCenter', params: { range: 'A1' } },
-    { command: 'home.wrapText', params: { range: 'A1', on: true } },
-    { command: 'home.borders', params: { range: 'A1', preset: 'all' } },
+    { command: 'format.fontName', params: { range: 'A1', name: '楷体' } },
+    { command: 'format.fontSize', params: { range: 'A1', size: 14 } },
+    { command: 'format.bold', params: { range: 'A1', on: true } },
+    { command: 'format.italic', params: { range: 'A1', on: true } },
+    { command: 'format.underline', params: { range: 'A1', on: true } },
+    { command: 'format.strikethrough', params: { range: 'A1', on: true } },
+    { command: 'format.color', params: { range: 'A1', color: '#FF0000' } },
+    { command: 'format.fillColor', params: { range: 'A1', color: '#FFFF00' } },
+    { command: 'format.numberFormat', params: { range: 'A1', format: '0.00%' } },
+    { command: 'format.alignCenter', params: { range: 'A1' } },
+    { command: 'format.wrapText', params: { range: 'A1', on: true } },
+    { command: 'format.borders', params: { range: 'A1', preset: 'all' } },
     // A fixed height, so the rows below stay where clickCell finds them.
-    { command: 'home.rowHeight', params: { rows: '1', height: 20 } },
+    { command: 'row.setHeight', params: { rows: '1', height: 20 } },
   ])
   await settle(200)
 }
@@ -276,11 +276,11 @@ try {
     await fresh()
     const fills = ['#F4CCCC', '#FCE5CD', '#FFF2CC', '#D9EAD3', '#D0E0E3', '#CFE2F3', '#D9D2E9', '#EAD1DC', '#E6B8AF']
     const steps = []
-    fills.forEach((color, i) => steps.push({ command: 'home.fillColor', params: { range: `${COLS[i % 3]}${Math.floor(i / 3) + 1}`, color } }))
-    steps.push({ command: 'home.columnWidth', params: { cols: 'E', width: 90 } })
+    fills.forEach((color, i) => steps.push({ command: 'format.fillColor', params: { range: `${COLS[i % 3]}${Math.floor(i / 3) + 1}`, color } }))
+    steps.push({ command: 'column.setWidth', params: { cols: 'E', width: 90 } })
     await ai(steps)
     await settle(200)
-    const widthE = async () => (await exec('document.inspect')).sheets[0]?.columns?.E ?? null
+    const widthE = async () => (await exec('file.inspect')).sheets[0]?.columns?.E ?? null
     const before = await widthE()
     // One row: A1:C1 onto A6.
     await goTo('A1:C1')
@@ -322,10 +322,10 @@ try {
     await fresh()
     await styledA1()
     await ai([
-      { command: 'home.mergeCenter', params: { range: 'A3:B3' } },
+      { command: 'cell.mergeCenter', params: { range: 'A3:B3' } },
       { command: 'cell.set', params: { cell: 'D1', input: '原内容' } },
-      { command: 'home.fontName', params: { range: 'D1', name: '黑体' } },
-      { command: 'home.fillColor', params: { range: 'D1', color: '#0000FF' } },
+      { command: 'format.fontName', params: { range: 'D1', name: '黑体' } },
+      { command: 'format.fillColor', params: { range: 'D1', color: '#0000FF' } },
     ])
     await click('A1')
     await painter().click()
@@ -340,7 +340,7 @@ try {
     await painter().click()
     await click('D5')
     await settle(200)
-    const merges = (await exec('document.inspect')).sheets[0]?.merges ?? (await details()).merges
+    const merges = (await exec('file.inspect')).sheets[0]?.merges ?? (await details()).merges
     step('FP-C19/C27 合并单元格随样式复制到 D5:E5', JSON.stringify(merges ?? []).includes('D5:E5') || (await details()).selection === 'D5:E5', JSON.stringify(merges))
   })
 
@@ -350,21 +350,21 @@ try {
     await ai([
       { command: 'cell.set', params: { cell: 'B1', input: '=SUM(A1:A1)' } },
       { command: 'cell.set', params: { cell: 'C1', input: '链接' } },
-      { command: 'insert.link', params: { cell: 'C1', target: 'https://example.com' } },
+      { command: 'link.insert', params: { cell: 'C1', target: 'https://example.com' } },
       { command: 'data.validation', params: { range: 'D1', type: 'list', formula1: '"甲,乙"' } },
       { command: 'cell.set', params: { cell: 'E1', input: '3' } },
-      { command: 'home.conditionalFormat', params: { range: 'E1', rule: { type: 'cellIs', operator: 'greaterThan', value: '5', style: { fill: '#00FF00' } } } },
-      { command: 'review.newNote', params: { cell: 'F1', text: '批注' } },
-      { command: 'home.rowHeight', params: { rows: '9', height: 30 } },
+      { command: 'conditionalFormat.apply', params: { range: 'E1', rule: { type: 'cellIs', operator: 'greaterThan', value: '5', style: { fill: '#00FF00' } } } },
+      { command: 'note.add', params: { cell: 'F1', text: '批注' } },
+      { command: 'row.setHeight', params: { rows: '9', height: 30 } },
     ])
-    const before = await exec('document.inspect')
+    const before = await exec('file.inspect')
     await click('A1')
     await painter().dblclick()
     await until(async () => (await painterState()) === 'sticky', 20)
     for (const ref of ['B1', 'C1', 'D1', 'E1', 'F1', 'C3']) await click(ref)
     await page.keyboard.press('Escape')
     await settle(200)
-    const after = await exec('document.inspect')
+    const after = await exec('file.inspect')
     const b1 = await cellOf('B1')
     step('FP-C26 公式单元格应用样式，公式与结果不变', (await look('B1')) === (await look('A1')) && b1.formula === '=SUM(A1:A1)' && b1.value === 0.5)
     await click('B1')
@@ -387,8 +387,8 @@ try {
   await section('FP-C23 整行整列', async () => {
     await fresh()
     await ai([
-      { command: 'home.bold', params: { range: 'A1', on: true } },
-      { command: 'home.fillColor', params: { range: 'A1', color: '#FFFF00' } },
+      { command: 'format.bold', params: { range: 'A1', on: true } },
+      { command: 'format.fillColor', params: { range: 'A1', color: '#FFFF00' } },
       { command: 'cell.set', params: { cell: 'C5', input: '行内' } },
     ])
     await click('A1')
@@ -437,15 +437,15 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '标题' } },
-      { command: 'home.bold', params: { range: 'A1', on: true } },
-      { command: 'home.mergeCenter', params: { range: 'A1:C1' } },
+      { command: 'format.bold', params: { range: 'A1', on: true } },
+      { command: 'cell.mergeCenter', params: { range: 'A1:C1' } },
       { command: 'range.setValues', params: { range: 'B3', values: [['一', '二', '三']] } },
     ])
     await click('A1')
     await painter().click()
     await click('B3')
     await settle(200)
-    const wb = await exec('document.inspect')
+    const wb = await exec('file.inspect')
     step('FP-C27 目标应用源样式并合并为 B3:D3', JSON.stringify(wb).includes('B3:D3') && (await fontOf('B3')).bold, JSON.stringify(wb.sheets?.[0]?.merges ?? null))
     step('FP-C27 目标区域原有内容不被删除', (await cellOf('B3')).value === '一' && (await cellOf('C3')).value === '二' && (await cellOf('D3')).value === '三')
   })
@@ -454,7 +454,7 @@ try {
     await fresh()
     await styledA1()
     const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
-    await ai([{ command: 'insert.picture', params: { at: 'B1', base64: png, mime: 'image/png', placement: 'cell' } }])
+    await ai([{ command: 'image.insert', params: { at: 'B1', base64: png, mime: 'image/png', placement: 'cell' } }])
     const before = JSON.stringify((await cellOf('B1')).picture)
     await click('A1')
     await painter().click()
@@ -491,7 +491,7 @@ try {
       await click('B2')
       step('FP-C40 只读下没有「开始」选项卡，格式刷入口不可用（kit-editor 的只读规则：只显示查看类选项卡）', (await kit.getByTestId('ribbon-tab-home').count()) === 0 && (await kit.getByTestId('sheet-format-painter').count()) === 0)
       await exec('edit.formatPainter', {}).catch(() => null)
-      step('FP-C40 点击无响应，目标单元格样式与内容不变', JSON.stringify(await cellOf('A1')) === JSON.stringify(a1) && !(await exec('document.inspect')).dirty)
+      step('FP-C40 点击无响应，目标单元格样式与内容不变', JSON.stringify(await cellOf('A1')) === JSON.stringify(a1) && !(await exec('file.inspect')).dirty)
     } finally {
       await openEditor('')
     }
@@ -611,9 +611,9 @@ try {
   await section('FONT-C25/C10/C26/C28 工具栏显示', async () => {
     await fresh()
     await ai([
-      { command: 'home.fontName', params: { range: 'A1', name: 'Droid Serif' } },
+      { command: 'format.fontName', params: { range: 'A1', name: 'Droid Serif' } },
       { command: 'cell.set', params: { cell: 'A1', input: 'serif' } },
-      { command: 'home.fontName', params: { range: 'B1', name: '黑体' } },
+      { command: 'format.fontName', params: { range: 'B1', name: '黑体' } },
     ])
     await click('A1')
     await settle(200)
@@ -644,20 +644,20 @@ try {
     await ai([{ command: 'cell.set', params: { cell: 'C3', input: '已有' } }])
     await clickRowHeading(3)
     await pickFont('楷体')
-    await kit.getByTestId('sheet-cmd-home.bold').click()
+    await kit.getByTestId('sheet-cmd-format.bold').click()
     await settle(200)
     await clickColHeading('F')
-    await kit.getByTestId('sheet-cmd-home.italic').click()
-    await kit.getByTestId('sheet-cmd-home.underline').click()
-    await kit.getByTestId('sheet-cmd-home.strikethrough').click()
+    await kit.getByTestId('sheet-cmd-format.italic').click()
+    await kit.getByTestId('sheet-cmd-format.underline').click()
+    await kit.getByTestId('sheet-cmd-format.strikethrough').click()
     await settle(200)
     step('FONT-C27 整行文本字体统一变更', (await fontOf('C3')).name === '楷体' && (await fontOf('Q3')).name === '楷体' && (await fontOf('C4')).name === 'Calibri')
     await click('H3')
-    step('FONT-C104 整行加粗：对应单元格 B 为选中态', await pressed('sheet-cmd-home.bold'))
+    step('FONT-C104 整行加粗：对应单元格 B 为选中态', await pressed('sheet-cmd-format.bold'))
     await type('新输入')
     step('FONT-C27/C104 空白单元格预置字体，输入后自动继承（楷体、加粗）', (await fontOf('H3')).name === '楷体' && (await fontOf('H3')).bold)
     await click('F20')
-    step('FONT-C134/C150/C166 整列倾斜、下划线、删除线：对应单元格按钮为选中态', (await pressed('sheet-cmd-home.italic')) && (await pressed('sheet-cmd-home.underline')) && (await pressed('sheet-cmd-home.strikethrough')))
+    step('FONT-C134/C150/C166 整列倾斜、下划线、删除线：对应单元格按钮为选中态', (await pressed('sheet-cmd-format.italic')) && (await pressed('sheet-cmd-format.underline')) && (await pressed('sheet-cmd-format.strikethrough')))
     await type('列内')
     const f = await fontOf('F20')
     step('FONT-C134/C150/C166 输入内容为斜体、下划线、删除线', f.italic && f.underline === 'Single' && f.strike)
@@ -675,9 +675,9 @@ try {
     step('FONT-C29 Ctrl/Cmd 选中多个不连续单元格', (await details()).selection === 'A1,C3,E6', (await details()).selection)
     await pickFont('黑体')
     await boldButton().click()
-    await kit.getByTestId('sheet-cmd-home.italic').click()
-    await kit.getByTestId('sheet-cmd-home.underline').click()
-    await kit.getByTestId('sheet-cmd-home.strikethrough').click()
+    await kit.getByTestId('sheet-cmd-format.italic').click()
+    await kit.getByTestId('sheet-cmd-format.underline').click()
+    await kit.getByTestId('sheet-cmd-format.strikethrough').click()
     await settle(250)
     const all = await Promise.all(['A1', 'C3', 'E6'].map(fontOf))
     step('FONT-C29 各非连续选区字体均应用，未选中区域不变', all.every((f) => f.name === '黑体') && (await fontOf('B2')).name === 'Calibri' && (await fontBox().inputValue()) === '黑体')
@@ -702,9 +702,9 @@ try {
     await sink()
     await page.keyboard.press(`${mod}+i`)
     await sink()
-    await kit.getByTestId('sheet-cmd-home.underline').click()
+    await kit.getByTestId('sheet-cmd-format.underline').click()
     await sink()
-    await kit.getByTestId('sheet-cmd-home.strikethrough').click()
+    await kit.getByTestId('sheet-cmd-format.strikethrough').click()
     await pickSize(18)
     await sink()
     await page.keyboard.press('Enter')
@@ -713,15 +713,15 @@ try {
     const styled = runs?.find((run) => run.text === '样式')?.font ?? {}
     step('FONT-C33/C35 同一单元格内不同字符字体不同，字体与 BIUS、字号互不覆盖', styled.name === '楷体' && styled.bold && styled.italic && styled.underline === 'Single' && styled.strike && styled.size === 18 && (await fontOf('A1')).name === 'Calibri', JSON.stringify(runs))
     await click('A1')
-    step('FONT-C35 回车后选中单元格：工具栏按单元格显示（非全量加粗时 B 不选中）', !(await pressed('sheet-cmd-home.bold')))
+    step('FONT-C35 回车后选中单元格：工具栏按单元格显示（非全量加粗时 B 不选中）', !(await pressed('sheet-cmd-format.bold')))
     await page.keyboard.press('F2')
     await settle(150)
     for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowLeft')
     await settle(200)
-    step('FONT-C33 光标停在设置了字体的内容上：工具栏显示该字体', (await fontBox().inputValue()) === '楷体' && (await sizeBox().inputValue()) === '18' && (await pressed('sheet-cmd-home.bold')), await fontBox().inputValue())
+    step('FONT-C33 光标停在设置了字体的内容上：工具栏显示该字体', (await fontBox().inputValue()) === '楷体' && (await sizeBox().inputValue()) === '18' && (await pressed('sheet-cmd-format.bold')), await fontBox().inputValue())
     await page.keyboard.press('Home')
     await settle(200)
-    step('FONT-C34 光标在未单独设置字体的内容上：显示单元格字体（WPS），各样式保持', (await fontBox().inputValue()) === 'Calibri' && !(await pressed('sheet-cmd-home.bold')))
+    step('FONT-C34 光标在未单独设置字体的内容上：显示单元格字体（WPS），各样式保持', (await fontBox().inputValue()) === 'Calibri' && !(await pressed('sheet-cmd-format.bold')))
     await page.keyboard.press('Escape')
     await settle(150)
     step('FONT-C34 再次进入编辑态后富文本不丢失', JSON.stringify(await runsOf('A1')) === JSON.stringify(runs))
@@ -748,23 +748,23 @@ try {
       ok = ok && hex((await fontOf('A1')).color) == null
       await undo()
       ok = ok && !(await fontOf('A1')).bold
-      step(`FONT-C114 撤销后取消加粗、B 同步（第 ${i + 1} 轮）`, !(await pressed('sheet-cmd-home.bold')))
+      step(`FONT-C114 撤销后取消加粗、B 同步（第 ${i + 1} 轮）`, !(await pressed('sheet-cmd-format.bold')))
       await undo()
       ok = ok && (await fontOf('A1')).name === 'Calibri'
       for (let j = 0; j < 4; j += 1) await redo()
       ok = ok && JSON.stringify(await fontOf('A1')) === changed
     }
-    step('FONT-C36/C71/C93 字体、颜色、字号、加粗反复撤销重做均正确', ok && (await pressed('sheet-cmd-home.bold')))
+    step('FONT-C36/C71/C93 字体、颜色、字号、加粗反复撤销重做均正确', ok && (await pressed('sheet-cmd-format.bold')))
   })
 
   await section('FONT-C37/C38/C80/C91 插入行列、自适应行高', async () => {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'B3', input: '字体' } },
-      { command: 'home.fontName', params: { range: 'B3', name: '楷体' } },
+      { command: 'format.fontName', params: { range: 'B3', name: '楷体' } },
     ])
     await goTo('B4')
-    await exec('home.insertRows', { rows: '4' })
+    await exec('row.insert', { rows: '4' })
     await settle(200)
     step('FONT-C37 插入的行对应单元格继承字体（WPS：向上插入取上一行）', (await fontOf('B4')).name === '楷体' && (await cellOf('B3')).value === '字体')
     await click('B3')
@@ -788,9 +788,9 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '楷体' } },
-      { command: 'home.fontName', params: { range: 'A1', name: '楷体' } },
-      { command: 'home.fontColor', params: { range: 'A1', color: '#FF0000' } },
-      { command: 'home.bold', params: { range: 'A1', on: true } },
+      { command: 'format.fontName', params: { range: 'A1', name: '楷体' } },
+      { command: 'format.color', params: { range: 'A1', color: '#FF0000' } },
+      { command: 'format.bold', params: { range: 'A1', on: true } },
       { command: 'range.setValues', params: { range: 'B1', values: [['b', 'c']] } },
     ])
     await click('A1')
@@ -811,35 +811,35 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '源' } },
-      { command: 'home.fontName', params: { range: 'A1', name: '楷体' } },
+      { command: 'format.fontName', params: { range: 'A1', name: '楷体' } },
       { command: 'cell.set', params: { cell: 'B1', input: '=A1' } },
       { command: 'cell.set', params: { cell: 'C1', input: '=1+1' } },
-      { command: 'home.fontName', params: { range: 'C1', name: '黑体' } },
+      { command: 'format.fontName', params: { range: 'C1', name: '黑体' } },
       { command: 'cell.set', params: { cell: 'D1', input: '链接文字' } },
-      { command: 'home.fontName', params: { range: 'D1', name: '仿宋' } },
-      { command: 'insert.link', params: { cell: 'D1', target: 'https://example.com' } },
-      { command: 'insert.link', params: { cell: 'E1', target: 'https://example.org', text: '链接二' } },
-      { command: 'home.fontName', params: { range: 'E1', name: '微软雅黑' } },
+      { command: 'format.fontName', params: { range: 'D1', name: '仿宋' } },
+      { command: 'link.insert', params: { cell: 'D1', target: 'https://example.com' } },
+      { command: 'link.insert', params: { cell: 'E1', target: 'https://example.org', text: '链接二' } },
+      { command: 'format.fontName', params: { range: 'E1', name: '微软雅黑' } },
     ])
     step('FONT-C41 公式引用设置了字体的数据源：结果为默认字体，计算正确', (await fontOf('B1')).name === 'Calibri' && (await cellOf('B1')).value === '源')
-    await ai([{ command: 'home.fontName', params: { range: 'A1', name: '宋体' } }])
+    await ai([{ command: 'format.fontName', params: { range: 'A1', name: '宋体' } }])
     step('FONT-C41 数据源字体变化不影响引用结果字体', (await fontOf('B1')).name === 'Calibri')
     step('FONT-C42 公式单元格显示对应字体，计算不受影响', (await fontOf('C1')).name === '黑体' && (await cellOf('C1')).value === 2)
     step('FONT-C43 先设字体再插链接：保留字体，有下划线与链接', (await fontOf('D1')).name === '仿宋' && (await fontOf('D1')).underline === 'Single' && (await cellOf('D1')).hyperlink?.target === 'https://example.com')
     step('FONT-C44 先插链接再设字体：链接属性不受影响', (await fontOf('E1')).name === '微软雅黑' && (await cellOf('E1')).hyperlink?.target === 'https://example.org')
     await ai([
       { command: 'cell.set', params: { cell: 'A5', input: '旧词' } },
-      { command: 'home.fontName', params: { range: 'A5', name: '楷体' } },
+      { command: 'format.fontName', params: { range: 'A5', name: '楷体' } },
       { command: 'cell.set', params: { cell: 'B5', input: '旧词' } },
-      { command: 'home.fontName', params: { range: 'B5', name: '黑体' } },
+      { command: 'format.fontName', params: { range: 'B5', name: '黑体' } },
     ])
     await exec('edit.replace', { what: '旧词', with: '新词', all: true })
     step('FONT-C45 替换后内容沿用各自原有字体', (await cellOf('A5')).value === '新词' && (await fontOf('A5')).name === '楷体' && (await fontOf('B5')).name === '黑体')
     await ai([
       { command: 'range.setValues', params: { range: 'G1', values: [['c'], ['a'], ['b']] } },
-      { command: 'home.fontName', params: { range: 'G1', name: '楷体' } },
-      { command: 'home.fontName', params: { range: 'G2', name: '黑体' } },
-      { command: 'home.fontName', params: { range: 'G3', name: '仿宋' } },
+      { command: 'format.fontName', params: { range: 'G1', name: '楷体' } },
+      { command: 'format.fontName', params: { range: 'G2', name: '黑体' } },
+      { command: 'format.fontName', params: { range: 'G3', name: '仿宋' } },
     ])
     await goTo('G1:G3')
     await exec('data.sortAscending', {})
@@ -858,9 +858,9 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['甲'], ['甲'], ['乙']] } },
-      { command: 'home.fontName', params: { range: 'A1:A3', name: '楷体' } },
+      { command: 'format.fontName', params: { range: 'A1:A3', name: '楷体' } },
       { command: 'cell.set', params: { cell: 'C1', input: '一,二,三' } },
-      { command: 'home.fontName', params: { range: 'C1', name: '黑体' } },
+      { command: 'format.fontName', params: { range: 'C1', name: '黑体' } },
     ])
     await goTo('A1:A3')
     await exec('data.removeDuplicates', { range: 'A1:A3', columns: ['A'], header: false })
@@ -878,14 +878,14 @@ try {
     const steps = []
     fonts.forEach((name, i) => {
       steps.push({ command: 'cell.set', params: { cell: `A${i + 1}`, input: name } })
-      steps.push({ command: 'home.fontName', params: { range: `A${i + 1}`, name } })
+      steps.push({ command: 'format.fontName', params: { range: `A${i + 1}`, name } })
     })
     await ai(steps)
     // An agent's selection and clipboard last one run (KHP C3b), so its copy and paste go together.
-    await ai([{ command: 'edit.copy', params: { range: 'A1:A10' } }, { command: 'selection.set', params: { range: 'C1' } }, { command: 'edit.paste', params: {} }])
+    await ai([{ command: 'edit.copy', params: { range: 'A1:A10' } }, { command: 'select.set', params: { range: 'C1' } }, { command: 'edit.paste', params: {} }])
     const here = await Promise.all(fonts.map((_, i) => fontOf(`C${i + 1}`)))
     step('FONT-C30 本 sheet 内粘贴：字体样式全部粘贴成功', here.every((f, i) => f.name === fonts[i]))
-    await ai([{ command: 'edit.cut', params: { range: 'A1:A10' } }, { command: 'sheet.activate', params: { sheet: '工作表2' } }, { command: 'selection.set', params: { range: 'B2' } }, { command: 'edit.paste', params: {} }])
+    await ai([{ command: 'edit.cut', params: { range: 'A1:A10' } }, { command: 'sheet.activate', params: { sheet: '工作表2' } }, { command: 'select.set', params: { range: 'B2' } }, { command: 'edit.paste', params: {} }])
     await settle(300)
     // The person goes to 工作表2 to look at what the agent pasted there.
     await h.choose('工作表2')
@@ -898,10 +898,10 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '字体样式测试' } },
-      { command: 'home.fontName', params: { range: 'A1', name: '微软雅黑' } },
+      { command: 'format.fontName', params: { range: 'A1', name: '微软雅黑' } },
       { command: 'cell.formatText', params: { cell: 'A1', start: 2, end: 4, name: '楷体', bold: true, color: '#FF0000' } },
-      { command: 'home.fontName', params: { range: 'B1', name: '仿宋' } },
-      { command: 'home.fontSize', params: { range: 'B1', size: 20 } },
+      { command: 'format.fontName', params: { range: 'B1', name: '仿宋' } },
+      { command: 'format.fontSize', params: { range: 'B1', size: 20 } },
       { command: 'cell.set', params: { cell: 'B1', input: '仿宋' } },
     ])
     await saveAndReopen()
@@ -922,7 +922,7 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '颜色' } },
-      { command: 'home.bold', params: { range: 'A1', on: true } },
+      { command: 'format.bold', params: { range: 'A1', on: true } },
     ])
     await page.evaluate(() => undefined)
     await click('A1')
@@ -1001,22 +1001,22 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '边框' } },
-      { command: 'home.borders', params: { range: 'A1', preset: 'all' } },
+      { command: 'format.borders', params: { range: 'A1', preset: 'all' } },
       { command: 'cell.set', params: { cell: 'B1', input: '底色' } },
-      { command: 'home.fillColor', params: { range: 'B1', color: '#FFFF00' } },
-      { command: 'home.fontColor', params: { range: 'B1', color: '#FF0000' } },
+      { command: 'format.fillColor', params: { range: 'B1', color: '#FFFF00' } },
+      { command: 'format.color', params: { range: 'B1', color: '#FF0000' } },
       { command: 'cell.set', params: { cell: 'C1', input: '=1+2' } },
       { command: 'cell.set', params: { cell: 'D1', input: '链接' } },
-      { command: 'insert.link', params: { cell: 'D1', target: 'https://example.com' } },
+      { command: 'link.insert', params: { cell: 'D1', target: 'https://example.com' } },
       { command: 'data.validation', params: { range: 'E1', type: 'list', formula1: '"甲,乙"' } },
       { command: 'cell.set', params: { cell: 'F1', input: '9' } },
-      { command: 'home.conditionalFormat', params: { range: 'F1', rule: { type: 'cellIs', operator: 'greaterThan', value: '5', style: { fill: '#00FF00' } } } },
+      { command: 'conditionalFormat.apply', params: { range: 'F1', rule: { type: 'cellIs', operator: 'greaterThan', value: '5', style: { fill: '#00FF00' } } } },
     ])
-    const before = await exec('document.inspect')
+    const before = await exec('file.inspect')
     await goTo('A1:F1')
     for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-home.${id}`).click()
     await settle(250)
-    const after = await exec('document.inspect')
+    const after = await exec('file.inspect')
     const fonts = await Promise.all(['A1', 'B1', 'C1', 'D1', 'E1', 'F1'].map(fontOf))
     step('FONT-C108/C138/C154/C170 边框单元格：BIUS 设置成功，边框不变', fonts[0].bold && fonts[0].italic && fonts[0].strike && JSON.stringify((await style('A1')).borders).includes('Thin'))
     step('FONT-C109/C139/C155/C171 底色单元格：底色与字体颜色不变', (await fillOf('B1')) === '#FFFF00' && hex(fonts[1].color) === '#FF0000' && fonts[1].bold)
@@ -1040,7 +1040,7 @@ try {
     await goTo('A1:B2')
     await typeSize('14')
     step('FONT-C90 区域字号统一变更，区域外不变', (await fontOf('B2')).size === 14 && (await fontOf('C3')).size === 11)
-    await ai([{ command: 'home.fontSize', params: { range: 'B2', size: 26 } }])
+    await ai([{ command: 'format.fontSize', params: { range: 'B2', size: 26 } }])
     await goTo('A1:B2')
     await page.keyboard.press('Enter')
     await page.keyboard.press('Enter')
@@ -1070,8 +1070,8 @@ try {
     await fresh()
     await ai([{ command: 'cell.set', params: { cell: 'A1', input: '字号' } }])
     await click('A1')
-    const grow = kit.getByTestId('sheet-cmd-home.increaseFontSize')
-    const shrink = kit.getByTestId('sheet-cmd-home.decreaseFontSize')
+    const grow = kit.getByTestId('sheet-cmd-format.increaseFontSize')
+    const shrink = kit.getByTestId('sheet-cmd-format.decreaseFontSize')
     await grow.click()
     await settle(200)
     step('FONT-C82 增大字号：11 → 12，字号框同步', (await fontOf('A1')).size === 12 && (await sizeBox().inputValue()) === '12')
@@ -1125,9 +1125,9 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [[1234.5, '文本', '2026-11-10', 0.25, '=A1*2']] } },
-      { command: 'home.numberFormat', params: { range: 'D1', format: '0%' } },
-      { command: 'home.accounting', params: { range: 'A1' } },
-      { command: 'home.mergeCenter', params: { range: 'F1:G1' } },
+      { command: 'format.numberFormat', params: { range: 'D1', format: '0%' } },
+      { command: 'format.accounting', params: { range: 'A1' } },
+      { command: 'cell.mergeCenter', params: { range: 'F1:G1' } },
     ])
     const texts = await Promise.all(['A1', 'C1', 'D1', 'E1'].map(async (ref) => (await cellOf(ref)).text))
     await goTo('A1:G1')
@@ -1202,19 +1202,19 @@ try {
     await settle(150)
     await boldButton().click()
     await settle(200)
-    step('FONT-C112 选中的文本全部加粗时按钮为选中态', await pressed('sheet-cmd-home.bold'))
+    step('FONT-C112 选中的文本全部加粗时按钮为选中态', await pressed('sheet-cmd-format.bold'))
     await sink()
     await page.keyboard.press('Home')
     await page.keyboard.down('Shift')
     await page.keyboard.press('End')
     await page.keyboard.up('Shift')
     await settle(200)
-    step('FONT-C112 选中内容中存在未加粗内容时按钮不为选中态', !(await pressed('sheet-cmd-home.bold')))
+    step('FONT-C112 选中内容中存在未加粗内容时按钮不为选中态', !(await pressed('sheet-cmd-format.bold')))
     await page.keyboard.press('Enter')
     await settle(200)
     const runs = await runsOf('A1')
     await click('A1')
-    step('FONT-C102 选中部分加粗成功，未选中部分原样，单元格的 B 为未选中', runs?.length === 2 && runs[1].text === '式测试' && runs[1].font?.bold === true && !runs[0].font?.bold && !(await pressed('sheet-cmd-home.bold')), JSON.stringify(runs))
+    step('FONT-C102 选中部分加粗成功，未选中部分原样，单元格的 B 为未选中', runs?.length === 2 && runs[1].text === '式测试' && runs[1].font?.bold === true && !runs[0].font?.bold && !(await pressed('sheet-cmd-format.bold')), JSON.stringify(runs))
   })
 
   await section('FONT-C105/C135/C151/C167 拖选区域', async () => {
@@ -1224,7 +1224,7 @@ try {
     await settle(200)
     await click('C3')
     const f = await fontOf('C3')
-    step('FONT-C105/C135/C151/C167 区域设置成功，对应单元格按钮选中，区域外不变', f.bold && f.italic && f.underline === 'Single' && f.strike && (await pressed('sheet-cmd-home.bold')) && !(await fontOf('E4')).bold)
+    step('FONT-C105/C135/C151/C167 区域设置成功，对应单元格按钮选中，区域外不变', f.bold && f.italic && f.underline === 'Single' && f.strike && (await pressed('sheet-cmd-format.bold')) && !(await fontOf('E4')).bold)
     await type('区域')
     step('FONT-C105 输入内容加粗显示', (await fontOf('C3')).bold)
   })
@@ -1244,12 +1244,12 @@ try {
     step('FONT-C125 筛选隐藏的行不加粗，恢复显示后保持原字重', (await fontOf('A2')).bold && (await fontOf('A4')).bold && !(await fontOf('A3')).bold && !(await fontOf('A5')).bold)
     await ai([
       { command: 'range.setValues', params: { range: 'C1', values: [['c1'], ['c2'], ['c3']] } },
-      { command: 'home.hideRows', params: { rows: '2' } },
+      { command: 'row.hide', params: { rows: '2' } },
     ])
     await goTo('C1:C3')
     await boldButton().click()
     await settle(200)
-    await exec('home.unhideRows', { rows: '1:3' })
+    await exec('row.show', { rows: '1:3' })
     step('FONT-C126 隐藏行的内容也加粗，取消隐藏后加粗显示', (await fontOf('C2')).bold && (await fontOf('C1')).bold)
   })
 
@@ -1257,7 +1257,7 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '可编辑' } },
-      { command: 'home.bold', params: { range: 'A1', on: true } },
+      { command: 'format.bold', params: { range: 'A1', on: true } },
     ])
     await click('A1')
     await boldButton().click()
@@ -1265,11 +1265,11 @@ try {
     step('FONT-C121 可编辑权限：取消加粗生效，无拦截提示', !(await fontOf('A1')).bold)
     await boldButton().click()
     await ai([
-      { command: 'home.fontName', params: { range: 'A1', name: '楷体' } },
-      { command: 'home.fontSize', params: { range: 'A1', size: 16 } },
-      { command: 'home.italic', params: { range: 'A1', on: true } },
-      { command: 'home.underline', params: { range: 'A1', on: true } },
-      { command: 'home.strikethrough', params: { range: 'A1', on: true } },
+      { command: 'format.fontName', params: { range: 'A1', name: '楷体' } },
+      { command: 'format.fontSize', params: { range: 'A1', size: 16 } },
+      { command: 'format.italic', params: { range: 'A1', on: true } },
+      { command: 'format.underline', params: { range: 'A1', on: true } },
+      { command: 'format.strikethrough', params: { range: 'A1', on: true } },
     ])
     await touch()
     const version = await page.evaluate((path) => window.devHost.files.get(path)?.version ?? 0, h.docPath())
@@ -1288,7 +1288,7 @@ try {
       await settle(600)
       await click('A1')
       await settle(200)
-      step('FONT-C53/C73/C79/C119/C120/C143/C159/C176 只读下没有「开始」选项卡，字体、字号、颜色、BIUS 入口均不可用（kit-editor 的只读规则）', (await kit.getByTestId('ribbon-tab-home').count()) === 0 && (await kit.getByTestId('sheet-font').count()) === 0 && (await kit.getByTestId('sheet-cmd-home.bold').count()) === 0)
+      step('FONT-C53/C73/C79/C119/C120/C143/C159/C176 只读下没有「开始」选项卡，字体、字号、颜色、BIUS 入口均不可用（kit-editor 的只读规则）', (await kit.getByTestId('ribbon-tab-home').count()) === 0 && (await kit.getByTestId('sheet-font').count()) === 0 && (await kit.getByTestId('sheet-cmd-format.bold').count()) === 0)
       step('FONT-C53/C79/C26 只读下单元格的字体、字号信息保留可读（document 中为楷体 16）', (await fontOf('A1')).name === '楷体' && (await fontOf('A1')).size === 16)
       await sink()
       await page.keyboard.press(`${mod}+b`)

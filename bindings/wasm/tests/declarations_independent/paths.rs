@@ -75,7 +75,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
     }
     for name in [home, if home == "Data" { "Second" } else { "Sheet2" }, "Sheet3"] {
         if name != home {
-            run(&mut doc, "home.insertSheet", json!({"name":name,"before":99}));
+            run(&mut doc, "sheet.insert", json!({"name":name,"before":99}));
         }
         run(
             &mut doc,
@@ -85,7 +85,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         run(&mut doc, "cell.set", json!({"cell":"Z20","input":"unrelated sentinel"}));
     }
     run(&mut doc, "sheet.activate", json!({"sheet":home}));
-    run(&mut doc, "selection.set", json!({"range":"B3"}));
+    run(&mut doc, "select.set", json!({"range":"B3"}));
     let mut params = row.params.clone();
     if row.command == "file.open" {
         params["base64"] = json!(kition_sheet_engine::io::base64_encode(&doc.save(Some("Book.xlsx")).unwrap()));
@@ -93,13 +93,13 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
     if matches!(row.command, "file.save" | "file.saveAs") {
         params["path"] = json!(std::env::temp_dir().join(format!("c8-sheet-path-{}-{}.xlsx", std::process::id(), row.command)));
     }
-    if row.command == "insert.picture" || row.command == "pageLayout.background" && params.get("data").is_some() {
+    if row.command == "image.insert" || row.command == "page.background" && params.get("data").is_some() {
         params.as_object_mut().unwrap().remove("data");
         params["base64"] = picture();
     }
     if row.family == "edit_format" {
-        run(&mut doc, "formulas.defineName", json!({"name":"Destination","refersTo":"=Second!$B$2"}));
-        run(&mut doc, "home.newCellStyle", json!({"name":"Custom"}));
+        run(&mut doc, "name.define", json!({"name":"Destination","refersTo":"=Second!$B$2"}));
+        run(&mut doc, "style.add", json!({"name":"Custom"}));
         if row.command == "cell.formatText" {
             run(&mut doc, "cell.set", json!({"cell":"B2","input":"text"}));
             run(&mut doc, "cell.set", json!({"cell":"B3","input":"text"}));
@@ -112,8 +112,8 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         }
     }
     if row.family == "data_insert" || row.family == "objects" {
-        if !matches!(row.command, "insert.table" | "home.formatAsTable") {
-            run(&mut doc, "insert.table", json!({"range":"A1:C5","name":"Sales","header":true}));
+        if !matches!(row.command, "table.insert" | "table.formatAs") {
+            run(&mut doc, "table.insert", json!({"range":"A1:C5","name":"Sales","header":true}));
         }
         for name in ["MyTableStyle", "OldStyle"] {
             run(&mut doc, "table.newStyle", json!({"name":name,"elements":{}}));
@@ -122,7 +122,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
     if row.command == "table.removeDuplicates" && row.params.get("range").is_some() {
         // The fallback is selected by absence of a table at the active cell,
         // even though its explicit data range can overlap an existing table.
-        run(&mut doc, "selection.set", json!({"range":"H10:J14"}));
+        run(&mut doc, "select.set", json!({"range":"H10:J14"}));
         run(&mut doc, "range.setValues", json!({"range":"A2","values":[["East",3,45000],["East",3,45000]]}));
     }
     if row.command == "table.headerRow" && params.get("on") == Some(&json!(true)) {
@@ -135,19 +135,19 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         "view.gridlines" if params.get("on").is_some() => {
             run(&mut doc, "view.gridlines", json!({"on":false}));
         }
-        "pageLayout.size" => {
-            run(&mut doc, "pageLayout.size", json!({"paper":"Letter"}));
+        "page.size" => {
+            run(&mut doc, "page.size", json!({"paper":"Letter"}));
         }
-        "pageLayout.printArea" if params.get("clear").is_some() => {
-            run(&mut doc, "pageLayout.printArea", json!({"range":"A1:C5"}));
+        "page.printArea" if params.get("clear").is_some() => {
+            run(&mut doc, "page.printArea", json!({"range":"A1:C5"}));
         }
-        "pageLayout.breaks" if params.get("reset").is_some() => {
-            run(&mut doc, "pageLayout.breaks", json!({"cell":"C5"}));
+        "page.breaks" if params.get("reset").is_some() => {
+            run(&mut doc, "page.breaks", json!({"cell":"C5"}));
         }
-        "review.unprotectSheet" => {
-            run(&mut doc, "review.protectSheet", json!({"sheet":params["sheet"],"password":"p"}));
+        "sheet.unprotect" => {
+            run(&mut doc, "sheet.protect", json!({"sheet":params["sheet"],"password":"p"}));
         }
-        "review.changeSpelling" => {
+        "spelling.change" => {
             for sheet in ["Sheet1", "Sheet2"] {
                 run(&mut doc, "cell.set", json!({"sheet":sheet,"cell":"C3","input":"teh"}));
             }
@@ -155,12 +155,12 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         "cell.toggleCheckbox" => {
             run(
                 &mut doc,
-                "insert.checkbox",
+                "checkbox.insert",
                 json!({"sheet":params.get("sheet").cloned().unwrap_or(json!(home)),"range":params.get("cell").cloned().unwrap_or(json!("B3"))}),
             );
         }
-        "pageLayout.background" if params.get("clear").is_some() => {
-            run(&mut doc, "insert.picture", json!({"base64":picture(),"at":"A1","alt":"Sheet background"}));
+        "page.background" if params.get("clear").is_some() => {
+            run(&mut doc, "image.insert", json!({"base64":picture(),"at":"A1","alt":"Sheet background"}));
         }
         "data.ungroup" | "data.hideDetail" | "data.showDetail" => {
             run(&mut doc, "data.group", json!({"rows":"2:4"}));
@@ -173,50 +173,50 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
             run(&mut doc, "cell.set", json!({"cell":"B3","input":"old"}));
         }
         "edit.clearFormats" => {
-            run(&mut doc, "home.bold", json!({"range":"B2:C3","on":true}));
+            run(&mut doc, "format.bold", json!({"range":"B2:C3","on":true}));
         }
         "edit.clearComments" => {
-            run(&mut doc, "review.newComment", json!({"cell":"B2","text":"remove me"}));
+            run(&mut doc, "comment.add", json!({"cell":"B2","text":"remove me"}));
         }
         "edit.clearHyperlinks" => {
-            run(&mut doc, "insert.link", json!({"cell":"B2","target":"https://example.com"}));
+            run(&mut doc, "link.insert", json!({"cell":"B2","target":"https://example.com"}));
         }
-        "home.italic" if params.get("on") == Some(&json!(false)) => {
-            run(&mut doc, "home.italic", json!({"range":"B2","on":true}));
+        "format.italic" if params.get("on") == Some(&json!(false)) => {
+            run(&mut doc, "format.italic", json!({"range":"B2","on":true}));
         }
-        "home.borders" if params.get("preset") == Some(&json!("none")) => {
-            run(&mut doc, "home.borders", json!({"range":"B2:C3","preset":"outside"}));
+        "format.borders" if params.get("preset") == Some(&json!("none")) => {
+            run(&mut doc, "format.borders", json!({"range":"B2:C3","preset":"outside"}));
         }
-        "home.alignBottom" => {
-            run(&mut doc, "home.alignTop", json!({"range":"B2"}));
+        "format.alignBottom" => {
+            run(&mut doc, "format.alignTop", json!({"range":"B2"}));
         }
-        "home.decreaseIndent" => {
-            run(&mut doc, "home.increaseIndent", json!({"range":"B2"}));
+        "format.decreaseIndent" => {
+            run(&mut doc, "format.increaseIndent", json!({"range":"B2"}));
         }
-        "home.unmergeCells" => {
-            run(&mut doc, "home.mergeCells", json!({"range":"B2:C3"}));
+        "cell.unmerge" => {
+            run(&mut doc, "cell.merge", json!({"range":"B2:C3"}));
         }
-        "home.unhideRows" => {
-            run(&mut doc, "home.hideRows", json!({"rows":"2"}));
+        "row.show" => {
+            run(&mut doc, "row.hide", json!({"rows":"2"}));
         }
-        "home.unhideColumns" => {
-            run(&mut doc, "home.hideColumns", json!({"cols":"B"}));
+        "column.show" => {
+            run(&mut doc, "column.hide", json!({"cols":"B"}));
         }
         "sheet.unhide" if params.get("sheet").is_some() => {
             run(&mut doc, "sheet.hide", json!({"sheet":"Data"}));
         }
-        "insert.link" if params.get("remove").is_some() => {
-            run(&mut doc, "insert.link", json!({"cell":"B2","target":"https://example.com"}));
+        "link.insert" if params.get("remove").is_some() => {
+            run(&mut doc, "link.insert", json!({"cell":"B2","target":"https://example.com"}));
         }
-        "formulas.createFromSelection" if params.as_object().unwrap().is_empty() => {
-            run(&mut doc, "selection.set", json!({"range":"A1:C5"}));
+        "name.addFromSelection" if params.as_object().unwrap().is_empty() => {
+            run(&mut doc, "select.set", json!({"range":"A1:C5"}));
         }
         _ => {}
     }
     if row.command.starts_with("pivot.") || row.command == "data.refreshAll" {
         let pivot = run(
             &mut doc,
-            "insert.pivotTable",
+            "pivot.insert",
             json!({"source":"Sales","destination":"H8","name":"Report","rows":if row.command == "pivot.moveField" { json!(["Date","Region"]) } else { json!(["Region","Date"]) },"values":["Amount"]}),
         )["id"]
             .clone();
@@ -230,8 +230,8 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
             run(&mut doc, "cell.set", json!({"cell":"B2","input":"11"}));
         }
     }
-    if row.command == "formulas.deleteName" {
-        run(&mut doc, "formulas.defineName", json!({"name":"Result","refersTo":"=42"}));
+    if row.command == "name.delete" {
+        run(&mut doc, "name.define", json!({"name":"Result","refersTo":"=42"}));
     }
     if row.command == "data.goalSeek" {
         run(&mut doc, "cell.set", json!({"cell":"Sheet2!B5","input":"=Sheet1!B2*2"}));
@@ -243,7 +243,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
             "range.setValues",
             json!({"range":"B1","values":[["Ada Lovelace","Ada"],["Grace Hopper",null],["Alan Turing",null],["Katherine Johnson",null]]}),
         );
-        run(&mut doc, "selection.set", json!({"range":"C4"}));
+        run(&mut doc, "select.set", json!({"range":"C4"}));
     }
     if row.command == "edit.redo" {
         run(&mut doc, "edit.undo", json!({}));
@@ -259,40 +259,40 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
     }
     if row.command == "view.customViews" && params.get("save").is_none() {
         run(&mut doc, "view.customViews", json!({"save":"work"}));
-        run(&mut doc, "selection.set", json!({"range":"D7"}));
+        run(&mut doc, "select.set", json!({"range":"D7"}));
     }
-    if row.command == "automate.runScript" || row.command == "automate.deleteScript" {
-        run(&mut doc, "automate.newScript", json!({"name":"Work","commands":[{"command":"cell.set","params":{"cell":"H1","input":"42"}}]}));
+    if row.command == "script.run" || row.command == "script.delete" {
+        run(&mut doc, "script.new", json!({"name":"Work","commands":[{"command":"cell.set","params":{"cell":"H1","input":"42"}}]}));
     }
-    if row.command == "automate.recordActions" && params.get("stop").is_some() {
-        run(&mut doc, "automate.recordActions", json!({}));
+    if row.command == "script.record" && params.get("stop").is_some() {
+        run(&mut doc, "script.record", json!({}));
         run(&mut doc, "cell.set", json!({"cell":"H1","input":"42"}));
     }
-    if row.command == "home.manageRules" || row.command == "home.clearRules" {
+    if row.command == "conditionalFormat.manageRules" || row.command == "conditionalFormat.clearRules" {
         for range in ["A1:A3", "B1:B3", "C1:C3"] {
-            run(&mut doc, "home.conditionalFormat", json!({"range":range,"rule":{"type":"blanks"}}));
+            run(&mut doc, "conditionalFormat.apply", json!({"range":range,"rule":{"type":"blanks"}}));
         }
     }
-    if row.command.starts_with("review.") && row.command.contains("Comment") || row.command == "review.showNote" {
-        run(&mut doc, "review.newComment", json!({"cell":"B2","text":"original"}));
-        run(&mut doc, "review.newComment", json!({"cell":"B3","text":"original"}));
-        run(&mut doc, "review.newComment", json!({"cell":"Sheet2!B2","text":"original"}));
+    if row.command.starts_with("review.") && row.command.contains("Comment") || row.command == "note.show" {
+        run(&mut doc, "comment.add", json!({"cell":"B2","text":"original"}));
+        run(&mut doc, "comment.add", json!({"cell":"B3","text":"original"}));
+        run(&mut doc, "comment.add", json!({"cell":"Sheet2!B2","text":"original"}));
     }
     let object_path = row.family == "objects"
         && (row.command.starts_with("chart.")
             || row.command.starts_with("arrange.")
             || row.command.starts_with("drawing.")
-            || row.command == "draw.inkToShape")
+            || row.command == "ink.toShape")
         || row.family == "data_insert" && (row.command.starts_with("chart.") || row.command.starts_with("object.") || row.command == "shape.setText");
     if object_path {
-        let ink = run(&mut doc, "draw.stroke", json!({"points":[[10,10],[80,40]],"color":"#123456","width":2}))["shape"].clone();
-        let first = run(&mut doc, "insert.textBox", json!({"at":"H1","text":"old"}))["shape"].clone();
-        let second = run(&mut doc, "insert.textBox", json!({"at":"J1","text":"second"}))["shape"].clone();
+        let ink = run(&mut doc, "ink.stroke", json!({"points":[[10,10],[80,40]],"color":"#123456","width":2}))["shape"].clone();
+        let first = run(&mut doc, "textBox.insert", json!({"at":"H1","text":"old"}))["shape"].clone();
+        let second = run(&mut doc, "textBox.insert", json!({"at":"J1","text":"second"}))["shape"].clone();
         if row.command == "drawing.arrange" {
-            run(&mut doc, "insert.textBox", json!({"at":"L1","text":"third"}));
+            run(&mut doc, "textBox.insert", json!({"at":"L1","text":"third"}));
         }
         let image = if params.get("kind") == Some(&json!("image")) {
-            Some(run(&mut doc, "insert.picture", json!({"base64":picture(),"at":"L1"}))["image"].clone())
+            Some(run(&mut doc, "image.insert", json!({"base64":picture(),"at":"L1"}))["image"].clone())
         } else {
             None
         };
@@ -304,7 +304,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         };
         let chart = run(
             &mut doc,
-            "insert.chart",
+            "chart.insert",
             json!({"range":chart_source,"type":if params.get("palette").is_some() { "pie" } else { "column" }}),
         )["chart"]
             .clone();
@@ -321,7 +321,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         if params.get("id").is_some() {
             params["id"] = if row.command == "drawing.chart" {
                 chart
-            } else if row.command == "draw.inkToShape" {
+            } else if row.command == "ink.toShape" {
                 ink
             } else if let Some(image) = image {
                 image
@@ -390,7 +390,7 @@ fn blind_paths_have_distinct_invocations_and_report_unreached_samples() {
         if row.command == "table.removeDuplicates" && row.params.get("range").is_some() {
             assert_eq!(result.as_ref().unwrap()["removed"], 1, "the fallback must process its explicit block");
         }
-        if row.command == "formulas.autoSum" && row.params.get("enter") == Some(&json!(false)) {
+        if row.command == "formula.autoSum" && row.params.get("enter") == Some(&json!(false)) {
             assert_eq!(result.as_ref().unwrap()["formula"], "=SUM(B2:B4)");
             assert_eq!(doc.save(Some("Book.json")).unwrap(), before, "preview must not enter the formula");
         }

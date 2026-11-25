@@ -59,13 +59,13 @@ async fn arrange_group_ids_follow_kind_for_chart_and_image_anchors() {
             let fixture = Fixture::new();
             if kind == "chart" {
                 fixture.colleague(&[
-                    ("insert.chart", json!({"range":"A1:C4","at":"B2","type":"column"})),
-                    ("insert.chart", json!({"range":"A1:C4","at":"F5","type":"column"})),
+                    ("chart.insert", json!({"range":"A1:C4","at":"B2","type":"column"})),
+                    ("chart.insert", json!({"range":"A1:C4","at":"F5","type":"column"})),
                 ]);
             } else {
                 fixture.colleague(&[
-                    ("insert.picture", json!({"base64":"AA==","at":"B2","width":80,"height":40})),
-                    ("insert.picture", json!({"base64":"AA==","at":"F5","width":80,"height":40})),
+                    ("image.insert", json!({"base64":"AA==","at":"B2","width":80,"height":40})),
+                    ("image.insert", json!({"base64":"AA==","at":"F5","width":80,"height":40})),
                 ]);
             }
             let basis = fixture.basis().await;

@@ -133,7 +133,7 @@ try {
 
   // Edits and a save: a row inserted gives the rows after it ids that are not their positions'.
   step('A1 holds Region', (await input('A1')) === 'Region', await input('A1'))
-  await exec('home.insertRows', { rows: '3:3' })
+  await exec('row.insert', { rows: '3:3' })
   await exec('cell.set', { cell: 'B3', input: 'Inserted' })
   const first = await save()
   const ids1 = idsOf(first)

@@ -14,14 +14,14 @@ async fn sheet_copy_holds_global_object_ids_and_table_name_allocations() {
         for related in [true, false] {
             let fixture = Fixture::new();
             fixture.colleague(&[
-                ("insert.table", json!({"range":"A1:B3","header":true,"name":"Sales"})),
+                ("table.insert", json!({"range":"A1:B3","header":true,"name":"Sales"})),
                 ("drawing.insert", json!({"kind":"shape","geometry":{"preset":"rect"},"frame":{"x":10,"y":20,"w":80,"h":40}})),
             ]);
             let basis = fixture.basis().await;
             if related && allocation == "table" {
-                fixture.colleague(&[("insert.table", json!({"range":"Sheet2!A1:B3","header":true,"name":"Sales2"}))]);
+                fixture.colleague(&[("table.insert", json!({"range":"Sheet2!A1:B3","header":true,"name":"Sales2"}))]);
             } else if related && allocation == "defined name" {
-                fixture.colleague(&[("formulas.defineName", json!({"name":"Sales2","refersTo":"=Sheet2!$A$1"}))]);
+                fixture.colleague(&[("name.define", json!({"name":"Sales2","refersTo":"=Sheet2!$A$1"}))]);
             } else if related {
                 fixture.colleague(&[
                     ("sheet.activate", json!({"sheet":"Sheet2"})),

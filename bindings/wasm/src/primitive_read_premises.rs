@@ -17,9 +17,9 @@ impl SheetDocument {
     pub(crate) fn primitive_read_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
         match command {
             "edit.formatPainter" if params.get("apply").is_none() => self.painter_pickup_premises(params, si),
-            "formulas.insertFunction" => self.function_request_premises(si),
-            "insert.shape" | "insert.icons" | "insert.textBox" => self.anchored_creation_premises(params, si),
-            "insert.symbol" => {
+            "formula.insertFunction" => self.function_request_premises(si),
+            "shape.insert" | "icon.insert" | "textBox.insert" => self.anchored_creation_premises(params, si),
+            "symbol.insert" => {
                 // insert.rs::insert_symbol appends to the active cell's raw
                 // input, then enters the result through cell.set. The composed
                 // text may create new formula dependencies or a fitted height.
@@ -34,10 +34,8 @@ impl SheetDocument {
             "cell.toggleCheckbox" => self.checkbox_toggle_premises(params, si),
             // These commands only choose a personal drawing tool or its defaults.
             // Their editor-state reads are declared separately from workbook facts.
-            "draw.pen" | "draw.pencil" | "draw.highlighter" | "draw.eraser" | "draw.select" | "draw.shape" | "draw.lasso" => {
-                Ok(Some(Under::default()))
-            }
-            "draw.stroke" => {
+            "ink.pen" | "ink.pencil" | "ink.highlighter" | "ink.eraser" | "ink.select" | "ink.shape" | "ink.lasso" => Ok(Some(Under::default())),
+            "ink.stroke" => {
                 // This handler filters malformed points, then keeps its first 20,000
                 // finite samples. Only the minimum corner determines its cell anchor.
                 // Passing all samples through drawing.ink would apply its different cap.

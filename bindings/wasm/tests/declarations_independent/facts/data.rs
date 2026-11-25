@@ -13,9 +13,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
         super::objects::chart(&mut out, command, params, cx);
         return out;
     }
-    if command.starts_with("pivot.")
-        || matches!(command, "insert.pivotTable" | "insert.recommendedPivotTables" | "table.summarizePivot" | "data.refreshAll")
-    {
+    if command.starts_with("pivot.") || matches!(command, "pivot.insert" | "pivot.recommended" | "table.summarizePivot" | "data.refreshAll") {
         pivot(&mut out, command, params, cx);
         return out;
     }
@@ -76,8 +74,8 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
             out = super::edit::expected(&delegated, params, cx);
             delegated.command = command;
         }
-        "insert.table" | "home.formatAsTable" => insert_table(&mut out, command, params, cx),
-        "insert.chart" | "insert.recommendedCharts" => {
+        "table.insert" | "table.formatAs" => insert_table(&mut out, command, params, cx),
+        "chart.insert" | "chart.recommended" => {
             let range = if params.get("range").is_some() { cx.range(params) } else { data_range(cx, params) };
             cx.lookup(&mut out, params, si);
             out.add(&sid, ["name"]);
@@ -85,15 +83,15 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
             out.add("workbook", ["~nextObjectId"]);
             cx.shared(&mut out, si, None, false);
         }
-        "insert.picture" if params.get("placement").and_then(Value::as_str) == Some("cell") => {
+        "image.insert" if params.get("placement").and_then(Value::as_str) == Some("cell") => {
             let at = params.get("at").and_then(Value::as_str).and_then(area).map_or(cx.active_cell, |range| range.start);
             cx.entry(&mut out, cx.active, RangeRef::cell(at), false);
         }
-        "insert.picture" | "insert.shape" | "insert.textBox" | "insert.icons" => {
+        "image.insert" | "shape.insert" | "textBox.insert" | "icon.insert" => {
             let at = params.get("at").and_then(Value::as_str).and_then(area).map_or(cx.active_cell, |range| range.start);
             super::objects::insertion(&mut out, cx, cx.active, at, false);
         }
-        "insert.artText" => {
+        "artText.insert" => {
             super::objects::insertion(&mut out, cx, cx.active, cx.active_cell, true);
             cx.geometry(&mut out, cx.active, cx.active_cell.row, cx.active_cell.col);
         }
@@ -123,37 +121,35 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
             }
             cx.shared(&mut out, cx.active, None, false);
         }
-        "insert.sparkline" => {
+        "sparkline.insert" => {
             let range = params.get("location").and_then(Value::as_str).and_then(area).unwrap();
             cx.address(&mut out, cx.active, range);
             out.add(&cx.sid(cx.active), ["sparklines"]);
             cx.shared(&mut out, cx.active, None, false);
         }
-        "insert.link" => link(&mut out, params, cx),
-        "review.newNote" | "review.newComment" | "review.replyComment" | "review.resolveComment" | "review.deleteComment" | "review.showNote" => {
-            comments(&mut out, command, params, cx)
-        }
-        "insert.symbol" => {
+        "link.insert" => link(&mut out, params, cx),
+        "note.add" | "comment.add" | "comment.reply" | "comment.resolve" | "comment.delete" | "note.show" => comments(&mut out, command, params, cx),
+        "symbol.insert" => {
             cx.entry(&mut out, cx.active, RangeRef::cell(cx.active_cell), true);
             cx.source(&mut out, cx.active, RangeRef::cell(cx.active_cell), false);
         }
-        "home.conditionalFormat" | "home.clearRules" | "home.manageRules" => conditional(&mut out, command, params, cx),
-        "formulas.autoSum" => autosum(&mut out, params, cx),
-        "formulas.insertFunction" => checkbox_enabled(&mut out, cx),
-        "formulas.defineName" | "formulas.deleteName" => names(&mut out, command, params, cx),
-        "formulas.createFromSelection" => {
+        "conditionalFormat.apply" | "conditionalFormat.clearRules" | "conditionalFormat.manageRules" => conditional(&mut out, command, params, cx),
+        "formula.autoSum" => autosum(&mut out, params, cx),
+        "formula.insertFunction" => checkbox_enabled(&mut out, cx),
+        "name.define" | "name.delete" => names(&mut out, command, params, cx),
+        "name.addFromSelection" => {
             let range = cx.range(params);
             cx.source(&mut out, cx.active, RangeRef::new(range.start, CellRef::new(range.start.row, range.end.col)), false);
             out.add(&cx.sid(cx.active), ["name"]);
             out.add("workbook", ["names"]);
             cx.shared(&mut out, cx.active, None, true);
         }
-        "formulas.showFormulas" => {
+        "formula.showFormulas" => {
             out.add(&cx.sid(cx.active), ["props.showFormulas"]);
             cx.shared(&mut out, cx.active, None, false);
         }
-        "formulas.calculateNow" | "formulas.calculateSheet" => calculation(&mut out, cx),
-        "formulas.calculationOptions" => {
+        "formula.calculateNow" | "formula.calculateSheet" => calculation(&mut out, cx),
+        "formula.calculationOptions" => {
             for (key, field) in [("mode", "mode"), ("iterative", "iterative"), ("maxIterations", "max_iterations"), ("maxChange", "max_change")] {
                 if params.get(key).is_some() || key == "mode" {
                     out.add("workbook", [format!("props.calc.{field}")]);
@@ -417,7 +413,7 @@ fn map_entry(out: &mut Facts, cx: &Context, si: usize, field: &str, at: CellRef)
 fn comments(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
     let si = cx.sheet(params);
     cx.lookup(out, params, si);
-    let range = if command == "review.deleteComment" {
+    let range = if command == "comment.delete" {
         cx.selected
     } else {
         RangeRef::cell(params.get("cell").and_then(Value::as_str).and_then(area).map_or(cx.active_cell, |r| r.start))
@@ -433,10 +429,10 @@ fn conditional(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
     let si = cx.sheet(params);
     cx.lookup(out, params, si);
     out.add(&cx.sid(si), ["condFormats"]);
-    if command == "home.conditionalFormat" {
+    if command == "conditionalFormat.apply" {
         cx.address(out, si, cx.range(params));
     }
-    if command == "home.clearRules" {
+    if command == "conditionalFormat.clearRules" {
         out.fact("call", "covers", "~conditionalRanges");
         for rule in &cx.wb.sheets[si].cond_formats {
             if rule.ranges.iter().any(|range| range.intersects(&cx.range(params))) {
@@ -477,7 +473,7 @@ fn names(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
     if let Some(si) = params.get("scope").and_then(Value::as_str).and_then(|name| cx.wb.sheet_index(name)) {
         out.add(&cx.sid(si), ["name"]);
     }
-    if command == "formulas.defineName" && params.get("refersTo").is_none() {
+    if command == "name.define" && params.get("refersTo").is_none() {
         out.add(&cx.sid(cx.active), ["name"]);
         cx.address(out, cx.active, cx.selected);
     }
@@ -520,8 +516,8 @@ fn pivot(out: &mut Facts, command: &str, params: &Value, cx: &Context) {
             }
         }
     }
-    if matches!(command, "insert.pivotTable" | "insert.recommendedPivotTables" | "table.summarizePivot") {
-        if command == "insert.recommendedPivotTables" && params.get("apply").is_none() {
+    if matches!(command, "pivot.insert" | "pivot.recommended" | "table.summarizePivot") {
+        if command == "pivot.recommended" && params.get("apply").is_none() {
             return;
         }
         out.add("workbook", ["~nextObjectId"]);

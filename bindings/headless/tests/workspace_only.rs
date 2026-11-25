@@ -6,9 +6,9 @@
 //!
 //! A workspace audit (sheet section, from reading the code) found that the engine read
 //! and wrote any path the commands that name files are given (`file.open`, `data.getData`,
-//! `data.fromTextCsv`, `insert.picture`, `pageLayout.background`, `file.save`, `file.saveAs`,
+//! `data.fromTextCsv`, `image.insert`, `page.background`, `file.save`, `file.saveAs`,
 //! `file.exportCsv`, `file.exportHtml`, `file.exportPdf`, `file.print`), and that
-//! `automate.runScript`, which the agent is offered, ran a workbook's stored steps with no check:
+//! `script.run`, which the agent is offered, ran a workbook's stored steps with no check:
 //! the headless kit keeps those commands from the agent and checks `model.batch` command steps,
 //! but a script's steps reached them all, and a workbook could carry such a script. Spelling read
 //! the machine's word list (`/usr/share/dict`).
@@ -129,7 +129,7 @@ fn workbook_with(text: &str) -> Vec<u8> {
 }
 
 /// A workbook whose stored scripts each run one step naming a file outside the workspace: what
-/// an agent runs with `automate.runScript` and nothing else.
+/// an agent runs with `script.run` and nothing else.
 fn hostile_xlsx(root: &Path) -> Vec<u8> {
     let mut doc = SheetDocument::create("hostile.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "A1", "input": "Hostile" })).unwrap();
@@ -142,12 +142,12 @@ fn hostile_xlsx(root: &Path) -> Vec<u8> {
     }
     for (index, (command, path)) in steps.iter().enumerate() {
         let script = json!({ "name": format!("Planted {index}"), "commands": [{ "command": command, "params": { "path": path } }] });
-        doc.execute("automate.newScript", script).unwrap();
+        doc.execute("script.new", script).unwrap();
     }
     let bytes = doc.save(None).unwrap();
     // The scripts survive the file: the agent finds them in the workbook it opens.
     let mut reopened = SheetDocument::open("hostile.xlsx", &bytes).unwrap();
-    let listed = reopened.execute("automate.allScripts", json!({})).unwrap();
+    let listed = reopened.execute("script.list", json!({})).unwrap();
     assert_eq!(listed.as_array().map(Vec::len), Some(steps.len()), "the planted workbook keeps its scripts: {listed}");
     bytes
 }
@@ -224,14 +224,14 @@ impl Agent {
         let name = format!("Agent script {}", self.scripts);
         self.scripts += 1;
         let steps = json!([{ "command": command, "params": value }]);
-        let _ = self.run(id, "automate.newScript", json!({ "name": name, "commands": steps }));
-        let _ = self.run(id, "automate.runScript", json!({ "name": name }));
+        let _ = self.run(id, "script.new", json!({ "name": name, "commands": steps }));
+        let _ = self.run(id, "script.run", json!({ "name": name }));
         let name = format!("{name} (batch)");
         let ops = json!([
-            { "op": "command", "id": "automate.newScript", "params": { "name": name, "commands": steps } },
-            { "op": "command", "id": "automate.runScript", "params": { "name": name } },
+            { "op": "command", "id": "script.new", "params": { "name": name, "commands": steps } },
+            { "op": "command", "id": "script.run", "params": { "name": name } },
         ]);
-        let _ = self.batch(id, format!("automate.runScript {command}"), ops, &json!({ "kind": "person", "principal": "person:local" }));
+        let _ = self.batch(id, format!("script.run {command}"), ops, &json!({ "kind": "person", "principal": "person:local" }));
     }
 
     /// `command` every way an agent reaches it: directly, as one `command` operation of
@@ -273,8 +273,8 @@ fn act(root: &Path) -> Vec<String> {
     }
     // Scripts still run what the agent may run.
     let allowed = json!({ "name": "Allowed", "commands": [{ "command": "cell.set", "params": { "cell": "H2", "input": "By a script" } }] });
-    let _ = agent.run(&id, "automate.newScript", allowed);
-    if agent.run(&id, "automate.runScript", json!({ "name": "Allowed" })).is_err() {
+    let _ = agent.run(&id, "script.new", allowed);
+    if agent.run(&id, "script.run", json!({ "name": "Allowed" })).is_err() {
         wrong.push("a script of commands the agent may run was refused".to_owned());
     }
 
@@ -303,25 +303,25 @@ fn act(root: &Path) -> Vec<String> {
 
     // A workbook of the workspace whose stored scripts name files outside it: the agent runs each.
     let hostile = agent.open("hostile.xlsx");
-    let listed = agent.run(&hostile, "automate.allScripts", json!({})).unwrap_or_default();
+    let listed = agent.run(&hostile, "script.list", json!({})).unwrap_or_default();
     let planted: Vec<String> = listed.as_array().into_iter().flatten().filter_map(|script| script["name"].as_str().map(str::to_owned)).collect();
     if planted.is_empty() {
         wrong.push(format!("hostile.xlsx: its scripts are not there: {listed}"));
     }
     for name in &planted {
-        let ran = agent.run(&hostile, "automate.runScript", json!({ "name": name }));
+        let ran = agent.run(&hostile, "script.run", json!({ "name": name }));
         if ran.is_ok() {
             wrong.push(format!("hostile.xlsx: the agent ran `{name}`, a step naming a file outside the workspace"));
         }
-        let ops = json!([{ "op": "command", "id": "automate.runScript", "params": { "name": name } }]);
-        let _ = agent.batch(&hostile, format!("automate.runScript {name}"), ops, &json!({ "kind": "person", "principal": "person:local" }));
+        let ops = json!([{ "op": "command", "id": "script.run", "params": { "name": name } }]);
+        let _ = agent.batch(&hostile, format!("script.run {name}"), ops, &json!({ "kind": "person", "principal": "person:local" }));
     }
     agent.sheets(&hostile);
 
     // Spelling reads no word list of the machine.
     let _ = agent.run(&hostile, "cell.set", json!({ "cell": "B2", "input": "Helllo wrold" }));
-    if agent.run(&hostile, "review.spelling", json!({})).is_ok() {
-        wrong.push("review.spelling checked against a word list of the machine".to_owned());
+    if agent.run(&hostile, "spelling.check", json!({})).is_ok() {
+        wrong.push("spelling.check checked against a word list of the machine".to_owned());
     }
 
     // Every command the kit offers the agent, with no parameters, on both workbooks.

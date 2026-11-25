@@ -29,7 +29,7 @@ fn sample(id: &str) -> Result<serde_json::Value, String> {
     doc.execute(id, entry.get("params").map_or(serde_json::json!({}), fill))
 }
 
-/// The word list `review.spelling` checks against in these tests (`KITION_SHEET_WORDS`), so its
+/// The word list `spelling.check` checks against in these tests (`KITION_SHEET_WORDS`), so its
 /// sample answers on a machine with no system word list too (a hosted CI runner).
 const WORDS: &str = "a\nand\namount\ncity\ndate\nname\nnorth\nregion\nsales\nsouth\nthe\ntotal\nvalue\n";
 

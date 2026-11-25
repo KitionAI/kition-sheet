@@ -65,7 +65,7 @@ fn dragging_the_line_after_a_column_heading_sets_its_width() {
 #[test]
 fn a_resize_sets_every_selected_whole_column_and_rows_resize_too() {
     let mut doc = sheet();
-    run(&mut doc, "selection.set", json!({ "range": "B:D" }));
+    run(&mut doc, "select.set", json!({ "range": "B:D" }));
     let width = doc.width();
     // The line after C, one of the selected columns, narrowed by 24.
     let c_edge = HEADER_W + 3.0 * COL;

@@ -36,19 +36,19 @@ async fn ink_conversion_holds_the_chosen_stroke_and_last_ink_default() {
             }
             let fixture = Fixture::new();
             fixture.colleague(&[
-                ("draw.stroke", json!({"points":[[20,20],[60,60]],"color":"#123456"})),
-                ("insert.shape", json!({"kind":"rectangle","at":"C3"})),
+                ("ink.stroke", json!({"points":[[20,20],[60,60]],"color":"#123456"})),
+                ("shape.insert", json!({"kind":"rectangle","at":"C3"})),
             ]);
             let basis = fixture.basis().await;
             match change {
                 "points" => fixture.colleague_rewrite(|workbook| {
                     workbook.sheet_mut(0).unwrap().shapes.first_mut().unwrap().text = "0,0;40,0;40,40;0,40;0,0".into();
                 }),
-                "lastInk" => fixture.colleague(&[("draw.stroke", json!({"points":[[100,100],[140,140]]}))]),
+                "lastInk" => fixture.colleague(&[("ink.stroke", json!({"points":[[100,100],[140,140]]}))]),
                 _ => fixture.colleague(&[("cell.set", json!({"sheet":"Sheet2","cell":"A1","input":"unrelated"}))]),
             }
             let before = fixture.bytes();
-            let result = fixture.run(basis, "draw.inkToShape", if explicit { json!({"id":1}) } else { json!({}) }).await;
+            let result = fixture.run(basis, "ink.toShape", if explicit { json!({"id":1}) } else { json!({}) }).await;
             if change == "unrelated" {
                 if result.is_err() {
                     wrong.push(format!("explicit={explicit}: unrelated cell must allow ink conversion: {result:?}"));
@@ -116,15 +116,15 @@ async fn drawing_transform_holds_the_kind_that_selects_its_supported_operations(
 async fn object_helper_holds_follow_their_stored_name_theme_or_pane_inputs() {
     let mut wrong = Vec::new();
     let rows: [(&str, Value, Vec<(&str, Value)>, Option<(&str, Value)>); 8] = [
-        ("automate.recordActions", json!({}), vec![], None),
-        ("formulas.useInFormula", json!({"name":"Revenue"}), vec![], None),
-        ("pageLayout.themeEffects", json!({"name":"Simple"}), vec![], None),
-        ("pageLayout.themeColors", json!({"name":"Meadow"}), vec![], Some(("pageLayout.themeColors", json!({"name":"Ember"})))),
+        ("script.record", json!({}), vec![], None),
+        ("formula.useInFormula", json!({"name":"Revenue"}), vec![], None),
+        ("theme.effects", json!({"name":"Simple"}), vec![], None),
+        ("theme.colors", json!({"name":"Meadow"}), vec![], Some(("theme.colors", json!({"name":"Ember"})))),
         (
-            "formulas.watchWindow",
+            "formula.watchWindow",
             json!({"add":"A3"}),
-            vec![("formulas.watchWindow", json!({"add":"A2"}))],
-            Some(("formulas.watchWindow", json!({"add":"A4"}))),
+            vec![("formula.watchWindow", json!({"add":"A2"}))],
+            Some(("formula.watchWindow", json!({"add":"A4"}))),
         ),
         (
             "view.customViews",
@@ -177,8 +177,8 @@ async fn object_helper_holds_follow_their_stored_name_theme_or_pane_inputs() {
 async fn theme_colors_keeps_the_outside_writers_fonts() {
     let fixture = Fixture::new();
     let basis = fixture.basis().await;
-    fixture.colleague(&[("pageLayout.themeFonts", json!({"major":"Kition Serif","minor":"Kition Mono"}))]);
-    let result = fixture.run(basis, "pageLayout.themeColors", json!({"name":"Meadow"})).await;
+    fixture.colleague(&[("theme.fonts", json!({"major":"Kition Serif","minor":"Kition Mono"}))]);
+    let result = fixture.run(basis, "theme.colors", json!({"name":"Meadow"})).await;
     assert!(result.is_ok(), "a color-scheme write preserves the outside writer's fonts: {result:?}");
     let (workbook, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &fixture.bytes()).unwrap();
     assert_eq!(workbook.theme.major_font, "Kition Serif");

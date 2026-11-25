@@ -14,8 +14,8 @@ async fn shape_fill_on_changes_the_named_shape_or_refuses_without_writing() {
     for explicit in [false, true] {
         let f = Fixture::new();
         f.colleague(&[
-            ("insert.shape", json!({"kind":"rect","at":"F2","fill":"#112233"})),
-            ("insert.shape", json!({"kind":"rect","at":"J2","fill":"#445566"})),
+            ("shape.insert", json!({"kind":"rect","at":"F2","fill":"#112233"})),
+            ("shape.insert", json!({"kind":"rect","at":"J2","fill":"#445566"})),
         ]);
         let basis = f.basis().await;
         f.colleague(&[("cell.set", json!({"cell":"Z20","input":"outside"}))]);

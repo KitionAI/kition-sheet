@@ -8,7 +8,7 @@ fn fixture() -> Session {
     let mut session = Session::new();
     session.new_workbook();
     for cell in ["A1", "C1", "C2"] {
-        session.execute("insert.checkbox", json!({"range":cell})).unwrap();
+        session.execute("checkbox.insert", json!({"range":cell})).unwrap();
     }
     session
 }
@@ -16,7 +16,7 @@ fn fixture() -> Session {
 #[test]
 fn checkbox_selection_caps_the_total_before_filtering_or_collecting() {
     let mut session = fixture();
-    session.execute("selection.set", json!({"range":"A1:A100000,C1:C100000"})).unwrap();
+    session.execute("select.set", json!({"range":"A1:A100000,C1:C100000"})).unwrap();
     let output = session.execute("cell.toggleCheckbox", json!({})).unwrap();
     assert_eq!(output["toggled"], 1, "empty coordinates consume the traversal budget too");
     assert_eq!(session.execute("cell.get", json!({"cell":"A1"})).unwrap()["value"], true);
@@ -26,7 +26,7 @@ fn checkbox_selection_caps_the_total_before_filtering_or_collecting() {
 #[test]
 fn checkbox_selection_uses_the_remaining_budget_in_the_next_range() {
     let mut session = fixture();
-    session.execute("selection.set", json!({"range":"A1:A99999,C1:C2"})).unwrap();
+    session.execute("select.set", json!({"range":"A1:A99999,C1:C2"})).unwrap();
     let output = session.execute("cell.toggleCheckbox", json!({})).unwrap();
     assert_eq!(output["toggled"], 2);
     assert_eq!(session.execute("cell.get", json!({"cell":"A1"})).unwrap()["value"], true);
@@ -37,7 +37,7 @@ fn checkbox_selection_uses_the_remaining_budget_in_the_next_range() {
 #[test]
 fn an_explicit_checkbox_cell_bypasses_the_selection_budget() {
     let mut session = fixture();
-    session.execute("selection.set", json!({"range":"A1:A100000,C1:C100000"})).unwrap();
+    session.execute("select.set", json!({"range":"A1:A100000,C1:C100000"})).unwrap();
     assert_eq!(session.execute("cell.toggleCheckbox", json!({"cell":"C2"})).unwrap()["toggled"], 1);
     assert_eq!(session.execute("cell.get", json!({"cell":"C2"})).unwrap()["value"], true);
     assert_eq!(session.execute("cell.get", json!({"cell":"A1"})).unwrap()["value"], false);

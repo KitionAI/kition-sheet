@@ -42,7 +42,7 @@ fn cross_sheet_cut_preserves_total_through_undo_redo_and_xlsx() {
     let mut s = workbook();
     run(&mut s, "range.setValues", json!({"range": "A1", "values": [[10], [20]]}));
     set(&mut s, "B1", "=SUM(A1:A2)");
-    run(&mut s, "home.insertSheet", json!({"name": "Sheet2"}));
+    run(&mut s, "sheet.insert", json!({"name": "Sheet2"}));
     cut_to(&mut s, "Sheet1", "A1:A2", "Sheet2", "C3");
 
     let assert_moved = |s: &Session| {
@@ -75,12 +75,12 @@ fn references_on_all_sheets_follow_cut_but_destination_local_refs_do_not() {
     run(&mut s, "sheet.rename", json!({"name": "Source Data"}));
     run(&mut s, "range.setValues", json!({"range": "A1", "values": [[10], [20]]}));
     set(&mut s, "B1", "=SUM($A$1:$A$2)");
-    run(&mut s, "formulas.defineName", json!({"name": "MovedData", "refersTo": "='Source Data'!$A$1:$A$2"}));
-    run(&mut s, "home.insertSheet", json!({"name": "Target's Data"}));
+    run(&mut s, "name.define", json!({"name": "MovedData", "refersTo": "='Source Data'!$A$1:$A$2"}));
+    run(&mut s, "sheet.insert", json!({"name": "Target's Data"}));
     run(&mut s, "range.setValues", json!({"range": "A1", "values": [[100], [200]]}));
     set(&mut s, "B1", "=SUM('Source Data'!$A$1:$A$2)");
     set(&mut s, "B2", "=SUM(A1:A2)");
-    run(&mut s, "home.insertSheet", json!({"name": "Summary"}));
+    run(&mut s, "sheet.insert", json!({"name": "Summary"}));
     set(&mut s, "A1", "='Source Data'!$A$1+'Source Data'!A$2");
     set(&mut s, "A2", "=SUM(MovedData)");
     cut_to(&mut s, "Source Data", "A1:A2", "Target's Data", "C3");
@@ -109,7 +109,7 @@ fn moved_formulas_keep_external_source_refs_and_move_internal_refs_once() {
     set(&mut s, "D1", "7");
     set(&mut s, "A2", "=$A$1+$D$1+'Source Data'!A1");
     set(&mut s, "A3", "=A2*2");
-    run(&mut s, "home.insertSheet", json!({"name": "Destination"}));
+    run(&mut s, "sheet.insert", json!({"name": "Destination"}));
     set(&mut s, "D1", "1000");
     // Overlapping coordinates on different sheets catch accidental double adjustment.
     cut_to(&mut s, "Source Data", "A1:A3", "Destination", "A2");

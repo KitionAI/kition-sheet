@@ -88,7 +88,7 @@ const editing = async () => (await details()).editing === true
 async function fresh(names = numbered(3)) {
   await build(names, { fill: false })
   await ai([
-    { command: 'home.rowHeight', params: { rows: '1:40', height: G.rh } },
+    { command: 'row.setHeight', params: { rows: '1:40', height: G.rh } },
     { command: 'view.zoom', params: { percent: 100 } },
   ])
   const box = await region()
@@ -134,12 +134,12 @@ const closeDialog = async () => {
 // ———— Insert › Checkbox ————
 const insertCheckbox = async () => {
   await insertTab()
-  await kit.getByTestId('sheet-cmd-insert.checkbox').click()
+  await kit.getByTestId('sheet-cmd-checkbox.insert').click()
   await settle(300)
 }
 /** Checkboxes in `range`, ticked as `values` say (row by row), by command. */
 const boxes = async (range, values = []) => {
-  const steps = [{ command: 'insert.checkbox', params: { range } }]
+  const steps = [{ command: 'checkbox.insert', params: { range } }]
   for (const [ref, on] of values) steps.push({ command: 'cell.set', params: { cell: ref, input: on ? 'TRUE' : 'FALSE' } })
   await ai(steps)
   await settle(200)
@@ -377,7 +377,7 @@ try {
 
   await section('INSC-C200 合并单元格', async () => {
     await fresh()
-    await ai([{ command: 'home.mergeCells', params: { range: 'A1:B2' } }])
+    await ai([{ command: 'cell.merge', params: { range: 'A1:B2' } }])
     await select('A1')
     await pick('＋')
     await page.keyboard.press('Enter')
@@ -459,7 +459,7 @@ try {
 
   await section('INSC-C51 选区多个单元格', async () => {
     await fresh()
-    // The person's selection (an agent's selection.set moves only its own editor state, KHP C3b).
+    // The person's selection (an agent's select.set moves only its own editor state, KHP C3b).
     await h.goTo('A1:A3')
     await insertCheckbox()
     // The selection's tint off the cells looked at.
@@ -503,7 +503,7 @@ try {
   await section('INSC-C63 框选后单击其中一个', async () => {
     await fresh()
     await boxes('A1:A3', [['A1', true], ['A3', true]])
-    await ai([{ command: 'selection.set', params: { range: 'A1:A3' } }])
+    await ai([{ command: 'select.set', params: { range: 'A1:A3' } }])
     await click('A2')
     await settle(200)
     step('INSC-C63 只有 A2 转为勾选，A1、A3 仍勾选', (await val('A2')) === true && (await val('A1')) === true && (await val('A3')) === true && (await shown('A2')) === 'checked')
@@ -559,7 +559,7 @@ try {
   await section('INSC-C267 清除格式', async () => {
     await fresh()
     await boxes('A1', [['A1', true]])
-    await ai([{ command: 'home.fillColor', params: { range: 'A1', color: '#FFFF00' } }])
+    await ai([{ command: 'format.fillColor', params: { range: 'A1', color: '#FFFF00' } }])
     await cellMenu('A1', 'clear', 'sheet-grid-clear-formats')
     await touch()
     await saveAndReopen()
@@ -570,13 +570,13 @@ try {
     await fresh()
     await boxes('A1', [['A1', true]])
     await ai([
-      { command: 'home.bold', params: { range: 'A1', on: true } },
-      { command: 'home.italic', params: { range: 'A1', on: true } },
-      { command: 'home.underline', params: { range: 'A1', on: true } },
-      { command: 'home.strikethrough', params: { range: 'A1', on: true } },
-      { command: 'home.fontColor', params: { range: 'A1', color: '#FF0000' } },
-      { command: 'home.fontSize', params: { range: 'A1', size: 16 } },
-      { command: 'home.rowHeight', params: { rows: '1', height: 30 } },
+      { command: 'format.bold', params: { range: 'A1', on: true } },
+      { command: 'format.italic', params: { range: 'A1', on: true } },
+      { command: 'format.underline', params: { range: 'A1', on: true } },
+      { command: 'format.strikethrough', params: { range: 'A1', on: true } },
+      { command: 'format.color', params: { range: 'A1', color: '#FF0000' } },
+      { command: 'format.fontSize', params: { range: 'A1', size: 16 } },
+      { command: 'row.setHeight', params: { rows: '1', height: 30 } },
     ])
     await settle(300)
     // Row 1 is 30 px now: the box is centred at y = 21 + 15.
@@ -591,15 +591,15 @@ try {
     await fresh()
     await boxes('A1', [['A1', true]])
     await ai([
-      { command: 'home.fillColor', params: { range: 'A1', color: '#FFFF00' } },
-      { command: 'home.borders', params: { range: 'A1', preset: 'all' } },
-      { command: 'home.alignCenter', params: { range: 'A1' } },
-      { command: 'home.wrapText', params: { range: 'A1', on: true } },
+      { command: 'format.fillColor', params: { range: 'A1', color: '#FFFF00' } },
+      { command: 'format.borders', params: { range: 'A1', preset: 'all' } },
+      { command: 'format.alignCenter', params: { range: 'A1' } },
+      { command: 'format.wrapText', params: { range: 'A1', on: true } },
     ])
     await settle(250)
     const yellow = (p) => p[0] > 230 && p[1] > 230 && p[2] < 80
     step('INSC-C69 A1 呈黄色背景与四边细边框，方框水平居中', yellow(await h.pixel(46 + 10, 21 + 10)) && (await styleOf('A1')).borders?.top?.style === 'Thin' && (await shown('A1')) === 'checked', JSON.stringify((await styleOf('A1')).borders?.top))
-    await ai([{ command: 'home.fillColor', params: { range: 'B1', color: '#FFFF00' } }])
+    await ai([{ command: 'format.fillColor', params: { range: 'B1', color: '#FFFF00' } }])
     await select('B1')
     await insertCheckbox()
     step('INSC-C70 先设黄色背景再插入：单元格仍为黄色，方框内部为方框本身的白底', yellow(await h.pixel(46 + G.cw + 10, 21 + 10)) && (await shown('B1')) === 'empty')
@@ -608,14 +608,14 @@ try {
   await section('INSC-C71 纯文本格式', async () => {
     await fresh()
     await boxes('A1')
-    await cellMenu('A1', null, 'sheet-cmd-home.formatCells')
+    await cellMenu('A1', null, 'sheet-cmd-format.cells')
     await kit.getByTestId('sheet-format-cells').waitFor()
     await kit.getByTestId('fc-cat-text').click()
     await kit.getByTestId('fc-ok').click()
     await settle(300)
     await kit.getByTestId('ribbon-tab-home').click()
     await settle(200)
-    step('INSC-C71 设为「文本」后工具栏水平对齐呈居中，仍为方形复选框', (await styleOf('A1')).num_fmt === '@' && (await kit.getByTestId('sheet-cmd-home.alignCenter').getAttribute('aria-pressed')) === 'true' && (await isBox('A1')) && (await shown('A1')) === 'empty')
+    step('INSC-C71 设为「文本」后工具栏水平对齐呈居中，仍为方形复选框', (await styleOf('A1')).num_fmt === '@' && (await kit.getByTestId('sheet-cmd-format.alignCenter').getAttribute('aria-pressed')) === 'true' && (await isBox('A1')) && (await shown('A1')) === 'empty')
   })
 
   await section('INSC-C251/C252 撤销与切换工作表', async () => {
@@ -651,7 +651,7 @@ try {
     await boxes('A1')
     await select('A1')
     await insertTab()
-    step('INSC-C254 插入选项卡的「链接」置灰', await kit.getByTestId('sheet-cmd-insert.link').isDisabled())
+    step('INSC-C254 插入选项卡的「链接」置灰', await kit.getByTestId('sheet-cmd-link.insert').isDisabled())
     step('INSC-C254 fx（插入函数）置灰', await kit.getByTestId('sheet-formula-fx').isDisabled())
     await right('A1')
     step('INSC-C254 右键菜单的「超链接…」置灰', await kit.getByTestId('sheet-grid-menu-link').isDisabled())
@@ -668,7 +668,7 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'B2', values: [[1], [2]] } },
-      { command: 'selection.set', params: { range: 'A2:A3' } },
+      { command: 'select.set', params: { range: 'A2:A3' } },
       { command: 'cell.set', params: { cell: 'A2', input: '=B2:B3*2', array: true } },
     ])
     await select('A1')
@@ -678,7 +678,7 @@ try {
     await insertCheckbox()
     step('INSC-C255 A2（数组的一部分）不可插入：内容不变、不呈方框，提示不能更改数组的某一部分', !(await isBox('A2')) && (await val('A2')) === 2 && (await noticeShown('不能更改数组的某一部分')))
     await dismiss()
-    await ai([{ command: 'selection.set', params: { range: 'A2:A3' } }])
+    await ai([{ command: 'select.set', params: { range: 'A2:A3' } }])
     await insertCheckbox()
     step('INSC-C256 选中整个数组也不可插入：A2、A3 取值保持，数组范围不变', !(await isBox('A2')) && !(await isBox('A3')) && (await val('A2')) === 2 && (await val('A3')) === 4 && (await cellOf('A2')).formula != null)
     await dismiss()
@@ -688,8 +688,8 @@ try {
     await fresh()
     await ai([
       { command: 'cell.set', params: { cell: 'A1', input: '=1+1' } },
-      { command: 'insert.link', params: { cell: 'B1', target: 'https://example.com', text: 'link' } },
-      { command: 'insert.picture', params: { at: 'C1', base64: PNG, mime: 'image/png', placement: 'cell' } },
+      { command: 'link.insert', params: { cell: 'B1', target: 'https://example.com', text: 'link' } },
+      { command: 'image.insert', params: { at: 'C1', base64: PNG, mime: 'image/png', placement: 'cell' } },
     ])
     for (const ref of ['A1', 'B1', 'C1']) {
       await select(ref)
@@ -735,7 +735,7 @@ try {
     await select('D6')
     step('INSC-C262 选择性粘贴为值：A3 呈 TRUE、B3 呈 FALSE（WPS/Excel 大写），均不呈方框', (await val('A3')) === true && (await val('B3')) === false && !(await isBox('A3')) && !(await isBox('B3')) && (await cellOf('A3')).text === 'TRUE', JSON.stringify([await val('A3'), await val('B3'), (await cellOf('A3')).text, await shown('A3')]))
     // An agent's selection and clipboard last one run (KHP C3b), so its copy and paste go together.
-    await ai([{ command: 'edit.copy', params: { range: 'A1' } }, { command: 'selection.set', params: { range: 'D1' } }, { command: 'edit.pasteSpecial', params: { what: 'formats' } }])
+    await ai([{ command: 'edit.copy', params: { range: 'A1' } }, { command: 'select.set', params: { range: 'D1' } }, { command: 'edit.pasteSpecial', params: { what: 'formats' } }])
     await settle(200)
     step('INSC-C263 选择性粘贴为格式：D1 不呈方框，仍为空', !(await isBox('D1')) && (await val('D1')) == null && (await shown('D1')) === 'none')
   })
@@ -743,23 +743,23 @@ try {
   await section('INSC-C264/C265/C266 格式刷', async () => {
     await fresh()
     await boxes('A1', [['A1', true]])
-    await ai([{ command: 'home.fillColor', params: { range: 'A1', color: '#FFFF00' } }])
-    await ai([{ command: 'selection.set', params: { range: 'A1' } }, { command: 'edit.formatPainter', params: {} }, { command: 'edit.formatPainter', params: { apply: 'B1' } }])
+    await ai([{ command: 'format.fillColor', params: { range: 'A1', color: '#FFFF00' } }])
+    await ai([{ command: 'select.set', params: { range: 'A1' } }, { command: 'edit.formatPainter', params: {} }, { command: 'edit.formatPainter', params: { apply: 'B1' } }])
     await settle(200)
     step('INSC-C264 复选框单元格刷到 B1：B1 得到 A1 的格式（黄色），不呈方框', (await styleOf('B1')).fill?.pattern === 'Solid' && !(await isBox('B1')) && (await val('B1')) == null)
     await ai([
       { command: 'cell.set', params: { cell: 'C1', input: 'x' } },
-      { command: 'home.bold', params: { range: 'C1', on: true } },
-      { command: 'home.fillColor', params: { range: 'C1', color: '#FFFF00' } },
-      { command: 'insert.checkbox', params: { range: 'D1' } },
-      { command: 'selection.set', params: { range: 'C1' } },
+      { command: 'format.bold', params: { range: 'C1', on: true } },
+      { command: 'format.fillColor', params: { range: 'C1', color: '#FFFF00' } },
+      { command: 'checkbox.insert', params: { range: 'D1' } },
+      { command: 'select.set', params: { range: 'C1' } },
       { command: 'edit.formatPainter', params: {} },
       { command: 'edit.formatPainter', params: { apply: 'D1' } },
     ])
     await settle(200)
     step('INSC-C265 已设样式的单元格刷到复选框：D1 加粗、黄色，仍为复选框，取值不变', (await styleOf('D1')).font?.bold === true && (await styleOf('D1')).fill?.pattern === 'Solid' && (await isBox('D1')) && (await val('D1')) === false)
     await ai([
-      { command: 'selection.set', params: { range: 'E5' } },
+      { command: 'select.set', params: { range: 'E5' } },
       { command: 'edit.formatPainter', params: {} },
       { command: 'edit.formatPainter', params: { apply: 'A1' } },
     ])
@@ -770,7 +770,7 @@ try {
 
   await section('INSC-C269/C273 合并后插入', async () => {
     await fresh()
-    await ai([{ command: 'home.mergeCells', params: { range: 'A1:B1' } }])
+    await ai([{ command: 'cell.merge', params: { range: 'A1:B1' } }])
     await select('A1')
     await insertCheckbox()
     await select('D6')
@@ -779,7 +779,7 @@ try {
     await select('D6')
     step('INSC-C269 取消合并：A1 呈方框，B1 回到空白', (await isBox('A1')) && !(await isBox('B1')) && (await val('B1')) == null && (await shown('A1')) === 'empty')
     await fresh()
-    await ai([{ command: 'home.mergeCells', params: { range: 'A1:B2' } }])
+    await ai([{ command: 'cell.merge', params: { range: 'A1:B2' } }])
     await select('A1')
     await insertCheckbox()
     await select('D6')
@@ -788,7 +788,7 @@ try {
 
   await section('INSC-C270/C271/C272 合并与取消合并', async () => {
     await fresh()
-    await ai([{ command: 'cell.set', params: { cell: 'A1', input: '1' } }, { command: 'insert.checkbox', params: { range: 'B1' } }, { command: 'selection.set', params: { range: 'A1:B1' } }])
+    await ai([{ command: 'cell.set', params: { cell: 'A1', input: '1' } }, { command: 'checkbox.insert', params: { range: 'B1' } }, { command: 'select.set', params: { range: 'A1:B1' } }])
     await h.goTo('A1:B1')
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-merge').click()
@@ -802,7 +802,7 @@ try {
     step('INSC-C270 取消合并：A1 为 1，B1 回到空白（不呈方框）', (await val('A1')) === 1 && (await val('B1')) == null && !(await isBox('B1')) && (await shown('B1')) === 'none')
 
     await fresh()
-    await ai([{ command: 'insert.checkbox', params: { range: 'A1' } }, { command: 'cell.set', params: { cell: 'B1', input: '1' } }, { command: 'selection.set', params: { range: 'A1:B1' } }])
+    await ai([{ command: 'checkbox.insert', params: { range: 'A1' } }, { command: 'cell.set', params: { cell: 'B1', input: '1' } }, { command: 'select.set', params: { range: 'A1:B1' } }])
     await h.goTo('A1:B1')
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-merge').click()
@@ -815,7 +815,7 @@ try {
     step('INSC-C271 取消合并：A1 呈复选框，B1 回到空白', (await isBox('A1')) && (await val('B1')) == null && (await shown('A1')) === 'empty')
 
     await fresh()
-    await ai([{ command: 'insert.checkbox', params: { range: 'A1:B1' } }, { command: 'selection.set', params: { range: 'A1:B1' } }])
+    await ai([{ command: 'checkbox.insert', params: { range: 'A1:B1' } }, { command: 'select.set', params: { range: 'A1:B1' } }])
     await h.goTo('A1:B1')
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-merge').click()
@@ -832,11 +832,11 @@ try {
   await section('INSC-C274 排序', async () => {
     await fresh()
     await ai([
-      { command: 'insert.checkbox', params: { range: 'A1:A3' } },
+      { command: 'checkbox.insert', params: { range: 'A1:A3' } },
       { command: 'cell.set', params: { cell: 'A1', input: 'TRUE' } },
       { command: 'cell.set', params: { cell: 'A3', input: 'TRUE' } },
       { command: 'range.setValues', params: { range: 'B1', values: [['张一'], ['张二'], ['张三']] } },
-      { command: 'selection.set', params: { range: 'A1:B3' } },
+      { command: 'select.set', params: { range: 'A1:B3' } },
     ])
     await right('A1')
     await kit.getByTestId('sheet-grid-menu-sort').hover()
@@ -852,11 +852,11 @@ try {
     await fresh()
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [['完成', '姓名']] } },
-      { command: 'insert.checkbox', params: { range: 'A2:A4' } },
+      { command: 'checkbox.insert', params: { range: 'A2:A4' } },
       { command: 'cell.set', params: { cell: 'A2', input: 'TRUE' } },
       { command: 'cell.set', params: { cell: 'A4', input: 'TRUE' } },
       { command: 'range.setValues', params: { range: 'B2', values: [['张一'], ['张二'], ['张三']] } },
-      { command: 'selection.set', params: { range: 'A1:B4' } },
+      { command: 'select.set', params: { range: 'A1:B4' } },
       { command: 'data.filter', params: {} },
     ])
     const shownValues = [...new Set([await cellOf('A2'), await cellOf('A3'), await cellOf('A4')].map((c) => c.text))]
@@ -869,7 +869,7 @@ try {
   await section('INSC-C277 删除重复项', async () => {
     await fresh()
     await ai([
-      { command: 'insert.checkbox', params: { range: 'A1:A4' } },
+      { command: 'checkbox.insert', params: { range: 'A1:A4' } },
       { command: 'cell.set', params: { cell: 'A3', input: 'TRUE' } },
       { command: 'cell.set', params: { cell: 'A4', input: 'TRUE' } },
       { command: 'data.removeDuplicates', params: { range: 'A1:A4', header: false } },
@@ -881,7 +881,7 @@ try {
   await section('INSC-C278 分列', async () => {
     await fresh()
     await ai([
-      { command: 'insert.checkbox', params: { range: 'A1' } },
+      { command: 'checkbox.insert', params: { range: 'A1' } },
       { command: 'cell.set', params: { cell: 'A1', input: 'TRUE' } },
       { command: 'cell.set', params: { cell: 'B1', input: '已完成' } },
       { command: 'data.textToColumns', params: { range: 'A1', delimiters: [' '] } },
@@ -899,7 +899,7 @@ try {
     await exec('edit.replace', { what: 'false', with: 'true', all: true })
     await settle(200)
     step('INSC-C280 false 替换为 true：取值勾选，深灰实底白勾', (await isBox('A1')) && (await val('A1')) === true && (await shown('A1')) === 'checked')
-    await ai([{ command: 'home.numberFormat', params: { range: 'B1', format: 'Text' } }, { command: 'insert.checkbox', params: { range: 'B1' } }])
+    await ai([{ command: 'format.numberFormat', params: { range: 'B1', format: 'Text' } }, { command: 'checkbox.insert', params: { range: 'B1' } }])
     await exec('edit.replace', { what: 'false', with: 'true', all: true })
     await touch()
     await saveAndReopen()
@@ -910,8 +910,8 @@ try {
     await fresh()
     await boxes('A1:A3')
     await ai([
-      { command: 'home.insertRows', params: { rows: '2:2' } },
-      { command: 'home.insertColumns', params: { cols: 'B:B' } },
+      { command: 'row.insert', params: { rows: '2:2' } },
+      { command: 'column.insert', params: { cols: 'B:B' } },
     ])
     await settle(250)
     step('INSC-C284 新插入的第 2 行与 B 列不呈复选框，为空白', !(await isBox('A2')) && (await val('A2')) == null && (await shown('A2')) === 'none' && !(await isBox('B1')) && (await shown('B1')) === 'none')
@@ -923,7 +923,7 @@ try {
     await select('A1')
     await insertCheckbox()
     step('INSC-C330 （导入的表格中同样可插入）A1 呈复选框', await isBox('A1'))
-    await ai([{ command: 'insert.checkbox', params: { range: 'A2:A3' } }, { command: 'cell.set', params: { cell: 'A1', input: 'TRUE' } }, { command: 'cell.set', params: { cell: 'A3', input: 'TRUE' } }])
+    await ai([{ command: 'checkbox.insert', params: { range: 'A2:A3' } }, { command: 'cell.set', params: { cell: 'A1', input: 'TRUE' } }, { command: 'cell.set', params: { cell: 'A3', input: 'TRUE' } }])
     await touch()
     await saveAndReopen()
     step('INSC-C286 关闭后重新打开：A1 仍为勾选的复选框（深灰实底白勾）', (await isBox('A1')) && (await val('A1')) === true && (await shown('A1')) === 'checked')
@@ -970,7 +970,7 @@ try {
     await page.mouse.click(box.x + 46 + 360, box.y + 21 + 80)
     await settle(200)
     await kit.getByTestId('ribbon-tab-home').click()
-    await kit.getByTestId('sheet-cmd-home.bold').click()
+    await kit.getByTestId('sheet-cmd-format.bold').click()
     await settle(250)
     const runs = async () => ((await exec('drawing.describe', { ids: [id] })).objects?.[0]?.text?.paragraphs ?? []).flatMap((p) => p.runs)
     step('FONT-C111/C123 选中文本框点「加粗」，文本框内文字按加粗字重渲染', (await runs()).length > 0 && (await runs()).every((r) => r.bold === true))
@@ -987,7 +987,7 @@ try {
 
   await section('FONT-C107/C137/C153/C169 单元格图片', async () => {
     await fresh()
-    await ai([{ command: 'insert.picture', params: { at: 'B1', base64: PNG, mime: 'image/png', placement: 'cell' } }])
+    await ai([{ command: 'image.insert', params: { at: 'B1', base64: PNG, mime: 'image/png', placement: 'cell' } }])
     const before = JSON.stringify((await cellOf('B1')).picture)
     await select('B1')
     await kit.getByTestId('ribbon-tab-home').click()
@@ -1012,11 +1012,11 @@ try {
     for (let r = 2; r <= 5; r += 1) rows.push([`n${r}`, '东', r * 10, r * 7])
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: rows } },
-      { command: 'insert.table', params: { range: 'A1:D5', style: 'TableStyleMedium2' } },
+      { command: 'table.insert', params: { range: 'A1:D5', style: 'TableStyleMedium2' } },
     ])
     // Right of the table: a picture, a link and a formula through Insert Function; below it, a symbol.
-    await ai([{ command: 'insert.picture', params: { at: 'E2', base64: PNG, mime: 'image/png', placement: 'cell' } }])
-    await ai([{ command: 'selection.set', params: { range: 'E3' } }, { command: 'insert.link', params: { cell: 'E3', target: 'https://example.com', text: 'link' } }])
+    await ai([{ command: 'image.insert', params: { at: 'E2', base64: PNG, mime: 'image/png', placement: 'cell' } }])
+    await ai([{ command: 'select.set', params: { range: 'E3' } }, { command: 'link.insert', params: { cell: 'E3', target: 'https://example.com', text: 'link' } }])
     await select('E4')
     await kit.getByTestId('sheet-formula-fx').click()
     await kit.getByTestId('sheet-insert-function').waitFor()
@@ -1043,7 +1043,7 @@ try {
     for (let r = 2; r <= 5; r += 1) rows.push([`n${r}`, '东', r * 10, r * 7])
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: rows } },
-      { command: 'insert.picture', params: { at: 'A1', base64: PNG, mime: 'image/png', placement: 'cell' } },
+      { command: 'image.insert', params: { at: 'A1', base64: PNG, mime: 'image/png', placement: 'cell' } },
     ])
     await select('B2')
     await kit.getByTestId('ribbon-tab-home').click()
@@ -1069,7 +1069,7 @@ await h.finish()
 
 /** Whether row `row` (from 1) of the active sheet is hidden. */
 async function rowHidden(row) {
-  const inspected = await exec('document.inspect')
+  const inspected = await exec('file.inspect')
   const active = (await details()).sheet
   const sheet = inspected.sheets?.find((s) => s.name === active) ?? inspected.sheets?.[0]
   return (sheet?.hiddenRows ?? []).includes(row)

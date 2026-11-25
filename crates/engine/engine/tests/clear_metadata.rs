@@ -9,8 +9,8 @@ fn clear_metadata_does_not_clip_to_the_used_cell_range() {
         let mut session = Session::new();
         session.new_workbook();
         session.execute("cell.set", json!({"cell":"A1","input":"kept"})).unwrap();
-        session.execute("review.newNote", json!({"cell":"Z20","text":"outside cell extent"})).unwrap();
-        session.execute("home.mergeAcross", json!({"range":"Z20:AA21"})).unwrap();
+        session.execute("note.add", json!({"cell":"Z20","text":"outside cell extent"})).unwrap();
+        session.execute("cell.mergeAcross", json!({"range":"Z20:AA21"})).unwrap();
         let at = CellRef::parse("Z20").unwrap();
         std::sync::Arc::make_mut(&mut session.doc_mut().unwrap().wb)
             .sheet_mut(0)

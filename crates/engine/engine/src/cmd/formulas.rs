@@ -9,7 +9,7 @@ use super::*;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(
-            "formulas.autoSum",
+            "formula.autoSum",
             "AutoSum",
             ["Formulas", "Function Library"],
             Some("Cmd+Shift+T"),
@@ -18,7 +18,7 @@ pub fn specs() -> Vec<CommandSpec> {
             auto_sum
         ),
         cmd!(
-            "formulas.insertFunction",
+            "formula.insertFunction",
             "Insert Function…",
             ["Formulas", "Function Library"],
             Some("Shift+F3"),
@@ -26,9 +26,9 @@ pub fn specs() -> Vec<CommandSpec> {
             crate::cmd::extra::not_on_checkbox,
             insert_function
         ),
-        cmd!(query "formulas.functions", "List Functions", [], None, "{category?, search?} → [{name, category, signature, description}]", always, list_functions),
+        cmd!(query "formula.functions", "List Functions", [], None, "{category?, search?} → [{name, category, signature, description}]", always, list_functions),
         cmd!(
-            "formulas.defineName",
+            "name.define",
             "Define Name…",
             ["Formulas", "Defined Names"],
             None,
@@ -36,10 +36,10 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             define_name
         ),
-        cmd!("formulas.deleteName", "Delete Name", [], None, "{name, scope?: \"Workbook\"|sheet name (default: every scope)}", has_doc, delete_name),
-        cmd!(query "formulas.nameManager", "Name Manager", ["Formulas", "Defined Names"], Some("Cmd+F3"), "{} → names with values", has_doc, name_manager),
+        cmd!("name.delete", "Delete Name", [], None, "{name, scope?: \"Workbook\"|sheet name (default: every scope)}", has_doc, delete_name),
+        cmd!(query "name.manage", "Name Manager", ["Formulas", "Defined Names"], Some("Cmd+F3"), "{} → names with values", has_doc, name_manager),
         cmd!(
-            "formulas.createFromSelection",
+            "name.addFromSelection",
             "Create from Selection",
             ["Formulas", "Defined Names"],
             Some("Cmd+Shift+F3"),
@@ -47,17 +47,17 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             create_from_selection
         ),
-        cmd!(query "formulas.tracePrecedents", "Trace Precedents", ["Formulas", "Formula Auditing"], None, "{cell?} → ranges", has_doc, trace_precedents),
-        cmd!(query "formulas.traceDependents", "Trace Dependents", ["Formulas", "Formula Auditing"], None, "{cell?} → cells", has_doc, trace_dependents),
-        cmd!(noundo "formulas.removeArrows", "Remove Arrows", ["Formulas", "Formula Auditing"], None, "{}", has_doc, |_, _| ok()),
-        cmd!("formulas.showFormulas", "Show Formulas", ["Formulas", "Formula Auditing"], Some("Ctrl+`"), "{on?}", has_doc, show_formulas),
-        cmd!(query "formulas.errorChecking", "Error Checking", ["Formulas", "Formula Auditing"], None, "{} → cells with errors", has_doc, error_checking),
-        cmd!(query "formulas.evaluateFormula", "Evaluate Formula", ["Formulas", "Formula Auditing"], None, "{cell?, formula?} → steps", has_doc, evaluate_formula),
-        cmd!(query "formulas.evaluate", "Evaluate", [], None, "{formula: \"=SUM(A1:A3)\", cell?} → value without changing the sheet", has_doc, evaluate),
-        cmd!(noundo "formulas.calculateNow", "Calculate Now", ["Formulas", "Calculation"], Some("F9"), "{}", has_doc, calc_now),
-        cmd!(noundo "formulas.calculateSheet", "Calculate Sheet", ["Formulas", "Calculation"], Some("Shift+F9"), "{}", has_doc, calc_now),
+        cmd!(query "formula.tracePrecedents", "Trace Precedents", ["Formulas", "Formula Auditing"], None, "{cell?} → ranges", has_doc, trace_precedents),
+        cmd!(query "formula.traceDependents", "Trace Dependents", ["Formulas", "Formula Auditing"], None, "{cell?} → cells", has_doc, trace_dependents),
+        cmd!(noundo "formula.removeArrows", "Remove Arrows", ["Formulas", "Formula Auditing"], None, "{}", has_doc, |_, _| ok()),
+        cmd!("formula.showFormulas", "Show Formulas", ["Formulas", "Formula Auditing"], Some("Ctrl+`"), "{on?}", has_doc, show_formulas),
+        cmd!(query "formula.errorChecking", "Error Checking", ["Formulas", "Formula Auditing"], None, "{} → cells with errors", has_doc, error_checking),
+        cmd!(query "formula.evaluateFormula", "Evaluate Formula", ["Formulas", "Formula Auditing"], None, "{cell?, formula?} → steps", has_doc, evaluate_formula),
+        cmd!(query "formula.evaluate", "Evaluate", [], None, "{formula: \"=SUM(A1:A3)\", cell?} → value without changing the sheet", has_doc, evaluate),
+        cmd!(noundo "formula.calculateNow", "Calculate Now", ["Formulas", "Calculation"], Some("F9"), "{}", has_doc, calc_now),
+        cmd!(noundo "formula.calculateSheet", "Calculate Sheet", ["Formulas", "Calculation"], Some("Shift+F9"), "{}", has_doc, calc_now),
         cmd!(
-            "formulas.calculationOptions",
+            "formula.calculationOptions",
             "Calculation Options",
             ["Formulas", "Calculation"],
             None,
@@ -249,7 +249,7 @@ fn define_name(s: &mut Session, p: &Json) -> Result<Json> {
     let d = s.doc()?;
     let scope = match str_param(p, "scope") {
         None | Some("Workbook") => None,
-        Some(sh) => Some(d.wb.sheet_index(sh).ok_or_else(|| bad("formulas.defineName", "no such sheet"))?),
+        Some(sh) => Some(d.wb.sheet_index(sh).ok_or_else(|| bad("name.define", "no such sheet"))?),
     };
     let refers = match str_param(p, "refersTo") {
         Some(r) => r.trim_start_matches('=').to_string(),
@@ -315,17 +315,17 @@ pub fn named_cell(wb: &Workbook, context: usize, name: &str) -> Result<NamedCell
 }
 
 fn delete_name(s: &mut Session, p: &Json) -> Result<Json> {
-    let name = str_param(p, "name").ok_or_else(|| bad("formulas.deleteName", "missing `name`"))?.to_string();
+    let name = str_param(p, "name").ok_or_else(|| bad("name.delete", "missing `name`"))?.to_string();
     let scope = match str_param(p, "scope") {
         None => None,
         Some("Workbook") => Some(None),
-        Some(sh) => Some(Some(s.doc()?.wb.sheet_index(sh).ok_or_else(|| bad("formulas.deleteName", "no such sheet"))?)),
+        Some(sh) => Some(Some(s.doc()?.wb.sheet_index(sh).ok_or_else(|| bad("name.delete", "no such sheet"))?)),
     };
     edit(s, |cx| {
         let before = cx.wb.names.len();
         cx.wb.names.retain(|n| !(n.name.eq_ignore_ascii_case(&name) && scope.is_none_or(|sc| n.scope == sc)));
         if cx.wb.names.len() == before {
-            return Err(bad("formulas.deleteName", "no such name"));
+            return Err(bad("name.delete", "no such name"));
         }
         cx.structural = true;
         Ok(Json::Null)
@@ -498,7 +498,7 @@ fn evaluate_formula(s: &mut Session, p: &Json) -> Result<Json> {
 
 fn evaluate(s: &mut Session, p: &Json) -> Result<Json> {
     let d = s.doc()?;
-    let f = str_param(p, "formula").ok_or_else(|| bad("formulas.evaluate", "missing `formula`"))?;
+    let f = str_param(p, "formula").ok_or_else(|| bad("formula.evaluate", "missing `formula`"))?;
     let at = cell_param(p, "cell").unwrap_or(d.selection.active);
     let v = kition_sheet_calc::evaluate(&d.wb, d.wb.active_sheet, at, f);
     Ok(crate::cmd::inspect::value_json(&v))

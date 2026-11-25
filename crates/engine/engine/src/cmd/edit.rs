@@ -46,13 +46,13 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             range_fill
         ),
-        cmd!(noundo "selection.set", "Select", [], None, "{range: \"A1:B2,D4\" | cell, active?: \"A1\", sheet?}", has_doc, selection_set),
-        cmd!(noundo "selection.move", "Move Selection", [], None, "{dr, dc, extend?: bool, jump?: bool (Ctrl+arrow), page?: bool}", has_doc, selection_move),
-        cmd!(noundo "selection.next", "Next Cell in Selection", [], None, "{forward?: true, byRow?: false} (Enter/Tab inside a selection)", has_doc, selection_next),
+        cmd!(noundo "select.set", "Select", [], None, "{range: \"A1:B2,D4\" | cell, active?: \"A1\", sheet?}", has_doc, selection_set),
+        cmd!(noundo "select.move", "Move Selection", [], None, "{dr, dc, extend?: bool, jump?: bool (Ctrl+arrow), page?: bool}", has_doc, selection_move),
+        cmd!(noundo "select.next", "Next Cell in Selection", [], None, "{forward?: true, byRow?: false} (Enter/Tab inside a selection)", has_doc, selection_next),
         cmd!(noundo "edit.selectAll", "Select All", ["Edit"], Some("Cmd+A"), "{} (current region first, then the whole sheet)", has_doc, select_all),
-        cmd!(noundo "selection.currentRegion", "Select Current Region", [], Some("Ctrl+Shift+8"), "{}", has_doc, select_region),
-        cmd!(noundo "selection.row", "Select Entire Row", [], Some("Shift+Space"), "{}", has_doc, select_row),
-        cmd!(noundo "selection.column", "Select Entire Column", [], Some("Ctrl+Space"), "{}", has_doc, select_col),
+        cmd!(noundo "select.currentRegion", "Select Current Region", [], Some("Ctrl+Shift+8"), "{}", has_doc, select_region),
+        cmd!(noundo "select.row", "Select Entire Row", [], Some("Shift+Space"), "{}", has_doc, select_row),
+        cmd!(noundo "select.column", "Select Entire Column", [], Some("Ctrl+Space"), "{}", has_doc, select_col),
         cmd!(noundo "edit.goTo", "Go To…", ["Home", "Editing", "Find & Select"], Some("Ctrl+G"), "{reference: \"B5\" | \"Sheet2!A1:C3\" | name}", has_doc, go_to),
         cmd!(noundo "edit.goToSpecial", "Go To Special…", ["Home", "Editing", "Find & Select"], None, "{kind: blanks|constants|formulas|comments|lastCell|currentRegion|visible|conditionalFormats|dataValidation|errors|numbers|text}", has_doc, go_to_special),
         cmd!(noundo "edit.undo", "Undo", ["Edit"], Some("Cmd+Z"), r#"{steps?: 1, scope?: "person"|"agent"}"#, can_undo, undo),
@@ -2091,11 +2091,11 @@ fn insert_block(
         return Ok(from);
     }
     if rows {
-        s.execute("home.insertRows", json!({ "rows": format!("{}:{}", to.row + 1, to.row + h) }))?;
+        s.execute("row.insert", json!({ "rows": format!("{}:{}", to.row + 1, to.row + h) }))?;
     } else if cols {
-        s.execute("home.insertColumns", json!({ "cols": RangeRef::cols(to.col, to.col + w - 1).a1() }))?;
+        s.execute("column.insert", json!({ "cols": RangeRef::cols(to.col, to.col + w - 1).a1() }))?;
     } else {
-        s.execute("home.insertCells", json!({ "range": room.a1(), "shift": if down { "down" } else { "right" } }))?;
+        s.execute("cell.insert", json!({ "range": room.a1(), "shift": if down { "down" } else { "right" } }))?;
     }
     let moved = if in_band && past {
         let (dr, dc) = if down { (i64::from(h), 0) } else { (0, i64::from(w)) };
@@ -2119,11 +2119,11 @@ fn insert_block(
     }
     // The place the block left closes up.
     if rows {
-        s.execute("home.deleteRows", json!({ "rows": format!("{}:{}", moved.start.row + 1, moved.end.row + 1) }))?;
+        s.execute("row.delete", json!({ "rows": format!("{}:{}", moved.start.row + 1, moved.end.row + 1) }))?;
     } else if cols {
-        s.execute("home.deleteColumns", json!({ "cols": RangeRef::cols(moved.start.col, moved.end.col).a1() }))?;
+        s.execute("column.delete", json!({ "cols": RangeRef::cols(moved.start.col, moved.end.col).a1() }))?;
     } else {
-        s.execute("home.deleteCells", json!({ "range": moved.a1(), "shift": if down { "up" } else { "left" } }))?;
+        s.execute("cell.delete", json!({ "range": moved.a1(), "shift": if down { "up" } else { "left" } }))?;
     }
     // The room shifts back when the closed-up place was before it in the band.
     let before = in_band && if down { moved.end.row < room.start.row } else { moved.end.col < room.start.col };
@@ -2150,7 +2150,7 @@ mod tests {
         s.new_workbook();
         s.execute("range.setValues", json!({"range": "B2", "values": [[1], [2]]})).unwrap();
         s.execute("cell.set", json!({"cell": "C4", "input": "old"})).unwrap();
-        s.execute("selection.set", json!({"range": "C2:C4"})).unwrap();
+        s.execute("select.set", json!({"range": "C2:C4"})).unwrap();
         s.execute("cell.set", json!({"cell": "C2", "input": "=B2:B3*2", "array": true})).unwrap();
         let get = |s: &mut Session, a: &str| s.execute("cell.get", json!({"cell": a})).unwrap();
         assert_eq!(get(&mut s, "C3")["value"], json!(4.0));
@@ -2189,7 +2189,7 @@ mod tests {
         let get = |s: &mut Session, a: &str| s.execute("cell.get", json!({"cell": a})).unwrap();
         assert_eq!(get(&mut s, "A1")["value"], "123");
         s.execute("edit.copy", json!({"range": "A2"})).unwrap();
-        s.execute("selection.set", json!({"range": "A1:E1"})).unwrap();
+        s.execute("select.set", json!({"range": "A1:E1"})).unwrap();
         s.execute("edit.pasteSpecial", json!({"what": "values", "operation": "multiply"})).unwrap();
         assert_eq!(get(&mut s, "A1")["value"], json!(123.0));
         assert_eq!(get(&mut s, "B1")["value"], "Total");

@@ -48,7 +48,7 @@ async fn private_derived_facts_stay_out_of_receipts_and_still_guard_sources() {
     let basis = f.basis().await;
     f.colleague(&[("cell.set", json!({"cell":"B7","input":"99"}))]);
     let before = f.bytes();
-    let output = f.run(basis, "home.autofitRowHeight", json!({"rows":"7"})).await;
+    let output = f.run(basis, "row.autofitHeight", json!({"rows":"7"})).await;
     assert!(output.as_ref().is_err_and(|error| error["error"]["code"] == "conflict"), "{output:?}");
     assert_eq!(f.bytes(), before);
     f.shutdown().await;

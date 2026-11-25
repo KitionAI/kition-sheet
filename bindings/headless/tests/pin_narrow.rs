@@ -25,7 +25,7 @@ async fn identity_painter_pickup_ignores_deleted_unrelated_objects_but_holds_sou
         f.colleague(&[("drawing.insert", json!({"kind":"shape","frame":{"x":20,"y":20,"w":80,"h":40}}))]);
         let basis = f.basis().await;
         if necessary {
-            f.colleague(&[("home.bold", json!({"range":"C5","on":true}))]);
+            f.colleague(&[("format.bold", json!({"range":"C5","on":true}))]);
         } else {
             f.colleague(&[("object.delete", json!({"kind":"shape","id":1}))]);
         }
@@ -80,10 +80,10 @@ async fn position_anchor_mode_ignores_geometry_but_holds_the_assigned_mode() {
 async fn stored_formula_sources_ignore_formatting_but_hold_values_and_cell_format_queries() {
     let mut failures = Vec::new();
     for (formula, command, params, necessary) in [
-        ("=B2*2", "home.numberFormat", json!({"range":"B2","code":"0.00"}), false),
+        ("=B2*2", "format.numberFormat", json!({"range":"B2","code":"0.00"}), false),
         ("=B2*2", "cell.set", json!({"cell":"B2","input":"99"}), true),
-        ("=CELL(\"format\",B2)", "home.numberFormat", json!({"range":"B2","code":"0.00"}), true),
-        ("=CELL(\"protect\",B2)", "home.lockCell", json!({"range":"B2","on":false}), true),
+        ("=CELL(\"format\",B2)", "format.numberFormat", json!({"range":"B2","code":"0.00"}), true),
+        ("=CELL(\"protect\",B2)", "cell.lock", json!({"range":"B2","on":false}), true),
     ] {
         let f = Fixture::new();
         let basis = f.basis().await;

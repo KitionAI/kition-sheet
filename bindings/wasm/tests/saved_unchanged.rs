@@ -35,10 +35,10 @@ fn an_unchanged_workbook_saves_the_same_bytes_and_reopens_with_the_same_object_i
     for (cell, input) in [("A1", "Item"), ("B1", "Cost"), ("A2", "Rent"), ("B2", "1200"), ("A3", "Food"), ("B3", "450"), ("B4", "=SUM(B2:B3)")] {
         run(&mut doc, "cell.set", json!({ "cell": cell, "input": input }));
     }
-    run(&mut doc, "home.bold", json!({ "range": "A1:B1", "on": true }));
-    run(&mut doc, "home.insertRows", json!({ "rows": "2:2" }));
+    run(&mut doc, "format.bold", json!({ "range": "A1:B1", "on": true }));
+    run(&mut doc, "row.insert", json!({ "rows": "2:2" }));
     run(&mut doc, "cell.set", json!({ "cell": "A2", "input": "Inserted" }));
-    run(&mut doc, "home.insertSheet", json!({ "name": "Notes" }));
+    run(&mut doc, "sheet.insert", json!({ "name": "Notes" }));
     run(&mut doc, "cell.set", json!({ "cell": "C3", "input": "on the second sheet" }));
 
     let saved = doc.save(Some(NAME)).unwrap_or_else(|error| panic!("save: {error}"));

@@ -2,8 +2,8 @@ format: 1
 id: sheet.editor.rows-columns/structural-edits
 feature: sheet.editor.rows-columns
 intent: >-
-  The engine side of inserting and deleting lines (`home.insertRows {count, below}`,
-  `home.insertColumns {count, right}`, `home.deleteRows`, `home.deleteColumns`): above, below,
+  The engine side of inserting and deleting lines (`row.insert {count, below}`,
+  `column.insert {count, right}`, `row.delete`, `column.delete`): above, below,
   left and right with any count; every area of the selection; the new lines selected; formats
   from the line before (above, left) or after (below, right); conditional formats growing over
   lines inserted after them; validation, links and merges left where they were; frozen panes

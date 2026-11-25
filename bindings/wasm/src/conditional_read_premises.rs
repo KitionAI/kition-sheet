@@ -121,7 +121,7 @@ impl SheetDocument {
     }
 
     pub(crate) fn conditional_read_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        if !matches!(command, "home.manageRules" | "home.clearRules") {
+        if !matches!(command, "conditionalFormat.manageRules" | "conditionalFormat.clearRules") {
             return Ok(None);
         }
         let state = self.doc_state()?;
@@ -143,7 +143,7 @@ impl SheetDocument {
             // still reads the sheet's tab position.
             under.premises.push(premise(sid, Vec::<String>::new()).positions(["sheets"]));
         }
-        if command == "home.clearRules" && params.get("sheet").and_then(Value::as_bool) != Some(true) {
+        if command == "conditionalFormat.clearRules" && params.get("sheet").and_then(Value::as_bool) != Some(true) {
             let Some(targets) = targets(params, &state.selection.ranges) else { return Ok(None) };
             if targets.len() > 100_000 || intersections(&ranges, &targets).is_none() || row_areas(&ranges).is_none() {
                 return Ok(None);
@@ -163,7 +163,7 @@ impl SheetDocument {
                 let Some(raw) = axes.rows.get(row as usize) else { return Ok(None) };
                 under.premises.push(premise(format!("row:{raw}"), ["~conditionalAreas"]).positions(Vec::<String>::new()));
             }
-        } else if command == "home.clearRules" {
+        } else if command == "conditionalFormat.clearRules" {
             // The whole-sheet clear replaces every rule area.
             under.premises.push(premise(ids::sheet_tool_id(sheet), ["~conditionalRanges"]));
         }
@@ -172,7 +172,7 @@ impl SheetDocument {
     }
 
     pub(crate) fn conditional_covered(&self, command: &str, given: &Value, objects: &[CoveredAsk]) -> Result<Option<CoveredAt>, String> {
-        if command != "home.clearRules" || given.get("sheet").and_then(Value::as_bool) == Some(true) {
+        if command != "conditionalFormat.clearRules" || given.get("sheet").and_then(Value::as_bool) == Some(true) {
             return Ok(None);
         }
         let mut params = given.clone();

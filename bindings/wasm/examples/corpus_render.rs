@@ -61,7 +61,7 @@ fn main() -> Result<(), String> {
     let mut doc = SheetDocument::open(&name, &bytes)?;
     let opened = t0.elapsed();
     let (wb, _) = kition_sheet_engine::io::open_bytes(&name, &bytes).map_err(|e| e.to_string())?;
-    let book = doc.execute("document.inspect", json!({}))?;
+    let book = doc.execute("file.inspect", json!({}))?;
     let sheets: Vec<String> =
         book["sheets"].as_array().map(|all| all.iter().filter_map(|s| s["name"].as_str().map(str::to_owned)).collect()).unwrap_or_default();
     let mut report = Vec::new();

@@ -19,8 +19,8 @@ fn ids(s: &Session) -> Vec<(String, u32)> {
 fn three_sheets() -> Session {
     let mut s = Session::new();
     s.new_workbook();
-    run(&mut s, "home.insertSheet", json!({ "name": "Data" }));
-    run(&mut s, "home.insertSheet", json!({ "name": "Notes" }));
+    run(&mut s, "sheet.insert", json!({ "name": "Data" }));
+    run(&mut s, "sheet.insert", json!({ "name": "Notes" }));
     s
 }
 
@@ -86,7 +86,7 @@ fn a_files_sheet_ids_are_kept() {
     // A new sheet in the reopened workbook takes the next number free.
     let mut s = Session::new();
     s.add_document(kition_sheet_engine::DocState::new(reopened, None, "ids".into()));
-    run(&mut s, "home.insertSheet", json!({ "name": "Third" }));
+    run(&mut s, "sheet.insert", json!({ "name": "Third" }));
     let third = s.doc().unwrap().wb.sheets.iter().find(|sheet| sheet.name == "Third").map(|sheet| sheet.sheet_id).unwrap();
     assert_eq!(third, 8);
 }

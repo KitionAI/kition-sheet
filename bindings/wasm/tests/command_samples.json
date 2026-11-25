@@ -9,11 +9,11 @@
   "edit.goTo": { "params": { "reference": "B2" } },
   "edit.goToSpecial": { "params": { "kind": "constants" } },
   "edit.find": { "params": { "what": "North", "all": true } },
-  "formulas.evaluateFormula": { "params": { "formula": "=1+2" } },
-  "formulas.evaluate": { "params": { "formula": "=SUM(B2:B5)" } },
+  "formula.evaluateFormula": { "params": { "formula": "=1+2" } },
+  "formula.evaluate": { "params": { "formula": "=SUM(B2:B5)" } },
   "view.zoom": { "params": { "percent": 120 } },
-  "review.addToDictionary": { "params": { "word": "Kition" } },
-  "pivot.fields": { "setup": [["insert.pivotTable", { "source": "A1:B5", "rows": ["Region"], "values": [{ "field": "Sales" }] }]], "params": {} },
+  "spelling.addToDictionary": { "params": { "word": "Kition" } },
+  "pivot.fields": { "setup": [["pivot.insert", { "source": "A1:B5", "rows": ["Region"], "values": [{ "field": "Sales" }] }]], "params": {} },
   "data.filterValues": { "setup": [["data.filter", { "range": "A1:B5" }]], "params": { "cell": "A1" } },
-  "pivot.fieldList": { "setup": [["insert.pivotTable", { "source": "A1:B5", "rows": ["Region"], "values": [{ "field": "Sales" }] }]], "params": {} }
+  "pivot.fieldList": { "setup": [["pivot.insert", { "source": "A1:B5", "rows": ["Region"], "values": [{ "field": "Sales" }] }]], "params": {} }
 }

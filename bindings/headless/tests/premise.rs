@@ -27,7 +27,7 @@ fn book() -> Vec<u8> {
     let mut book = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     book.execute("sheet.rename", json!({ "name": "Data" })).unwrap();
     book.execute("range.setValues", json!({ "range": "A1", "values": [["Region", "Sales"], ["North", 120], ["South", 80]] })).unwrap();
-    book.execute("home.insertSheet", json!({ "name": "Notes", "before": 9 })).unwrap();
+    book.execute("sheet.insert", json!({ "name": "Notes", "before": 9 })).unwrap();
     book.execute("drawing.insert", json!({ "kind": "shape", "frame": { "x": 10, "y": 10, "w": 50, "h": 30 } })).unwrap();
     let (mut wb, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &book.save(None).unwrap()).unwrap();
     wb.active_sheet = 0;
@@ -142,7 +142,7 @@ async fn a_receipt_names_the_sheets_and_drawing_objects_a_run_changed_by_the_ids
 async fn a_receipt_for_inserted_rows_says_what_moved_without_listing_the_cells() {
     let f = Fixture::new();
     let data = f.sheet("Data").await["toolId"].as_str().unwrap().to_owned();
-    let ran = f.ok("run", json!({ "steps": [{ "command": "home.insertRows", "params": { "rows": "Data!2:3" } }] })).await;
+    let ran = f.ok("run", json!({ "steps": [{ "command": "row.insert", "params": { "rows": "Data!2:3" } }] })).await;
     let created = ran["changes"]["created"].as_array().unwrap();
     assert_eq!(created.len(), 2, "two independently named rows: {ran}");
     for (row, object) in (1..=2).zip(created) {
@@ -175,13 +175,13 @@ async fn a_run_edits_two_sheets_by_id_and_the_saved_file_keeps_the_persons_sheet
             "run",
             json!({ "target": { "sheet": notes }, "steps": [
                 { "command": "range.setValues", "params": { "range": "B2", "values": [["Q1", "Q2"]] } },
-                { "command": "home.bold", "on": ["B2:C2"], "params": { "on": true } },
+                { "command": "format.bold", "on": ["B2:C2"], "params": { "on": true } },
                 { "command": "range.setValues", "at": { "part": { "sheet": data } }, "params": { "range": "C1", "values": [["Target"], [100], [100]] } },
-                { "command": "selection.stats", "at": { "part": { "sheet": data } }, "on": ["B2:B3"] }
+                { "command": "select.stats", "at": { "part": { "sheet": data } }, "on": ["B2:B3"] }
             ] }),
         )
         .await;
-    assert_eq!(ran["completed"][3]["result"]["sum"], json!(200.0), "selection.stats read the cells `on` named on Data: {ran}");
+    assert_eq!(ran["completed"][3]["result"]["sum"], json!(200.0), "select.stats read the cells `on` named on Data: {ran}");
     assert_eq!(f.read("Notes", "B2:C2").await, json!([[2, "Q1", "Q2"]]));
     assert_eq!(f.read("Data", "C1:C3").await, json!([[1, "Target"], [2, 100.0], [3, 100.0]]));
     assert_eq!(f.read("Notes", "C1:C3").await, json!([[1, null], [2, "Q2"], [3, null]]), "Data's values stayed on Data");
@@ -190,7 +190,7 @@ async fn a_run_edits_two_sheets_by_id_and_the_saved_file_keeps_the_persons_sheet
     f.ok(
         "run",
         json!({ "steps": [
-        { "command": "home.insertSheet", "params": { "name": "Q4" } },
+        { "command": "sheet.insert", "params": { "name": "Q4" } },
         { "command": "range.setValues", "params": { "range": "A1", "values": [["fresh"]] } }
     ] }),
     )
@@ -210,7 +210,7 @@ async fn a_failing_later_step_changes_nothing_and_leaves_the_person_where_they_w
             "run",
             json!({ "target": { "sheet": notes }, "steps": [
                 { "command": "range.setValues", "params": { "range": "A1", "values": [["kept?"]] } },
-                { "command": "home.bold", "params": { "range": "Nowhere!A1", "on": true } }
+                { "command": "format.bold", "params": { "range": "Nowhere!A1", "on": true } }
             ] }),
         )
         .await;
@@ -237,12 +237,12 @@ async fn an_unknown_sheet_a_bad_range_or_a_mixed_on_is_invalid_params() {
             json!({ "target": { "sheet": "Nowhere" }, "steps": [{ "command": "range.setValues", "params": { "range": "A1", "values": [[1]] } }] }),
             "no sheet named `Nowhere`",
         ),
-        (json!({ "target": { "sheet": "Data" }, "steps": [{ "command": "selection.stats", "on": ["B2:ZZZZ9"] }] }), "neither a range in A1 notation"),
+        (json!({ "target": { "sheet": "Data" }, "steps": [{ "command": "select.stats", "on": ["B2:ZZZZ9"] }] }), "neither a range in A1 notation"),
         (
-            json!({ "target": { "sheet": "Notes" }, "steps": [{ "command": "selection.stats", "on": ["B2", drawing] }] }),
+            json!({ "target": { "sheet": "Notes" }, "steps": [{ "command": "select.stats", "on": ["B2", drawing] }] }),
             "mixes cells and drawing objects",
         ),
-        (json!({ "steps": [{ "command": "selection.stats", "on": ["B2"] }] }), "an address means something only on its sheet"),
+        (json!({ "steps": [{ "command": "select.stats", "on": ["B2"] }] }), "an address means something only on its sheet"),
         (json!({ "steps": [{ "command": "range.setValues", "at": { "time": 2 }, "params": { "range": "A1", "values": [[1]] } }] }), "no timeline"),
     ] {
         let refused = f.refused("run", input.clone()).await;

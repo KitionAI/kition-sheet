@@ -53,7 +53,7 @@ fn a_move_takes_the_cells_and_formulas_follow_them() {
     set(&mut s, "A2", "2");
     set(&mut s, "B1", "=A1+A2");
     set(&mut s, "C1", "=SUM(A1:A2)");
-    run(&mut s, "home.bold", json!({"range": "A1"}));
+    run(&mut s, "format.bold", json!({"range": "A1"}));
     let answer = run(&mut s, "edit.moveCells", json!({"from": "A1:A2", "to": "D4"}));
     assert_eq!(answer["range"], json!("D4:D5"));
     assert_eq!((text(&s, "A1"), text(&s, "A2")), (String::new(), String::new()), "the place left is empty");
@@ -74,12 +74,12 @@ fn a_move_takes_the_cells_and_formulas_follow_them() {
 fn merged_areas_notes_validation_and_conditional_formats_go_with_the_block() {
     let mut s = session();
     set(&mut s, "A1", "合并");
-    run(&mut s, "home.mergeCells", json!({"range": "A1:B1"}));
-    run(&mut s, "review.newNote", json!({"cell": "A2", "text": "备注"}));
+    run(&mut s, "cell.merge", json!({"range": "A1:B1"}));
+    run(&mut s, "note.add", json!({"cell": "A2", "text": "备注"}));
     run(&mut s, "data.validation", json!({"range": "A2", "type": "list", "formula1": "\"是,否\""}));
     run(
         &mut s,
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "B2", "rule": {"type": "cellIs", "operator": "greaterThan", "value": "5", "preset": "lightRedFill"}}),
     );
     run(&mut s, "edit.moveCells", json!({"from": "A1:B2", "to": "C5"}));
@@ -135,7 +135,7 @@ fn whole_rows_and_columns_move_as_lines() {
     for r in 1..=4 {
         set(&mut s, &format!("A{r}"), &format!("r{r}"));
     }
-    run(&mut s, "home.rowHeight", json!({"rows": "2:2", "height": 40}));
+    run(&mut s, "row.setHeight", json!({"rows": "2:2", "height": 40}));
     set(&mut s, "C1", "=A2");
     // Row 2 goes in under row 4.
     let answer = run(&mut s, "edit.moveCells", json!({"from": "2:2", "to": "A5", "insert": "down"}));
@@ -168,7 +168,7 @@ fn a_new_sheet_has_wps_default_column_width_and_row_height() {
     let mut s = session();
     let sh = sheet(&s);
     assert_eq!((sh.default_col_width, sh.default_row_height), (69.0, 19.0), "WPS for Mac: 51.75 pt by 14.25 pt");
-    run(&mut s, "home.insertSheet", json!({"name": "Two"}));
+    run(&mut s, "sheet.insert", json!({"name": "Two"}));
     let sh = sheet(&s);
     assert_eq!((sh.col_width(3), sh.row_height(3)), (69.0, 19.0));
     // Saved and opened again, the sizes stay.

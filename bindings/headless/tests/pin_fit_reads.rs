@@ -21,14 +21,14 @@ fn conflict(result: Result<Value, Value>, before: &[u8], fixture: &Fixture) {
 async fn derived_fit_allows_plain_neighbor_changes_but_holds_tall_neighbors_and_target_styles() {
     let mut failures = Vec::new();
     for (command, params) in [
-        ("home.bold", json!({"range":"C5","on":true})),
-        ("home.fontColor", json!({"range":"C5","color":"#123456"})),
+        ("format.bold", json!({"range":"C5","on":true})),
+        ("format.color", json!({"range":"C5","color":"#123456"})),
         ("cell.formatText", json!({"cell":"C5","bold":true})),
         ("edit.clearFormats", json!({"range":"C5"})),
         ("edit.paste", json!({"at":"C5","text":"42"})),
         ("edit.fillDown", json!({"range":"C4:C5"})),
         ("data.sort", json!({"range":"C4:C5","header":false,"keys":[{"column":"C","order":"desc"}]})),
-        ("insert.checkbox", json!({"range":"C5"})),
+        ("checkbox.insert", json!({"range":"C5"})),
     ] {
         for change in ["plain value", "neighbor color", "tall neighbor", "target style"] {
             let f = Fixture::new();
@@ -38,9 +38,9 @@ async fn derived_fit_allows_plain_neighbor_changes_but_holds_tall_neighbors_and_
             let basis = f.basis().await;
             f.colleague(&[match change {
                 "plain value" => ("cell.set", json!({"cell":"D5","input":"99"})),
-                "neighbor color" => ("home.fontColor", json!({"range":"D5","color":"#CC0000"})),
-                "tall neighbor" => ("home.fontSize", json!({"range":"D5","size":30})),
-                "target style" => ("home.italic", json!({"range":"C5","on":true})),
+                "neighbor color" => ("format.color", json!({"range":"D5","color":"#CC0000"})),
+                "tall neighbor" => ("format.fontSize", json!({"range":"D5","size":30})),
+                "target style" => ("format.italic", json!({"range":"C5","on":true})),
                 _ => panic!("unknown change"),
             }]);
             let before = f.bytes();
@@ -73,13 +73,13 @@ async fn derived_fit_allows_plain_neighbor_changes_but_holds_tall_neighbors_and_
 async fn derived_fit_holds_wrapping_width_multiline_height_and_custom_row_height() {
     for change in ["wrapped text", "wrapped width", "multiline", "row height", "default font"] {
         let f = Fixture::new();
-        f.colleague(&[("cell.set", json!({"cell":"D5","input":"wrapped source words"})), ("home.wrapText", json!({"range":"D5","on":true}))]);
+        f.colleague(&[("cell.set", json!({"cell":"D5","input":"wrapped source words"})), ("format.wrapText", json!({"range":"D5","on":true}))]);
         let basis = f.basis().await;
         match change {
             "wrapped text" => f.colleague(&[("cell.set", json!({"cell":"D5","input":"a longer wrapped source with many more words"}))]),
-            "wrapped width" => f.colleague(&[("home.columnWidth", json!({"cols":"D","width":40}))]),
+            "wrapped width" => f.colleague(&[("column.setWidth", json!({"cols":"D","width":40}))]),
             "multiline" => f.colleague(&[("cell.set", json!({"cell":"B5","input":"one\ntwo"}))]),
-            "row height" => f.colleague(&[("home.rowHeight", json!({"rows":"5","height":60}))]),
+            "row height" => f.colleague(&[("row.setHeight", json!({"rows":"5","height":60}))]),
             "default font" => f.colleague_rewrite(|wb| {
                 let mut style = wb.styles.get(Default::default()).clone();
                 style.font.size = 16.0;
@@ -88,7 +88,7 @@ async fn derived_fit_holds_wrapping_width_multiline_height_and_custom_row_height
             _ => panic!("unknown change"),
         }
         let before = f.bytes();
-        conflict(f.run(basis, "home.bold", json!({"range":"C5","on":true})).await, &before, &f);
+        conflict(f.run(basis, "format.bold", json!({"range":"C5","on":true})).await, &before, &f);
         f.shutdown().await;
     }
 }

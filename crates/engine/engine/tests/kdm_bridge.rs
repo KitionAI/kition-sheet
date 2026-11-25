@@ -30,7 +30,7 @@ fn new_session() -> Session {
     ] {
         run(&mut s, "cell.set", json!({"cell": cell, "input": input}));
     }
-    run(&mut s, "selection.set", json!({"range": "A1"}));
+    run(&mut s, "select.set", json!({"range": "A1"}));
     s
 }
 
@@ -140,23 +140,23 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
             run(s, "edit.paste", json!({"at": "E7"}));
         }),
         ("insert rows", |s| {
-            run(s, "home.insertRows", json!({"rows": "3:4"}));
+            run(s, "row.insert", json!({"rows": "3:4"}));
         }),
         ("delete rows", |s| {
-            run(s, "home.deleteRows", json!({"rows": "3:3"}));
+            run(s, "row.delete", json!({"rows": "3:3"}));
         }),
         ("insert columns", |s| {
-            run(s, "home.insertColumns", json!({"cols": "B:B"}));
+            run(s, "column.insert", json!({"cols": "B:B"}));
         }),
         ("delete columns", |s| {
-            run(s, "home.deleteColumns", json!({"cols": "A:A"}));
+            run(s, "column.delete", json!({"cols": "A:A"}));
         }),
         ("style change", |s| {
-            run(s, "home.bold", json!({"range": "A1:B1", "on": true}));
-            run(s, "home.fillColor", json!({"range": "B2:B4", "color": "#ffeeaa"}));
+            run(s, "format.bold", json!({"range": "A1:B1", "on": true}));
+            run(s, "format.fillColor", json!({"range": "B2:B4", "color": "#ffeeaa"}));
         }),
         ("sheet add", |s| {
-            run(s, "home.insertSheet", json!({"name": "Notes"}));
+            run(s, "sheet.insert", json!({"name": "Notes"}));
             run(s, "cell.set", json!({"cell": "A1", "input": "on the new sheet"}));
         }),
         ("sheet rename", |s| {
@@ -164,8 +164,8 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
             run(s, "sheet.rename", json!({"sheet": 0, "name": "Budget"}));
         }),
         ("sheet delete", |s| {
-            run(s, "home.insertSheet", json!({"name": "Scratch"}));
-            run(s, "home.deleteSheet", json!({"sheet": "Scratch"}));
+            run(s, "sheet.insert", json!({"name": "Scratch"}));
+            run(s, "sheet.delete", json!({"sheet": "Scratch"}));
         }),
     ];
     for (name, case) in cases {
@@ -189,7 +189,7 @@ fn one_command_one_transaction_reproduces_in_a_peer() {
 fn a_row_insert_keeps_formulas_on_their_rows_in_the_peer() {
     let mut a = new_session();
     let mut b = peer(&mut a);
-    run(&mut a, "home.insertRows", json!({"rows": "2:2"}));
+    run(&mut a, "row.insert", json!({"rows": "2:2"}));
     send(&mut a, &mut b);
     assert_eq!(formula(&mut b, "B6"), json!("=SUM(B3:B5)"), "the total still sums the same rows");
     assert_eq!(formula(&mut b, "C3"), json!("=B3*2"));
@@ -203,16 +203,16 @@ fn a_command_that_runs_commands_is_one_step() {
     let entries = history(&s);
     run(
         &mut s,
-        "automate.newScript",
+        "script.new",
         json!({"name": "Fill", "commands": [
             {"command": "cell.set", "params": {"cell": "E1", "input": "one"}},
             {"command": "cell.set", "params": {"cell": "E2", "input": "two"}},
-            {"command": "home.insertRows", "params": {"rows": "1:1"}},
+            {"command": "row.insert", "params": {"rows": "1:1"}},
         ]}),
     );
     let before = canonical(wb(&s));
     let after_new = history(&s);
-    run(&mut s, "automate.runScript", json!({"name": "Fill"}));
+    run(&mut s, "script.run", json!({"name": "Fill"}));
     assert_eq!(history(&s), after_new + 1, "one history step for the whole script");
     assert!(history(&s) > entries);
     assert_eq!(last_steps(&s), 3, "each command it ran wrote its own transaction, all in that step");
@@ -228,7 +228,7 @@ fn undo_after_a_remote_edit_keeps_it() {
     let mut b = peer(&mut a);
     run(&mut a, "cell.set", json!({"cell": "B2", "input": "1300"}));
     send(&mut a, &mut b);
-    run(&mut b, "home.insertRows", json!({"rows": "1:1"}));
+    run(&mut b, "row.insert", json!({"rows": "1:1"}));
     run(&mut b, "cell.set", json!({"cell": "A1", "input": "Budget"}));
     sync(&mut a, &mut b);
     assert_same(&mut a, &mut b, "exchanged");
@@ -258,12 +258,12 @@ fn undo_back_to_the_saved_workbook_is_clean() {
 #[test]
 fn selection_and_view_changes_write_nothing() {
     let mut a = new_session();
-    run(&mut a, "home.insertSheet", json!({"name": "Second"}));
+    run(&mut a, "sheet.insert", json!({"name": "Second"}));
     let mut b = peer(&mut a);
     let version = a.version().unwrap();
     let b_selection = b.active().unwrap().selection.clone();
-    run(&mut a, "selection.set", json!({"range": "B2:C4"}));
-    run(&mut a, "selection.move", json!({"dr": 1, "dc": 0}));
+    run(&mut a, "select.set", json!({"range": "B2:C4"}));
+    run(&mut a, "select.move", json!({"dr": 1, "dc": 0}));
     run(&mut a, "sheet.activate", json!({"sheet": 0}));
     run(&mut a, "view.zoom", json!({"percent": 150}));
     run(&mut a, "edit.copy", json!({"range": "A1:B2"}));
@@ -305,14 +305,14 @@ fn every_edit_replicates_at_the_history_limit() {
 fn the_selection_follows_remote_row_and_column_edits() {
     let mut a = new_session();
     let mut b = peer(&mut a);
-    run(&mut a, "selection.set", json!({"range": "B4"}));
-    run(&mut b, "home.insertRows", json!({"rows": "2:3"}));
+    run(&mut a, "select.set", json!({"range": "B4"}));
+    run(&mut b, "row.insert", json!({"rows": "2:3"}));
     send(&mut b, &mut a);
     assert_eq!(a.active().unwrap().selection.active.a1(), "B6", "two rows inserted above move it down");
-    run(&mut b, "home.deleteRows", json!({"rows": "6:6"}));
+    run(&mut b, "row.delete", json!({"rows": "6:6"}));
     send(&mut b, &mut a);
     assert_eq!(a.active().unwrap().selection.active.a1(), "B6", "its row deleted: the row now in its place");
-    run(&mut b, "home.insertColumns", json!({"cols": "A:A"}));
+    run(&mut b, "column.insert", json!({"cols": "A:A"}));
     send(&mut b, &mut a);
     assert_eq!(a.active().unwrap().selection.active.a1(), "C6", "a column inserted left of it moves it right");
     run(&mut a, "cell.set", json!({"input": "here"}));
@@ -324,11 +324,11 @@ fn the_selection_follows_remote_row_and_column_edits() {
 #[test]
 fn a_remote_deletion_of_the_active_sheet_moves_the_selection_on() {
     let mut a = new_session();
-    run(&mut a, "home.insertSheet", json!({"name": "Gone"}));
+    run(&mut a, "sheet.insert", json!({"name": "Gone"}));
     let mut b = peer(&mut a);
     run(&mut a, "sheet.activate", json!({"sheet": "Gone"}));
-    run(&mut a, "selection.set", json!({"range": "D9"}));
-    run(&mut b, "home.deleteSheet", json!({"sheet": "Gone"}));
+    run(&mut a, "select.set", json!({"range": "D9"}));
+    run(&mut b, "sheet.delete", json!({"sheet": "Gone"}));
     send(&mut b, &mut a);
     let st = a.active().unwrap();
     assert_eq!(st.wb.sheets.len(), 1);
@@ -345,11 +345,11 @@ fn a_remote_deletion_of_the_active_sheet_moves_the_selection_on() {
 #[test]
 fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
     let mut s = new_session();
-    run(&mut s, "home.insertSheet", json!({"name": "Gone"}));
+    run(&mut s, "sheet.insert", json!({"name": "Gone"}));
     run(&mut s, "sheet.activate", json!({"sheet": 0}));
     run(&mut s, "cell.set", json!({"cell": "B2", "input": "1300"}));
     run(&mut s, "sheet.rename", json!({"sheet": 1, "name": "Renamed"}));
-    s.execute_as("home.deleteSheet", json!({"sheet": "Renamed"}), &Origin::agent("test")).unwrap();
+    s.execute_as("sheet.delete", json!({"sheet": "Renamed"}), &Origin::agent("test")).unwrap();
     run(&mut s, "sheet.activate", json!({"sheet": 0}));
     let person = |s: &Session| s.active().unwrap().undo.iter().filter(|e| e.scope == UndoScope::Person).count();
     let (entries, (undo, redo)) = (person(&s), s.kdm().unwrap().steps());
@@ -415,7 +415,7 @@ fn a_file_newer_than_its_stored_replica_wins_on_open() {
 #[test]
 fn a_file_its_replica_holds_opens_as_that_replica() {
     let mut a = new_session();
-    run(&mut a, "home.insertSheet", json!({"name": "Second"}));
+    run(&mut a, "sheet.insert", json!({"name": "Second"}));
     let file = kition_sheet_engine::io::save_bytes(wb(&a), "Book.xlsx").unwrap();
     let (snapshot, blobs) = (a.snapshot().unwrap(), a.blobs_since(&Version::empty()).unwrap());
     let version = a.version().unwrap();
@@ -476,21 +476,21 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
         }
         4 => {
             let at = 1 + rng.below(8);
-            ("home.insertRows", json!({"rows": format!("{at}:{}", at + rng.below(2))}))
+            ("row.insert", json!({"rows": format!("{at}:{}", at + rng.below(2))}))
         }
         5 => {
             let at = 1 + rng.below(8);
-            ("home.deleteRows", json!({"rows": format!("{at}:{at}")}))
+            ("row.delete", json!({"rows": format!("{at}:{at}")}))
         }
         6 => {
             let col = (b'A' + rng.below(4) as u8) as char;
-            ("home.insertColumns", json!({"cols": format!("{col}:{col}")}))
+            ("column.insert", json!({"cols": format!("{col}:{col}")}))
         }
         7 => {
             let col = (b'A' + rng.below(4) as u8) as char;
-            ("home.deleteColumns", json!({"cols": format!("{col}:{col}")}))
+            ("column.delete", json!({"cols": format!("{col}:{col}")}))
         }
-        8 => ("home.bold", json!({"range": format!("{}:{}", a1(rng), a1(rng)), "on": rng.below(2) == 0})),
+        8 => ("format.bold", json!({"range": format!("{}:{}", a1(rng), a1(rng)), "on": rng.below(2) == 0})),
         9 => ("data.sortAscending", json!({"range": "A2:B6", "column": "B"})),
         10 => {
             let col = (b'A' + rng.below(4) as u8) as char;
@@ -500,10 +500,10 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
             let _ = s.execute("edit.copy", json!({"range": format!("{}:{}", a1(rng), a1(rng))}));
             ("edit.paste", json!({"at": a1(rng)}))
         }
-        12 => ("home.insertSheet", json!({})),
+        12 => ("sheet.insert", json!({})),
         13 => ("sheet.rename", json!({"name": format!("S{}", rng.below(100))})),
-        14 if sheets > 1 => ("home.deleteSheet", json!({"sheet": rng.below(sheets)})),
-        14 => ("home.insertSheet", json!({})),
+        14 if sheets > 1 => ("sheet.delete", json!({"sheet": rng.below(sheets)})),
+        14 => ("sheet.insert", json!({})),
         15 => ("sheet.activate", json!({"sheet": rng.below(sheets)})),
         16 => ("edit.redo", json!({})),
         _ => ("edit.undo", json!({})),

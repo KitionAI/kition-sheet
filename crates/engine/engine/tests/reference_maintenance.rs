@@ -14,7 +14,7 @@ fn workbook(sheets: &[&str]) -> Session {
     s.new_workbook();
     for name in sheets.iter().skip(1) {
         if s.doc().unwrap().wb.sheet_index(name).is_none() {
-            run(&mut s, "home.insertSheet", json!({"name": name}));
+            run(&mut s, "sheet.insert", json!({"name": name}));
         }
     }
     run(&mut s, "sheet.activate", json!({"sheet": sheets[0]}));
@@ -70,15 +70,15 @@ fn features_on_sheet2() -> Session {
         set(&mut s, "Sheet2", &format!("A{}", i + 1), &v.to_string());
         set(&mut s, "Sheet1", &format!("A{}", i + 1), &v.to_string());
     }
-    run(&mut s, "insert.chart", json!({"range": "Sheet1!A1:A3", "type": "column"}));
+    run(&mut s, "chart.insert", json!({"range": "Sheet1!A1:A3", "type": "column"}));
     sheet_mut(&mut s, "Sheet1").charts[0].series[0].values = "Sheet2!$A$1:$A$3".into();
     run(
         &mut s,
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "Sheet1!C1:C3", "rule": {"type": "expression", "formula": "=Sheet2!$A1>1", "style": {"fill": "#FF0000"}}}),
     );
     run(&mut s, "data.validation", json!({"range": "Sheet1!D1", "type": "list", "formula1": "=Sheet2!$A$1:$A$3"}));
-    run(&mut s, "formulas.defineName", json!({"name": "Rate", "refersTo": "=Sheet2!$A$2"}));
+    run(&mut s, "name.define", json!({"name": "Rate", "refersTo": "=Sheet2!$A$2"}));
     set(&mut s, "Sheet1", "E1", "=Rate*10");
     s
 }
@@ -94,7 +94,7 @@ fn cf_formula(s: &Session, sh: &str) -> String {
 fn deleting_a_sheet_turns_chart_cf_validation_and_name_references_into_ref() {
     let mut s = features_on_sheet2();
     assert_eq!(value(&s, "Sheet1", "E1"), num(20.0));
-    run(&mut s, "home.deleteSheet", json!({"sheet": "Sheet2"}));
+    run(&mut s, "sheet.delete", json!({"sheet": "Sheet2"}));
     let sh = sheet(&s, "Sheet1");
     assert!(sh.charts[0].series[0].values.contains("#REF!"), "chart series: {}", sh.charts[0].series[0].values);
     assert!(cf_formula(&s, "Sheet1").contains("#REF!"), "conditional format: {}", cf_formula(&s, "Sheet1"));
@@ -129,21 +129,21 @@ fn inserting_rows_moves_references_from_every_sheet_names_cf_and_validation() {
     set(&mut s, "Sheet2", "A4", "=SUM(Sheet1!A:A)");
     set(&mut s, "Sheet2", "A5", "=SUM(Sheet1!1:2)");
     set(&mut s, "Sheet1", "B1", "=A1*2");
-    run(&mut s, "formulas.defineName", json!({"name": "Mid", "refersTo": "=Sheet1!$A$2:$A$4"}));
+    run(&mut s, "name.define", json!({"name": "Mid", "refersTo": "=Sheet1!$A$2:$A$4"}));
     set(&mut s, "Sheet2", "A6", "=SUM(Mid)");
     run(
         &mut s,
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "Sheet1!C1:C5", "rule": {"type": "expression", "formula": "=$A1>2", "style": {"fill": "#FF0000"}}}),
     );
     run(&mut s, "data.validation", json!({"range": "Sheet1!D1", "type": "list", "formula1": "=$A$1:$A$5"}));
     run(
         &mut s,
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "Sheet2!B1:B2", "rule": {"type": "expression", "formula": "=Sheet1!$A$5>0", "style": {"fill": "#00FF00"}}}),
     );
 
-    run(&mut s, "home.insertRows", json!({"sheet": "Sheet1", "rows": "2:3"}));
+    run(&mut s, "row.insert", json!({"sheet": "Sheet1", "rows": "2:3"}));
     assert_eq!(formula(&s, "Sheet2", "A1"), "SUM(Sheet1!A1:A7)");
     assert_eq!(formula(&s, "Sheet2", "A2"), "Sheet1!$A$5");
     assert_eq!(formula(&s, "Sheet2", "A3"), "Sheet1!A$5+Sheet1!$A5");
@@ -161,8 +161,8 @@ fn inserting_rows_moves_references_from_every_sheet_names_cf_and_validation() {
     assert_eq!(cf_formula(&s, "Sheet2"), "Sheet1!$A$7>0");
 
     // Deleting rows: ranges shrink, a reference to a deleted cell is #REF!.
-    run(&mut s, "home.deleteRows", json!({"sheet": "Sheet1", "rows": "2:3"}));
-    run(&mut s, "home.deleteRows", json!({"sheet": "Sheet1", "rows": "3"}));
+    run(&mut s, "row.delete", json!({"sheet": "Sheet1", "rows": "2:3"}));
+    run(&mut s, "row.delete", json!({"sheet": "Sheet1", "rows": "3"}));
     assert_eq!(formula(&s, "Sheet2", "A1"), "SUM(Sheet1!A1:A4)");
     assert_eq!(value(&s, "Sheet2", "A1"), num(12.0));
     assert_eq!(value(&s, "Sheet2", "A2"), Value::Error(CellError::Ref));
@@ -172,7 +172,7 @@ fn inserting_rows_moves_references_from_every_sheet_names_cf_and_validation() {
     assert_eq!(cf_formula(&s, "Sheet2"), "Sheet1!$A$4>0");
     // The whole referenced block deleted.
     set(&mut s, "Sheet2", "C1", "=SUM(Sheet1!A2:A3)");
-    run(&mut s, "home.deleteRows", json!({"sheet": "Sheet1", "rows": "2:3"}));
+    run(&mut s, "row.delete", json!({"sheet": "Sheet1", "rows": "2:3"}));
     assert_eq!(value(&s, "Sheet2", "C1"), Value::Error(CellError::Ref));
 }
 
@@ -184,11 +184,11 @@ fn inserting_and_deleting_columns_moves_references() {
     set(&mut s, "Sheet1", "C1", "3");
     set(&mut s, "Sheet1", "A3", "=SUM(A1:C1)");
     set(&mut s, "Sheet1", "B3", "=$C$1*B$1");
-    run(&mut s, "home.insertColumns", json!({"cols": "B"}));
+    run(&mut s, "column.insert", json!({"cols": "B"}));
     assert_eq!(formula(&s, "Sheet1", "A3"), "SUM(A1:D1)");
     assert_eq!(formula(&s, "Sheet1", "C3"), "$D$1*C$1");
     assert_eq!(value(&s, "Sheet1", "C3"), num(6.0));
-    run(&mut s, "home.deleteColumns", json!({"cols": "D"}));
+    run(&mut s, "column.delete", json!({"cols": "D"}));
     assert_eq!(formula(&s, "Sheet1", "A3"), "SUM(A1:C1)");
     assert_eq!(value(&s, "Sheet1", "A3"), num(3.0));
     assert_eq!(value(&s, "Sheet1", "C3"), Value::Error(CellError::Ref));
@@ -260,16 +260,16 @@ fn volatile_and_cross_sheet_dependencies_recalculate() {
     set(&mut s, "Sheet3", "A1", "10");
     assert_eq!(value(&s, "Sheet1", "C1"), num(22.0));
     assert_eq!(value(&s, "Sheet1", "A3"), num(30.0));
-    run(&mut s, "formulas.defineName", json!({"name": "Base", "refersTo": "=Sheet3!$A$1"}));
+    run(&mut s, "name.define", json!({"name": "Base", "refersTo": "=Sheet3!$A$1"}));
     set(&mut s, "Sheet1", "C2", "=Base+1");
     set(&mut s, "Sheet3", "A1", "20");
     assert_eq!(value(&s, "Sheet1", "C2"), num(21.0));
-    run(&mut s, "formulas.defineName", json!({"name": "Base", "refersTo": "=Sheet1!$B$2"}));
+    run(&mut s, "name.define", json!({"name": "Base", "refersTo": "=Sheet1!$B$2"}));
     assert_eq!(value(&s, "Sheet1", "C2"), num(7.0));
     // A formula naming a name defined later picks it up.
     set(&mut s, "Sheet1", "C3", "=Later*2");
     assert_eq!(value(&s, "Sheet1", "C3"), Value::Error(CellError::Name));
-    run(&mut s, "formulas.defineName", json!({"name": "Later", "refersTo": "=4"}));
+    run(&mut s, "name.define", json!({"name": "Later", "refersTo": "=4"}));
     assert_eq!(value(&s, "Sheet1", "C3"), num(8.0));
 }
 
@@ -285,7 +285,7 @@ fn a_circular_reference_shows_zero_and_is_reported() {
         sheet(&s, "Sheet1").circular.contains(&CellRef::parse("A1").unwrap())
             || sheet(&s, "Sheet1").circular.contains(&CellRef::parse("B1").unwrap())
     );
-    let found = run(&mut s, "formulas.errorChecking", json!({}));
+    let found = run(&mut s, "formula.errorChecking", json!({}));
     assert!(!found["circular"].as_array().unwrap().is_empty(), "{found}");
     // Breaking the circle recalculates the cells.
     set(&mut s, "Sheet1", "B1", "7");
@@ -297,14 +297,14 @@ fn a_circular_reference_shows_zero_and_is_reported() {
 #[test]
 fn iterative_calculation_resolves_circular_references() {
     let mut s = workbook(&["Sheet1"]);
-    run(&mut s, "formulas.calculationOptions", json!({"iterative": true, "maxIterations": 100, "maxChange": 0.000001}));
+    run(&mut s, "formula.calculationOptions", json!({"iterative": true, "maxIterations": 100, "maxChange": 0.000001}));
     set(&mut s, "Sheet1", "B1", "10");
     // x = (x + 10) / 2 converges to 10.
     set(&mut s, "Sheet1", "A1", "=(A1+B1)/2");
     let a1 = value(&s, "Sheet1", "A1").as_f64().unwrap();
     assert!((a1 - 10.0).abs() < 1e-5, "{a1}");
     // A count that never settles stops at the maximum number of iterations.
-    run(&mut s, "formulas.calculationOptions", json!({"maxIterations": 50}));
+    run(&mut s, "formula.calculationOptions", json!({"maxIterations": 50}));
     set(&mut s, "Sheet1", "C1", "=C1+1");
     assert_eq!(value(&s, "Sheet1", "C1"), num(50.0));
     // Two cells in a loop.
@@ -325,15 +325,15 @@ fn manual_calculation_waits_for_calculate_now() {
     let mut s = workbook(&["Sheet1"]);
     set(&mut s, "Sheet1", "B1", "1");
     set(&mut s, "Sheet1", "A1", "=B1*2");
-    run(&mut s, "formulas.calculationOptions", json!({"mode": "manual"}));
+    run(&mut s, "formula.calculationOptions", json!({"mode": "manual"}));
     set(&mut s, "Sheet1", "B1", "5");
     assert_eq!(value(&s, "Sheet1", "A1"), num(2.0));
     // A formula entered in manual mode is calculated itself.
     set(&mut s, "Sheet1", "A2", "=B1+1");
     assert_eq!(value(&s, "Sheet1", "A2"), num(6.0));
-    run(&mut s, "formulas.calculateNow", json!({}));
+    run(&mut s, "formula.calculateNow", json!({}));
     assert_eq!(value(&s, "Sheet1", "A1"), num(10.0));
-    run(&mut s, "formulas.calculationOptions", json!({"mode": "automatic"}));
+    run(&mut s, "formula.calculationOptions", json!({"mode": "automatic"}));
     set(&mut s, "Sheet1", "B1", "7");
     assert_eq!(value(&s, "Sheet1", "A1"), num(14.0));
 }
@@ -371,11 +371,11 @@ fn a_tables_calculated_column_follows_sheet_rename_copy_and_delete() {
     set(&mut s, "Sheet1", "B1", "Total");
     set(&mut s, "Sheet1", "A2", "1");
     set(&mut s, "Sheet1", "A3", "2");
-    run(&mut s, "insert.table", json!({"range": "Sheet1!A1:B3", "header": true, "name": "Orders"}));
+    run(&mut s, "table.insert", json!({"range": "Sheet1!A1:B3", "header": true, "name": "Orders"}));
     sheet_mut(&mut s, "Sheet1").tables[0].columns[1].formula = Some("Orders[@Qty]*Sheet2!$A$1+SUM(Sheet1!$A$2:$A$3)".into());
     run(&mut s, "sheet.rename", json!({"sheet": "Sheet2", "name": "价格"}));
     assert_eq!(sheet(&s, "Sheet1").tables[0].columns[1].formula.as_deref(), Some("Orders[@Qty]*价格!$A$1+SUM(Sheet1!$A$2:$A$3)"));
-    run(&mut s, "home.insertRows", json!({"sheet": "Sheet1", "rows": "1"}));
+    run(&mut s, "row.insert", json!({"sheet": "Sheet1", "rows": "1"}));
     assert_eq!(sheet(&s, "Sheet1").tables[0].columns[1].formula.as_deref(), Some("Orders[@Qty]*价格!$A$1+SUM(Sheet1!$A$3:$A$4)"));
     let copied = run(&mut s, "sheet.move", json!({"sheet": "Sheet1", "to": 2, "copy": true}));
     let copy_name = copied["name"].as_str().unwrap().to_string();
@@ -386,7 +386,7 @@ fn a_tables_calculated_column_follows_sheet_rename_copy_and_delete() {
         table.columns[1].formula.clone().unwrap(),
         format!("{}[@Qty]*价格!$A$1+SUM({}!$A$3:$A$4)", table.name, kition_sheet_formula::quote_sheet(&copy_name))
     );
-    run(&mut s, "home.deleteSheet", json!({"sheet": "价格"}));
+    run(&mut s, "sheet.delete", json!({"sheet": "价格"}));
     assert!(sheet(&s, "Sheet1").tables[0].columns[1].formula.as_deref().unwrap().contains("#REF!"));
 }
 
@@ -396,17 +396,17 @@ fn a_tables_calculated_column_follows_sheet_rename_copy_and_delete() {
 #[test]
 fn internal_links_follow_rows_inserted_and_deleted_above_their_target() {
     let mut s = workbook(&["Sheet1", "Sheet2"]);
-    run(&mut s, "insert.link", json!({"sheet": "Sheet1", "cell": "A5", "target": "Sheet1!B4"}));
-    run(&mut s, "insert.link", json!({"sheet": "Sheet1", "cell": "C1", "target": "https://example.com"}));
-    run(&mut s, "insert.link", json!({"sheet": "Sheet2", "cell": "A1", "target": "#Sheet1!B4:C5"}));
+    run(&mut s, "link.insert", json!({"sheet": "Sheet1", "cell": "A5", "target": "Sheet1!B4"}));
+    run(&mut s, "link.insert", json!({"sheet": "Sheet1", "cell": "C1", "target": "https://example.com"}));
+    run(&mut s, "link.insert", json!({"sheet": "Sheet2", "cell": "A1", "target": "#Sheet1!B4:C5"}));
     let link =
         |s: &Session, sheet_name: &str, cell: &str| sheet(s, sheet_name).hyperlinks.get(&CellRef::parse(cell).unwrap()).map(|h| h.target.clone());
-    run(&mut s, "home.insertRows", json!({"sheet": "Sheet1", "rows": "2:3"}));
+    run(&mut s, "row.insert", json!({"sheet": "Sheet1", "rows": "2:3"}));
     assert_eq!(link(&s, "Sheet1", "A5"), None, "the link moved with its cell");
     assert_eq!(link(&s, "Sheet1", "A7").as_deref(), Some("Sheet1!B6"));
     assert_eq!(link(&s, "Sheet1", "C1").as_deref(), Some("https://example.com"));
     assert_eq!(link(&s, "Sheet2", "A1").as_deref(), Some("#Sheet1!B6:C7"));
-    run(&mut s, "home.deleteRows", json!({"sheet": "Sheet1", "rows": "1"}));
+    run(&mut s, "row.delete", json!({"sheet": "Sheet1", "rows": "1"}));
     assert_eq!(link(&s, "Sheet1", "A6").as_deref(), Some("Sheet1!B5"));
     assert_eq!(link(&s, "Sheet2", "A1").as_deref(), Some("#Sheet1!B5:C6"));
     run(&mut s, "edit.undo", json!({}));

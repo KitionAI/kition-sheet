@@ -98,9 +98,9 @@ fn expected_edit_roles(command: &KitCommand) -> (Option<&'static str>, Vec<&'sta
     let candidate = ["range", "cell"].into_iter().find(has);
     let mut places: Vec<_> = ["sheet", "cell", "range", "rows", "cols"].into_iter().filter(has).collect();
     match command.id.as_str() {
-        "cell.set" | "home.cellStyle" => places.push("name"),
+        "cell.set" | "style.apply" => places.push("name"),
         "edit.paste" | "edit.pasteSpecial" => places.push("at"),
-        "home.insertSheet" => places.push("before"),
+        "sheet.insert" => places.push("before"),
         "sheet.move" => places.push("to"),
         "edit.moveCells" => places.extend(["from", "to"]),
         "edit.autoFill" => places.extend(["source", "target"]),
@@ -129,8 +129,8 @@ fn data_roles(id: &str) -> (Option<&'static str>, &'static [&'static str], &'sta
         "data.subtotal" => (Some("range"), &["range", "groupBy", "columns"], &[]),
         "data.smartFill" => (Some("range"), &["sheet", "range", "cell"], &[]),
         "data.reapply" | "data.refreshAll" => (None, &[], &[]),
-        "insert.table" => (Some("range"), &["sheet", "range", "cell"], &[]),
-        "home.formatAsTable" => (Some("range"), &["sheet", "range", "cell", "style"], &[]),
+        "table.insert" => (Some("range"), &["sheet", "range", "cell"], &[]),
+        "table.formatAs" => (Some("range"), &["sheet", "range", "cell", "style"], &[]),
         // New names are literal creation labels. replace resolves an existing custom style.
         "table.newStyle" => (None, &["replace"], &[]),
         "table.deleteStyle" | "table.setDefaultStyle" => (None, &["name"], &[]),
@@ -145,35 +145,33 @@ fn data_roles(id: &str) -> (Option<&'static str>, &'static [&'static str], &'sta
         | "table.rename"
         | "table.convertToRange" => (None, &["table"], &[]),
         "table.totalFunction" => (None, &["table", "column"], &[]),
-        "insert.chart" | "insert.recommendedCharts" => (None, &["sheet", "range", "cell", "at"], &[]),
+        "chart.insert" | "chart.recommended" => (None, &["sheet", "range", "cell", "at"], &[]),
         "chart.set" => (Some("chart"), &["at"], &["chart"]),
         "chart.switchRowColumn" | "chart.delete" => (Some("chart"), &[], &["chart"]),
         // range is stored source text. It remains a natural on target for the selected data;
         // location separately names the sparkline being replaced.
-        "insert.sparkline" => (Some("range"), &["range", "location"], &[]),
-        "insert.picture" | "insert.shape" | "insert.icons" | "insert.textBox" => (None, &["at"], &[]),
-        "insert.artText" | "insert.symbol" => (None, &[], &[]),
+        "sparkline.insert" => (Some("range"), &["range", "location"], &[]),
+        "image.insert" | "shape.insert" | "icon.insert" | "textBox.insert" => (None, &["at"], &[]),
+        "artText.insert" | "symbol.insert" => (None, &[], &[]),
         "shape.setText" | "object.delete" | "object.setAnchorMode" => (Some("id"), &[], &["id"]),
         "object.move" => (Some("id"), &["at"], &["id"]),
         // Internal link text is stored, not dereferenced as current source-cell contents.
-        "insert.link" => (Some("cell"), &["sheet", "cell", "target"], &[]),
-        "review.newNote" | "review.newComment" | "review.replyComment" | "review.resolveComment" | "review.showNote" => {
-            (Some("cell"), &["sheet", "range", "cell"], &[])
-        }
+        "link.insert" => (Some("cell"), &["sheet", "cell", "target"], &[]),
+        "note.add" | "comment.add" | "comment.reply" | "comment.resolve" | "note.show" => (Some("cell"), &["sheet", "range", "cell"], &[]),
         // Pinned after helper review: target_ranges resolves cell when supplied; the blind
         // empty-params branch above recorded only the fallback to selection ranges.
-        "review.deleteComment" => (Some("cell"), &["cell"], &[]),
-        "home.conditionalFormat" => (Some("range"), &["sheet", "range", "cell"], &[]),
+        "comment.delete" => (Some("cell"), &["cell"], &[]),
+        "conditionalFormat.apply" => (Some("range"), &["sheet", "range", "cell"], &[]),
         // Here sheet is the whole-sheet boolean, not a Sheet name or tab index.
-        "home.clearRules" => (Some("range"), &["range", "cell"], &[]),
+        "conditionalFormat.clearRules" => (Some("range"), &["range", "cell"], &[]),
         // cell/range prefixes can pick the sheet; their bodies do not select the indexed rule.
-        "home.manageRules" => (None, &["sheet", "range", "cell", "delete", "moveUp", "moveDown"], &[]),
-        "formulas.autoSum" | "formulas.createFromSelection" => (Some("range"), &["range"], &[]),
-        "formulas.insertFunction" | "formulas.showFormulas" | "formulas.calculationOptions" => (None, &[], &[]),
+        "conditionalFormat.manageRules" => (None, &["sheet", "range", "cell", "delete", "moveUp", "moveDown"], &[]),
+        "formula.autoSum" | "name.addFromSelection" => (Some("range"), &["range"], &[]),
+        "formula.insertFunction" | "formula.showFormulas" | "formula.calculationOptions" => (None, &[], &[]),
         // refersTo is parsed and stored; it needs address/name facts, not source values.
-        "formulas.defineName" => (None, &["name", "scope", "refersTo"], &[]),
-        "formulas.deleteName" => (None, &["name", "scope"], &[]),
-        "insert.pivotTable" | "insert.recommendedPivotTables" => (None, &["source", "range", "destination", "location"], &[]),
+        "name.define" => (None, &["name", "scope", "refersTo"], &[]),
+        "name.delete" => (None, &["name", "scope"], &[]),
+        "pivot.insert" | "pivot.recommended" => (None, &["source", "range", "destination", "location"], &[]),
         // summarize_table replaces source from the chosen table; range can still supply the
         // Agent part. rows/columns are source-field lists, not worksheet axes.
         "table.summarizePivot" => (None, &["table", "range", "destination", "location"], &[]),
@@ -209,7 +207,7 @@ fn object_roles(id: &str) -> (Option<&'static str>, &'static [(&'static str, &'s
     match id {
         "arrange.align" | "arrange.group" => (Some("ids"), &[("ids", &["Shape", "Chart", "Image"])], &[]),
         "arrange.bringForward" | "arrange.sendBackward" => (Some("id"), &[("id", &["Shape", "Chart", "Image"])], &[]),
-        "arrange.rotate" | "chart.shapeOutline" | "draw.inkToShape" => (Some("id"), &[("id", &["Shape"])], &[]),
+        "arrange.rotate" | "chart.shapeOutline" | "ink.toShape" => (Some("id"), &[("id", &["Shape"])], &[]),
         "chart.addElement" | "chart.changeColors" | "chart.changeType" | "chart.formatSelection" | "chart.quickLayout" => {
             (Some("chart"), &[("chart", &["Chart"])], &[])
         }
@@ -232,27 +230,27 @@ fn object_roles(id: &str) -> (Option<&'static str>, &'static [(&'static str, &'s
         // The pinned SDK reads top-level place keys literally; the
         // precise point dependencies remain in Under.
         "drawing.ink" => (None, &[], &["strokes"]),
-        "draw.stroke" => (None, &[], &["points"]),
+        "ink.stroke" => (None, &[], &["points"]),
         "drawing.insert" => (None, &[], &["range", "frame"]),
         "cell.toggleCheckbox" => (Some("cell"), &[], &["sheet", "cell"]),
-        "insert.checkbox" => (Some("range"), &[], &["sheet", "range", "cell"]),
-        "home.drawBorder" => (Some("range"), &[], &["sheet", "range", "cell"]),
-        "home.newCellStyle" => (None, &[], &["name", "fromCell"]),
+        "checkbox.insert" => (Some("range"), &[], &["sheet", "range", "cell"]),
+        "format.drawBorder" => (Some("range"), &[], &["sheet", "range", "cell"]),
+        "style.add" => (None, &[], &["name", "fromCell"]),
         "data.fromTableRange" => (Some("range"), &[], &["range"]),
         "table.resize" => (Some("range"), &[], &["table", "range"]),
         "table.removeDuplicates" => (Some("range"), &[], &["table", "range", "columns"]),
-        "automate.deleteScript"
-        | "automate.newScript"
-        | "automate.recordActions"
-        | "automate.runScript"
+        "script.delete"
+        | "script.new"
+        | "script.record"
+        | "script.run"
         | "data.fromTextCsv"
         | "data.getData"
-        | "formulas.useInFormula"
-        | "formulas.watchWindow"
-        | "pageLayout.background"
-        | "pageLayout.themeColors"
-        | "pageLayout.themeEffects"
-        | "pageLayout.themeFonts"
+        | "formula.useInFormula"
+        | "formula.watchWindow"
+        | "page.background"
+        | "theme.colors"
+        | "theme.effects"
+        | "theme.fonts"
         | "view.customViews"
         | "view.newWindow"
         | "view.split" => (None, &[], &[]),
@@ -264,18 +262,18 @@ fn view_roles(id: &str) -> (Option<&'static str>, &'static [&'static str]) {
     match id {
         "view.freezePanes" | "view.freezeRows" | "view.freezeColumns" => (Some("cell"), &["cell", "top"]),
         "view.freezeTopRow" | "view.freezeFirstColumn" => (None, &["top"]),
-        "pageLayout.printArea" => (Some("range"), &["range"]),
-        "pageLayout.breaks" => (Some("cell"), &["cell"]),
+        "page.printArea" => (Some("range"), &["range"]),
+        "page.breaks" => (Some("cell"), &["cell"]),
         // Pinned after review: word is a source-membership predicate on the
         // all-match path, which needs the SDK's place coverage callback.
-        "review.changeSpelling" => (Some("cell"), &["cell", "word"]),
-        "pageLayout.printTitles" => (None, &["cols", "rows"]),
-        "pageLayout.pageSetup" => {
+        "spelling.change" => (Some("cell"), &["cell", "word"]),
+        "page.printTitles" => (None, &["cols", "rows"]),
+        "page.pageSetup" => {
             // print.rs:1515-1573 interprets these values as coordinates on the
             // resolved sheet, discarding any prefixes inside the setting values.
             (Some("range"), &["sheet", "range", "cell", "printArea", "titleRows", "titleCols", "rowBreaks", "colBreaks"])
         }
-        "review.protectSheet" | "review.unprotectSheet" => (None, &["sheet"]),
+        "sheet.protect" | "sheet.unprotect" => (None, &["sheet"]),
         _ => (None, &[]),
     }
 }
@@ -287,10 +285,10 @@ arrange.bringForward|part
 arrange.group|part
 arrange.rotate|part
 arrange.sendBackward|part
-automate.deleteScript|
-automate.newScript|
-automate.recordActions|
-automate.runScript|
+script.delete|
+script.new|
+script.record|
+script.run|
 cell.formatText|selection,part
 cell.set|selection,part
 cell.toggleCheckbox|selection,part
@@ -335,8 +333,8 @@ data.subtotal|selection,part
 data.textToColumns|selection,part
 data.ungroup|selection,part
 data.validation|selection,part
-draw.inkToShape|part
-draw.stroke|mode,part
+ink.toShape|part
+ink.stroke|mode,part
 drawing.arrange|part
 drawing.chart|selection,part
 drawing.connect|part
@@ -375,110 +373,110 @@ file.open|selection,part
 file.properties|
 file.save|
 file.saveAs|
-formulas.autoSum|selection,part
-formulas.calculationOptions|
-formulas.createFromSelection|selection,part
-formulas.defineName|selection,part
-formulas.deleteName|
-formulas.insertFunction|
-formulas.showFormulas|part
-formulas.useInFormula|
-formulas.watchWindow|part
-home.accounting|selection,part
-home.alignBottom|selection,part
-home.alignCenter|selection,part
-home.alignLeft|selection,part
-home.alignMiddle|selection,part
-home.alignRight|selection,part
-home.alignTop|selection,part
-home.autofitColumnWidth|selection,part
-home.autofitRowHeight|selection,part
-home.bold|selection,part
-home.borders|selection,part
-home.cellStyle|selection,part
-home.clearRules|selection,part
-home.columnWidth|selection,part
-home.comma|selection,part
-home.conditionalFormat|selection,part
-home.decreaseDecimal|selection,part
-home.decreaseFontSize|selection,part
-home.decreaseIndent|selection,part
-home.defaultWidth|part
-home.deleteCells|selection,part
-home.deleteColumns|selection,part
-home.deleteRows|selection,part
-home.deleteSheet|part
-home.doubleUnderline|selection,part
-home.drawBorder|
-home.fillColor|selection,part
-home.fontColor|selection,part
-home.fontName|selection,part
-home.fontSize|selection,part
-home.formatAsTable|selection,part
-home.formatCells|selection,part
-home.hideColumns|selection,part
-home.hideRows|selection,part
-home.increaseDecimal|selection,part
-home.increaseFontSize|selection,part
-home.increaseIndent|selection,part
-home.insertCells|selection,part
-home.insertColumns|selection,part
-home.insertRows|selection,part
-home.insertSheet|selection,part
-home.italic|selection,part
-home.justify|selection,part
-home.lockCell|selection,part
-home.manageRules|part
-home.mergeAcross|selection,part
-home.mergeCells|selection,part
-home.mergeCenter|selection,part
-home.newCellStyle|selection,part
-home.numberFormat|selection,part
-home.orientation|selection,part
-home.percent|selection,part
-home.rowHeight|selection,part
-home.shrinkToFit|selection,part
-home.strikethrough|selection,part
-home.subscript|selection,part
-home.superscript|selection,part
-home.underline|selection,part
-home.unhideColumns|selection,part
-home.unhideRows|selection,part
-home.unmergeCells|selection,part
-home.wrapText|selection,part
-insert.chart|selection,part
-insert.checkbox|selection,part
-insert.icons|selection,part
-insert.link|selection,part
-insert.picture|selection,part
-insert.pivotTable|selection,part,mode
-insert.recommendedCharts|selection,part
-insert.recommendedPivotTables|selection,part,mode
-insert.shape|selection,part
-insert.sparkline|part
-insert.symbol|selection,part
-insert.table|selection,part
-insert.textBox|selection,part
-insert.artText|selection,part
+formula.autoSum|selection,part
+formula.calculationOptions|
+name.addFromSelection|selection,part
+name.define|selection,part
+name.delete|
+formula.insertFunction|
+formula.showFormulas|part
+formula.useInFormula|
+formula.watchWindow|part
+format.accounting|selection,part
+format.alignBottom|selection,part
+format.alignCenter|selection,part
+format.alignLeft|selection,part
+format.alignMiddle|selection,part
+format.alignRight|selection,part
+format.alignTop|selection,part
+column.autofitWidth|selection,part
+row.autofitHeight|selection,part
+format.bold|selection,part
+format.borders|selection,part
+style.apply|selection,part
+conditionalFormat.clearRules|selection,part
+column.setWidth|selection,part
+format.comma|selection,part
+conditionalFormat.apply|selection,part
+format.decreaseDecimal|selection,part
+format.decreaseFontSize|selection,part
+format.decreaseIndent|selection,part
+column.setDefaultWidth|part
+cell.delete|selection,part
+column.delete|selection,part
+row.delete|selection,part
+sheet.delete|part
+format.doubleUnderline|selection,part
+format.drawBorder|
+format.fillColor|selection,part
+format.color|selection,part
+format.fontName|selection,part
+format.fontSize|selection,part
+table.formatAs|selection,part
+format.cells|selection,part
+column.hide|selection,part
+row.hide|selection,part
+format.increaseDecimal|selection,part
+format.increaseFontSize|selection,part
+format.increaseIndent|selection,part
+cell.insert|selection,part
+column.insert|selection,part
+row.insert|selection,part
+sheet.insert|selection,part
+format.italic|selection,part
+format.justify|selection,part
+cell.lock|selection,part
+conditionalFormat.manageRules|part
+cell.mergeAcross|selection,part
+cell.merge|selection,part
+cell.mergeCenter|selection,part
+style.add|selection,part
+format.numberFormat|selection,part
+format.orientation|selection,part
+format.percent|selection,part
+row.setHeight|selection,part
+format.shrinkToFit|selection,part
+format.strikethrough|selection,part
+format.subscript|selection,part
+format.superscript|selection,part
+format.underline|selection,part
+column.show|selection,part
+row.show|selection,part
+cell.unmerge|selection,part
+format.wrapText|selection,part
+chart.insert|selection,part
+checkbox.insert|selection,part
+icon.insert|selection,part
+link.insert|selection,part
+image.insert|selection,part
+pivot.insert|selection,part,mode
+chart.recommended|selection,part
+pivot.recommended|selection,part,mode
+shape.insert|selection,part
+sparkline.insert|part
+symbol.insert|selection,part
+table.insert|selection,part
+textBox.insert|selection,part
+artText.insert|selection,part
 object.delete|part
 object.move|part
 object.setAnchorMode|part
-pageLayout.background|part
-pageLayout.breaks|selection,part
-pageLayout.headerFooter|part
-pageLayout.margins|part
-pageLayout.orientation|part
-pageLayout.pageSetup|part
-pageLayout.printArea|selection,part
-pageLayout.printGridlines|part
-pageLayout.printHeadings|part
-pageLayout.printTitles|part
-pageLayout.scaleToFit|part
-pageLayout.size|part
-pageLayout.theme|
-pageLayout.themeColors|
-pageLayout.themeEffects|
-pageLayout.themeFonts|
+page.background|part
+page.breaks|selection,part
+page.headerFooter|part
+page.margins|part
+page.orientation|part
+page.pageSetup|part
+page.printArea|selection,part
+page.printGridlines|part
+page.printHeadings|part
+page.printTitles|part
+page.scaleToFit|part
+page.size|part
+theme.set|
+theme.colors|
+theme.effects|
+theme.fonts|
 pivot.addField|selection,part
 pivot.changeSource|selection,part
 pivot.collapse|selection,part
@@ -497,16 +495,16 @@ pivot.subtotals|selection,part
 pivot.valueSettings|selection,part
 range.fill|selection,part
 range.setValues|selection,part
-review.changeSpelling|part
-review.deleteComment|selection,part
-review.newComment|selection,part
-review.newNote|selection,part
-review.protectSheet|part
-review.protectWorkbook|
-review.replyComment|selection,part
-review.resolveComment|selection,part
-review.showNote|selection,part
-review.unprotectSheet|part
+spelling.change|part
+comment.delete|selection,part
+comment.add|selection,part
+note.add|selection,part
+sheet.protect|part
+workbook.protect|
+comment.reply|selection,part
+comment.resolve|selection,part
+note.show|selection,part
+sheet.unprotect|part
 shape.setText|part
 sheet.hide|selection,part
 sheet.move|selection,part
@@ -601,7 +599,7 @@ pub(super) fn expected_metadata(command: &KitCommand) -> Set {
         let (target, places) = view_roles(id);
         (target, places.to_vec(), Vec::new())
     } else {
-        assert_eq!(id, "commandLine", "every write must have a reviewed metadata projection");
+        assert_eq!(id, "command.runLine", "every write must have a reviewed metadata projection");
         (None, Vec::new(), Vec::new())
     };
     let has = |key: &str| command.schema.as_ref().is_some_and(|schema| schema.get(key).is_some());
@@ -636,12 +634,11 @@ pub(super) fn expected_metadata(command: &KitCommand) -> Set {
 fn baseline_metadata(command: &KitCommand) -> Set {
     let id = command.id.as_str();
     let has = |key: &str| command.schema.as_ref().is_some_and(|schema| schema.get(key).is_some());
-    let candidate =
-        if matches!(id, "drawing.insert" | "insert.chart" | "insert.recommendedCharts" | "insert.pivotTable" | "insert.recommendedPivotTables") {
-            None
-        } else {
-            ["ids", "id", "chart", "range", "cell"].into_iter().find(|key| has(key))
-        };
+    let candidate = if matches!(id, "drawing.insert" | "chart.insert" | "chart.recommended" | "pivot.insert" | "pivot.recommended") {
+        None
+    } else {
+        ["ids", "id", "chart", "range", "cell"].into_iter().find(|key| has(key))
+    };
     let target = accepted_target(command, candidate);
     let mut facts = Set::new();
     if let Some(target) = target {
@@ -653,15 +650,15 @@ fn baseline_metadata(command: &KitCommand) -> Set {
     let mut places: Vec<_> = ["sheet", "scope", "table", "pivot", "cell", "range", "rows", "cols"].into_iter().filter(|key| has(key)).collect();
     match id {
         "edit.paste" | "edit.pasteSpecial" if has("at") => places.push("at"),
-        "home.insertSheet" => places.push("before"),
+        "sheet.insert" => places.push("before"),
         "sheet.move" => places.push("to"),
         "edit.moveCells" => places.extend(["from", "to"]),
         "drawing.erase" => places.extend(["path", "x", "y"]),
-        "formulas.defineName"
-        | "formulas.deleteName"
-        | "formulas.useInFormula"
-        | "home.cellStyle"
-        | "home.newCellStyle"
+        "name.define"
+        | "name.delete"
+        | "formula.useInFormula"
+        | "style.apply"
+        | "style.add"
         | "table.deleteStyle"
         | "table.setDefaultStyle"
         | "cell.set" => places.push("name"),
@@ -771,18 +768,18 @@ fn data_probe() -> (Set, Set, Set) {
         json!({"range":"A1","values":[["Region","Amount","Date"],["East",3,45000],["West",2,45001],["East",1,45002],["West",4,45003]]}),
     )
     .unwrap();
-    doc.execute("insert.table", json!({"range":"A1:C5","name":"Sales","header":true})).unwrap();
-    let chart = doc.execute("insert.chart", json!({"range":"A1:C5"})).unwrap()["chart"].clone();
-    let shape = doc.execute("insert.textBox", json!({"at":"H1","text":"old"})).unwrap()["shape"].clone();
+    doc.execute("table.insert", json!({"range":"A1:C5","name":"Sales","header":true})).unwrap();
+    let chart = doc.execute("chart.insert", json!({"range":"A1:C5"})).unwrap()["chart"].clone();
+    let shape = doc.execute("textBox.insert", json!({"at":"H1","text":"old"})).unwrap()["shape"].clone();
     let pivot = doc
-        .execute("insert.pivotTable", json!({"source":"Sales","destination":"H8","name":"Report","rows":["Region"],"values":["Amount"]}))
+        .execute("pivot.insert", json!({"source":"Sales","destination":"H8","name":"Report","rows":["Region"],"values":["Amount"]}))
         .unwrap()["id"]
         .clone();
-    doc.execute("home.insertSheet", json!({"name":"Sheet2","before":9})).unwrap();
-    doc.execute("home.insertSheet", json!({"name":"Sheet3","before":9})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Sheet2","before":9})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Sheet3","before":9})).unwrap();
     doc.execute("cell.set", json!({"sheet":"Sheet3","cell":"Z20","input":"unrelated"})).unwrap();
     doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
-    doc.execute("selection.set", json!({"range":"B3"})).unwrap();
+    doc.execute("select.set", json!({"range":"B3"})).unwrap();
     doc.version().expect("materialize observed identities");
 
     let catalogue = doc.commands();
@@ -829,15 +826,15 @@ fn edit_probe() -> (Set, Set, Set) {
     doc.execute("sheet.rename", json!({"name":"Data"})).expect("first sheet name");
     for sheet in ["Data", "Second"] {
         if sheet == "Second" {
-            doc.execute("home.insertSheet", json!({"name":sheet})).expect("second sheet");
+            doc.execute("sheet.insert", json!({"name":sheet})).expect("second sheet");
         }
         doc.execute("range.setValues", json!({"range":"A1","values":[[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[21,22,23,24,25],[26,27,28,29,30],[31,32,33,34,35],[36,37,38,39,40]]})).expect("cells");
     }
     doc.execute("cell.set", json!({"cell":"Z20","input":"99"})).expect("unrelated constant");
-    doc.execute("formulas.defineName", json!({"name":"Destination","refersTo":"=Second!$B$2"})).expect("cross-sheet name");
+    doc.execute("name.define", json!({"name":"Destination","refersTo":"=Second!$B$2"})).expect("cross-sheet name");
     doc.execute("sheet.activate", json!({"sheet":"Data"})).expect("active sheet");
-    doc.execute("selection.set", json!({"range":"C5"})).expect("distinct active cell");
-    doc.execute("home.newCellStyle", json!({"name":"Custom"})).expect("named cell style");
+    doc.execute("select.set", json!({"range":"C5"})).expect("distinct active cell");
+    doc.execute("style.add", json!({"name":"Custom"})).expect("named cell style");
     doc.execute("edit.copy", json!({"range":"B2:C3"})).expect("clipboard snapshot");
     doc.execute("edit.formatPainter", json!({"sticky":true})).expect("painter snapshot");
     doc.version().expect("observed identities");
@@ -860,7 +857,7 @@ fn edit_probe() -> (Set, Set, Set) {
         .collect();
     // Pinned from the declaration after review: the blind cellStyle note records Title's
     // theme-font branch, but its original concrete sample used Custom. Preserve that sample.
-    samples.push(("home.cellStyle", json!({"sheet":"Data","range":"B2","name":"Title"})));
+    samples.push(("style.apply", json!({"sheet":"Data","range":"B2","name":"Title"})));
     for (id, params) in samples {
         if !catalogue.iter().any(|command| command.id == id && command.mutates) {
             continue;
@@ -932,80 +929,76 @@ fn edit_probe() -> (Set, Set, Set) {
             "edit.formatPainter" if params.get("cancel").is_none() => cell(if params.get("apply").is_some() { "B2" } else { "C5" }, "style"),
             "edit.formatPainter" | "edit.undo" | "edit.redo" => {}
             "edit.moveCells" => cell(if params.get("from").is_some() { "B2" } else { "C5" }, "input"),
-            "home.bold"
-            | "home.italic"
-            | "home.underline"
-            | "home.doubleUnderline"
-            | "home.strikethrough"
-            | "home.superscript"
-            | "home.subscript"
-            | "home.fontName"
-            | "home.fontSize"
-            | "home.increaseFontSize"
-            | "home.decreaseFontSize"
-            | "home.fontColor"
-            | "home.fillColor"
-            | "home.alignLeft"
-            | "home.alignCenter"
-            | "home.alignRight"
-            | "home.justify"
-            | "home.alignTop"
-            | "home.alignMiddle"
-            | "home.alignBottom"
-            | "home.wrapText"
-            | "home.shrinkToFit"
-            | "home.increaseIndent"
-            | "home.decreaseIndent"
-            | "home.orientation"
-            | "home.numberFormat"
-            | "home.accounting"
-            | "home.percent"
-            | "home.comma"
-            | "home.increaseDecimal"
-            | "home.decreaseDecimal"
-            | "home.lockCell" => cell(&target, "style"),
-            "home.borders" => {
+            "format.bold"
+            | "format.italic"
+            | "format.underline"
+            | "format.doubleUnderline"
+            | "format.strikethrough"
+            | "format.superscript"
+            | "format.subscript"
+            | "format.fontName"
+            | "format.fontSize"
+            | "format.increaseFontSize"
+            | "format.decreaseFontSize"
+            | "format.color"
+            | "format.fillColor"
+            | "format.alignLeft"
+            | "format.alignCenter"
+            | "format.alignRight"
+            | "format.justify"
+            | "format.alignTop"
+            | "format.alignMiddle"
+            | "format.alignBottom"
+            | "format.wrapText"
+            | "format.shrinkToFit"
+            | "format.increaseIndent"
+            | "format.decreaseIndent"
+            | "format.orientation"
+            | "format.numberFormat"
+            | "format.accounting"
+            | "format.percent"
+            | "format.comma"
+            | "format.increaseDecimal"
+            | "format.decreaseDecimal"
+            | "cell.lock" => cell(&target, "style"),
+            "format.borders" => {
                 cell(&target, "style");
                 if params["preset"] == "none" {
                     cell("A2", "style");
                     cell("D3", "style");
                 }
             }
-            "home.formatCells" if params.get("style").is_some() || params.get("edges").is_some() => cell(&target, "style"),
-            "home.formatCells" => {}
-            "home.mergeCenter" | "home.mergeCells" => cell("C3", "input"),
-            "home.mergeAcross" | "home.unmergeCells" => {
+            "format.cells" if params.get("style").is_some() || params.get("edges").is_some() => cell(&target, "style"),
+            "format.cells" => {}
+            "cell.mergeCenter" | "cell.merge" => cell("C3", "input"),
+            "cell.mergeAcross" | "cell.unmerge" => {
                 assert!(under.within.iter().any(|window| window.parent == "sheet:1" && window.field == "rows"), "{id}: merge address window");
             }
-            "home.cellStyle" => {
+            "style.apply" => {
                 cell(&target, "style");
                 if params["name"] == "Title" {
                     required.push(("workbook".into(), "theme.major_font"));
                 }
             }
-            "home.rowHeight"
-            | "home.columnWidth"
-            | "home.autofitRowHeight"
-            | "home.autofitColumnWidth"
-            | "home.hideRows"
-            | "home.hideColumns"
-            | "home.unhideRows"
-            | "home.unhideColumns" => {
-                let prefix = if matches!(id, "home.columnWidth" | "home.autofitColumnWidth" | "home.hideColumns" | "home.unhideColumns") {
-                    "col:"
-                } else {
-                    "row:"
-                };
+            "row.setHeight"
+            | "column.setWidth"
+            | "row.autofitHeight"
+            | "column.autofitWidth"
+            | "row.hide"
+            | "column.hide"
+            | "row.show"
+            | "column.show" => {
+                let prefix = if matches!(id, "column.setWidth" | "column.autofitWidth" | "column.hide" | "column.show") { "col:" } else { "row:" };
                 assert!(
                     under.premises.iter().any(|premise| premise.id.as_str().is_some_and(|id| id.starts_with(prefix))),
                     "{id}: resolved axis reads"
                 );
             }
-            "home.defaultWidth" => required.push(("sheet:1".into(), "props.defaultColWidth")),
-            "home.insertRows" | "home.insertColumns" | "home.deleteRows" | "home.deleteColumns" | "home.insertCells" | "home.deleteCells" => {
+            "column.setDefaultWidth" => required.push(("sheet:1".into(), "props.defaultColWidth")),
+            "row.insert" | "column.insert" | "row.delete" | "column.delete" | "cell.insert" | "cell.delete" => {
                 required.push(("sheet:1".into(), "props.protection"));
             }
-            "home.insertSheet" => {
+            "sheet.insert" => {
                 required.extend([("workbook".into(), "props.protectedStructure"), ("sheet:2".into(), "name")]);
                 let at = params.get("before").and_then(Value::as_u64).unwrap_or(1) as usize;
                 if !under.within.iter().any(|window| window.parent == "workbook" && window.field == "sheets" && window.from == at && window.to == at)
@@ -1014,7 +1007,7 @@ fn edit_probe() -> (Set, Set, Set) {
                     eprintln!("FOOTPRINT LESS {id} params={params}: default insertion is after the active tab, workbook.sheets gap {at}");
                 }
             }
-            "home.deleteSheet" => {
+            "sheet.delete" => {
                 required.extend([
                     ("workbook".into(), "props.protectedStructure"),
                     ("sheet:2".into(), "props.visibility"),
@@ -1034,7 +1027,7 @@ fn edit_probe() -> (Set, Set, Set) {
             "sheet.unhide" => {}
             _ => panic!("registered write lacks a typed read projection: {id}"),
         }
-        if id == "home.rowHeight" {
+        if id == "row.setHeight" {
             required.push((format!("sheet:{owner}"), "~editConnectors"));
         }
         let missing: Vec<_> = required.iter().filter(|(object, field)| !field_held(&under, object, field)).collect();
@@ -1060,8 +1053,8 @@ fn object_probe() -> (Set, Set, Set) {
     for x in [10, 180] {
         doc.execute("drawing.insert", json!({"kind":"shape","frame":{"x":x,"y":10,"w":80,"h":40}})).unwrap();
     }
-    doc.execute("insert.chart", json!({"range":"A1:C3","type":"column"})).unwrap();
-    doc.execute("insert.table", json!({"range":"A1:C3","name":"Sales","header":true})).unwrap();
+    doc.execute("chart.insert", json!({"range":"A1:C3","type":"column"})).unwrap();
+    doc.execute("table.insert", json!({"range":"A1:C3","name":"Sales","header":true})).unwrap();
     let connector = doc.execute("drawing.connect", json!({"from":2,"to":3})).unwrap()["id"].as_str().unwrap().parse::<u32>().unwrap();
     let mut grouped = Vec::new();
     for x in [400, 600] {
@@ -1076,11 +1069,11 @@ fn object_probe() -> (Set, Set, Set) {
     let group = doc.execute("drawing.group", json!({"ids":grouped})).unwrap()["id"].as_str().unwrap().parse::<u32>().unwrap();
     let reconnect_target = grouped.first().copied().unwrap();
     let reconnect_target_tool = format!("drawing:{reconnect_target}");
-    doc.execute("home.insertSheet", json!({"name":"Sheet2"})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Sheet2"})).unwrap();
     doc.execute("cell.set", json!({"cell":"D12","input":"sentinel"})).unwrap();
     doc.execute("range.setValues", json!({"range":"A1","values":[["Name","Value","Other"],["One",1,2],["Two",3,4]]})).unwrap();
     doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
-    doc.execute("selection.set", json!({"range":"B2"})).unwrap();
+    doc.execute("select.set", json!({"range":"B2"})).unwrap();
     doc.version().unwrap();
 
     fn field_held(under: &Under, object: &str, field: &str) -> bool {
@@ -1112,7 +1105,7 @@ fn object_probe() -> (Set, Set, Set) {
         if params.get("id").is_some() {
             params["id"] = json!(if chart_path {
                 4
-            } else if id == "draw.inkToShape" {
+            } else if id == "ink.toShape" {
                 1
             } else if id == "drawing.reconnect" {
                 connector
@@ -1158,7 +1151,7 @@ fn object_probe() -> (Set, Set, Set) {
                 // same-field decision: the replaced line is held.
                 required.push(("drawing:2", "look.line"));
             }
-            "draw.inkToShape" => {
+            "ink.toShape" => {
                 required.extend([("drawing:1", "text"), ("drawing:1", "look.kind"), ("drawing:1", "look.line"), ("drawing:1", "look.fill")])
             }
             "drawing.ink" => required.push(("sheet:1", "props.protection")),
@@ -1172,11 +1165,11 @@ fn object_probe() -> (Set, Set, Set) {
                 required.extend([(reconnect_target_tool.as_str(), "look.preset"), (reconnect_target_tool.as_str(), "look.geom")]);
             }
             "drawing.chart" => required.extend([("drawing:4", "parts.series"), ("cell:1!B2", "input")]),
-            "home.newCellStyle" => required.push(("cell:1!B2", "style")),
+            "style.add" => required.push(("cell:1!B2", "style")),
             "data.fromTableRange" => required.push(("cell:2!B2", "input")),
             // same-field decision: these fields are assigned destinations.
-            "pageLayout.themeColors" => required.extend([("workbook", "theme.name"), ("workbook", "theme.colors")]),
-            "pageLayout.themeFonts" => required.extend([
+            "theme.colors" => required.extend([("workbook", "theme.name"), ("workbook", "theme.colors")]),
+            "theme.fonts" => required.extend([
                 ("workbook", "theme.name"),
                 ("workbook", "theme.colors"),
                 ("workbook", "theme.major_font"),
@@ -1204,7 +1197,7 @@ fn object_probe() -> (Set, Set, Set) {
                 }
             }
         }
-        if !matches!(id, "automate.runScript" | "view.newWindow") && field_held(&under, "cell:2!D12", "input") {
+        if !matches!(id, "script.run" | "view.newWindow") && field_held(&under, "cell:2!D12", "input") {
             more.insert(id);
         }
     }
@@ -1230,11 +1223,11 @@ fn view_probe() -> (Set, Set, Set) {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     let values: Vec<_> = (1..=12).map(|row| json!([row, row * 2, row * 3, row * 4])).collect();
     doc.execute("range.setValues", json!({"range":"A1","values":values})).unwrap();
-    doc.execute("home.insertSheet", json!({"name":"Sheet2"})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Sheet2"})).unwrap();
     doc.execute("range.setValues", json!({"range":"A1","values":values})).unwrap();
     doc.execute("cell.set", json!({"cell":"Z20","input":"unrelated constant"})).unwrap();
     doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
-    doc.execute("selection.set", json!({"range":"C5"})).unwrap();
+    doc.execute("select.set", json!({"range":"C5"})).unwrap();
     doc.version().unwrap();
     let catalogue = doc.commands();
     let (mut compared, mut less, mut more) = (Set::new(), Set::new(), Set::new());
@@ -1247,7 +1240,7 @@ fn view_probe() -> (Set, Set, Set) {
         compared.insert(id.into());
         let mut params: Value = serde_json::from_str(fields[1].trim_start_matches("params=")).unwrap();
         // Public protection schemas reject the engine-only sheet parameter.
-        if matches!(id, "review.protectSheet" | "review.unprotectSheet") {
+        if matches!(id, "sheet.protect" | "sheet.unprotect") {
             params.as_object_mut().unwrap().remove("sheet");
         }
         let under: Under = doc.under(id, &params).unwrap().unwrap_or_default();
@@ -1259,7 +1252,7 @@ fn view_probe() -> (Set, Set, Set) {
         if id == "file.properties" && params.as_object().is_some_and(|params| params.is_empty()) {
             continue;
         }
-        if matches!(id, "review.protectSheet" | "review.unprotectSheet") && !field_held(&under, "sheet:1", "~editConnectors") {
+        if matches!(id, "sheet.protect" | "sheet.unprotect") && !field_held(&under, "sheet:1", "~editConnectors") {
             less.insert(id.into());
         }
         let holds = fields[3].trim_start_matches("holds=");
@@ -1320,26 +1313,26 @@ fn baseline_premise_witnesses(census: &mut Census) {
         "data.sortDescending",
         "data.subtotal",
         "data.textToColumns",
-        "formulas.autoSum",
-        "formulas.createFromSelection",
-        "formulas.defineName",
-        "formulas.insertFunction",
-        "formulas.showFormulas",
-        "home.conditionalFormat",
-        "home.formatAsTable",
-        "insert.chart",
-        "insert.icons",
-        "insert.link",
-        "insert.picture",
-        "insert.pivotTable",
-        "insert.recommendedCharts",
-        "insert.recommendedPivotTables",
-        "insert.shape",
-        "insert.sparkline",
-        "insert.symbol",
-        "insert.table",
-        "insert.textBox",
-        "insert.artText",
+        "formula.autoSum",
+        "name.addFromSelection",
+        "name.define",
+        "formula.insertFunction",
+        "formula.showFormulas",
+        "conditionalFormat.apply",
+        "table.formatAs",
+        "chart.insert",
+        "icon.insert",
+        "link.insert",
+        "image.insert",
+        "pivot.insert",
+        "chart.recommended",
+        "pivot.recommended",
+        "shape.insert",
+        "sparkline.insert",
+        "symbol.insert",
+        "table.insert",
+        "textBox.insert",
+        "artText.insert",
         "pivot.addField",
         "pivot.changeSource",
         "pivot.collapse",
@@ -1356,8 +1349,8 @@ fn baseline_premise_witnesses(census: &mut Census) {
         "pivot.style",
         "pivot.subtotals",
         "pivot.valueSettings",
-        "review.newNote",
-        "review.resolveComment",
+        "note.add",
+        "comment.resolve",
         "table.deleteStyle",
         "table.newStyle",
         "table.setDefaultStyle",
@@ -1376,28 +1369,28 @@ fn baseline_premise_witnesses(census: &mut Census) {
         "edit.replace",
         "edit.formatPainter",
         "edit.moveCells",
-        "home.insertCells",
-        "home.deleteCells",
+        "cell.insert",
+        "cell.delete",
     ];
     let object_broad = [
-        "automate.deleteScript",
-        "automate.newScript",
-        "automate.recordActions",
+        "script.delete",
+        "script.new",
+        "script.record",
         "cell.toggleCheckbox",
         "data.fromTableRange",
         "data.fromTextCsv",
         "data.getData",
-        "draw.inkToShape",
-        "draw.stroke",
+        "ink.toShape",
+        "ink.stroke",
         "drawing.ink",
         "drawing.insert",
-        "formulas.useInFormula",
-        "formulas.watchWindow",
-        "insert.checkbox",
-        "pageLayout.background",
-        "pageLayout.themeColors",
-        "pageLayout.themeEffects",
-        "pageLayout.themeFonts",
+        "formula.useInFormula",
+        "formula.watchWindow",
+        "checkbox.insert",
+        "page.background",
+        "theme.colors",
+        "theme.effects",
+        "theme.fonts",
         "table.resize",
         "view.customViews",
         "view.split",
@@ -1406,12 +1399,12 @@ fn baseline_premise_witnesses(census: &mut Census) {
         "file.close",
         "file.new",
         "file.open",
-        "pageLayout.breaks",
-        "pageLayout.pageSetup",
-        "pageLayout.printArea",
-        "pageLayout.printTitles",
-        "pageLayout.theme",
-        "review.changeSpelling",
+        "page.breaks",
+        "page.pageSetup",
+        "page.printArea",
+        "page.printTitles",
+        "theme.set",
+        "spelling.change",
         "view.freezeColumns",
         "view.freezeFirstColumn",
         "view.freezePanes",
@@ -1425,33 +1418,33 @@ fn baseline_premise_witnesses(census: &mut Census) {
     // address shifts preserve these CF operations' rule decisions, and table
     // header/totals writes do not use the overwritten destination constants.
     census.more[4].extend(
-        ["home.manageRules", "home.clearRules", "table.headerRow", "table.totalRow", "table.totalFunction", "insert.table"]
+        ["conditionalFormat.manageRules", "conditionalFormat.clearRules", "table.headerRow", "table.totalRow", "table.totalFunction", "table.insert"]
             .into_iter()
             .map(str::to_owned),
     );
-    census.less[2].insert("home.cellStyle".into());
-    census.more[3].insert("pageLayout.scaleToFit".into());
+    census.less[2].insert("style.apply".into());
+    census.more[3].insert("page.scaleToFit".into());
     let freeze = ["view.freezeColumns", "view.freezeFirstColumn", "view.freezePanes", "view.freezeRows", "view.freezeTopRow"];
-    census.less[2].extend(freeze.into_iter().chain(["home.insertRows", "home.insertColumns"]).map(str::to_owned));
+    census.less[2].extend(freeze.into_iter().chain(["row.insert", "column.insert"]).map(str::to_owned));
     census.less[4].extend(
         freeze
             .into_iter()
             .chain([
-                "review.protectSheet",
-                "review.unprotectSheet",
-                "home.rowHeight",
-                "home.cellStyle",
+                "sheet.protect",
+                "sheet.unprotect",
+                "row.setHeight",
+                "style.apply",
                 "sheet.rename",
                 "sheet.hide",
-                "formulas.defineName",
+                "name.define",
                 "cell.set",
                 "range.setValues",
                 "range.fill",
                 "edit.clearContents",
-                "home.insertRows",
-                "home.insertColumns",
-                "home.insertSheet",
-                "home.deleteSheet",
+                "row.insert",
+                "column.insert",
+                "sheet.insert",
+                "sheet.delete",
                 "sheet.move",
                 "arrange.align",
                 "arrange.group",
@@ -1510,7 +1503,7 @@ fn all_registered_writes_have_a_gating_lower_bound_census() {
             after.more[class].insert("chart.shapeFill".into());
         }
     }
-    probed.insert("commandLine".into()); // binding-only row is pinned; cell entry is covered in edit_probe.
+    probed.insert("command.runLine".into()); // binding-only row is pinned; cell entry is covered in edit_probe.
     let all: Set = writes.iter().map(|command| command.id.clone()).collect();
     assert_eq!(probed, all, "every registered write must participate in this census");
     before.summary("baseline51e29b7 metadata and sampled-premise lower bound", all.len());
@@ -1540,20 +1533,20 @@ fn all_registered_writes_have_a_gating_lower_bound_census() {
         "data.sortDescending",
         "data.subtotal",
         "data.textToColumns",
-        "formulas.autoSum",
-        "formulas.createFromSelection",
-        "formulas.defineName",
-        "home.conditionalFormat",
-        "home.formatAsTable",
-        "insert.chart",
-        "insert.link",
-        "insert.picture",
-        "insert.pivotTable",
-        "insert.recommendedCharts",
-        "insert.recommendedPivotTables",
-        "insert.sparkline",
-        "insert.table",
-        "insert.artText",
+        "formula.autoSum",
+        "name.addFromSelection",
+        "name.define",
+        "conditionalFormat.apply",
+        "table.formatAs",
+        "chart.insert",
+        "link.insert",
+        "image.insert",
+        "pivot.insert",
+        "chart.recommended",
+        "pivot.recommended",
+        "sparkline.insert",
+        "table.insert",
+        "artText.insert",
         "pivot.addField",
         "pivot.changeSource",
         "pivot.collapse",
@@ -1570,8 +1563,8 @@ fn all_registered_writes_have_a_gating_lower_bound_census() {
         "pivot.style",
         "pivot.subtotals",
         "pivot.valueSettings",
-        "review.newNote",
-        "review.resolveComment",
+        "note.add",
+        "comment.resolve",
         "table.summarizePivot",
         "edit.paste",
         "edit.pasteSpecial",
@@ -1581,13 +1574,13 @@ fn all_registered_writes_have_a_gating_lower_bound_census() {
         "edit.replace",
         "edit.formatPainter",
         "edit.moveCells",
-        "home.insertCells",
-        "home.deleteCells",
+        "cell.insert",
+        "cell.delete",
         "data.fromTableRange",
         "data.fromTextCsv",
         "data.getData",
         "drawing.insert",
-        "pageLayout.background",
+        "page.background",
         "table.resize",
     ]
     .into_iter()
@@ -1605,7 +1598,7 @@ fn chart_field_probe() -> (Set, Set) {
     use serde_json::json;
     let mut doc = kition_sheet_kit::SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("range.setValues", json!({"range":"A1","values":[["Name","Value","Other"],["One",1,2],["Two",3,4],["Three",5,6]]})).unwrap();
-    doc.execute("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"})).unwrap();
+    doc.execute("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"})).unwrap();
     doc.version().unwrap();
     let mut less = BTreeSet::new();
     let mut more = BTreeSet::new();

@@ -87,20 +87,20 @@ function useLines(info: SheetInfo) {
   return {
     t,
     lines,
-    rowsOff: blocked || all || !enabled('home.insertRows'),
-    colsOff: blocked || all || !enabled('home.insertColumns'),
-    deleteRowsOff: blocked || all || !enabled('home.deleteRows'),
-    deleteColsOff: blocked || all || !enabled('home.deleteColumns'),
-    cellsOff: blocked || all || !enabled('home.insertCells'),
-    deleteCellsOff: blocked || all || !enabled('home.deleteCells'),
-    sheetOff: readOnly || info.editing || !enabled('home.insertSheet'),
-    insertRows: (count: number, below: boolean) => go('home.insertRows', below ? { count, below } : { count }),
-    insertColumns: (count: number, right: boolean) => go('home.insertColumns', right ? { count, right } : { count }),
-    deleteRows: () => go('home.deleteRows', {}),
-    deleteColumns: () => go('home.deleteColumns', {}),
-    insertCells: (shift: 'right' | 'down') => go('home.insertCells', { shift }),
-    deleteCells: (shift: 'left' | 'up') => go('home.deleteCells', { shift }),
-    insertSheet: () => go('home.insertSheet', {}),
+    rowsOff: blocked || all || !enabled('row.insert'),
+    colsOff: blocked || all || !enabled('column.insert'),
+    deleteRowsOff: blocked || all || !enabled('row.delete'),
+    deleteColsOff: blocked || all || !enabled('column.delete'),
+    cellsOff: blocked || all || !enabled('cell.insert'),
+    deleteCellsOff: blocked || all || !enabled('cell.delete'),
+    sheetOff: readOnly || info.editing || !enabled('sheet.insert'),
+    insertRows: (count: number, below: boolean) => go('row.insert', below ? { count, below } : { count }),
+    insertColumns: (count: number, right: boolean) => go('column.insert', right ? { count, right } : { count }),
+    deleteRows: () => go('row.delete', {}),
+    deleteColumns: () => go('column.delete', {}),
+    insertCells: (shift: 'right' | 'down') => go('cell.insert', { shift }),
+    deleteCells: (shift: 'left' | 'up') => go('cell.delete', { shift }),
+    insertSheet: () => go('sheet.insert', {}),
   }
 }
 
@@ -151,7 +151,7 @@ export function DeleteMenuItems({ info, testId, sheet = false }: { info: SheetIn
       <MenuItem label={l.t('deleteCellsUp')} disabled={l.deleteCellsOff} onSelect={() => l.deleteCells('up')} testId={`${testId}-cells-up`} />
       <MenuItem label={l.t('deleteRowsItem')} disabled={l.deleteRowsOff} onSelect={l.deleteRows} testId={`${testId}-rows`} />
       <MenuItem label={l.t('deleteColsItem')} disabled={l.deleteColsOff} onSelect={l.deleteColumns} testId={`${testId}-cols`} />
-      {sheet ? <CommandItem command="home.deleteSheet" label={l.t('deleteSheetItem')} /> : null}
+      {sheet ? <CommandItem command="sheet.delete" label={l.t('deleteSheetItem')} /> : null}
     </>
   )
 }
@@ -203,8 +203,8 @@ export function GridMenu({ info, onClipboard }: { info: SheetInfo; onClipboard: 
   // Merging keeps only the upper-left value: asked first when other cells hold something (WPS).
   const merge = () => {
     const filled = info.stats?.count ?? 0
-    if (filled > 1) askConfirm({ title: t('mergeTitle'), message: t('mergeConfirm'), testId: 'sheet-merge-confirm', onOk: () => go('home.mergeCells') })
-    else go('home.mergeCells')
+    if (filled > 1) askConfirm({ title: t('mergeTitle'), message: t('mergeConfirm'), testId: 'sheet-merge-confirm', onOk: () => go('cell.merge') })
+    else go('cell.merge')
   }
   return (
     <ContextMenu at={menu?.at ?? null} onClose={close} label={t('gridMenu')} testId="sheet-grid-menu">
@@ -234,26 +234,26 @@ export function GridMenu({ info, onClipboard }: { info: SheetInfo; onClipboard: 
             <MenuItem label={t('sortAscendingItem')} disabled={!enabled('data.sortAscending')} onSelect={() => go('data.sortAscending')} testId="sheet-grid-sort-ascending" />
             <MenuItem label={t('sortDescendingItem')} disabled={!enabled('data.sortDescending')} onSelect={() => go('data.sortDescending')} testId="sheet-grid-sort-descending" />
           </SubMenu>
-          <MenuItem label={t('mergeCellsItem')} disabled={!enabled('home.mergeCells')} onSelect={merge} testId="sheet-grid-menu-merge" />
-          <MenuItem label={t('unmergeCellsItem')} disabled={!enabled('home.unmergeCells')} onSelect={() => go('home.unmergeCells')} testId="sheet-grid-menu-unmerge" />
+          <MenuItem label={t('mergeCellsItem')} disabled={!enabled('cell.merge')} onSelect={merge} testId="sheet-grid-menu-merge" />
+          <MenuItem label={t('unmergeCellsItem')} disabled={!enabled('cell.unmerge')} onSelect={() => go('cell.unmerge')} testId="sheet-grid-menu-unmerge" />
           <MenuSeparator />
-          <MenuItem label={t('insertNoteItem')} disabled={!enabled('review.newNote')} onSelect={() => ask('review.newNote')} testId="sheet-grid-menu-note" />
+          <MenuItem label={t('insertNoteItem')} disabled={!enabled('note.add')} onSelect={() => ask('note.add')} testId="sheet-grid-menu-note" />
           {/* A checkbox cell holds no link (WPS greys it). */}
-          <MenuItem label={t('linkItem')} disabled={info.checkbox || !enabled('insert.link')} onSelect={() => go('insert.link')} testId="sheet-grid-menu-link" />
-          <CommandItem command="home.formatCells" label={t('formatCellsItem')} />
+          <MenuItem label={t('linkItem')} disabled={info.checkbox || !enabled('link.insert')} onSelect={() => go('link.insert')} testId="sheet-grid-menu-link" />
+          <CommandItem command="format.cells" label={t('formatCellsItem')} />
         </>
       ) : null}
       {menu?.target === 'rows' || menu?.target === 'cols' ? (
         <>
           {clipboard}
           <MenuItem label={t('deleteMenu')} disabled={rows ? l.deleteRowsOff : l.deleteColsOff} onSelect={rows ? l.deleteRows : l.deleteColumns} testId="sheet-grid-menu-delete" />
-          <CommandItem command={rows ? 'home.hideRows' : 'home.hideColumns'} label={t('hideLines')} />
-          <CommandItem command={rows ? 'home.unhideRows' : 'home.unhideColumns'} label={t('unhideLines')} />
+          <CommandItem command={rows ? 'row.hide' : 'column.hide'} label={t('hideLines')} />
+          <CommandItem command={rows ? 'row.show' : 'column.show'} label={t('unhideLines')} />
           <LineCountItems info={info} testId="sheet-grid-insert" rows={rows} cols={!rows} />
-          <CommandItem command={rows ? 'home.rowHeight' : 'home.columnWidth'} ask label={t(rows ? 'rowHeightItem' : 'columnWidthItem')} />
+          <CommandItem command={rows ? 'row.setHeight' : 'column.setWidth'} ask label={t(rows ? 'rowHeightItem' : 'columnWidthItem')} />
           <MenuSeparator />
           <CommandItem command="edit.clearContents" label={t('clearContents')} />
-          <CommandItem command="home.formatCells" label={t('formatCellsItem')} />
+          <CommandItem command="format.cells" label={t('formatCellsItem')} />
         </>
       ) : null}
     </ContextMenu>

@@ -208,25 +208,25 @@ pub fn format_params(command: &str, params: &Json) -> Option<Json> {
         None => serde_json::json!({ "toggle": name }),
     };
     Some(match command {
-        "home.bold" => toggle("bold", "bold"),
-        "home.italic" => toggle("italic", "italic"),
-        "home.strikethrough" => toggle("strike", "strike"),
-        "home.underline" => match (on, params.get("style").and_then(Json::as_str)) {
+        "format.bold" => toggle("bold", "bold"),
+        "format.italic" => toggle("italic", "italic"),
+        "format.strikethrough" => toggle("strike", "strike"),
+        "format.underline" => match (on, params.get("style").and_then(Json::as_str)) {
             (Some(false), _) => serde_json::json!({ "underline": "none" }),
             (_, Some(style)) => serde_json::json!({ "underline": style }),
             (Some(true), None) => serde_json::json!({ "underline": "single" }),
             (None, None) => serde_json::json!({ "toggle": "underline" }),
         },
-        "home.superscript" | "home.subscript" => {
+        "format.superscript" | "format.subscript" => {
             let name = command.trim_start_matches("home.");
             match on {
                 Some(v) => serde_json::json!({ "vertAlign": if v { name } else { "baseline" } }),
                 None => serde_json::json!({ "toggle": name }),
             }
         }
-        "home.fontColor" => serde_json::json!({ "color": params.get("color")? }),
-        "home.fontSize" => serde_json::json!({ "size": params.get("size")? }),
-        "home.fontName" => serde_json::json!({ "name": params.get("name")? }),
+        "format.color" => serde_json::json!({ "color": params.get("color")? }),
+        "format.fontSize" => serde_json::json!({ "size": params.get("size")? }),
+        "format.fontName" => serde_json::json!({ "name": params.get("name")? }),
         _ => return None,
     })
 }
@@ -284,14 +284,14 @@ mod tests {
 
     #[test]
     fn font_commands_become_character_formats() {
-        assert_eq!(format_params("home.bold", &json!({})), Some(json!({"toggle": "bold"})));
-        assert_eq!(format_params("home.italic", &json!({"on": false})), Some(json!({"italic": false})));
-        assert_eq!(format_params("home.underline", &json!({"style": "double"})), Some(json!({"underline": "double"})));
-        assert_eq!(format_params("home.fontColor", &json!({"color": "#FF0000"})), Some(json!({"color": "#FF0000"})));
-        assert_eq!(format_params("home.fontSize", &json!({"size": 14})), Some(json!({"size": 14})));
-        assert_eq!(format_params("home.fontSize", &json!({})), None);
-        assert_eq!(format_params("home.superscript", &json!({"on": true})), Some(json!({"vertAlign": "superscript"})));
-        assert_eq!(format_params("home.subscript", &json!({})), Some(json!({"toggle": "subscript"})));
-        assert_eq!(format_params("home.fillColor", &json!({"color": "#FF0000"})), None);
+        assert_eq!(format_params("format.bold", &json!({})), Some(json!({"toggle": "bold"})));
+        assert_eq!(format_params("format.italic", &json!({"on": false})), Some(json!({"italic": false})));
+        assert_eq!(format_params("format.underline", &json!({"style": "double"})), Some(json!({"underline": "double"})));
+        assert_eq!(format_params("format.color", &json!({"color": "#FF0000"})), Some(json!({"color": "#FF0000"})));
+        assert_eq!(format_params("format.fontSize", &json!({"size": 14})), Some(json!({"size": 14})));
+        assert_eq!(format_params("format.fontSize", &json!({})), None);
+        assert_eq!(format_params("format.superscript", &json!({"on": true})), Some(json!({"vertAlign": "superscript"})));
+        assert_eq!(format_params("format.subscript", &json!({})), Some(json!({"toggle": "subscript"})));
+        assert_eq!(format_params("format.fillColor", &json!({"color": "#FF0000"})), None);
     }
 }

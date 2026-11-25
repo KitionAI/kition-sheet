@@ -47,11 +47,11 @@ ROW data.hideDetail | params={"rows":"3"} | resolves=active sheet span; maximum 
 ROW data.showDetail | params={} | resolves=selection span; maximum selected outline expands to full surrounding group | holds=selected/expanded/stopping-neighbour outline fields/windows and hidden destinations | reads=part,selection | writes=shows expanded group | note=data.rs:1314
 ROW data.subtotal | params={"range":"A1:C5","groupBy":"A","columns":["C"]} | resolves=active-sheet data-range; groupBy/columns letters absolute or offsets; header always assumed despite header param | holds=data-range; group labels including sentinel row immediately after range; all rows inserted through sheet tail and structural formulas/features/names; insertion formatting neighbours; destination cell styles/constraints; aggregate source windows/values; commit | reads=part | writes=inserted total rows, SUBTOTAL formulas, bold, outline and grand total via sequential nested execute | note=data.rs:1354; ordinary error after earlier nested writes can leave partial subtotal
 ROW data.smartFill | params={} | resolves=delegates edit.smartFill unchanged | holds=edit.smartFill source examples/neighbour patterns and output facts | reads=part,selection,active | writes=smart-fill output | note=data.rs:126; delegate row audited in edit family
-ROW insert.table | params={"range":"Sheet2!A1:C5","header":true,"name":"Sales"} | resolves=target sheet by index/name/range prefix; table range A1; enabled still reads ACTIVE sheet protection and selection area count | holds=active-sheet protection/selection enabled; target protection; range cells and overlapping arrays/merges/tables; header values/pictures; global table/name uniqueness; chosen default table style only if omitted; address windows; commit | reads=part,selection | writes=table; clears merges; headers become unique text; may clear header pictures | note=insert.rs:265,307; explicit range/header
-ROW insert.table | params={"range":"A1:C5","header":false} | resolves=active sheet; generated headers insert cells only in chosen columns down entire sheet | holds=range plus column tails cells/pictures; merges/arrays/tables; global table/name uniqueness; chosen default style; prefix preference; commit | reads=part,selection | writes=shifts column cells/pictures down one without shared structural reference rewrite; inserts header/table | note=insert.rs:399; inserted-header path
-ROW insert.table | params={} | resolves=selection block else active-cell current region; full rows/columns clip target used range | holds=selection/region empty boundaries/used range; active protection; first row values for header guess; tables/arrays/merges/header pictures; name uniqueness; default table style; commit | reads=part,selection,active,prefs.column_prefix | writes=table and normalized headers | note=insert.rs:246,307
-ROW home.formatAsTable | params={"range":"A1:C5","header":true} | resolves=same insert_table path | holds=insert.table facts including active protection/selection enabled | reads=part,selection,prefs.column_prefix | writes=table | note=insert.rs:307; table mode
-ROW home.formatAsTable | params={"range":"Sheet2!A1:C5","mode":"format","style":"MyTableStyle"} | resolves=target sheet as target_sheet; enabled checks active sheet/selection count | holds=range cells inherited styles; chosen custom style definition; row hidden state for banding; active protection and selection enabled; output row fitting/commit | reads=part,selection | writes=derived plain cell styles only | note=insert.rs:462; range_looks tables.rs:528
+ROW table.insert | params={"range":"Sheet2!A1:C5","header":true,"name":"Sales"} | resolves=target sheet by index/name/range prefix; table range A1; enabled still reads ACTIVE sheet protection and selection area count | holds=active-sheet protection/selection enabled; target protection; range cells and overlapping arrays/merges/tables; header values/pictures; global table/name uniqueness; chosen default table style only if omitted; address windows; commit | reads=part,selection | writes=table; clears merges; headers become unique text; may clear header pictures | note=insert.rs:265,307; explicit range/header
+ROW table.insert | params={"range":"A1:C5","header":false} | resolves=active sheet; generated headers insert cells only in chosen columns down entire sheet | holds=range plus column tails cells/pictures; merges/arrays/tables; global table/name uniqueness; chosen default style; prefix preference; commit | reads=part,selection | writes=shifts column cells/pictures down one without shared structural reference rewrite; inserts header/table | note=insert.rs:399; inserted-header path
+ROW table.insert | params={} | resolves=selection block else active-cell current region; full rows/columns clip target used range | holds=selection/region empty boundaries/used range; active protection; first row values for header guess; tables/arrays/merges/header pictures; name uniqueness; default table style; commit | reads=part,selection,active,prefs.column_prefix | writes=table and normalized headers | note=insert.rs:246,307
+ROW table.formatAs | params={"range":"A1:C5","header":true} | resolves=same insert_table path | holds=table.insert facts including active protection/selection enabled | reads=part,selection,prefs.column_prefix | writes=table | note=insert.rs:307; table mode
+ROW table.formatAs | params={"range":"Sheet2!A1:C5","mode":"format","style":"MyTableStyle"} | resolves=target sheet as target_sheet; enabled checks active sheet/selection count | holds=range cells inherited styles; chosen custom style definition; row hidden state for banding; active protection and selection enabled; output row fitting/commit | reads=part,selection | writes=derived plain cell styles only | note=insert.rs:462; range_looks tables.rs:528
 ROW table.newStyle | params={"name":"NewStyle","elements":{"wholeTable":{"bold":true}}} | resolves=name case-insensitive custom style uniqueness | holds=existing custom style names and default_table only if default false/true branch reads it | reads=none | writes=new table-style definition and optionally default | note=insert.rs:573
 ROW table.newStyle | params={"name":"Renamed","replace":"OldStyle","default":false,"elements":{}} | resolves=replace case-insensitive custom style name; name uniqueness; default false final check case-sensitive | holds=old chosen style definition/uid; custom name uniqueness; default_table; every table whose style names OldStyle and membership of those users | reads=none | writes=replaces style; rewrites referring table styles and default | note=insert.rs:573,622
 ROW table.deleteStyle | params={"name":"OldStyle"} | resolves=case-insensitive custom style name | holds=chosen style definition; default table-style setting/fallback definition; every table referencing that style and their membership | reads=none | writes=removes style and reassigns table users to fallback | note=insert.rs:654
@@ -69,60 +69,60 @@ ROW table.style | params={"table":"Sales","style":"MyTableStyle"} | resolves=tab
 ROW table.rename | params={"table":"Sales","name":"Revenue"} | resolves=table name workbook-wide; new name uniqueness against tables only | holds=chosen table; global other-table names; cell formulas referencing old table name including newly created references | reads=none | writes=table name and matching cell formulas; no names/chart/pivot formula rewrite | note=insert.rs:895
 ROW table.convertToRange | params={"table":"Sales"} | resolves=table name workbook-wide | holds=table definition; full table cell styles; selected custom table style definition; hidden rows/columns for visible band index; table window; commit | reads=none | writes=materializes table look into cell styles and removes table | note=insert.rs:943; tables.rs:510
 ROW table.totalFunction | params={"table":"Sales","column":"Amount","function":"average"} | resolves=table name workbook-wide; column name via case-insensitive table column_index | holds=table column definitions/totals status; entire totals row destination cells/inherited styles; subtotal sources; structural commit | reads=none | writes=one column total fn then rewrites EVERY total-row cell | note=insert.rs:789
-ROW insert.chart | params={"range":"Sheet2!A1:C5","type":"column"} | resolves=target_sheet uses sheet index/name/prefix; multiple range areas share rows; default anchor right of first area | holds=source windows/cell values and first-column numfmts for date-label guess; source sheet name; computed single-series title source/dependencies when title omitted; object id allocation; commit | reads=none | writes=new chart series/anchor/title | note=insert.rs:1118
-ROW insert.chart | params={} | resolves=selection block else active-cell region; selected sheet active | holds=region empty boundaries; selected source values/styles/date label guess; source sheet name; default title source/dependencies; object identity allocation | reads=part,selection,active | writes=chart | note=insert.rs:1091,1118
-ROW insert.recommendedCharts | params={} | resolves=insert.chart with type auto; selected block/region | holds=same chart source and geometry/default-title facts; type chosen by dimensions | reads=part,selection,active | writes=new chart | note=insert.rs:110,1118
+ROW chart.insert | params={"range":"Sheet2!A1:C5","type":"column"} | resolves=target_sheet uses sheet index/name/prefix; multiple range areas share rows; default anchor right of first area | holds=source windows/cell values and first-column numfmts for date-label guess; source sheet name; computed single-series title source/dependencies when title omitted; object id allocation; commit | reads=none | writes=new chart series/anchor/title | note=insert.rs:1118
+ROW chart.insert | params={} | resolves=selection block else active-cell region; selected sheet active | holds=region empty boundaries; selected source values/styles/date label guess; source sheet name; default title source/dependencies; object identity allocation | reads=part,selection,active | writes=chart | note=insert.rs:1091,1118
+ROW chart.recommended | params={} | resolves=chart.insert with type auto; selected block/region | holds=same chart source and geometry/default-title facts; type chosen by dimensions | reads=part,selection,active | writes=new chart | note=insert.rs:110,1118
 ROW chart.set | params={"chart":7,"title":"New"} | resolves=numeric chart id on ACTIVE sheet only; omitted chart last chart on active sheet | holds=chosen chart fields/kind for totals validation; membership for last-chart fallback; commit connector geometry if present; replaced values: supplied kind,totals,title,legend,data_labels,gridlines,style,x_title,y_title and anchor fields | reads=part | writes=provided properties only | note=insert.rs:1258,1270; same-field decision
 ROW chart.set | params={"chart":7,"at":"Sheet2!C3","width":300} | resolves=chart id active-sheet-only; anchor prefix ignored | holds=chosen chart anchor and kind; anchor row/column windows; connector dependencies; replaced values: supplied kind,totals,title,legend,data_labels,gridlines,style,x_title,y_title and anchor fields | reads=part | writes=anchor fields | note=insert.rs:1270; same-field decision
 ROW chart.set | params={"chart":7,"type":"waterfall","totals":[0],"title":"New","legend":"top","dataLabels":true,"gridlines":false,"style":3,"xTitle":"X","yTitle":"Y"} | resolves=integer chart id on active sheet | holds=chosen chart kind,totals,title,legend,data_labels,gridlines,style,x_title,y_title; membership; protection | reads=part | writes=all nine supplied scalar fields | note=insert.rs::chart_set; same-field decision
 ROW chart.switchRowColumn | params={"chart":7} | resolves=chart id on active sheet; source or series_block bounding references; source prefix sheet name else chosen sheet; missing named sheet falls back chosen sheet | holds=chart source/by_rows/series; source sheet names/windows; used range clipping even finite ranges; source cell values/styles/date-label guess; commit | reads=part | writes=rebuilds series and toggles by_rows | note=insert.rs:1330
 ROW chart.delete | params={} | resolves=last chart on active sheet; explicit numeric chart id active-sheet-only | holds=chosen chart identity and last-member selection; replaced values: entire removed object content | reads=part | writes=removes chart | note=insert.rs:1397; same-field decision
-ROW insert.sparkline | params={"range":"Sheet2!B2:M2","location":"Sheet3!N2"} | resolves=location prefix ignored; destination ACTIVE sheet; source is stored text | holds=destination sparkline at N2 and address windows; source values are not read at creation | reads=part | writes=replaces sparkline at destination | note=insert.rs:1405
-ROW insert.picture | params={"base64":"AA==","at":"B2"} | resolves=floating overCells default; at prefix ignored; active sheet; bytes supply dimensions | holds=active sheet identity and anchor row/column windows; identity allocation | reads=part | writes=new floating image | note=insert.rs:1432; valid bytes required for real cell case
-ROW insert.picture | params={"placement":"cell","at":"B2","base64":"AA=="} | resolves=bare A1 only; merged destination redirects to merge.start; active sheet | holds=destination merge definition; destination cell/style/picture and inherited style; sheet protection and locked style; row/column windows and fitted row; commit | reads=part | writes=cell picture and stand-in cell value | note=insert.rs:1451; invalid bytes fail before resolving
-ROW insert.picture | params={"placement":"cell","base64":"AA=="} | resolves=active cell redirected to merge start | holds=same destination/merge/protection/style/windows/fitted-row facts as explicit cell picture | reads=part,active | writes=cell picture | note=insert.rs:1451
-ROW insert.shape | params={"at":"B2","kind":"rectangle"} | resolves=active sheet; at prefix ignored; omitted at active cell | holds=sheet identity; anchor address windows; object identity allocation | reads=part | writes=new shape | note=insert.rs:1539
-ROW insert.icons | params={"name":"check"} | resolves=active sheet and active cell; explicit at prefix ignored | holds=sheet identity; anchor address windows; object identity allocation | reads=part,active | writes=new icon shape | note=insert.rs:1948
-ROW insert.textBox | params={"text":"hello"} | resolves=insert_shape forced textBox; active sheet/active cell | holds=sheet identity; anchor address windows; object identity allocation | reads=part,active | writes=new textbox | note=insert.rs:157
-ROW insert.artText | params={"text":"hello","warp":"textWave1"} | resolves=drawing.insert forced textBox; frame absent always uses ACTIVE cell and sheet geometry | holds=active-sheet protection; active-cell row/column geometry to/from frame; default shape geometry; object identity allocation | reads=part,active | writes=new rich textbox and selected_shape | note=insert.rs:172; drawing.rs:206
+ROW sparkline.insert | params={"range":"Sheet2!B2:M2","location":"Sheet3!N2"} | resolves=location prefix ignored; destination ACTIVE sheet; source is stored text | holds=destination sparkline at N2 and address windows; source values are not read at creation | reads=part | writes=replaces sparkline at destination | note=insert.rs:1405
+ROW image.insert | params={"base64":"AA==","at":"B2"} | resolves=floating overCells default; at prefix ignored; active sheet; bytes supply dimensions | holds=active sheet identity and anchor row/column windows; identity allocation | reads=part | writes=new floating image | note=insert.rs:1432; valid bytes required for real cell case
+ROW image.insert | params={"placement":"cell","at":"B2","base64":"AA=="} | resolves=bare A1 only; merged destination redirects to merge.start; active sheet | holds=destination merge definition; destination cell/style/picture and inherited style; sheet protection and locked style; row/column windows and fitted row; commit | reads=part | writes=cell picture and stand-in cell value | note=insert.rs:1451; invalid bytes fail before resolving
+ROW image.insert | params={"placement":"cell","base64":"AA=="} | resolves=active cell redirected to merge start | holds=same destination/merge/protection/style/windows/fitted-row facts as explicit cell picture | reads=part,active | writes=cell picture | note=insert.rs:1451
+ROW shape.insert | params={"at":"B2","kind":"rectangle"} | resolves=active sheet; at prefix ignored; omitted at active cell | holds=sheet identity; anchor address windows; object identity allocation | reads=part | writes=new shape | note=insert.rs:1539
+ROW icon.insert | params={"name":"check"} | resolves=active sheet and active cell; explicit at prefix ignored | holds=sheet identity; anchor address windows; object identity allocation | reads=part,active | writes=new icon shape | note=insert.rs:1948
+ROW textBox.insert | params={"text":"hello"} | resolves=insert_shape forced textBox; active sheet/active cell | holds=sheet identity; anchor address windows; object identity allocation | reads=part,active | writes=new textbox | note=insert.rs:157
+ROW artText.insert | params={"text":"hello","warp":"textWave1"} | resolves=drawing.insert forced textBox; frame absent always uses ACTIVE cell and sheet geometry | holds=active-sheet protection; active-cell row/column geometry to/from frame; default shape geometry; object identity allocation | reads=part,active | writes=new rich textbox and selected_shape | note=insert.rs:172; drawing.rs:206
 ROW shape.setText | params={"id":7,"text":"hello"} | resolves=numeric id on ACTIVE sheet shapes only; kind must textBox | holds=shape kind/text; active sheet protection | reads=part | writes=shape.text only; rich text body left intact | note=insert.rs:1598
 ROW object.delete | params={"kind":"image","id":7} | resolves=active-sheet list by kind/id; unknown kind chooses shapes | holds=chosen object identity/list membership; replaced values: entire removed object content | reads=part | writes=removes object | note=insert.rs:1628; same-field decision
 ROW object.move | params={"kind":"shape","id":7,"at":"Sheet2!C3","width":50} | resolves=id in active-sheet kind list; at prefix ignored | holds=object anchor destination and old anchor fields retained; address windows; connector endpoint/geometry dependencies | reads=part | writes=anchor fields and rerouted connectors | note=insert.rs:1643
 ROW object.setAnchorMode | params={"kind":"shape","id":7,"mode":"absolute"} | resolves=id on active-sheet kind list | holds=chosen object anchor mode destination/identity; connector consequences | reads=part | writes=anchor.mode | note=insert.rs:1688
-ROW insert.link | params={"cell":"Sheet2!B2","target":"https://example.com","text":"label"} | resolves=target_sheet name/index/prefix; cell body B2; enabled checks ACTIVE cell checkbox independently | holds=active checkbox merge/value/style enabled; target checkbox/value/style; target hyperlink; target input/style/constraints/windows and fitted row; commit | reads=part,active | writes=hyperlink and derived link style; optional text replaces cell | note=insert.rs:1723; extra.rs:962 enabled path
-ROW insert.link | params={"cell":"B2","remove":true} | resolves=target_sheet else active; enabled still active checkbox | holds=active checkbox enabled; addressed hyperlink/window | reads=part,active | writes=removes hyperlink only | note=insert.rs:1726
-ROW review.newNote | params={"cell":"Sheet2!B2","text":"note","author":"A"} | resolves=target sheet index/name/prefix; cell body | holds=addressed comment destination and row/column windows | reads=none | writes=replaces comment with non-threaded note | note=insert.rs:1762
-ROW review.newComment | params={"text":"comment"} | resolves=active sheet/active cell; author preference fallback | holds=addressed comment/window | reads=part,active,prefs.user_name | writes=replaces comment with threaded root and empty replies | note=insert.rs:1762
-ROW review.replyComment | params={"cell":"B2","text":"reply"} | resolves=target_sheet else active; cell else active; author preference fallback | holds=addressed comment/replies and row/column windows | reads=part,prefs.user_name | writes=appends reply | note=insert.rs:1775
-ROW review.resolveComment | params={"cell":"Sheet2!B2","resolved":true} | resolves=target sheet index/name/prefix; cell else active | holds=addressed comment resolved destination/window | reads=none | writes=resolved flag; no-op if missing | note=insert.rs:1788
-ROW review.deleteComment | params={} | resolves=active sheet; selection RANGES not active cell despite registry doc cell? | holds=comments intersecting every selected range and absence map/window | reads=part,selection | writes=deletes comments in all selected areas | note=insert.rs:1801
-ROW review.showNote | params={"cell":"B2"} | resolves=target_sheet else active; cell else active | holds=addressed comment visible flag/windows | reads=part | writes=toggles visible | note=insert.rs:1811
-ROW insert.symbol | params={"char":"x"} | resolves=ACTIVE cell and sheet; current raw input text concatenated then cell.set | holds=active cell input/formula/rich/style; cell.set destination/constraints/formula sources; fitted row | reads=part,active | writes=parsed concatenation as cell entry | note=insert.rs:1825
-ROW home.conditionalFormat | params={"range":"Sheet2!A1:A3","rule":{"type":"expression","formula":"B1>0"}} | resolves=target_sheet index/name/range prefix; all A1 areas | holds=destination windows; EVERY existing conditional-format priority for increment and exhausted check; rule membership/count; formula is stored unevaluated | reads=none | writes=increments all old priorities and inserts first rule | note=insert.rs:1741,1882
-ROW home.conditionalFormat | params={} | resolves=active sheet/selection | holds=none beyond addressing | reads=part,selection | writes=dialog only | note=insert.rs:1745
-ROW home.clearRules | params={"range":"A1:A3"} | resolves=target_sheet else active; all target areas; sheet:true removes all | holds=overlapping conditional-format range lists; all rules for whole-sheet path; address windows; replaced values: all fields and numeric ranges of removed rules/areas | reads=part | writes=removes entire intersecting rule areas rather than subtracting rectangle | note=insert.rs:1894; same-field decision
-ROW home.manageRules | params={"delete":0} | resolves=target_sheet else active; indices refer ordered cond_formats list | holds=whole ordered conditional-format list and priorities; deletion index window | reads=part | writes=deletes/reorders rules then renumbers priorities | note=insert.rs:1913; combined delete+move can use stale pre-delete n and panic
-ROW formulas.autoSum | params={"range":"Sheet2!A1:B5"} | resolves=range prefix ignored; ALWAYS active sheet; only first selected area | holds=bottom-row blank test; source aggregate windows/formula precedents; output bottom row or row below cells/styles/constraints; fitted rows; commit | reads=part | writes=one formula per column; sequential cell.set writes | note=formulas.rs:84; multi-cell path
-ROW formulas.autoSum | params={} | resolves=current selection; single-cell scans above else left | holds=scanned numeric cells and look-ahead empty/stop cells, including above gaps and left candidate; formula-source windows; destination constraints/style; fitted row | reads=part,selection | writes=guessed aggregate formula or edit-cell request | note=formulas.rs:111
-ROW formulas.autoSum | params={"range":"B5","enter":false} | resolves=bare range B5 on active sheet; scan above/left as normal | holds=all scan numeric/empty boundary facts | reads=part | writes=UI edit request only | note=formulas.rs:145
-ROW formulas.insertFunction | params={"name":"SUM"} | resolves=does not write cell; UI request only; enabled checks active checkbox | holds=active-cell checkbox value/style/merge for enabled | reads=part,active | writes=edit-cell UI request; omitted name dialog | note=formulas.rs:154; extra.rs:962
-ROW formulas.defineName | params={"name":"Result","refersTo":"=Sheet2!$A$1","scope":"Sheet2"} | resolves=scope sheet NAME only; name case-insensitive same scope; refersTo stored parsed expression, not evaluated | holds=scope name/identity; chosen name definition/existence in same scope; no referenced cell content | reads=none | writes=replaces or creates DefinedName | note=formulas.rs:243
-ROW formulas.defineName | params={"name":"Result"} | resolves=Workbook scope default; refersTo active sheet NAME and first current selection | holds=active sheet name; selection address windows; chosen workbook name definition/existence | reads=part,selection | writes=absolute selected range definition | note=formulas.rs:260
-ROW formulas.defineName | params={} | resolves=no name | holds=none | reads=none | writes=dialog only | note=formulas.rs:244
-ROW formulas.deleteName | params={"name":"Result"} | resolves=case-insensitive name EVERY scope when scope omitted; Workbook only root scope else exact sheet name resolution | holds=matching scoped definitions and membership/existence; sheet identity if named scope | reads=none | writes=removes matching names | note=formulas.rs:328
-ROW formulas.createFromSelection | params={"range":"Sheet2!A1:C5","top":true} | resolves=range prefix ignored; ACTIVE sheet labels/name; edge top/left/bottom/right source cells; Workbook scope only | holds=edge label values and computed precedents; active sheet NAME; range address windows; existing workbook name definitions/uniqueness for replace/skip | reads=part | writes=generated name definitions; no cell changes | note=formulas.rs:364
-ROW formulas.createFromSelection | params={} | resolves=selection current on active sheet; top edge default | holds=selection edge labels and their formula precedents; active sheet name; window; existing names | reads=part,selection | writes=generated workbook names | note=formulas.rs:364
-ROW formulas.removeArrows | params={} | resolves=no object | holds=none | reads=none | writes=none | note=formulas.rs:54; registered noundo no-op
-ROW formulas.showFormulas | params={} | resolves=active sheet only; on omitted toggles | holds=sheet.show_formulas | reads=part | writes=show_formulas flag | note=formulas.rs:445
-ROW formulas.showFormulas | params={"on":true} | resolves=active sheet only | holds=sheet.show_formulas destination | reads=part | writes=explicit show_formulas | note=formulas.rs:445
-ROW formulas.calculateNow | params={} | resolves=every workbook formula | holds=all formula inputs/names/tables/settings/date system and computed-source structures; no input edit decision | reads=none | writes=recalculates all cached formula values/spills/circular state | note=formulas.rs:498
-ROW formulas.calculateSheet | params={} | resolves=calc_now recalculates ALL sheets despite command label | holds=same workbook-wide calculation facts as calculateNow | reads=none | writes=recalculates all sheets | note=formulas.rs:498; no active-sheet selection
-ROW formulas.calculationOptions | params={"mode":"automatic","iterative":true,"maxIterations":200,"maxChange":0.01} | resolves=no object params | holds=selected calc settings destinations; mode for returned answer; automatic mode recalculates all as consequence | reads=none | writes=provided calc settings; automatic triggers structural recalculation/header sync | note=formulas.rs:507
-ROW insert.pivotTable | params={"source":"Sheet2!A1:C5","destination":"Sheet1!H3","rows":["Region"],"values":["Amount"]} | resolves=source table name first else A1 sheet name else defined name up to depth four; destination prefix name else active; aliases range/location accepted | holds=source values/headers/display/first-data numfmt/date system; source name/table definitions/windows; destination cells/spills/tables/pivots/protection/column widths-hidden; global pivot names and id allocation; pivot-refresh | reads=part | writes=new pivot/report and active-sheet/selection | note=pivot.rs:523; pivot.rs engine:1093
-ROW insert.pivotTable | params={} | resolves=active-cell table else selection trimmed used-range/current region; destination new sheet BEFORE active at A3 | holds=table/region boundaries/used range; all source facts; protected_structure; tab order/sheet names; names scoped indices; pivot name uniqueness; pivot-refresh | reads=part,selection,active | writes=inserts sheet; increments scoped name indices; pivot/report; active selection | note=pivot.rs:465,523
-ROW insert.recommendedPivotTables | params={"source":"Sales"} | resolves=table source else A1/defined name; no apply gives suggestions only | holds=resolved source headers/values/numfmt/date facts and labels used in suggestions | reads=part | writes=none | note=pivot.rs:1253
-ROW insert.recommendedPivotTables | params={"source":"Sales","apply":0,"destination":"Sheet2!H3"} | resolves=suggestion index based on live source distinct/numeric/date classifications; destination passed to insert_pivot | holds=all suggestion source facts; insert.pivotTable creation/destination facts | reads=part | writes=chosen pivot/report | note=pivot.rs:1253
-ROW table.summarizePivot | params={"table":"Sales","destination":"Sheet2!H3"} | resolves=table name workbook-wide else active-cell table; forced source table name | holds=chosen table/source facts and insert.pivotTable destination/creation facts | reads=part | writes=new pivot/report | note=pivot.rs:632
+ROW link.insert | params={"cell":"Sheet2!B2","target":"https://example.com","text":"label"} | resolves=target_sheet name/index/prefix; cell body B2; enabled checks ACTIVE cell checkbox independently | holds=active checkbox merge/value/style enabled; target checkbox/value/style; target hyperlink; target input/style/constraints/windows and fitted row; commit | reads=part,active | writes=hyperlink and derived link style; optional text replaces cell | note=insert.rs:1723; extra.rs:962 enabled path
+ROW link.insert | params={"cell":"B2","remove":true} | resolves=target_sheet else active; enabled still active checkbox | holds=active checkbox enabled; addressed hyperlink/window | reads=part,active | writes=removes hyperlink only | note=insert.rs:1726
+ROW note.add | params={"cell":"Sheet2!B2","text":"note","author":"A"} | resolves=target sheet index/name/prefix; cell body | holds=addressed comment destination and row/column windows | reads=none | writes=replaces comment with non-threaded note | note=insert.rs:1762
+ROW comment.add | params={"text":"comment"} | resolves=active sheet/active cell; author preference fallback | holds=addressed comment/window | reads=part,active,prefs.user_name | writes=replaces comment with threaded root and empty replies | note=insert.rs:1762
+ROW comment.reply | params={"cell":"B2","text":"reply"} | resolves=target_sheet else active; cell else active; author preference fallback | holds=addressed comment/replies and row/column windows | reads=part,prefs.user_name | writes=appends reply | note=insert.rs:1775
+ROW comment.resolve | params={"cell":"Sheet2!B2","resolved":true} | resolves=target sheet index/name/prefix; cell else active | holds=addressed comment resolved destination/window | reads=none | writes=resolved flag; no-op if missing | note=insert.rs:1788
+ROW comment.delete | params={} | resolves=active sheet; selection RANGES not active cell despite registry doc cell? | holds=comments intersecting every selected range and absence map/window | reads=part,selection | writes=deletes comments in all selected areas | note=insert.rs:1801
+ROW note.show | params={"cell":"B2"} | resolves=target_sheet else active; cell else active | holds=addressed comment visible flag/windows | reads=part | writes=toggles visible | note=insert.rs:1811
+ROW symbol.insert | params={"char":"x"} | resolves=ACTIVE cell and sheet; current raw input text concatenated then cell.set | holds=active cell input/formula/rich/style; cell.set destination/constraints/formula sources; fitted row | reads=part,active | writes=parsed concatenation as cell entry | note=insert.rs:1825
+ROW conditionalFormat.apply | params={"range":"Sheet2!A1:A3","rule":{"type":"expression","formula":"B1>0"}} | resolves=target_sheet index/name/range prefix; all A1 areas | holds=destination windows; EVERY existing conditional-format priority for increment and exhausted check; rule membership/count; formula is stored unevaluated | reads=none | writes=increments all old priorities and inserts first rule | note=insert.rs:1741,1882
+ROW conditionalFormat.apply | params={} | resolves=active sheet/selection | holds=none beyond addressing | reads=part,selection | writes=dialog only | note=insert.rs:1745
+ROW conditionalFormat.clearRules | params={"range":"A1:A3"} | resolves=target_sheet else active; all target areas; sheet:true removes all | holds=overlapping conditional-format range lists; all rules for whole-sheet path; address windows; replaced values: all fields and numeric ranges of removed rules/areas | reads=part | writes=removes entire intersecting rule areas rather than subtracting rectangle | note=insert.rs:1894; same-field decision
+ROW conditionalFormat.manageRules | params={"delete":0} | resolves=target_sheet else active; indices refer ordered cond_formats list | holds=whole ordered conditional-format list and priorities; deletion index window | reads=part | writes=deletes/reorders rules then renumbers priorities | note=insert.rs:1913; combined delete+move can use stale pre-delete n and panic
+ROW formula.autoSum | params={"range":"Sheet2!A1:B5"} | resolves=range prefix ignored; ALWAYS active sheet; only first selected area | holds=bottom-row blank test; source aggregate windows/formula precedents; output bottom row or row below cells/styles/constraints; fitted rows; commit | reads=part | writes=one formula per column; sequential cell.set writes | note=formulas.rs:84; multi-cell path
+ROW formula.autoSum | params={} | resolves=current selection; single-cell scans above else left | holds=scanned numeric cells and look-ahead empty/stop cells, including above gaps and left candidate; formula-source windows; destination constraints/style; fitted row | reads=part,selection | writes=guessed aggregate formula or edit-cell request | note=formulas.rs:111
+ROW formula.autoSum | params={"range":"B5","enter":false} | resolves=bare range B5 on active sheet; scan above/left as normal | holds=all scan numeric/empty boundary facts | reads=part | writes=UI edit request only | note=formulas.rs:145
+ROW formula.insertFunction | params={"name":"SUM"} | resolves=does not write cell; UI request only; enabled checks active checkbox | holds=active-cell checkbox value/style/merge for enabled | reads=part,active | writes=edit-cell UI request; omitted name dialog | note=formulas.rs:154; extra.rs:962
+ROW name.define | params={"name":"Result","refersTo":"=Sheet2!$A$1","scope":"Sheet2"} | resolves=scope sheet NAME only; name case-insensitive same scope; refersTo stored parsed expression, not evaluated | holds=scope name/identity; chosen name definition/existence in same scope; no referenced cell content | reads=none | writes=replaces or creates DefinedName | note=formulas.rs:243
+ROW name.define | params={"name":"Result"} | resolves=Workbook scope default; refersTo active sheet NAME and first current selection | holds=active sheet name; selection address windows; chosen workbook name definition/existence | reads=part,selection | writes=absolute selected range definition | note=formulas.rs:260
+ROW name.define | params={} | resolves=no name | holds=none | reads=none | writes=dialog only | note=formulas.rs:244
+ROW name.delete | params={"name":"Result"} | resolves=case-insensitive name EVERY scope when scope omitted; Workbook only root scope else exact sheet name resolution | holds=matching scoped definitions and membership/existence; sheet identity if named scope | reads=none | writes=removes matching names | note=formulas.rs:328
+ROW name.addFromSelection | params={"range":"Sheet2!A1:C5","top":true} | resolves=range prefix ignored; ACTIVE sheet labels/name; edge top/left/bottom/right source cells; Workbook scope only | holds=edge label values and computed precedents; active sheet NAME; range address windows; existing workbook name definitions/uniqueness for replace/skip | reads=part | writes=generated name definitions; no cell changes | note=formulas.rs:364
+ROW name.addFromSelection | params={} | resolves=selection current on active sheet; top edge default | holds=selection edge labels and their formula precedents; active sheet name; window; existing names | reads=part,selection | writes=generated workbook names | note=formulas.rs:364
+ROW formula.removeArrows | params={} | resolves=no object | holds=none | reads=none | writes=none | note=formulas.rs:54; registered noundo no-op
+ROW formula.showFormulas | params={} | resolves=active sheet only; on omitted toggles | holds=sheet.show_formulas | reads=part | writes=show_formulas flag | note=formulas.rs:445
+ROW formula.showFormulas | params={"on":true} | resolves=active sheet only | holds=sheet.show_formulas destination | reads=part | writes=explicit show_formulas | note=formulas.rs:445
+ROW formula.calculateNow | params={} | resolves=every workbook formula | holds=all formula inputs/names/tables/settings/date system and computed-source structures; no input edit decision | reads=none | writes=recalculates all cached formula values/spills/circular state | note=formulas.rs:498
+ROW formula.calculateSheet | params={} | resolves=calc_now recalculates ALL sheets despite command label | holds=same workbook-wide calculation facts as calculateNow | reads=none | writes=recalculates all sheets | note=formulas.rs:498; no active-sheet selection
+ROW formula.calculationOptions | params={"mode":"automatic","iterative":true,"maxIterations":200,"maxChange":0.01} | resolves=no object params | holds=selected calc settings destinations; mode for returned answer; automatic mode recalculates all as consequence | reads=none | writes=provided calc settings; automatic triggers structural recalculation/header sync | note=formulas.rs:507
+ROW pivot.insert | params={"source":"Sheet2!A1:C5","destination":"Sheet1!H3","rows":["Region"],"values":["Amount"]} | resolves=source table name first else A1 sheet name else defined name up to depth four; destination prefix name else active; aliases range/location accepted | holds=source values/headers/display/first-data numfmt/date system; source name/table definitions/windows; destination cells/spills/tables/pivots/protection/column widths-hidden; global pivot names and id allocation; pivot-refresh | reads=part | writes=new pivot/report and active-sheet/selection | note=pivot.rs:523; pivot.rs engine:1093
+ROW pivot.insert | params={} | resolves=active-cell table else selection trimmed used-range/current region; destination new sheet BEFORE active at A3 | holds=table/region boundaries/used range; all source facts; protected_structure; tab order/sheet names; names scoped indices; pivot name uniqueness; pivot-refresh | reads=part,selection,active | writes=inserts sheet; increments scoped name indices; pivot/report; active selection | note=pivot.rs:465,523
+ROW pivot.recommended | params={"source":"Sales"} | resolves=table source else A1/defined name; no apply gives suggestions only | holds=resolved source headers/values/numfmt/date facts and labels used in suggestions | reads=part | writes=none | note=pivot.rs:1253
+ROW pivot.recommended | params={"source":"Sales","apply":0,"destination":"Sheet2!H3"} | resolves=suggestion index based on live source distinct/numeric/date classifications; destination passed to insert_pivot | holds=all suggestion source facts; pivot.insert creation/destination facts | reads=part | writes=chosen pivot/report | note=pivot.rs:1253
+ROW table.summarizePivot | params={"table":"Sales","destination":"Sheet2!H3"} | resolves=table name workbook-wide else active-cell table; forced source table name | holds=chosen table/source facts and pivot.insert destination/creation facts | reads=part | writes=new pivot/report | note=pivot.rs:632
 ROW pivot.addField | params={"pivot":"Report","field":"Amount","area":"values"} | resolves=pivot name case-insensitive active sheet first then other sheets; numeric id similarly; omitted pivot contains active cell else last active-sheet pivot | holds=pivot-refresh; source numeric classification selects default Sum vs Count; existing captions/areas determine uniqueness/removal | reads=part | writes=field configuration then regenerates report | note=pivot.rs:189,734; func omitted
 ROW pivot.addField | params={"field":"Region","area":"rows"} | resolves=active-cell report else last pivot on active sheet; source field by case-insensitive header | holds=pivot-refresh and field area settings retained | reads=part,active | writes=field area then report | note=pivot.rs:734
 ROW pivot.removeField | params={"pivot":7,"field":"Amount"} | resolves=pivot id active-first across workbook; field matches value caption before source name; omitted area tries all | holds=pivot-refresh and current area/caption layout | reads=part | writes=removes matched field(s), regenerates report | note=pivot.rs:750
@@ -191,25 +191,21 @@ pub const REVIEWED_EDITOR: &[(&str, &[&str], &str)] = &[
     ("table.rename", &["part", "selection"], "insert.rs:834 table_rename -> find_table:640 defaults to active sheet and selection.active"),
     ("table.convertToRange", &["part", "selection"], "insert.rs:880 table_convert -> find_table:640 defaults to active sheet and selection.active"),
     ("table.totalFunction", &["part", "selection"], "insert.rs:728 table_total_fn -> find_table:640 defaults to active sheet and selection.active"),
-    ("insert.shape", &["part", "selection"], "insert.rs:1400 insert_shape defaults at to d.selection.active and inserts on d.wb.active_sheet"),
-    ("review.newNote", &["part", "selection"], "insert.rs:1586 comment -> target_sheet defaults to active sheet; omitted cell uses selection.active"),
+    ("shape.insert", &["part", "selection"], "insert.rs:1400 insert_shape defaults at to d.selection.active and inserts on d.wb.active_sheet"),
+    ("note.add", &["part", "selection"], "insert.rs:1586 comment -> target_sheet defaults to active sheet; omitted cell uses selection.active"),
     (
-        "review.replyComment",
+        "comment.reply",
         &["part", "selection"],
         "insert.rs:1599 reply_comment -> target_sheet defaults to active sheet; omitted cell uses selection.active",
     ),
     (
-        "review.resolveComment",
+        "comment.resolve",
         &["part", "selection"],
         "insert.rs:1611 resolve_comment -> target_sheet defaults to active sheet; omitted cell uses selection.active",
     ),
+    ("note.show", &["part", "selection"], "insert.rs:1632 show_note -> target_sheet defaults to active sheet; omitted cell uses selection.active"),
     (
-        "review.showNote",
-        &["part", "selection"],
-        "insert.rs:1632 show_note -> target_sheet defaults to active sheet; omitted cell uses selection.active",
-    ),
-    (
-        "home.clearRules",
+        "conditionalFormat.clearRules",
         &["part", "selection"],
         "insert.rs:1884 clear_cf always calls target_ranges, whose omitted range reads selection.ranges, and target_sheet defaults active",
     ),
@@ -231,15 +227,15 @@ pub const REVIEWED_EDITOR: &[(&str, &[&str], &str)] = &[
     (
         "data.fromTableRange",
         &["part", "selection"],
-        "extra.rs:852 from_table_range -> target_range defaults selection; active-sheet source then from_csv -> home.insertSheet remembers selection",
+        "extra.rs:852 from_table_range -> target_range defaults selection; active-sheet source then from_csv -> sheet.insert remembers selection",
     ),
     (
-        "insert.pivotTable",
+        "pivot.insert",
         &["part", "selection"],
         "pivot.rs:523 insert_pivot -> source_param:484/default_source:465 uses active-sheet selection; destination defaults new sheet before active; no editor mode read",
     ),
     (
-        "insert.recommendedPivotTables",
+        "pivot.recommended",
         &["part", "selection"],
         "pivot.rs:1253 recommended -> source_param:484/default_source:465; optional apply calls insert_pivot:523; no editor mode read",
     ),
@@ -367,18 +363,18 @@ fn unrelated_data_cell_holds_only_decrease() {
         json!({"range":"A1","values":[["Region","Amount","Date"],["East",3,45000],["West",2,45001],["East",1,45002],["West",4,45003]]}),
     )
     .unwrap();
-    doc.execute("insert.table", json!({"range":"A1:C5","name":"Sales","header":true})).unwrap();
-    let chart = doc.execute("insert.chart", json!({"range":"A1:C5"})).unwrap()["chart"].clone();
-    let shape = doc.execute("insert.textBox", json!({"at":"H1","text":"old"})).unwrap()["shape"].clone();
+    doc.execute("table.insert", json!({"range":"A1:C5","name":"Sales","header":true})).unwrap();
+    let chart = doc.execute("chart.insert", json!({"range":"A1:C5"})).unwrap()["chart"].clone();
+    let shape = doc.execute("textBox.insert", json!({"at":"H1","text":"old"})).unwrap()["shape"].clone();
     let pivot = doc
-        .execute("insert.pivotTable", json!({"source":"Sales","destination":"H8","name":"Report","rows":["Region"],"values":["Amount"]}))
+        .execute("pivot.insert", json!({"source":"Sales","destination":"H8","name":"Report","rows":["Region"],"values":["Amount"]}))
         .unwrap()["id"]
         .clone();
-    doc.execute("home.insertSheet", json!({"name":"Sheet2","before":9})).unwrap();
-    doc.execute("home.insertSheet", json!({"name":"Sheet3","before":9})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Sheet2","before":9})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Sheet3","before":9})).unwrap();
     doc.execute("cell.set", json!({"sheet":"Sheet3","cell":"Z20","input":"unrelated"})).unwrap();
     doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
-    doc.execute("selection.set", json!({"range":"B3"})).unwrap();
+    doc.execute("select.set", json!({"range":"B3"})).unwrap();
     doc.version().expect("materialize observed identities");
 
     let catalogue = doc.commands();
@@ -427,20 +423,20 @@ fn unrelated_data_cell_holds_only_decrease() {
         "data.sortDescending",
         "data.subtotal",
         "data.textToColumns",
-        "formulas.autoSum",
-        "formulas.createFromSelection",
-        "formulas.defineName",
-        "home.conditionalFormat",
-        "home.formatAsTable",
-        "insert.chart",
-        "insert.link",
-        "insert.picture",
-        "insert.pivotTable",
-        "insert.recommendedCharts",
-        "insert.recommendedPivotTables",
-        "insert.sparkline",
-        "insert.table",
-        "insert.artText",
+        "formula.autoSum",
+        "name.addFromSelection",
+        "name.define",
+        "conditionalFormat.apply",
+        "table.formatAs",
+        "chart.insert",
+        "link.insert",
+        "image.insert",
+        "pivot.insert",
+        "chart.recommended",
+        "pivot.recommended",
+        "sparkline.insert",
+        "table.insert",
+        "artText.insert",
         "pivot.addField",
         "pivot.changeSource",
         "pivot.collapse",
@@ -457,8 +453,8 @@ fn unrelated_data_cell_holds_only_decrease() {
         "pivot.style",
         "pivot.subtotals",
         "pivot.valueSettings",
-        "review.newNote",
-        "review.resolveComment",
+        "note.add",
+        "comment.resolve",
         "table.summarizePivot",
     ]
     .into_iter()
@@ -491,7 +487,7 @@ fn insert_function_declares_its_checkbox_enabled_reads() {
     use kition_sheet_kit::SheetDocument;
 
     let doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    let command = doc.commands().into_iter().find(|command| command.id == "formulas.insertFunction").unwrap();
+    let command = doc.commands().into_iter().find(|command| command.id == "formula.insertFunction").unwrap();
     assert_eq!(command.reads, [EditorState::Selection, EditorState::Part], "enabled reads the active-cell checkbox");
 }
 
@@ -518,8 +514,8 @@ fn reviewed_reference_roles(id: &str) -> (Option<&'static str>, &'static [&'stat
         "data.subtotal" => (Some("range"), &["range", "groupBy", "columns"], &[]),
         "data.smartFill" => (Some("range"), &["sheet", "range", "cell"], &[]),
         "data.reapply" | "data.refreshAll" => (None, &[], &[]),
-        "insert.table" => (Some("range"), &["sheet", "range", "cell"], &[]),
-        "home.formatAsTable" => (Some("range"), &["sheet", "range", "cell", "style"], &[]),
+        "table.insert" => (Some("range"), &["sheet", "range", "cell"], &[]),
+        "table.formatAs" => (Some("range"), &["sheet", "range", "cell", "style"], &[]),
         // New names are literal creation labels. replace resolves an existing custom style.
         "table.newStyle" => (None, &["replace"], &[]),
         "table.deleteStyle" | "table.setDefaultStyle" => (None, &["name"], &[]),
@@ -534,35 +530,33 @@ fn reviewed_reference_roles(id: &str) -> (Option<&'static str>, &'static [&'stat
         | "table.rename"
         | "table.convertToRange" => (None, &["table"], &[]),
         "table.totalFunction" => (None, &["table", "column"], &[]),
-        "insert.chart" | "insert.recommendedCharts" => (None, &["sheet", "range", "cell", "at"], &[]),
+        "chart.insert" | "chart.recommended" => (None, &["sheet", "range", "cell", "at"], &[]),
         "chart.set" => (Some("chart"), &["at"], &["chart"]),
         "chart.switchRowColumn" | "chart.delete" => (Some("chart"), &[], &["chart"]),
         // range is stored source text. It remains a natural on target for the selected data;
         // location separately names the sparkline being replaced.
-        "insert.sparkline" => (Some("range"), &["range", "location"], &[]),
-        "insert.picture" | "insert.shape" | "insert.icons" | "insert.textBox" => (None, &["at"], &[]),
-        "insert.artText" | "insert.symbol" => (None, &[], &[]),
+        "sparkline.insert" => (Some("range"), &["range", "location"], &[]),
+        "image.insert" | "shape.insert" | "icon.insert" | "textBox.insert" => (None, &["at"], &[]),
+        "artText.insert" | "symbol.insert" => (None, &[], &[]),
         "shape.setText" | "object.delete" | "object.setAnchorMode" => (Some("id"), &[], &["id"]),
         "object.move" => (Some("id"), &["at"], &["id"]),
         // Internal link text is stored, not dereferenced as current source-cell contents.
-        "insert.link" => (Some("cell"), &["sheet", "cell", "target"], &[]),
-        "review.newNote" | "review.newComment" | "review.replyComment" | "review.resolveComment" | "review.showNote" => {
-            (Some("cell"), &["sheet", "range", "cell"], &[])
-        }
+        "link.insert" => (Some("cell"), &["sheet", "cell", "target"], &[]),
+        "note.add" | "comment.add" | "comment.reply" | "comment.resolve" | "note.show" => (Some("cell"), &["sheet", "range", "cell"], &[]),
         // Pinned after helper review: target_ranges resolves cell when supplied; the blind
         // empty-params branch above recorded only the fallback to selection ranges.
-        "review.deleteComment" => (Some("cell"), &["cell"], &[]),
-        "home.conditionalFormat" => (Some("range"), &["sheet", "range", "cell"], &[]),
+        "comment.delete" => (Some("cell"), &["cell"], &[]),
+        "conditionalFormat.apply" => (Some("range"), &["sheet", "range", "cell"], &[]),
         // Here sheet is the whole-sheet boolean, not a Sheet name or tab index.
-        "home.clearRules" => (Some("range"), &["range", "cell"], &[]),
+        "conditionalFormat.clearRules" => (Some("range"), &["range", "cell"], &[]),
         // cell/range prefixes can pick the sheet; their bodies do not select the indexed rule.
-        "home.manageRules" => (None, &["sheet", "range", "cell", "delete", "moveUp", "moveDown"], &[]),
-        "formulas.autoSum" | "formulas.createFromSelection" => (Some("range"), &["range"], &[]),
-        "formulas.insertFunction" | "formulas.showFormulas" | "formulas.calculationOptions" => (None, &[], &[]),
+        "conditionalFormat.manageRules" => (None, &["sheet", "range", "cell", "delete", "moveUp", "moveDown"], &[]),
+        "formula.autoSum" | "name.addFromSelection" => (Some("range"), &["range"], &[]),
+        "formula.insertFunction" | "formula.showFormulas" | "formula.calculationOptions" => (None, &[], &[]),
         // refersTo is parsed and stored; it needs address/name facts, not source values.
-        "formulas.defineName" => (None, &["name", "scope", "refersTo"], &[]),
-        "formulas.deleteName" => (None, &["name", "scope"], &[]),
-        "insert.pivotTable" | "insert.recommendedPivotTables" => (None, &["source", "range", "destination", "location"], &[]),
+        "name.define" => (None, &["name", "scope", "refersTo"], &[]),
+        "name.delete" => (None, &["name", "scope"], &[]),
+        "pivot.insert" | "pivot.recommended" => (None, &["source", "range", "destination", "location"], &[]),
         // summarize_table replaces source from the chosen table; range can still supply the
         // Agent part. rows/columns are source-field lists, not worksheet axes.
         "table.summarizePivot" => (None, &["table", "range", "destination", "location"], &[]),
@@ -645,20 +639,20 @@ fn all_data_reference_roles_match_reviewed_handler_resolution_with_decreasing_fl
     // This census covers schema-filtered parameter/target metadata, not every read fact.
     // Missing reference parameters: 33 commands (coordinates, field/axis selectors, and
     // style/scenario/rule names or indexes), plus wrong targets on newNote/newComment.
-    // The 33-command set is {home.formatAsTable,table.newStyle,table.totalFunction,
-    // insert.chart,chart.set,insert.sparkline,insert.picture,insert.shape,insert.icons,
-    // insert.textBox,object.move,insert.link,home.manageRules,data.sortAscending,
+    // The 33-command set is {table.formatAs,table.newStyle,table.totalFunction,
+    // chart.insert,chart.set,sparkline.insert,image.insert,shape.insert,icon.insert,
+    // textBox.insert,object.move,link.insert,conditionalFormat.manageRules,data.sortAscending,
     // data.sortDescending,data.sort,data.filterBy,data.removeDuplicates,data.textToColumns,
-    // data.subtotal,formulas.defineName,insert.pivotTable,insert.recommendedPivotTables,
+    // data.subtotal,name.define,pivot.insert,pivot.recommended,
     // table.summarizePivot,pivot.changeSource,data.goalSeek,data.scenarioAdd,data.scenarioShow,
     // data.scenarioDelete,data.scenarioSummary,data.dataTable,data.advancedFilter,data.consolidate}.
     // Wrong/missing targets: LESS 4 {newNote,newComment,filterBy,goalSeek}; MORE 5
     // {newNote,newComment,filterBy,manageRules,summarizePivot}. The two note targets are
     // the only LESS commands with no missing reference parameter. Literal-as-place MORE:
-    // 4 {home.clearRules,insert.pivotTable,table.summarizePivot,pivot.grandTotals}; overlap
+    // 4 {conditionalFormat.clearRules,pivot.insert,table.summarizePivot,pivot.grandTotals}; overlap
     // with wrong-target MORE is summarizePivot. Reviewed MORE8 is therefore the union:
-    // {review.newNote,review.newComment,data.filterBy,home.manageRules,table.summarizePivot,
-    // home.clearRules,insert.pivotTable,pivot.grandTotals}. Source examples: destination/at,
+    // {note.add,comment.add,data.filterBy,conditionalFormat.manageRules,table.summarizePivot,
+    // conditionalFormat.clearRules,pivot.insert,pivot.grandTotals}. Source examples: destination/at,
     // refersTo/criteria, column(s)/keys[].row, style/replace, scenario name, rule indexes.
     // Roles are now corrected; these missing/excess floors must remain zero.
     let less_baseline: BTreeSet<&str> = BTreeSet::new();
@@ -683,12 +677,12 @@ fn reviewed_narrowed_table_and_outline_inputs_are_held() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).expect("fixture");
     doc.execute("range.setValues", json!({"range":"A1","values":[["Region","Amount","Other"],["East",2,3],["West",4,5],["East",6,7],["West",8,9]]}))
         .expect("table source");
-    doc.execute("insert.table", json!({"range":"A1:C5","name":"Sales","header":true})).expect("table");
+    doc.execute("table.insert", json!({"range":"A1:C5","name":"Sales","header":true})).expect("table");
     doc.execute("table.totalRow", json!({"table":"Sales","on":true})).expect("materialized totals");
     doc.execute("cell.set", json!({"cell":"D8","input":"padding"})).expect("materialized boundary axes");
     doc.execute("data.group", json!({"rows":"2:4"})).expect("row outline");
     doc.execute("data.group", json!({"cols":"B:C"})).expect("column outline");
-    doc.execute("selection.set", json!({"range":"B3"})).expect("table and outline selection");
+    doc.execute("select.set", json!({"range":"B3"})).expect("table and outline selection");
     doc.version().expect("identities");
     let model = Replica::load(kdm_model::SheetModel::schema(), &doc.snapshot().expect("snapshot"), ActorId::random()).expect("model");
     let names = ToolIds::of_replica(&model);

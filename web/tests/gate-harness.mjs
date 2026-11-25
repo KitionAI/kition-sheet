@@ -64,7 +64,7 @@ export async function startGate({ prefix }) {
   const ai = (steps) => page.evaluate(async (steps) => window.devHost.connection().ai.run(steps, false), steps)
   const exec = async (command, params = {}) => (await ai([{ command, params }])).completed[0]?.result
   const details = async () => (await page.evaluate(async () => window.devHost.connection().ai.inspect())).details
-  const workbook = () => exec('document.inspect')
+  const workbook = () => exec('file.inspect')
   const order = async () => (await workbook()).sheets.map((sheet) => sheet.name)
   const activeSheet = async () => (await details()).sheet
   const q = (name) => `'${name.replace(/'/g, "''")}'`
@@ -119,10 +119,10 @@ export async function startGate({ prefix }) {
    */
   async function build(names, { fill = true, hidden = [], active = names[0] } = {}) {
     const existing = await order()
-    const steps = existing.includes('__setup__') ? [{ command: 'sheet.unhide', params: { sheet: '__setup__' } }] : [{ command: 'home.insertSheet', params: { name: '__setup__' } }]
-    for (const name of existing) if (name !== '__setup__') steps.push({ command: 'home.deleteSheet', params: { sheet: name } })
-    names.forEach((name, index) => steps.push({ command: 'home.insertSheet', params: { name, before: index } }))
-    steps.push({ command: 'home.deleteSheet', params: { sheet: '__setup__' } })
+    const steps = existing.includes('__setup__') ? [{ command: 'sheet.unhide', params: { sheet: '__setup__' } }] : [{ command: 'sheet.insert', params: { name: '__setup__' } }]
+    for (const name of existing) if (name !== '__setup__') steps.push({ command: 'sheet.delete', params: { sheet: name } })
+    names.forEach((name, index) => steps.push({ command: 'sheet.insert', params: { name, before: index } }))
+    steps.push({ command: 'sheet.delete', params: { sheet: '__setup__' } })
     if (fill) {
       names.forEach((name, index) => {
         steps.push({ command: 'cell.set', params: { cell: `${q(name)}!A1`, input: `${name}内容` } })

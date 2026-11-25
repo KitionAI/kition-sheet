@@ -8,16 +8,16 @@ use serde_json::json;
 fn whole_line_cell_operations_keep_the_named_sheet() {
     let mut wrong = Vec::new();
     for (command, shift, expected) in [
-        ("home.insertCells", "row", ["", "", "target-a", "target-b"]),
-        ("home.insertCells", "column", ["", "target-a", "", "target-c"]),
-        ("home.deleteCells", "row", ["target-c", "target-d", "", ""]),
-        ("home.deleteCells", "column", ["target-b", "", "target-d", ""]),
+        ("cell.insert", "row", ["", "", "target-a", "target-b"]),
+        ("cell.insert", "column", ["", "target-a", "", "target-c"]),
+        ("cell.delete", "row", ["target-c", "target-d", "", ""]),
+        ("cell.delete", "column", ["target-b", "", "target-d", ""]),
     ] {
         for qualified in [false, true] {
             let mut session = Session::new();
             session.new_workbook();
             session.execute("range.setValues", json!({"range":"A1","values":[["keep-a","keep-b"],["keep-c","keep-d"]]})).unwrap();
-            session.execute("home.insertSheet", json!({"name":"Target"})).unwrap();
+            session.execute("sheet.insert", json!({"name":"Target"})).unwrap();
             session.execute("range.setValues", json!({"range":"A1","values":[["target-a","target-b"],["target-c","target-d"]]})).unwrap();
             session.execute("sheet.activate", json!({"sheet":"Sheet1"})).unwrap();
             let mut params = json!({"range":"A1","shift":shift});

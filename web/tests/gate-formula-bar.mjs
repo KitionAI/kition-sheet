@@ -332,7 +332,7 @@ try {
     await exec('view.freezePanes', { cell: 'C6' })
     await exec('view.zoom', { percent: 150 })
     await until(async () => (await details()).zoom === 150)
-    const sheet = (await exec('document.inspect')).sheets[0]
+    const sheet = (await exec('file.inspect')).sheets[0]
     step('BAR-C19 冻结至 C6、缩放 150%，编辑栏与网格线保持隐藏', same(sheet.freeze, [5, 2]) && (await details()).zoom === 150 && !(await barShown()) && !(await details()).gridlines, JSON.stringify(sheet.freeze))
     const box = await region()
     await page.mouse.move(box.x + 400, box.y + 300)
@@ -468,17 +468,17 @@ try {
     const on = await toggleBar()
     step('BAR-C34 只读下「视图」可展开，「显示编辑栏」可取消与勾选，即时生效', off && on && (await barShown()) && (await showBox().isChecked()))
     const locked = (await kit.getByTestId('sheet-add').isDisabled()) && (await kit.getByTestId('sheet-formula-fx').isDisabled()) && (await bar().getAttribute('readonly')) !== null
-    step('BAR-C34 编辑、插入类入口保持不可用，表格数据未被修改', locked && same((await cellOf('A1')).value, a1) && !(await exec('document.inspect')).dirty)
+    step('BAR-C34 编辑、插入类入口保持不可用，表格数据未被修改', locked && same((await cellOf('A1')).value, a1) && !(await exec('file.inspect')).dirty)
   })
 
   await section('BAR-C35 编辑栏开关不写入数据、不产生变更', async () => {
     await openEditor('')
-    const before = await exec('document.inspect')
+    const before = await exec('file.inspect')
     for (let i = 0; i < 4; i += 1) {
       await viewTab()
       await toggleBar()
     }
-    const after = await exec('document.inspect')
+    const after = await exec('file.inspect')
     step('BAR-C35 多次切换后文档不进入未保存状态，不产生撤销/历史记录', !after.dirty && before.dirty === after.dirty && same(after.undo, before.undo) && (await barShown()), JSON.stringify(after.undo))
   })
 
@@ -502,7 +502,7 @@ try {
     // on (regressions/issue-formula-bar-quick-toggle). One more engine round trip after the clicks
     // makes sure both have been answered before the state is read.
     await showBox().dblclick()
-    await exec('document.inspect')
+    await exec('file.inspect')
     await until(async () => (await details()).formulaBar === true && (await showBox().isChecked()) && (await barShown()))
     const engine = (await details()).formulaBar
     const twice = await showBox().isChecked()

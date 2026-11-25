@@ -1,6 +1,6 @@
 //! The Kition Sheet engine façade.
 //!
-//! Every user-visible action is a command with a stable id (`cell.set`, `home.bold`,
+//! Every user-visible action is a command with a stable id (`cell.set`, `format.bold`,
 //! `data.sortAscending`…) and JSON parameters. The kit's editor (`web/`) and the headless kit
 //! executable both go through [`Session::execute`] via `KitTools`, so every action is scriptable
 //! and journaled.

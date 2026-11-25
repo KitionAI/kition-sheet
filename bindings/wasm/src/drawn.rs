@@ -6,7 +6,7 @@
 //! active cell (their editor state, which the page puts back after each of another's steps), the
 //! visible extent the editor asked for (`editor.viewport`), the cell or shape being typed, and the
 //! host's scheme. Undoable edits, typing and the scheme already move the revision; a step that
-//! changes the rest without an undo step (`formulas.calculateNow` recalculating `RAND()` and
+//! changes the rest without an undo step (`formula.calculateNow` recalculating `RAND()` and
 //! `NOW()`, another workbook made active, `editor.viewport`, a step that enters or drops the
 //! person's typing) moves it through [`SheetDocument::drawn`]. Only another's step is compared: the
 //! person's own commands repaint the page in full, and the editor scrolls through

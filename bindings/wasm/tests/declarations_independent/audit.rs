@@ -12,7 +12,7 @@ struct Evidence {
 
 const EDITOR: &[Evidence] = &[
     Evidence {
-        commands: "commandLine",
+        commands: "command.runLine",
         states: "part,selection,mode",
         file: "binding",
         anchors: &["if command == \"commandLine\""],
@@ -26,28 +26,28 @@ const EDITOR: &[Evidence] = &[
         reason: "CSV/TSV/HTML formats encode the active sheet; XLSX does not add that default",
     },
     Evidence {
-        commands: "home.drawBorder",
+        commands: "format.drawBorder",
         states: "part,selection",
         file: "extra",
-        anchors: &["fn draw_border", "s.execute(\"home.borders\""],
+        anchors: &["fn draw_border", "s.execute(\"format.borders\""],
         reason: "delegates target_sheet/target_ranges, including omitted range",
     },
     Evidence {
         commands: "data.fromTextCsv,data.getData",
         states: "part,selection",
         file: "extra",
-        anchors: &["fn from_csv", "s.execute(\"home.insertSheet\""],
+        anchors: &["fn from_csv", "s.execute(\"sheet.insert\""],
         reason: "sheet insertion remembers current selection and defaults insertion edge from active tab",
     },
     Evidence {
-        commands: "pageLayout.background",
+        commands: "page.background",
         states: "part",
         file: "extra",
         anchors: &["fn background", "insert_picture_at(s, &params, CellRef::new(0, 0))"],
         reason: "fixed A1 bypasses picture's selection default; clear chooses active sheet",
     },
     Evidence {
-        commands: "review.changeSpelling",
+        commands: "spelling.change",
         states: "part",
         file: "spelling",
         anchors: &["fn change", "\"matchCase\": true, \"all\": true", "\"cell\": c.a1()"],
@@ -82,42 +82,42 @@ const EDITOR: &[Evidence] = &[
         reason: "smart fill defaults range on active part",
     },
     Evidence {
-        commands: "home.fontName,home.fontSize,home.fontColor,home.fillColor,home.alignTop,home.alignMiddle,home.alignBottom,home.increaseIndent,home.decreaseIndent,home.orientation,home.numberFormat,home.accounting,home.percent,home.comma,home.cellStyle",
+        commands: "format.fontName,format.fontSize,format.color,format.fillColor,format.alignTop,format.alignMiddle,format.alignBottom,format.increaseIndent,format.decreaseIndent,format.orientation,format.numberFormat,format.accounting,format.percent,format.comma,style.apply",
         states: "part,selection",
         file: "format",
         anchors: &["pub(crate) fn apply_style", "let sheet = target_sheet(s, p)?;", "let ranges = target_ranges(s, p)?;"],
         reason: "all delegate apply_style; its defaults include part and selection",
     },
     Evidence {
-        commands: "home.borders",
+        commands: "format.borders",
         states: "part,selection",
         file: "format",
         anchors: &["fn borders", "target_ranges(s, p)?"],
         reason: "borders has the same omitted targets",
     },
     Evidence {
-        commands: "home.unmergeCells",
+        commands: "cell.unmerge",
         states: "part,selection",
         file: "format",
         anchors: &["fn merge(", "target_ranges(s, p)?"],
         reason: "unmerge selects target ranges even though it skips content/fitting",
     },
     Evidence {
-        commands: "home.columnWidth,home.autofitRowHeight,home.autofitColumnWidth,home.hideRows,home.hideColumns,home.unhideRows,home.unhideColumns",
+        commands: "column.setWidth,row.autofitHeight,column.autofitWidth,row.hide,column.hide,row.show,column.show",
         states: "part,selection",
         file: "format",
         anchors: &["pub fn line_targets", "s.doc()?.selection.ranges.iter()", "fn line_sheet", "Ok(s.doc()?.wb.active_sheet)"],
         reason: "line helpers default axes and sheet from editor",
     },
     Evidence {
-        commands: "home.insertColumns,home.deleteRows,home.deleteColumns",
+        commands: "column.insert,row.delete,column.delete",
         states: "part,selection",
         file: "sheet",
         anchors: &["fn line_blocks", "s.doc()?.selection.ranges"],
         reason: "line block defaults and target_sheet select editor axes/part",
     },
     Evidence {
-        commands: "home.insertCells,home.deleteCells",
+        commands: "cell.insert,cell.delete",
         states: "part,selection",
         file: "sheet",
         anchors: &["fn insert_cells", "fn delete_cells", "target_range(s, p)?"],
@@ -131,7 +131,7 @@ const EDITOR: &[Evidence] = &[
         reason: "default sheet is active; neither reads a selected range",
     },
     Evidence {
-        commands: "home.deleteSheet",
+        commands: "sheet.delete",
         states: "part",
         file: "sheet",
         anchors: &["fn delete_sheet", "let was_active = d.wb.active_sheet == i;", "d.sheet_selections"],
@@ -152,14 +152,14 @@ const EDITOR: &[Evidence] = &[
         reason: "omitted table chooses containment on active part; header-off also relocates selected header cell",
     },
     Evidence {
-        commands: "insert.shape",
+        commands: "shape.insert",
         states: "part,selection",
         file: "insert",
         anchors: &["fn insert_shape", "cell_param(p, \"at\").unwrap_or(d.selection.active)"],
         reason: "implicit anchor selects active cell; insertion chooses active part",
     },
     Evidence {
-        commands: "review.newNote,review.replyComment,review.resolveComment,review.showNote",
+        commands: "note.add,comment.reply,comment.resolve,note.show",
         states: "part,selection",
         file: "insert",
         anchors: &[
@@ -172,7 +172,7 @@ const EDITOR: &[Evidence] = &[
         reason: "comment helpers share optional cell and target_sheet defaults",
     },
     Evidence {
-        commands: "home.clearRules",
+        commands: "conditionalFormat.clearRules",
         states: "part,selection",
         file: "insert",
         anchors: &["fn clear_cf", "let ranges = target_ranges(s, p)?;"],
@@ -200,7 +200,7 @@ const EDITOR: &[Evidence] = &[
         reason: "source target defaults and delegated new-sheet selection memory",
     },
     Evidence {
-        commands: "insert.pivotTable,insert.recommendedPivotTables,table.summarizePivot",
+        commands: "pivot.insert,pivot.recommended,table.summarizePivot",
         states: "part,selection",
         file: "pivot",
         anchors: &["fn default_source", "fn source_param", "fn summarize_table", "fn insert_pivot", "fn recommended"],
@@ -340,9 +340,9 @@ fn theme_projection_holds_inputs_and_replaced_fields() {
     let mut excessive = BTreeSet::new();
     for (command, params, expected) in [
         // same-field decision: both theme delegates assign name/colors.
-        ("pageLayout.themeColors", json!({}), vec!["theme.colors", "theme.name"]),
-        ("pageLayout.themeColors", json!({"name":"Classic"}), vec!["theme.colors", "theme.name"]),
-        ("pageLayout.themeFonts", json!({"major":"Kition Mono"}), vec!["theme.colors", "theme.name", "theme.major_font"]),
+        ("theme.colors", json!({}), vec!["theme.colors", "theme.name"]),
+        ("theme.colors", json!({"name":"Classic"}), vec!["theme.colors", "theme.name"]),
+        ("theme.fonts", json!({"major":"Kition Mono"}), vec!["theme.colors", "theme.name", "theme.major_font"]),
     ] {
         let under = doc.under(command, &params).unwrap().unwrap();
         let fields: BTreeSet<_> = under

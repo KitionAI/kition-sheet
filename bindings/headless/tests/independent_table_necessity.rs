@@ -13,14 +13,14 @@ async fn table_creation_holds_matching_names_and_overlaps_but_accepts_unrelated_
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         match change {
-            "unrelated table" => fixture.colleague(&[("insert.table", json!({"range":"Sheet2!A1:B3","header":true,"name":"Other"}))]),
-            "duplicate table" => fixture.colleague(&[("insert.table", json!({"range":"Sheet2!A1:B3","header":true,"name":"newsales"}))]),
-            "overlap" => fixture.colleague(&[("insert.table", json!({"range":"Sheet1!A3:B5","header":true,"name":"Other"}))]),
-            "duplicate name" => fixture.colleague(&[("formulas.defineName", json!({"name":"newsales","refersTo":"=42"}))]),
-            _ => fixture.colleague(&[("formulas.defineName", json!({"name":"Different","refersTo":"=42"}))]),
+            "unrelated table" => fixture.colleague(&[("table.insert", json!({"range":"Sheet2!A1:B3","header":true,"name":"Other"}))]),
+            "duplicate table" => fixture.colleague(&[("table.insert", json!({"range":"Sheet2!A1:B3","header":true,"name":"newsales"}))]),
+            "overlap" => fixture.colleague(&[("table.insert", json!({"range":"Sheet1!A3:B5","header":true,"name":"Other"}))]),
+            "duplicate name" => fixture.colleague(&[("name.define", json!({"name":"newsales","refersTo":"=42"}))]),
+            _ => fixture.colleague(&[("name.define", json!({"name":"Different","refersTo":"=42"}))]),
         }
         let outside = fixture.bytes();
-        let result = fixture.run(basis, "insert.table", json!({"range":"Sheet1!A2:B4","header":true,"name":"NewSales"})).await;
+        let result = fixture.run(basis, "table.insert", json!({"range":"Sheet1!A2:B4","header":true,"name":"NewSales"})).await;
         if matches!(change, "duplicate table" | "duplicate name" | "overlap") {
             assert!(result.as_ref().is_err_and(|error| error.to_string().contains("conflict")), "{change}: {result:?}");
             assert_eq!(fixture.bytes(), outside, "a refused insert preserves the outside writer's file");

@@ -43,7 +43,7 @@ async function open(query, seed = null) {
   const markers = kit.getByTestId('sheet-comment-marker')
   const toasts = () => kit.locator('.kui-toast[data-level=error]').allTextContents().then((all) => all.join(' | '))
   // The person selects `range` through the Name Box: New Comment anchors to the person's
-  // selection, which an agent's selection.set leaves as it was (KHP C3b).
+  // selection, which an agent's select.set leaves as it was (KHP C3b).
   const select = async (range) => {
     await kit.getByTestId('sheet-name-box').fill(range)
     await kit.getByTestId('sheet-name-box').press('Enter')
@@ -59,8 +59,8 @@ try {
     const { page, kit, errors, until, run, host, markers, toasts, select } = await open('role=editor')
     await kit.getByTestId('ribbon-tab-review').click()
     step('Review offers New Comment for the host', (await kit.getByTestId('sheet-host-comment').count()) === 1)
-    step('and not the file\'s own New Comment', (await kit.getByTestId('sheet-cmd-review.newComment').count()) === 0)
-    step('the file\'s other comment commands stay', (await kit.getByTestId('sheet-cmd-review.deleteComment').count()) === 1)
+    step('and not the file\'s own New Comment', (await kit.getByTestId('sheet-cmd-comment.add').count()) === 0)
+    step('the file\'s other comment commands stay', (await kit.getByTestId('sheet-cmd-comment.delete').count()) === 1)
     step('the kit lists comment-anchors', await page.evaluate(() => window.commentHost.connection().capabilities.includes('comment-anchors')))
 
     await select('B3')
@@ -79,8 +79,8 @@ try {
     step('and keeps the selection', (await kit.getByTestId('sheet-status').textContent()).includes('B3'), await kit.getByTestId('sheet-status').textContent())
 
     // Rows and a column inserted before the cell: the marker and the anchor move with it.
-    await run('home.insertRows', { rows: '1:2' })
-    await run('home.insertColumns', { cols: 'A:A' })
+    await run('row.insert', { rows: '1:2' })
+    await run('column.insert', { cols: 'A:A' })
     await until(async () => {
       const box = await markers.first().boundingBox()
       return box != null && box.y > (before?.y ?? 0) + 30 && box.x > (before?.x ?? 0) + 30
@@ -110,7 +110,7 @@ try {
     await until(async () => (await markers.count()) === 1)
 
     // The cell's row deleted: the anchor goes with it.
-    await run('home.deleteRows', { rows: '5:5' })
+    await run('row.delete', { rows: '5:5' })
     await until(async () => (await markers.count()) === 0)
     step('a thread whose cell was deleted has no marker', (await markers.count()) === 0)
 
@@ -159,7 +159,7 @@ try {
   {
     const { page, kit, errors } = await open('comments=0')
     await kit.getByTestId('ribbon-tab-review').click()
-    step('without a comment host, Review keeps the file\'s New Comment', (await kit.getByTestId('sheet-cmd-review.newComment').count()) === 1 && (await kit.getByTestId('sheet-host-comment').count()) === 0)
+    step('without a comment host, Review keeps the file\'s New Comment', (await kit.getByTestId('sheet-cmd-comment.add').count()) === 1 && (await kit.getByTestId('sheet-host-comment').count()) === 0)
     step('no page errors (no comment host)', errors.length === 0, errors.join(' | '))
     await page.context().close()
   }

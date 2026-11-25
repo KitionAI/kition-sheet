@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 
 impl SheetDocument {
     pub(crate) fn registry_read_premises(&self, command: &str, params: &Value, si: usize) -> Result<Option<Under>, String> {
-        if command == "formulas.showFormulas" {
+        if command == "formula.showFormulas" {
             let state = self.doc_state()?;
             let Some(sheet) = state.wb.sheet(si) else { return Ok(None) };
             let sid = ids::sheet_tool_id(sheet);

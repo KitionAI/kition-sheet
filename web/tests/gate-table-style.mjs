@@ -37,7 +37,7 @@ const ownFill = async (ref) => {
   return fill?.pattern && fill.pattern !== 'None' ? (hex(fill.fg) ?? 'theme') : null
 }
 const value = async (ref) => (await cellOf(ref)).value
-/** The active sheet's tables, as document.inspect lists them. */
+/** The active sheet's tables, as file.inspect lists them. */
 const tables = async () => {
   const sheet = (await details()).sheet
   return (await workbook()).sheets.find((s) => s.name === sheet)?.tables ?? []
@@ -109,7 +109,7 @@ async function dataset() {
   for (let r = 2; r <= 10; r += 1) rows.push([`n${r}`, r % 2 ? '西' : '东', r * 10, r * 7])
   await ai([
     { command: 'range.setValues', params: { range: 'A1', values: rows } },
-    { command: 'home.rowHeight', params: { rows: '1:40', height: G.rh } },
+    { command: 'row.setHeight', params: { rows: '1:40', height: G.rh } },
     { command: 'view.zoom', params: { percent: 100 } },
   ])
   await home()
@@ -240,15 +240,15 @@ try {
     await kit.getByTestId('sheet-format-table').click({ force: true }).catch(() => undefined)
     step('TS-C9 点击无响应，不弹出面板', (await kit.getByTestId('sheet-table-gallery').count()) === 0)
     await click('B3')
-    await exec('review.protectSheet', {})
+    await exec('sheet.protect', {})
     await settle(200)
     step('TS-C9/C15 受保护（锁定）的工作表：入口置灰，数据与格式不变', (await kit.getByTestId('sheet-format-table').isDisabled()) && (await tables()).length === 0)
-    await exec('review.protectSheet', {})
+    await exec('sheet.protect', {})
   })
 
   await section('TS-C13/C14/C96 含合并单元格的范围', async () => {
     await dataset()
-    await exec('home.mergeCells', { range: 'A2:B3' })
+    await exec('cell.merge', { range: 'A2:B3' })
     await click('C5')
     await apply('TableStyleMedium2')
     const sheet = (await workbook()).sheets.find((s) => s.name === '工作表1')
@@ -361,7 +361,7 @@ try {
     const g = await exec('table.styles', {})
     step('TS-C30/C35 右键「设为默认值」：该样式成为默认（★）', g.default === '我的样式')
     await ai([{ command: 'range.setValues', params: { range: 'F1', values: [['x', 'y'], [1, 2]] } }])
-    await exec('home.formatAsTable', { range: 'F1:G2' })
+    await exec('table.formatAs', { range: 'F1:G2' })
     step('TS-C35 之后新建表格默认应用该样式', (await tables()).some((t) => t.range === 'F1:G2' && t.style === '我的样式'))
     await saveAndReopen()
     step('TS-C35 重新打开文档后默认样式与自定义样式保持（.xlsx 的 tableStyles）', (await exec('table.styles', {})).default === '我的样式' && (await exec('table.styles', {})).custom.some((s) => s.name === '我的样式'))
@@ -371,7 +371,7 @@ try {
   await section('TS-C37 修改自定义样式后回显', async () => {
     await dataset()
     await exec('table.newStyle', { name: '可改样式', elements: { headerRow: { fill: '#336699' } } })
-    await exec('home.formatAsTable', { range: 'A1:D10', style: '可改样式' })
+    await exec('table.formatAs', { range: 'A1:D10', style: '可改样式' })
     await openGallery()
     await kit.getByTestId('sheet-table-可改样式').click({ button: 'right' })
     await kit.getByTestId('sheet-table-menu-modify').click()
@@ -389,7 +389,7 @@ try {
   await section('TS-C28/C118 自定义样式 hover 出现 × 删除', async () => {
     await dataset()
     await exec('table.newStyle', { name: '删我', elements: { headerRow: { fill: '#AA0000' } } })
-    await exec('home.formatAsTable', { range: 'A1:D10', style: '删我' })
+    await exec('table.formatAs', { range: 'A1:D10', style: '删我' })
     await openGallery()
     await kit.getByTestId('sheet-table-删我').hover()
     step('TS-C28/C118 hover 自定义样式右上角显示 ×', await kit.getByTestId('sheet-table-delete-删我').isVisible())
@@ -438,8 +438,8 @@ try {
     await asTable()
     await ai([
       { command: 'range.setValues', params: { range: 'H1', values: [['h1', 'h2'], [1, 2]] } },
-      { command: 'home.formatAsTable', params: { range: 'H1:I2', style: 'TableStyleLight1' } },
-      { command: 'selection.set', params: { range: 'K1:K3' } },
+      { command: 'table.formatAs', params: { range: 'H1:I2', style: 'TableStyleLight1' } },
+      { command: 'select.set', params: { range: 'K1:K3' } },
       { command: 'cell.set', params: { cell: 'K1', input: '=ROW(K1:K3)', array: true } },
     ])
     await click('B3')
@@ -477,8 +477,8 @@ try {
     await asTable()
     await ai([
       { command: 'cell.set', params: { cell: 'H1', input: '源' } },
-      { command: 'home.fillColor', params: { range: 'H1', color: '#FF0000' } },
-      { command: 'home.bold', params: { range: 'H1', on: true } },
+      { command: 'format.fillColor', params: { range: 'H1', color: '#FF0000' } },
+      { command: 'format.bold', params: { range: 'H1', on: true } },
     ])
     await click('H1')
     await kit.getByTestId('sheet-format-painter').click()
@@ -511,7 +511,7 @@ try {
     await click('A13')
     await type('改')
     step('TS-C63 已有数据的单元格再输入不扩充', (await tableRange()) === 'A1:E11')
-    await ai([{ command: 'home.insertRows', params: { rows: '1' } }])
+    await ai([{ command: 'row.insert', params: { rows: '1' } }])
     await click('B1')
     await type('上方')
     await click('G5')
@@ -532,19 +532,19 @@ try {
 
   await section('TS-C59/C67/C69/C70/C71/C89 插入删除行列与单元格', async () => {
     await asTable()
-    await exec('home.insertColumns', { cols: 'D' })
+    await exec('column.insert', { cols: 'D' })
     step('TS-C59 表样式边缘列向表样式一侧插入一列：扩充，原数据不变', (await tableRange()) === 'A1:E10' && (await value('E3')) === 21)
-    await exec('home.insertColumns', { cols: 'G' })
+    await exec('column.insert', { cols: 'G' })
     step('TS-C67 向另一侧插入一列：不扩充', (await tableRange()) === 'A1:E10')
-    await exec('home.insertRows', { rows: '5' })
+    await exec('row.insert', { rows: '5' })
     step('TS-C69 表样式范围内插入行：扩充', (await tableRange()) === 'A1:E11')
     const look = await looks('TableStyleMedium2')
     step('TS-C69 交替渲染正确（插入行后第 4、5、6 行交替）', near(await shownFill('A4'), look.band) && near(await shownFill('A5'), WHITE) && near(await shownFill('A6'), look.band))
-    await exec('home.deleteRows', { rows: '5' })
-    await exec('home.deleteColumns', { cols: 'D' })
+    await exec('row.delete', { rows: '5' })
+    await exec('column.delete', { cols: 'D' })
     step('TS-C70/C89 删除表样式所在行列：范围收缩，数据不变', (await tableRange()) === 'A1:D10' && (await value('D3')) === 21)
-    await exec('home.insertCells', { range: 'B3', shift: 'down' })
-    await exec('home.deleteCells', { range: 'B3', shift: 'up' })
+    await exec('cell.insert', { range: 'B3', shift: 'down' })
+    await exec('cell.delete', { range: 'B3', shift: 'up' })
     step('TS-C71 表内插入/删除单元格：表格范围不变，内容按规则移动', (await tableRange()) === 'A1:D10' && (await value('B3')) === '西')
   })
 
@@ -554,10 +554,10 @@ try {
     await build(numbered(2), { fill: false })
     await ai([
       { command: 'range.setValues', params: { range: 'A1', values: [[null, '地区', '=1+1', 'link'], [1, 2, 3, 4], [5, 6, 7, 8]] } },
-      { command: 'home.bold', params: { range: 'B1', on: true } },
-      { command: 'home.fontColor', params: { range: 'B1', color: '#00AA00' } },
-      { command: 'insert.link', params: { cell: 'D1', target: 'https://example.com' } },
-      { command: 'selection.set', params: { range: 'B2' } },
+      { command: 'format.bold', params: { range: 'B1', on: true } },
+      { command: 'format.color', params: { range: 'B1', color: '#00AA00' } },
+      { command: 'link.insert', params: { cell: 'D1', target: 'https://example.com' } },
+      { command: 'select.set', params: { range: 'B2' } },
     ])
     await apply('TableStyleMedium2')
     step('TS-C73 空白标题单元格自动命名「列1」（WPS 中文界面）', (await value('A1')) === '列1', String(await value('A1')))
@@ -594,9 +594,9 @@ try {
     await settle(200)
     await kit.getByTestId('sheet-merge').click()
     await settle(200)
-    step('TS-C97 合并单元格置灰不可点', (await kit.getByTestId('sheet-cmd-home.mergeCells').isDisabled()) && (await kit.getByTestId('sheet-cmd-home.mergeCenter').isDisabled()))
+    step('TS-C97 合并单元格置灰不可点', (await kit.getByTestId('sheet-cmd-cell.merge').isDisabled()) && (await kit.getByTestId('sheet-cmd-cell.mergeCenter').isDisabled()))
     await closeMenus()
-    const r = await ai([{ command: 'home.mergeCells', params: { range: 'B3:C4' } }]).catch((error) => String(error))
+    const r = await ai([{ command: 'cell.merge', params: { range: 'B3:C4' } }]).catch((error) => String(error))
     const sheet = (await workbook()).sheets.find((s) => s.name === '工作表1')
     step('TS-C97 其他方式合并不生效并说明「表格中的单元格不能合并」', JSON.stringify(r).includes("can't be merged") && !(sheet.merges ?? []).length, JSON.stringify(r).slice(0, 160))
   })
@@ -604,7 +604,7 @@ try {
   await section('TS-C99 复制整个表样式范围进行选择性粘贴', async () => {
     await asTable()
     // An agent's selection and clipboard last one run (KHP C3b), so its copy and paste go together.
-    await ai([{ command: 'edit.copy', params: { range: 'A1:D10' } }, { command: 'selection.set', params: { range: 'H1' } }, { command: 'edit.pasteSpecial', params: { what: 'values' } }])
+    await ai([{ command: 'edit.copy', params: { range: 'A1:D10' } }, { command: 'select.set', params: { range: 'H1' } }, { command: 'edit.pasteSpecial', params: { what: 'values' } }])
     await settle(200)
     step('TS-C99 选择性粘贴（值）：不带表样式，不生成新表格，源表不变', (await value('H1')) === '名称' && (await ownFill('H1')) === null && (await tables()).length === 1 && (await tableRange()) === 'A1:D10')
   })
@@ -612,16 +612,16 @@ try {
   await section('TS-C100/C101 隐藏行列与标题行', async () => {
     await asTable()
     const look = await looks('TableStyleMedium2')
-    await exec('home.hideRows', { rows: '3' })
+    await exec('row.hide', { rows: '3' })
     await settle(250)
     step('TS-C100 隐藏第 3 行：交替渲染按可见行连续计算（屏幕上第 3 行位置是第 4 行，不着色，下一行着色）', near(await shownFill('A4', 2), WHITE) && near(await shownFill('A5', 3), look.band))
-    await exec('home.unhideRows', { rows: '3' })
+    await exec('row.show', { rows: '3' })
     await settle(250)
     step('TS-C100 取消隐藏后完全恢复', near(await shownFill('A3'), WHITE) && near(await shownFill('A4'), look.band))
-    await exec('home.hideRows', { rows: '1' })
+    await exec('row.hide', { rows: '1' })
     await settle(250)
     step('TS-C101 标题行可隐藏，不影响表样式渲染', near(await shownFill('A2', 0), look.band) && (await tableRange()) === 'A1:D10')
-    await exec('home.unhideRows', { rows: '1' })
+    await exec('row.show', { rows: '1' })
     await settle(250)
     step('TS-C101 取消隐藏后标题行样式完整恢复', near(await shownFill('A1'), look.header))
   })
@@ -742,11 +742,11 @@ try {
     } else if (how === 'menu') {
       await page.mouse.click((await region()).x + 46 + 1 * G.cw + 32, (await region()).y + 21 + 1 * G.rh + 10, { button: 'right' })
       await kit.getByTestId('sheet-grid-menu').waitFor()
-      await kit.getByTestId('sheet-grid-menu').getByTestId('sheet-cmd-home.formatCells').click()
+      await kit.getByTestId('sheet-grid-menu').getByTestId('sheet-cmd-format.cells').click()
     } else {
       await home()
       await kit.getByTestId('sheet-format-menu').click()
-      await kit.getByTestId('sheet-cmd-home.formatCells').click()
+      await kit.getByTestId('sheet-cmd-format.cells').click()
     }
     await formatCells().waitFor({ timeout: 5000 })
   }

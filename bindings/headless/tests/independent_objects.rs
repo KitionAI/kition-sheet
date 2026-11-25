@@ -62,13 +62,13 @@ async fn reconnect_holds_the_geometry_that_gives_the_target_site() {
 
 #[tokio::test]
 async fn hidden_script_metadata_does_not_hold_unrelated_cell_values() {
-    for (command, params) in [("automate.newScript", json!({"name":"Work","commands":[]})), ("automate.deleteScript", json!({"name":"Existing"}))] {
+    for (command, params) in [("script.new", json!({"name":"Work","commands":[]})), ("script.delete", json!({"name":"Existing"}))] {
         for related in [true, false] {
             let fixture = Fixture::new();
-            fixture.colleague(&[("automate.newScript", json!({"name":"Existing","commands":[]}))]);
+            fixture.colleague(&[("script.new", json!({"name":"Existing","commands":[]}))]);
             let basis = fixture.basis().await;
             if related {
-                fixture.colleague(&[("automate.newScript", json!({"name":"Colleague","commands":[]}))]);
+                fixture.colleague(&[("script.new", json!({"name":"Colleague","commands":[]}))]);
             } else {
                 fixture.colleague(&[("cell.set", json!({"cell":"A1","input":"unrelated"}))]);
             }
@@ -85,11 +85,11 @@ async fn theme_font_defaults_hold_the_theme_without_holding_cells() {
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("pageLayout.themeFonts", json!({"major":"Kition Serif","minor":"Kition Sans"}))]);
+            fixture.colleague(&[("theme.fonts", json!({"major":"Kition Serif","minor":"Kition Sans"}))]);
         } else {
             fixture.colleague(&[("cell.set", json!({"cell":"A1","input":"unrelated"}))]);
         }
-        let result = fixture.run(basis, "pageLayout.themeFonts", json!({"major":"Kition Mono"})).await;
+        let result = fixture.run(basis, "theme.fonts", json!({"major":"Kition Mono"})).await;
         assert_guard(result, related);
         fixture.shutdown().await;
     }
@@ -101,7 +101,7 @@ async fn ink_creation_holds_coordinate_geometry_without_holding_cells() {
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("home.columnWidth", json!({"cols":"A:A","width":30}))]);
+            fixture.colleague(&[("column.setWidth", json!({"cols":"A:A","width":30}))]);
         } else {
             fixture.colleague(&[("cell.set", json!({"cell":"A1","input":"unrelated"}))]);
         }
@@ -119,7 +119,7 @@ async fn ink_creation_holds_protection_without_holding_another_sheets_cells() {
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("review.protectSheet", json!({}))]);
+            fixture.colleague(&[("sheet.protect", json!({}))]);
         } else {
             fixture.colleague(&[("cell.set", json!({"sheet":"Sheet2","cell":"A1","input":"unrelated"}))]);
         }
@@ -149,7 +149,7 @@ async fn checkbox_creation_holds_destination_without_holding_another_sheet() {
         } else {
             fixture.colleague(&[("cell.set", json!({"sheet":"Sheet2","cell":"A1","input":"unrelated"}))]);
         }
-        let result = fixture.run(basis, "insert.checkbox", json!({"range":"B2"})).await;
+        let result = fixture.run(basis, "checkbox.insert", json!({"range":"B2"})).await;
         assert_guard(result, related);
         fixture.shutdown().await;
     }

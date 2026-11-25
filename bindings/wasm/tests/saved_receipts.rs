@@ -32,9 +32,9 @@ fn in_memory_equals_saved_on_the_conformance_file_and_drawing_fixture() {
     let basic = include_bytes!("../../../conformance/basic.xlsx");
     for (command, params) in [
         ("cell.set", json!({"cell":"B7","input":"42"})),
-        ("home.bold", json!({"range":"B7","on":true})),
+        ("format.bold", json!({"range":"B7","on":true})),
         ("sheet.rename", json!({"name":"Renamed"})),
-        ("home.insertRows", json!({"rows":"2:2"})),
+        ("row.insert", json!({"rows":"2:2"})),
         ("drawing.insert", json!({"kind":"textBox","text":"A note","frame":{"x":12.123456,"y":24.654321,"w":50.123456,"h":30.654321}})),
     ] {
         let mut doc = SheetDocument::open("Book.xlsx", basic).unwrap();
@@ -66,8 +66,8 @@ fn every_conformance_workbook_keeps_write_family_receipts_on_save() {
             ("cell.set", json!({"cell":"B7","input":"42"})),
             ("cell.set", json!({"cell":"B7","input":"=SUM(B2:B6)"})),
             ("range.setValues", json!({"range":"X1:Y3","values":[["Item","Amount"],["First",12],["Second",24]]})),
-            ("home.bold", json!({"range":"B7","on":true})),
-            ("home.numberFormat", json!({"range":"B7","format":"0.000"})),
+            ("format.bold", json!({"range":"B7","on":true})),
+            ("format.numberFormat", json!({"range":"B7","format":"0.000"})),
             ("cell.formatText", json!({"cell":"X2","start":0,"end":3,"bold":true})),
             ("edit.fillDown", json!({"range":"X2:Y4"})),
             ("edit.moveCells", json!({"from":"X2:Y3","to":"X5"})),
@@ -82,63 +82,60 @@ fn every_conformance_workbook_keeps_write_family_receipts_on_save() {
             ("data.scenarioAdd", json!({"name":"Receipt scenario","changing":"Y2:Y3","values":[25,30]})),
             ("data.getData", json!({"text":"Item,Amount\nFirst,12\nSecond,24"})),
             ("file.properties", json!({"title":"Receipt title","author":"Kition"})),
-            ("formulas.calculationOptions", json!({"mode":"manual","iterative":true,"maxIterations":200,"maxChange":0.01})),
-            ("home.newCellStyle", json!({"name":"ReceiptStyle","fromCell":"X2"})),
+            ("formula.calculationOptions", json!({"mode":"manual","iterative":true,"maxIterations":200,"maxChange":0.01})),
+            ("style.add", json!({"name":"ReceiptStyle","fromCell":"X2"})),
             ("table.newStyle", json!({"name":"ReceiptTableStyle","elements":{"headerRow":{"bold":true}}})),
             ("sheet.rename", json!({"name":"Renamed"})),
-            ("home.insertSheet", json!({"name":"Added"})),
-            ("home.insertRows", json!({"rows":"2:2"})),
-            ("home.insertColumns", json!({"cols":"B:B"})),
-            ("home.deleteRows", json!({"rows":"2:2"})),
-            ("home.deleteColumns", json!({"cols":"B:B"})),
-            ("home.insertCells", json!({"range":"X2:Y2","shift":"down"})),
-            ("home.deleteCells", json!({"range":"X2:Y2","shift":"up"})),
+            ("sheet.insert", json!({"name":"Added"})),
+            ("row.insert", json!({"rows":"2:2"})),
+            ("column.insert", json!({"cols":"B:B"})),
+            ("row.delete", json!({"rows":"2:2"})),
+            ("column.delete", json!({"cols":"B:B"})),
+            ("cell.insert", json!({"range":"X2:Y2","shift":"down"})),
+            ("cell.delete", json!({"range":"X2:Y2","shift":"up"})),
             ("range.fill", json!({"range":"X5:Y6","input":"=B2+1"})),
             ("edit.clearContents", json!({"range":"X1:Y3"})),
-            ("home.rowHeight", json!({"rows":"7:7","height":19.123456})),
-            ("home.columnWidth", json!({"cols":"B:B","width":14.123456})),
-            ("home.autofitRowHeight", json!({"rows":"2:3"})),
-            ("home.autofitColumnWidth", json!({"cols":"X:Y"})),
-            ("home.hideRows", json!({"rows":"2:3"})),
-            ("home.hideColumns", json!({"cols":"X:Y"})),
-            ("home.mergeCells", json!({"range":"X10:Y11"})),
-            ("home.conditionalFormat", json!({"range":"Y2:Y3","rule":{"type":"cellIs","operator":"greaterThan","value":10,"preset":"greenFill"}})),
-            ("formulas.defineName", json!({"name":"ReceiptName","refersTo":"=B7"})),
+            ("row.setHeight", json!({"rows":"7:7","height":19.123456})),
+            ("column.setWidth", json!({"cols":"B:B","width":14.123456})),
+            ("row.autofitHeight", json!({"rows":"2:3"})),
+            ("column.autofitWidth", json!({"cols":"X:Y"})),
+            ("row.hide", json!({"rows":"2:3"})),
+            ("column.hide", json!({"cols":"X:Y"})),
+            ("cell.merge", json!({"range":"X10:Y11"})),
+            ("conditionalFormat.apply", json!({"range":"Y2:Y3","rule":{"type":"cellIs","operator":"greaterThan","value":10,"preset":"greenFill"}})),
+            ("name.define", json!({"name":"ReceiptName","refersTo":"=B7"})),
             ("data.validation", json!({"range":"X5:Y6","type":"whole","formula1":"1","formula2":"10"})),
             ("data.group", json!({"rows":"5:6"})),
-            ("review.protectSheet", json!({})),
-            ("review.protectWorkbook", json!({"on":true})),
-            ("review.newNote", json!({"cell":"X5","text":"Receipt note","author":"Kition"})),
-            ("review.newComment", json!({"cell":"X5","text":"Receipt comment","author":"Kition"})),
-            ("insert.link", json!({"cell":"X5","target":"https://kition.ai","text":"Kition"})),
-            ("review.changeSpelling", json!({"cell":"X2","word":"First","to":"Updated"})),
-            ("pageLayout.pageSetup", json!({"printArea":"X1:Y5","gridlines":true,"titleRows":"1:1","header":"&LReceipt"})),
-            ("pageLayout.themeFonts", json!({"major":"Arial","minor":"Arial"})),
+            ("sheet.protect", json!({})),
+            ("workbook.protect", json!({"on":true})),
+            ("note.add", json!({"cell":"X5","text":"Receipt note","author":"Kition"})),
+            ("comment.add", json!({"cell":"X5","text":"Receipt comment","author":"Kition"})),
+            ("link.insert", json!({"cell":"X5","target":"https://kition.ai","text":"Kition"})),
+            ("spelling.change", json!({"cell":"X2","word":"First","to":"Updated"})),
+            ("page.pageSetup", json!({"printArea":"X1:Y5","gridlines":true,"titleRows":"1:1","header":"&LReceipt"})),
+            ("theme.fonts", json!({"major":"Arial","minor":"Arial"})),
             ("view.gridlines", json!({"on":false})),
             ("view.customViews", json!({"save":"Receipt view"})),
             ("view.split", json!({})),
-            ("formulas.watchWindow", json!({"add":"Data!B7"})),
-            ("automate.newScript", json!({"name":"Receipt script","commands":[{"command":"cell.set","params":{"cell":"X20","input":"7"}}]})),
-            ("automate.runScript", json!({"name":"Receipt script"})),
-            ("automate.deleteScript", json!({"name":"Receipt script"})),
-            ("automate.recordActions", json!({"stop":true,"name":"Receipt recording"})),
-            ("insert.sparkline", json!({"range":"Y2:Y3","location":"Z2","type":"line","markers":true})),
-            ("insert.checkbox", json!({"range":"Y2:Y3"})),
-            ("insert.table", json!({"range":"X1:Y3","header":true,"name":"ReceiptTable"})),
-            ("insert.pivotTable", json!({"source":"X1:Y3","destination":"X10","rows":["Item"],"values":["Amount"]})),
-            ("insert.chart", json!({"range":"X1:Y3","type":"column"})),
+            ("formula.watchWindow", json!({"add":"Data!B7"})),
+            ("script.new", json!({"name":"Receipt script","commands":[{"command":"cell.set","params":{"cell":"X20","input":"7"}}]})),
+            ("script.run", json!({"name":"Receipt script"})),
+            ("script.delete", json!({"name":"Receipt script"})),
+            ("script.record", json!({"stop":true,"name":"Receipt recording"})),
+            ("sparkline.insert", json!({"range":"Y2:Y3","location":"Z2","type":"line","markers":true})),
+            ("checkbox.insert", json!({"range":"Y2:Y3"})),
+            ("table.insert", json!({"range":"X1:Y3","header":true,"name":"ReceiptTable"})),
+            ("pivot.insert", json!({"source":"X1:Y3","destination":"X10","rows":["Item"],"values":["Amount"]})),
+            ("chart.insert", json!({"range":"X1:Y3","type":"column"})),
             ("drawing.insert", json!({"kind":"textBox","text":"A note","frame":{"x":12.123456,"y":24.654321,"w":50.123456,"h":30.654321}})),
         ] {
             let mut doc = SheetDocument::open("Book.xlsx", &bytes).unwrap();
             doc.execute("range.setValues", json!({"range":"X1:Y3","values":[["Item","Amount"],["First",12],["Second",24]]})).unwrap();
-            if matches!(command, "automate.runScript" | "automate.deleteScript") {
-                doc.execute(
-                    "automate.newScript",
-                    json!({"name":"Receipt script","commands":[{"command":"cell.set","params":{"cell":"X20","input":"7"}}]}),
-                )
-                .unwrap();
+            if matches!(command, "script.run" | "script.delete") {
+                doc.execute("script.new", json!({"name":"Receipt script","commands":[{"command":"cell.set","params":{"cell":"X20","input":"7"}}]}))
+                    .unwrap();
             }
-            if command == "automate.recordActions" {
+            if command == "script.record" {
                 doc.execute(command, json!({})).unwrap();
                 doc.execute("cell.set", json!({"cell":"X20","input":"7"})).unwrap();
             }
@@ -163,13 +160,13 @@ fn persisted_auxiliary_commands_declare_writes_and_survive_save() {
     for (command, params) in [
         ("view.customViews", json!({"save":"Receipt view"})),
         ("view.split", json!({})),
-        ("formulas.watchWindow", json!({"add":"Sheet1!B7"})),
-        ("automate.recordActions", json!({"stop":true,"name":"Receipt recording"})),
+        ("formula.watchWindow", json!({"add":"Sheet1!B7"})),
+        ("script.record", json!({"stop":true,"name":"Receipt recording"})),
     ] {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         assert!(doc.commands().iter().find(|spec| spec.id == command).unwrap().mutates, "{command} writes saved workbook data");
-        doc.execute("selection.set", json!({"range":"B7"})).unwrap();
-        if command == "automate.recordActions" {
+        doc.execute("select.set", json!({"range":"B7"})).unwrap();
+        if command == "script.record" {
             doc.execute(command, json!({})).unwrap();
             doc.execute("cell.set", json!({"cell":"B7","input":"7"})).unwrap();
         }
@@ -199,7 +196,7 @@ fn direct_cell_inputs_are_canonical_before_the_receipt() {
 #[test]
 fn defined_name_identity_survives_rename_and_reopen() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("formulas.defineName", json!({"name":"ReceiptRate","refersTo":"=0.2"})).unwrap();
+    doc.execute("name.define", json!({"name":"ReceiptRate","refersTo":"=0.2"})).unwrap();
     let memory = state(&mut doc);
     let id = memory["objects"].as_object().unwrap().iter().find(|(_, value)| value["$type"] == "Name").unwrap().0.to_owned();
     assert!(id.starts_with("name:"), "a defined name needs a stable tool id: {id}");
@@ -223,7 +220,7 @@ fn direct_axis_and_sheet_writes_are_canonical_before_the_receipt() {
     ] {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         doc.execute("range.setValues", json!({"range":"A1:B4","values":[["Item","Value"],["First",1],["Second",2],["Third",3]]})).unwrap();
-        doc.execute("home.insertSheet", json!({"name":"Notes","before":9})).unwrap();
+        doc.execute("sheet.insert", json!({"name":"Notes","before":9})).unwrap();
         doc.execute("sheet.activate", json!({"sheet":0})).unwrap();
         let mut op = op;
         for (token, ty) in [("$row1", "Row"), ("$col1", "Col")] {
@@ -334,9 +331,9 @@ fn sparse_metadata_clear_receipts_match_saved_reopen() {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
         doc.execute("cell.set", json!({"cell":"A1","input":"kept"})).unwrap();
         doc.execute("cell.set", json!({"cell":"B7","input":"linked"})).unwrap();
-        doc.execute("insert.link", json!({"cell":"B7","target":"https://example.org"})).unwrap();
-        doc.execute("review.newNote", json!({"cell":"Z20","text":"sparse"})).unwrap();
-        doc.execute("home.mergeAcross", json!({"range":"Z20:AA21"})).unwrap();
+        doc.execute("link.insert", json!({"cell":"B7","target":"https://example.org"})).unwrap();
+        doc.execute("note.add", json!({"cell":"Z20","text":"sparse"})).unwrap();
+        doc.execute("cell.mergeAcross", json!({"range":"Z20:AA21"})).unwrap();
         let mut doc = SheetDocument::open("Book.xlsx", &doc.save(None).unwrap()).unwrap();
         let changes = receipt(&mut doc, command, json!({"range":"B7,Z20:AA21"}));
         assert!(!changes["changed"].as_array().unwrap().is_empty() || !changes["deleted"].as_array().unwrap().is_empty(), "{command}: {changes}");

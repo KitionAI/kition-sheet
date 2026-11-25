@@ -46,7 +46,7 @@ pub fn specs() -> Vec<CommandSpec> {
             print_preview
         ),
         cmd!(
-            "pageLayout.pageSetup",
+            "page.pageSetup",
             "Page Setup…",
             ["Page Layout", "Page Setup"],
             None,
@@ -1484,7 +1484,7 @@ fn print_preview(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn page_setup(s: &mut Session, p: &Json) -> Result<Json> {
-    const CMD: &str = "pageLayout.pageSetup";
+    const CMD: &str = "page.pageSetup";
     let si = target_sheet(s, p)?;
     let orientation = match str_param(p, "orientation") {
         None => None,
@@ -1672,7 +1672,7 @@ mod tests {
         let mut s = s();
         pin_grid(&mut s);
         // Letter, as the case says (sheets print on A4 unless they say otherwise, as in WPS).
-        s.execute("pageLayout.size", json!({"paper": "Letter"})).unwrap();
+        s.execute("page.size", json!({"paper": "Letter"})).unwrap();
         let rows: Vec<Vec<Json>> = (1..=300).map(|i| vec![json!(i)]).collect();
         s.execute("range.setValues", json!({"range": "A1", "values": rows})).unwrap();
         // 684pt of printable height / 15pt rows = 45 rows per page → 7 pages.
@@ -1687,14 +1687,14 @@ mod tests {
         assert_eq!(s.execute("file.printPreview", json!({"page": 7})).unwrap()["page"]["rows"], "271:300");
         assert!(s.execute("file.printPreview", json!({"page": 8})).is_err());
         // Landscape: 504pt / 15 = 33 rows per page → 10 pages.
-        s.execute("pageLayout.pageSetup", json!({"orientation": "landscape"})).unwrap();
+        s.execute("page.pageSetup", json!({"orientation": "landscape"})).unwrap();
         assert_eq!(pdf_of(&mut s, json!({})).1, 10);
         // Fit to one page.
         assert_eq!(pdf_of(&mut s, json!({"fitToPage": true})).1, 1);
-        s.execute("pageLayout.pageSetup", json!({"fitWidth": 1, "fitHeight": 2, "orientation": "portrait"})).unwrap();
+        s.execute("page.pageSetup", json!({"fitWidth": 1, "fitHeight": 2, "orientation": "portrait"})).unwrap();
         assert_eq!(pdf_of(&mut s, json!({})).1, 2);
         // Manual break and repeated title rows.
-        s.execute("pageLayout.pageSetup", json!({"scale": 100, "rowBreaks": [11], "titleRows": "1:1"})).unwrap();
+        s.execute("page.pageSetup", json!({"scale": 100, "rowBreaks": [11], "titleRows": "1:1"})).unwrap();
         let pv = s.execute("file.printPreview", json!({})).unwrap();
         assert_eq!(pv["pageList"][0]["rows"], "1:10");
         // Title row takes one line on later pages: 44 body rows.
@@ -1705,7 +1705,7 @@ mod tests {
     fn art_text_prints_as_bent_outlines() {
         let mut s = s();
         s.execute("range.setValues", json!({"range": "A1", "values": [["x"]]})).unwrap();
-        let id = s.execute("insert.artText", json!({ "text": "WARPED" })).unwrap()["id"].as_str().unwrap().to_string();
+        let id = s.execute("artText.insert", json!({ "text": "WARPED" })).unwrap()["id"].as_str().unwrap().to_string();
         let (flat, _) = pdf_of(&mut s, json!({}));
         assert!(contains(&flat, "WARPED"), "flat art text prints as text");
         s.execute("drawing.text", json!({ "id": id, "warp": "textArchUp" })).unwrap();
@@ -1718,7 +1718,7 @@ mod tests {
     fn wide_sheet_goes_down_then_over() {
         let mut s = s();
         pin_grid(&mut s);
-        s.execute("pageLayout.size", json!({"paper": "Letter"})).unwrap();
+        s.execute("page.size", json!({"paper": "Letter"})).unwrap();
         let rows: Vec<Vec<Json>> = (0..60).map(|r| (0..15).map(|c| json!(r * 100 + c)).collect()).collect();
         s.execute("range.setValues", json!({"range": "A1", "values": rows})).unwrap();
         let pv = s.execute("file.printPreview", json!({})).unwrap();
@@ -1733,12 +1733,9 @@ mod tests {
     fn pdf_contains_text_and_header_codes_expand() {
         let mut s = s();
         s.execute("range.setValues", json!({"range": "A1", "values": [["Quarterly Report", null], ["Total", 1234.5]]})).unwrap();
-        s.execute("home.bold", json!({"range": "A1"})).unwrap();
-        s.execute(
-            "pageLayout.pageSetup",
-            json!({"header": "&LLeft &A&CMiddle&RPage &P of &N", "footer": "&C&F", "gridlines": true, "headings": true}),
-        )
-        .unwrap();
+        s.execute("format.bold", json!({"range": "A1"})).unwrap();
+        s.execute("page.pageSetup", json!({"header": "&LLeft &A&CMiddle&RPage &P of &N", "footer": "&C&F", "gridlines": true, "headings": true}))
+            .unwrap();
         let (pdf, pages) = pdf_of(&mut s, json!({}));
         assert_eq!(pages, 1);
         assert!(contains(&pdf, "(Quarterly Report) Tj"));
@@ -1790,11 +1787,11 @@ mod tests {
         s.execute("file.new", json!({"sample": "sales"})).unwrap();
         s.execute("range.setValues", json!({"range": "H1", "values": [["A long piece of text that overflows into neighbours"]]})).unwrap();
         s.execute("cell.set", json!({"cell": "H3", "input": "Wrapped text across several lines in a narrow cell"})).unwrap();
-        s.execute("home.wrapText", json!({"range": "H3"})).unwrap_or_default();
-        s.execute("selection.set", json!({"range": "J5:K6"})).unwrap();
-        s.execute("home.mergeCenter", json!({})).unwrap();
+        s.execute("format.wrapText", json!({"range": "H3"})).unwrap_or_default();
+        s.execute("select.set", json!({"range": "J5:K6"})).unwrap();
+        s.execute("cell.mergeCenter", json!({})).unwrap();
         s.execute("cell.set", json!({"cell": "J5", "input": "Merged"})).unwrap();
-        s.execute("home.borders", json!({"range": "J5:K6", "preset": "outside", "style": "thick"})).unwrap_or_default();
+        s.execute("format.borders", json!({"range": "J5:K6", "preset": "outside", "style": "thick"})).unwrap_or_default();
         let (pdf, pages) = pdf_of(&mut s, json!({"sheets": "all"}));
         assert!(pages >= 1);
         assert!(contains(&pdf, "(Merged) Tj"));
@@ -1805,8 +1802,8 @@ mod tests {
     fn charts_and_images_are_drawn() {
         let mut s = s();
         s.execute("range.setValues", json!({"range": "A1", "values": [["Fruit", "Qty"], ["Apples", 3], ["Pears", 5]]})).unwrap();
-        s.execute("insert.chart", json!({"range": "A1:B3", "type": "pie"})).unwrap_or_default();
-        s.execute("insert.chart", json!({"range": "A1:B3"})).unwrap_or_default();
+        s.execute("chart.insert", json!({"range": "A1:B3", "type": "pie"})).unwrap_or_default();
+        s.execute("chart.insert", json!({"range": "A1:B3"})).unwrap_or_default();
         // A 2×2 PNG with transparency.
         let mut png = Vec::new();
         let img = image::RgbaImage::from_raw(2, 2, vec![255, 0, 0, 255, 0, 255, 0, 128, 0, 0, 255, 255, 0, 0, 0, 0]).unwrap();
@@ -1895,7 +1892,7 @@ mod tests {
         let mut s = s();
         let r = s
             .execute(
-                "pageLayout.pageSetup",
+                "page.pageSetup",
                 json!({"paper": "A4", "orientation": "landscape", "margins": {"left": 1, "top": 0.5}, "right": 0.25, "centerH": true, "printArea": "A1:D20", "titleRows": "1:2", "titleCols": "A:A", "colBreaks": ["C"]}),
             )
             .unwrap();
@@ -1909,10 +1906,10 @@ mod tests {
         assert_eq!(r["col_breaks"], json!([2]));
         let sh = s.doc().unwrap().wb.active().unwrap().print.clone();
         assert_eq!(sh.print_area, RangeRef::parse("A1:D20"));
-        s.execute("pageLayout.pageSetup", json!({"printArea": ""})).unwrap();
+        s.execute("page.pageSetup", json!({"printArea": ""})).unwrap();
         assert_eq!(s.doc().unwrap().wb.active().unwrap().print.print_area, None);
-        assert!(s.execute("pageLayout.pageSetup", json!({"paper": "Napkin"})).is_err());
-        assert!(s.execute("pageLayout.pageSetup", json!({"orientation": "sideways"})).is_err());
+        assert!(s.execute("page.pageSetup", json!({"paper": "Napkin"})).is_err());
+        assert!(s.execute("page.pageSetup", json!({"orientation": "sideways"})).is_err());
         // Undoable as one step.
         s.execute("edit.undo", json!({})).unwrap();
         assert!(s.doc().unwrap().wb.active().unwrap().print.print_area.is_some());
@@ -1923,13 +1920,13 @@ mod tests {
         let mut s = s();
         s.execute("cell.set", json!({"cell": "XFD1048576", "input": "far"})).unwrap();
         s.execute("cell.set", json!({"cell": "A1", "input": "near"})).unwrap();
-        s.execute("pageLayout.pageSetup", json!({"scale": 400, "margins": {"left": 20, "right": 20, "top": 20, "bottom": 20}})).unwrap();
+        s.execute("page.pageSetup", json!({"scale": 400, "margins": {"left": 20, "right": 20, "top": 20, "bottom": 20}})).unwrap();
         let pv = s.execute("file.printPreview", json!({})).unwrap();
         assert!(pv["pages"].as_u64().unwrap() <= MAX_PAGES as u64);
         assert_eq!(pv["pages"].as_u64().unwrap(), MAX_PAGES as u64);
         let r = s.execute("file.exportPdf", json!({})).unwrap();
         assert_eq!(r["pages"], MAX_PAGES);
-        s.execute("pageLayout.pageSetup", json!({"fitWidth": 1, "fitHeight": 1, "titleRows": "1:1048576", "titleCols": "A:XFD", "headings": true}))
+        s.execute("page.pageSetup", json!({"fitWidth": 1, "fitHeight": 1, "titleRows": "1:1048576", "titleCols": "A:XFD", "headings": true}))
             .unwrap();
         let pv = s.execute("file.printPreview", json!({})).unwrap();
         assert!(pv["pages"].as_u64().unwrap() <= MAX_PAGES as u64);
@@ -1944,8 +1941,8 @@ mod tests {
         let r = e.execute("file.exportPdf", json!({"sheets": "all"})).unwrap();
         assert_eq!(r["pages"], 1);
         // Weird row sizes and huge fonts.
-        s.execute("pageLayout.pageSetup", json!({"fitToPage": false, "scale": 10, "printArea": "A1:B3", "titleRows": "", "titleCols": ""})).unwrap();
-        s.execute("home.fontSize", json!({"range": "A1", "size": 409})).unwrap_or_default();
+        s.execute("page.pageSetup", json!({"fitToPage": false, "scale": 10, "printArea": "A1:B3", "titleRows": "", "titleCols": ""})).unwrap();
+        s.execute("format.fontSize", json!({"range": "A1", "size": 409})).unwrap_or_default();
         assert!(s.execute("file.exportPdf", json!({})).is_ok());
     }
 
@@ -1972,11 +1969,11 @@ mod tests {
         let mut s = s();
         let header = "Term 1 : Drama : Continuous Assessment";
         s.execute("range.setValues", json!({"range": "A1", "values": [[header, header]]})).unwrap();
-        s.execute("home.wrapText", json!({"range": "A1:B1", "on": true})).unwrap();
-        s.execute("home.orientation", json!({"range": "A1", "angle": "up"})).unwrap();
-        s.execute("home.orientation", json!({"range": "B1", "angle": "down"})).unwrap();
-        s.execute("home.columnWidth", json!({"cols": "A:B", "chars": 6})).unwrap();
-        s.execute("home.rowHeight", json!({"rows": "1:1", "height": 267})).unwrap();
+        s.execute("format.wrapText", json!({"range": "A1:B1", "on": true})).unwrap();
+        s.execute("format.orientation", json!({"range": "A1", "angle": "up"})).unwrap();
+        s.execute("format.orientation", json!({"range": "B1", "angle": "down"})).unwrap();
+        s.execute("column.setWidth", json!({"cols": "A:B", "chars": 6})).unwrap();
+        s.execute("row.setHeight", json!({"rows": "1:1", "height": 267})).unwrap();
         let (pdf, _) = pdf_of(&mut s, json!({}));
         let pdf = String::from_utf8_lossy(&pdf);
         // The page holds only these two cells, so every text block on it is a piece of a header.

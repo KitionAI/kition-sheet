@@ -77,10 +77,10 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("view.rightToLeft", "Sheet Right-to-Left", ["Page Layout", "Sheet Options"], None, "{on?}", has_doc, |s, p| sheet_flag(s, p, "rtl")),
         cmd!("view.zoom", "Zoom", ["View", "Zoom"], None, "{percent: 10..400}", has_doc, zoom),
         cmd!("view.zoomToSelection", "Zoom to Selection", ["View", "Zoom"], None, "{viewWidth?, viewHeight?}", has_doc, zoom_selection),
-        cmd!("pageLayout.orientation", "Orientation", ["Page Layout", "Page Setup"], None, "{orientation: portrait|landscape}", has_doc, orientation),
-        cmd!("pageLayout.size", "Size", ["Page Layout", "Page Setup"], None, "{paper: Letter|Legal|A4|A3|A5|Tabloid|Executive}", has_doc, paper),
+        cmd!("page.orientation", "Orientation", ["Page Layout", "Page Setup"], None, "{orientation: portrait|landscape}", has_doc, orientation),
+        cmd!("page.size", "Size", ["Page Layout", "Page Setup"], None, "{paper: Letter|Legal|A4|A3|A5|Tabloid|Executive}", has_doc, paper),
         cmd!(
-            "pageLayout.margins",
+            "page.margins",
             "Margins",
             ["Page Layout", "Page Setup"],
             None,
@@ -88,26 +88,10 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             margins
         ),
+        cmd!("page.printArea", "Set Print Area", ["Page Layout", "Page Setup", "Print Area"], None, "{range?, clear?: bool}", has_doc, print_area),
+        cmd!("page.printTitles", "Print Titles", ["Page Layout", "Page Setup"], None, "{rows?: \"1:1\", cols?: \"A:A\"}", has_doc, print_titles),
         cmd!(
-            "pageLayout.printArea",
-            "Set Print Area",
-            ["Page Layout", "Page Setup", "Print Area"],
-            None,
-            "{range?, clear?: bool}",
-            has_doc,
-            print_area
-        ),
-        cmd!(
-            "pageLayout.printTitles",
-            "Print Titles",
-            ["Page Layout", "Page Setup"],
-            None,
-            "{rows?: \"1:1\", cols?: \"A:A\"}",
-            has_doc,
-            print_titles
-        ),
-        cmd!(
-            "pageLayout.scaleToFit",
+            "page.scaleToFit",
             "Scale to Fit",
             ["Page Layout", "Scale to Fit"],
             None,
@@ -115,27 +99,19 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             scale_fit
         ),
-        cmd!("pageLayout.printGridlines", "Print Gridlines", ["Page Layout", "Sheet Options"], None, "{on?}", has_doc, |s, p| sheet_flag(
+        cmd!("page.printGridlines", "Print Gridlines", ["Page Layout", "Sheet Options"], None, "{on?}", has_doc, |s, p| sheet_flag(
             s,
             p,
             "printGridlines"
         )),
-        cmd!("pageLayout.printHeadings", "Print Headings", ["Page Layout", "Sheet Options"], None, "{on?}", has_doc, |s, p| sheet_flag(
+        cmd!("page.printHeadings", "Print Headings", ["Page Layout", "Sheet Options"], None, "{on?}", has_doc, |s, p| sheet_flag(
             s,
             p,
             "printHeadings"
         )),
+        cmd!("page.breaks", "Breaks", ["Page Layout", "Page Setup"], None, "{insert?: bool, remove?: bool, reset?: bool, cell?}", has_doc, breaks),
         cmd!(
-            "pageLayout.breaks",
-            "Breaks",
-            ["Page Layout", "Page Setup"],
-            None,
-            "{insert?: bool, remove?: bool, reset?: bool, cell?}",
-            has_doc,
-            breaks
-        ),
-        cmd!(
-            "pageLayout.headerFooter",
+            "page.headerFooter",
             "Header & Footer",
             ["Insert", "Text"],
             None,
@@ -144,7 +120,7 @@ pub fn specs() -> Vec<CommandSpec> {
             header_footer
         ),
         cmd!(
-            "pageLayout.theme",
+            "theme.set",
             "Themes",
             ["Page Layout", "Themes"],
             None,
@@ -451,7 +427,7 @@ fn theme(s: &mut Session, p: &Json) -> Result<Json> {
             <[u32; 12]>::try_from(v).ok()
         })
         .or_else(|| themes().into_iter().find(|(n, _)| n.eq_ignore_ascii_case(&name)).map(|(_, c)| c))
-        .ok_or_else(|| bad("pageLayout.theme", format!("unknown theme `{name}`")))?;
+        .ok_or_else(|| bad("theme.set", format!("unknown theme `{name}`")))?;
     let major = str_param(p, "majorFont").map(str::to_string);
     let minor = str_param(p, "minorFont").map(str::to_string);
     edit(s, |cx| {

@@ -8,9 +8,9 @@ use serde_json::json;
 fn the_full_editor_state_list_passes_the_sdk_contract_for_cells_drawings_and_sheets() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("drawing.insert", json!({"kind":"shape"})).unwrap();
-    doc.execute("home.insertSheet", json!({"name":"Other", "before":9})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Other", "before":9})).unwrap();
     doc.execute("sheet.activate", json!({"sheet":0})).unwrap();
-    doc.execute("selection.set", json!({"range":"G9:H10"})).unwrap();
+    doc.execute("select.set", json!({"range":"G9:H10"})).unwrap();
     let kept = doc.editor_state();
     for (part, on) in [
         (json!({"sheet":"sheet:1"}), vec![json!("A1:B2")]),

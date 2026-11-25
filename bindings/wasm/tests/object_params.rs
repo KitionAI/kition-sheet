@@ -71,7 +71,7 @@ fn name_resolvers_are_declared() {
                     continue;
                 }
                 // Reviewed handlers use these sheet parameters as a new name or a bool.
-                if key == "sheet" && matches!(command.id.as_str(), "data.fromTextCsv" | "data.getData" | "home.clearRules") {
+                if key == "sheet" && matches!(command.id.as_str(), "data.fromTextCsv" | "data.getData" | "conditionalFormat.clearRules") {
                     assert!(!command.places.contains(&key), "{}.sheet is literal", command.id);
                     assert!(
                         !command.name_params.iter().any(|(parameter, _)| *parameter == key),
@@ -95,7 +95,7 @@ fn name_resolvers_are_declared() {
         }
     }
     println!("name resolver parameters: typed {marked}; declared places {}; scanner allowed 0", places + 4);
-    for (id, key) in [("formulas.deleteName", "name"), ("home.cellStyle", "name"), ("table.deleteStyle", "name"), ("table.setDefaultStyle", "name")] {
+    for (id, key) in [("name.delete", "name"), ("style.apply", "name"), ("table.deleteStyle", "name"), ("table.setDefaultStyle", "name")] {
         let command = commands().into_iter().find(|command| command.id == id).unwrap();
         assert!(command.places.contains(&key), "{id}.{key}");
     }
@@ -114,11 +114,11 @@ fn literal_text_that_spells_a_tool_id_stays_literal() {
 #[test]
 fn numeric_only_handlers_accept_drawing_tool_ids() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("insert.textBox", json!({"text":"before"})).unwrap();
+    doc.execute("textBox.insert", json!({"text":"before"})).unwrap();
     let id = doc.inspect().unwrap()["workbook"]["sheets"][0]["drawings"][0]["toolId"].clone();
     doc.execute("shape.setText", json!({"id":id,"text":"after"})).unwrap();
     doc.execute("range.setValues", json!({"range":"A1", "values":[["Name","Value"],["A",1]]})).unwrap();
-    doc.execute("insert.chart", json!({"range":"A1:B2"})).unwrap();
+    doc.execute("chart.insert", json!({"range":"A1:B2"})).unwrap();
     let drawings = doc.inspect().unwrap()["workbook"]["sheets"][0]["drawings"].as_array().unwrap().clone();
     let chart = drawings.last().unwrap()["toolId"].clone();
     doc.execute("chart.selectData", json!({"chart":chart,"range":"A1:B2"})).unwrap();

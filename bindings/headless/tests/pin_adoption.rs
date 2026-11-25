@@ -73,8 +73,8 @@ async fn dependent_steps_plan_from_their_own_created_sheet_and_selection() {
     f.call(
         "run",
         json!({"basis":basis,"steps":[
-            {"command":"home.insertSheet","params":{"name":"Planned"}},
-            {"command":"selection.set","params":{"range":"H8"}},
+            {"command":"sheet.insert","params":{"name":"Planned"}},
+            {"command":"select.set","params":{"range":"H8"}},
             {"command":"cell.set","params":{"input":"agent"}}
         ]}),
     )

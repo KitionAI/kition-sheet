@@ -352,7 +352,7 @@ export function SheetTabs({ info }: { info: SheetInfo }) {
         data-testid="sheet-list-button"
       />
       {/* New Sheet adds a sheet after the last one, as WPS's does. */}
-      <IconButton icon={Plus} label={t('addSheet')} disabled={readOnly} onClick={() => void run('home.insertSheet', { before: tabs.length })} data-testid="sheet-add" />
+      <IconButton icon={Plus} label={t('addSheet')} disabled={readOnly} onClick={() => void run('sheet.insert', { before: tabs.length })} data-testid="sheet-add" />
       <div
         ref={strip}
         className="sheet-strip"
@@ -453,8 +453,8 @@ export function SheetTabs({ info }: { info: SheetInfo }) {
               <MenuItem label={t('addSheet')} disabled onSelect={() => undefined} testId="sheet-menu-insert" />
             ) : (
               <SubMenu label={t('addSheet')} path="Sheet Tab/New Sheet" testId="sheet-menu-insert">
-                <MenuItem label={t('insertSheetBefore')} onSelect={() => void run('home.insertSheet', { before: menuIndex })} testId="sheet-menu-insert-before" />
-                <MenuItem label={t('insertSheetAfter')} onSelect={() => void run('home.insertSheet', { before: menuIndex + 1 })} testId="sheet-menu-insert-after" />
+                <MenuItem label={t('insertSheetBefore')} onSelect={() => void run('sheet.insert', { before: menuIndex })} testId="sheet-menu-insert-before" />
+                <MenuItem label={t('insertSheetAfter')} onSelect={() => void run('sheet.insert', { before: menuIndex + 1 })} testId="sheet-menu-insert-after" />
               </SubMenu>
             )}
             <MenuItem label={t('renameSheet')} disabled={readOnly} onSelect={() => startRename(menuSheet.name)} testId="sheet-menu-rename" />

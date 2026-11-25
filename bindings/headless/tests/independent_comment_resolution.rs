@@ -14,16 +14,16 @@ async fn delete_comment_holds_the_supplied_cell_instead_of_the_selection() {
         for related in [true, false] {
             let fixture = Fixture::new();
             fixture.colleague(&[
-                ("review.newComment", json!({"cell":format!("{sheet}!A1"),"text":"selected thread","author":"Owner"})),
-                ("review.newComment", json!({"cell":format!("{sheet}!B2"),"text":"other thread","author":"Owner"})),
+                ("comment.add", json!({"cell":format!("{sheet}!A1"),"text":"selected thread","author":"Owner"})),
+                ("comment.add", json!({"cell":format!("{sheet}!B2"),"text":"other thread","author":"Owner"})),
             ]);
-            fixture.call("run", json!({"steps":[{"command":"selection.set","params":{"range":"Sheet1!A1"}}]})).await.unwrap();
+            fixture.call("run", json!({"steps":[{"command":"select.set","params":{"range":"Sheet1!A1"}}]})).await.unwrap();
             let basis = fixture.basis().await;
             let changed = format!("{sheet}!{}", if related { "B2" } else { "A1" });
-            fixture.colleague(&[("review.replyComment", json!({"cell":changed,"text":"colleague reply","author":"Colleague"}))]);
+            fixture.colleague(&[("comment.reply", json!({"cell":changed,"text":"colleague reply","author":"Colleague"}))]);
             let before = fixture.bytes();
             let supplied = if sheet == "Sheet1" { "B2" } else { "Sheet2!B2" };
-            let answer = fixture.run(basis, "review.deleteComment", json!({"cell":supplied})).await;
+            let answer = fixture.run(basis, "comment.delete", json!({"cell":supplied})).await;
             if related {
                 if answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                     assert_eq!(fixture.bytes(), before, "refusal must preserve the colleague's reply");

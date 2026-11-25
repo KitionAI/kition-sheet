@@ -13,8 +13,8 @@ fn book() -> SheetDocument {
     let mut book = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     book.execute("sheet.rename", json!({ "name": "Data" })).unwrap();
     book.execute("range.setValues", json!({ "range": "A1", "values": [["Region", "Sales"], ["North", 120], ["South", 80], ["East", 95]] })).unwrap();
-    book.execute("home.bold", json!({ "range": "A1:B1", "on": true })).unwrap();
-    book.execute("home.insertSheet", json!({ "name": "Notes", "before": 9 })).unwrap();
+    book.execute("format.bold", json!({ "range": "A1:B1", "on": true })).unwrap();
+    book.execute("sheet.insert", json!({ "name": "Notes", "before": 9 })).unwrap();
     book.execute("range.setValues", json!({ "range": "A1", "values": [["Ship", "Friday"], ["Owner", "Lee"]] })).unwrap();
     book
 }
@@ -69,7 +69,7 @@ fn it_never_reads_or_moves_the_editor_and_answers_the_same_bytes() {
     assert_eq!((book.revision(), book.dirty(), book.editor_state()), (revision, dirty, state), "rendering changed the editor or the workbook");
     // Another active sheet, another selection, a zoom, a viewport and a cell being typed.
     book.execute("sheet.activate", json!({ "sheet": "Data" })).unwrap();
-    book.execute("selection.set", json!({ "range": "A2:B3" })).unwrap();
+    book.execute("select.set", json!({ "range": "A2:B3" })).unwrap();
     book.execute("view.zoom", json!({ "percent": 200 })).unwrap();
     book.execute("editor.viewport", json!({ "right": 4000, "bottom": 3000, "x": 300, "y": 200 })).unwrap();
     assert_eq!(render(&mut book, call), first, "the active sheet, the selection, the zoom or the viewport changed the picture");

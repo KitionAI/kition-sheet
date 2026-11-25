@@ -42,7 +42,7 @@ pub(crate) struct Snapshot {
 
 /// Commands whose work is moving the editor: they keep their effect for an agent too.
 pub(crate) fn moves_the_editor(command: &str) -> bool {
-    command.starts_with("selection.") && command != "selection.stats"
+    command.starts_with("selection.") && command != "select.stats"
         || command.starts_with("view.")
         || matches!(
             command,
@@ -242,7 +242,7 @@ impl SheetDocument {
         let wb = &self.doc_state()?.wb;
         let mut implied: Option<(usize, String)> = None;
         for (key, value) in map.iter_mut() {
-            if command == "review.changeSpelling"
+            if command == "spelling.change"
                 && key == "cell"
                 && let Some(text) = value.as_str().filter(|text| text.starts_with("cell:"))
             {
@@ -277,7 +277,7 @@ impl SheetDocument {
                 continue;
             }
             let style_kind = match (command, key.as_str()) {
-                ("home.cellStyle", "name") => Some("cell"),
+                ("style.apply", "name") => Some("cell"),
                 ("table.newStyle", "replace") | ("table.deleteStyle" | "table.setDefaultStyle", "name") | ("table.style", "style") => Some("table"),
                 _ => None,
             };

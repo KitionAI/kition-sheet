@@ -4,7 +4,7 @@
 //! [`KitDocument`] for a Kition Sheet workbook (Excel `.xlsx`) and [`KitTools`] for working in its
 //! grid: a click selects a cell, a drag a range, a header a column or row; typing enters the
 //! active cell, Enter and Tab commit and move, arrows move; the selection and the cell being
-//! typed come back as engine overlays. The `commandLine` command enters text into the active
+//! typed come back as engine overlays. The `command.runLine` command enters text into the active
 //! cell, for the host's bar (a formula bar) and agents.
 //!
 //! Document pixels are the active sheet at 1:1 as the engine lays it out (column widths and row
@@ -277,14 +277,13 @@ const SHEET_TAB_COMMANDS: &[&str] = &[
     "sheet.hide",
     "sheet.unhide",
     "sheet.tabColor",
-    "home.insertSheet",
-    "home.deleteSheet",
+    "sheet.insert",
+    "sheet.delete",
 ];
 
 /// Commands that insert or delete rows, columns or cells: what is being typed goes into its cell
 /// first (WPS greys them while a cell is typed; the editor's menus and agents reach them anyway).
-const STRUCTURE_COMMANDS: &[&str] =
-    &["home.insertRows", "home.insertColumns", "home.deleteRows", "home.deleteColumns", "home.insertCells", "home.deleteCells"];
+const STRUCTURE_COMMANDS: &[&str] = &["row.insert", "column.insert", "row.delete", "column.delete", "cell.insert", "cell.delete"];
 
 /// Undoable commands that only change the view (the zoom is not part of the replica).
 const VIEW_ONLY: &[&str] = &["view.zoom", "view.zoomToSelection"];
@@ -295,10 +294,7 @@ const VIEW_ONLY: &[&str] = &["view.zoom", "view.zoomToSelection"];
 /// that replace, close, or save it. Selection, navigation, the zoom, and queries do not.
 fn changes_document(id: &str, undoable: bool) -> bool {
     (undoable && !VIEW_ONLY.contains(&id))
-        || matches!(
-            id,
-            "edit.undo" | "edit.redo" | "view.newWindow" | "view.customViews" | "view.split" | "formulas.watchWindow" | "automate.recordActions"
-        )
+        || matches!(id, "edit.undo" | "edit.redo" | "view.newWindow" | "view.customViews" | "view.split" | "formula.watchWindow" | "script.record")
         || (id.starts_with("file.") && !FILE_OUTPUTS.contains(&id))
 }
 
@@ -417,7 +413,7 @@ impl SheetDocument {
         }
         // Insert › Symbol in the editor: at the caret of what is typed, else after the active
         // cell's text with the cell open (WPS). An agent's goes straight into the cell.
-        if command == "insert.symbol"
+        if command == "symbol.insert"
             && self.session.undo_scope() == kition_sheet_engine::UndoScope::Person
             && let Some(symbol) = params.get("char").and_then(Json::as_str).filter(|c| !c.is_empty())
         {
@@ -467,7 +463,7 @@ impl SheetDocument {
                 return Ok(json!({ "editing": true, "format": format }));
             }
         }
-        if command == "commandLine" {
+        if command == "command.runLine" {
             // The formula bar: enters the text into the active cell and moves down, as Enter does.
             let text = params.get("text").and_then(Json::as_str).unwrap_or_default().to_owned();
             if self.editing.take().is_some() {
@@ -1142,7 +1138,7 @@ impl SheetDocument {
     /// `paint_quadrant` and `display_text`): numbers right and `###` when too narrow; text wider
     /// than its cell runs on into empty neighbours (right of left-aligned text, left of
     /// right-aligned text, both ways from centred text); a checkbox cell draws its box; turned
-    /// text (`home.orientation`) is drawn turned, vertical text stacked.
+    /// text (`format.orientation`) is drawn turned, vertical text stacked.
     #[allow(clippy::too_many_arguments)]
     fn paint_text(
         &self,
@@ -1752,7 +1748,7 @@ impl SheetDocument {
     }
 
     fn select(&mut self, range: RangeRef, active: CellRef) -> Result<(), String> {
-        self.session.execute("selection.set", json!({ "range": range.a1(), "active": active.a1() })).map(|_| ()).map_err(engine_error)
+        self.session.execute("select.set", json!({ "range": range.a1(), "active": active.a1() })).map(|_| ()).map_err(engine_error)
     }
 
     /// Enters the text being typed into the active cell, with its runs.
@@ -1933,7 +1929,7 @@ impl SheetDocument {
     }
 
     fn step(&mut self, dr: i64, dc: i64, extend: bool, jump: bool) -> Result<(), String> {
-        self.session.execute("selection.move", json!({ "dr": dr, "dc": dc, "extend": extend, "jump": jump })).map(|_| ()).map_err(engine_error)
+        self.session.execute("select.move", json!({ "dr": dr, "dc": dc, "extend": extend, "jump": jump })).map(|_| ()).map_err(engine_error)
     }
 
     /// The selection, the active cell, the headings of the selected columns and rows, and the
@@ -2448,7 +2444,7 @@ impl KitDocument for SheetDocument {
     /// range or cell, drawing objects) acts on that sheet and leaves the active sheet, the
     /// selection and the selected objects as they were, also when it fails; only the commands
     /// whose work is moving the editor ([`context::moves_the_editor`]: `sheet.activate`,
-    /// `selection.set`, `view.*`, …) keep their effect. A person's commands run as they always did.
+    /// `select.set`, `view.*`, …) keep their effect. A person's commands run as they always did.
     /// Another's command that changes what the grid draws moves the revision ([`drawn`]).
     fn execute(&mut self, command: &str, params: Json) -> Result<Json, String> {
         let before = drawn::Drawn::before(self);
@@ -2729,7 +2725,7 @@ impl KitDocument for SheetDocument {
             );
             commands.push(
                 KitCommand {
-                    id: "commandLine".into(),
+                    id: "command.runLine".into(),
                     title: "Enter in Active Cell".into(),
                     params: Some("{text: string}".into()),
                     mutates: true,
@@ -2922,7 +2918,7 @@ impl KitTools for SheetDocument {
                             ranges.push(',');
                         }
                         ranges.push_str(&cell.a1());
-                        self.session.execute("selection.set", json!({ "range": ranges, "active": cell.a1() })).map_err(engine_error)?;
+                        self.session.execute("select.set", json!({ "range": ranges, "active": cell.a1() })).map_err(engine_error)?;
                         if let Ok(st) = self.session.doc_mut() {
                             st.selection.anchor = cell;
                         }
@@ -3105,12 +3101,12 @@ impl KitTools for SheetDocument {
             "F2" => self.edit_in_place(self.active()),
             "PageDown" => self
                 .session
-                .execute("selection.move", json!({ "dr": 1, "dc": 0, "page": true, "extend": mods.shift }))
+                .execute("select.move", json!({ "dr": 1, "dc": 0, "page": true, "extend": mods.shift }))
                 .map(|_| ())
                 .map_err(engine_error)?,
             "PageUp" => self
                 .session
-                .execute("selection.move", json!({ "dr": -1, "dc": 0, "page": true, "extend": mods.shift }))
+                .execute("select.move", json!({ "dr": -1, "dc": 0, "page": true, "extend": mods.shift }))
                 .map(|_| ())
                 .map_err(engine_error)?,
             _ => {

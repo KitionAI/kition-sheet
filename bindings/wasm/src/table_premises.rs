@@ -159,7 +159,7 @@ impl SheetDocument {
     }
 
     pub(crate) fn table_control_premises(&self, command: &str, params: &Value, context: usize) -> Result<Option<Under>, String> {
-        if command == "insert.table" {
+        if command == "table.insert" {
             return self.table_insert_premises(params, context);
         }
         if !matches!(

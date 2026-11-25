@@ -8,41 +8,41 @@ use super::*;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        cmd!(noundo "draw.pen", "Pen", ["Draw", "Tools"], None, "{on?: bool (default true), color?: hex, width?: 2}", has_doc, |s, p| pen(s, p, "pen")),
-        cmd!(noundo "draw.pencil", "Pencil", ["Draw", "Tools"], None, "{on?: bool (default true), color?: hex, width?: 1}", has_doc, |s, p| pen(s, p, "pencil")),
-        cmd!(noundo "draw.highlighter", "Highlighter", ["Draw", "Tools"], None, "{on?: bool (default true), color?: hex, width?: 12}", has_doc, |s, p| pen(
+        cmd!(noundo "ink.pen", "Pen", ["Draw", "Tools"], None, "{on?: bool (default true), color?: hex, width?: 2}", has_doc, |s, p| pen(s, p, "pen")),
+        cmd!(noundo "ink.pencil", "Pencil", ["Draw", "Tools"], None, "{on?: bool (default true), color?: hex, width?: 1}", has_doc, |s, p| pen(s, p, "pencil")),
+        cmd!(noundo "ink.highlighter", "Highlighter", ["Draw", "Tools"], None, "{on?: bool (default true), color?: hex, width?: 12}", has_doc, |s, p| pen(
             s,
             p,
             "highlighter"
         )),
-        cmd!(noundo "draw.eraser", "Eraser", ["Draw", "Tools"], None, "{on?: bool (default true)}", has_doc, eraser),
-        cmd!(noundo "draw.select", "Select", ["Draw", "Tools"], None, "{}", has_doc, |s, _| {
+        cmd!(noundo "ink.eraser", "Eraser", ["Draw", "Tools"], None, "{on?: bool (default true)}", has_doc, eraser),
+        cmd!(noundo "ink.select", "Select", ["Draw", "Tools"], None, "{}", has_doc, |s, _| {
             s.draw_tool = String::new();
             s.draw_shape = None;
             Ok(draw_state(s))
         }),
         // Insert › Shapes: the next drag on the sheet draws this shape (a line between two shapes
         // glues to them); `null` puts it down.
-        cmd!(noundo "draw.shape", "Draw Shape", [], None, "{preset: DrawingML preset | null}", has_doc, |s, p| {
+        cmd!(noundo "ink.shape", "Draw Shape", [], None, "{preset: DrawingML preset | null}", has_doc, |s, p| {
             s.draw_shape = match p.get("preset").and_then(Json::as_str) {
                 Some(name) if kition_office_core::preset::info(name).is_some() || kition_office_core::connect::is_line_preset(name) => {
                     s.draw_tool = String::new();
                     Some(name.to_string())
                 }
-                Some(name) => return Err(bad("draw.shape", format!("preset `{name}` is not drawn"))),
+                Some(name) => return Err(bad("ink.shape", format!("preset `{name}` is not drawn"))),
                 None => None,
             };
             Ok(json!({ "shape": s.draw_shape }))
         }),
         // The pen in use, as the shared Draw controls show it (the same in every kit).
-        cmd!(query "draw.state", "Draw State", [], None, "{}", has_doc, |s, _| Ok(draw_state(s))),
-        cmd!(noundo "draw.lasso", "Lasso Select", ["Draw", "Tools"], None, "{} (selects ink by dragging; same as Select Objects)", has_doc, |s, _| {
+        cmd!(query "ink.state", "Draw State", [], None, "{}", has_doc, |s, _| Ok(draw_state(s))),
+        cmd!(noundo "ink.lasso", "Lasso Select", ["Draw", "Tools"], None, "{} (selects ink by dragging; same as Select Objects)", has_doc, |s, _| {
             s.draw_tool = String::new();
             ok()
         }),
-        cmd!("draw.stroke", "Ink Stroke", [], None, "{points: [[x,y],…] in sheet points, color?: hex, width?: 2}", has_doc, stroke),
+        cmd!("ink.stroke", "Ink Stroke", [], None, "{points: [[x,y],…] in sheet points, color?: hex, width?: 2}", has_doc, stroke),
         cmd!(
-            "draw.inkToShape",
+            "ink.toShape",
             "Ink to Shape",
             ["Draw", "Convert"],
             None,
@@ -125,7 +125,7 @@ fn stroke(s: &mut Session, p: &Json) -> Result<Json> {
         })
         .unwrap_or_default();
     if pts.len() < 2 {
-        return Err(bad("draw.stroke", "a stroke needs at least two points"));
+        return Err(bad("ink.stroke", "a stroke needs at least two points"));
     }
     let minx = pts.iter().map(|q| q[0]).fold(f64::INFINITY, f64::min).max(0.0);
     let miny = pts.iter().map(|q| q[1]).fold(f64::INFINITY, f64::min).max(0.0);
@@ -215,8 +215,8 @@ fn ink_to_shape(s: &mut Session, p: &Json) -> Result<Json> {
             Some(id) => sh.shapes.iter().position(|x| x.id == id && x.kind == ShapeKind::Ink),
             None => sh.shapes.iter().rposition(|x| x.kind == ShapeKind::Ink),
         }
-        .ok_or_else(|| bad("draw.inkToShape", "no ink stroke to convert"))?;
-        let ink = sh.shapes.get_mut(idx).ok_or_else(|| bad("draw.inkToShape", "gone"))?;
+        .ok_or_else(|| bad("ink.toShape", "no ink stroke to convert"))?;
+        let ink = sh.shapes.get_mut(idx).ok_or_else(|| bad("ink.toShape", "gone"))?;
         let pts = parse_points(&ink.text);
         let (w, h) = (ink.anchor.width.max(1.0), ink.anchor.height.max(1.0));
         let closed = match (pts.first(), pts.last()) {

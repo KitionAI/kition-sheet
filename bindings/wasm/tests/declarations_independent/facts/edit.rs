@@ -14,7 +14,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
         cx.whole(&mut out);
         return out;
     }
-    if command == "home.formatCells" && params.as_object().unwrap().is_empty() {
+    if command == "format.cells" && params.as_object().unwrap().is_empty() {
         return out;
     }
     cx.lookup(&mut out, params, si);
@@ -33,9 +33,9 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
             clear(&mut out, command, params, cx, si)
         }
         "edit.fillDown" | "edit.fillRight" | "edit.fillUp" | "edit.fillLeft" => fill(&mut out, command, params, cx, si),
-        "home.borders" | "home.drawBorder" => borders(&mut out, params, cx, si),
-        "home.mergeCells" | "home.mergeAcross" | "home.mergeCenter" | "home.unmergeCells" => merge(&mut out, command, params, cx, si),
-        "home.formatCells" if params.get("edges").is_some() || params.get("merge").is_some() => {
+        "format.borders" | "format.drawBorder" => borders(&mut out, params, cx, si),
+        "cell.merge" | "cell.mergeAcross" | "cell.mergeCenter" | "cell.unmerge" => merge(&mut out, command, params, cx, si),
+        "format.cells" if params.get("edges").is_some() || params.get("merge").is_some() => {
             if params.get("style").is_some() {
                 style(&mut out, command, params, cx, si);
             }
@@ -45,28 +45,28 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
                 borders(&mut out, &p, cx, si);
             }
             if let Some(on) = params.get("merge").and_then(Value::as_bool) {
-                merge(&mut out, if on { "home.mergeCells" } else { "home.unmergeCells" }, params, cx, si);
+                merge(&mut out, if on { "cell.merge" } else { "cell.unmerge" }, params, cx, si);
             }
         }
-        "home.rowHeight"
-        | "home.columnWidth"
-        | "home.hideRows"
-        | "home.hideColumns"
-        | "home.unhideRows"
-        | "home.unhideColumns"
-        | "home.autofitRowHeight"
-        | "home.autofitColumnWidth" => lines(&mut out, command, params, cx, si),
-        "home.defaultWidth" => {
+        "row.setHeight"
+        | "column.setWidth"
+        | "row.hide"
+        | "column.hide"
+        | "row.show"
+        | "column.show"
+        | "row.autofitHeight"
+        | "column.autofitWidth" => lines(&mut out, command, params, cx, si),
+        "column.setDefaultWidth" => {
             out.add(&sid, ["props.defaultColWidth"]);
             cx.shared(&mut out, si, None, false);
         }
-        "home.insertRows" | "home.insertColumns" | "home.deleteRows" | "home.deleteColumns" => structure(&mut out, command, params, cx, si),
-        "home.insertSheet" | "home.deleteSheet" | "sheet.rename" | "sheet.move" | "sheet.tabColor" | "sheet.hide" | "sheet.unhide" => {
+        "row.insert" | "column.insert" | "row.delete" | "column.delete" => structure(&mut out, command, params, cx, si),
+        "sheet.insert" | "sheet.delete" | "sheet.rename" | "sheet.move" | "sheet.tabColor" | "sheet.hide" | "sheet.unhide" => {
             sheets(&mut out, command, params, cx, si)
         }
         "edit.paste" | "edit.pasteSpecial" => paste(&mut out, command, params, cx, si),
-        "edit.autoFill" | "edit.fillSeries" | "edit.smartFill" | "edit.replace" | "edit.formatPainter" | "edit.moveCells" | "home.insertCells"
-        | "home.deleteCells" => complex(&mut out, command, params, cx, si),
+        "edit.autoFill" | "edit.fillSeries" | "edit.smartFill" | "edit.replace" | "edit.formatPainter" | "edit.moveCells" | "cell.insert"
+        | "cell.delete" => complex(&mut out, command, params, cx, si),
         _ if command.starts_with("home.") || command == "cell.formatText" => style(&mut out, command, params, cx, si),
         _ => panic!("unprojected edit path {command} {params}"),
     }
@@ -168,35 +168,36 @@ fn style(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize
     let fitted =
         if range.is_full_cols() || range.is_full_rows() { range.intersection(&cx.wb.sheets[si].used_range().unwrap()).unwrap() } else { range };
     cx.fit(out, si, fitted);
-    let active_style =
-        matches!(command, "home.increaseFontSize" | "home.decreaseFontSize" | "home.increaseDecimal" | "home.decreaseDecimal" | "home.formatCells")
-            || params.get("on").is_none()
-                && matches!(
-                    command,
-                    "home.alignLeft" | "home.alignCenter" | "home.alignRight" | "home.justify" | "home.underline" | "home.doubleUnderline"
-                )
-            || params.get("on").is_none()
-                && matches!(
-                    command,
-                    "home.bold"
-                        | "home.italic"
-                        | "home.strikethrough"
-                        | "home.superscript"
-                        | "home.subscript"
-                        | "home.wrapText"
-                        | "home.shrinkToFit"
-                        | "home.lockCell"
-                );
+    let active_style = matches!(
+        command,
+        "format.increaseFontSize" | "format.decreaseFontSize" | "format.increaseDecimal" | "format.decreaseDecimal" | "format.cells"
+    ) || params.get("on").is_none()
+        && matches!(
+            command,
+            "format.alignLeft" | "format.alignCenter" | "format.alignRight" | "format.justify" | "format.underline" | "format.doubleUnderline"
+        )
+        || params.get("on").is_none()
+            && matches!(
+                command,
+                "format.bold"
+                    | "format.italic"
+                    | "format.strikethrough"
+                    | "format.superscript"
+                    | "format.subscript"
+                    | "format.wrapText"
+                    | "format.shrinkToFit"
+                    | "cell.lock"
+            );
     if active_style {
         cx.address(out, cx.active, RangeRef::cell(cx.active_cell));
         cx.inherited_style(out, cx.active, cx.active_cell);
     }
-    if matches!(command, "home.increaseDecimal" | "home.decreaseDecimal") {
+    if matches!(command, "format.increaseDecimal" | "format.decreaseDecimal") {
         cx.source(out, cx.active, RangeRef::cell(cx.active_cell), true);
         // format.rs::decimals reads computed value, not array metadata.
         out.0.retain(|fact| !(fact.object == cx.cell(cx.active, cx.active_cell) && fact.field == "array"));
     }
-    if command == "home.cellStyle" {
+    if command == "style.apply" {
         let name = params["name"].as_str().unwrap();
         out.add("workbook", [format!("cellStyleDefinitions.{}", kdm_model::cell_style_name_key(name))]);
     }
@@ -237,7 +238,7 @@ fn merge(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize
     cx.constraints(out, si, range);
     out.add(&cx.sid(si), ["props.protection"]);
     out.add("workbook", ["props.defaultStyle"]);
-    if !matches!(command, "home.unmergeCells" | "home.mergeAcross") {
+    if !matches!(command, "cell.unmerge" | "cell.mergeAcross") {
         cx.entry(out, si, range, false);
         out.add(&cx.sid(si), ["autofilter"]);
     }
@@ -325,7 +326,7 @@ fn fill(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize)
 }
 
 fn lines(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize) {
-    let rows = command.ends_with("Rows") || command.ends_with("RowHeight") || command == "home.rowHeight";
+    let rows = command.ends_with("Rows") || command.ends_with("RowHeight") || command == "row.setHeight";
     let field = if rows { "rows" } else { "cols" };
     let range = params.get(field).and_then(Value::as_str).and_then(area).unwrap_or(cx.selected);
     let (mut first, mut last) = if rows { (range.start.row, range.end.row) } else { (range.start.col, range.end.col) };
@@ -338,10 +339,10 @@ fn lines(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize
         let id = cx.axis(si, rows, i);
         out.position(&id, &["index"]);
         let fields: &[&str] = match command {
-            "home.rowHeight" => &["info.size", "info.hidden", "info.custom"],
-            "home.columnWidth" => &["info.size", "info.hidden"],
-            "home.hideRows" | "home.hideColumns" => &["info.hidden"],
-            "home.unhideRows" | "home.unhideColumns" => &["info.hidden", "info.size"],
+            "row.setHeight" => &["info.size", "info.hidden", "info.custom"],
+            "column.setWidth" => &["info.size", "info.hidden"],
+            "row.hide" | "column.hide" => &["info.hidden"],
+            "row.show" | "column.show" => &["info.hidden", "info.size"],
             _ => &["info", "~layout"],
         };
         out.add(&id, fields.iter().copied());
@@ -384,22 +385,22 @@ fn structure(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: u
 fn sheets(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize) {
     let sid = cx.sid(si);
     let copy = command == "sheet.move" && params.get("copy").and_then(Value::as_bool) == Some(true);
-    if matches!(command, "home.insertSheet" | "home.deleteSheet" | "sheet.move") {
+    if matches!(command, "sheet.insert" | "sheet.delete" | "sheet.move") {
         out.add("workbook", ["props.protectedStructure"]);
     }
-    if matches!(command, "home.insertSheet" | "sheet.rename") || copy {
+    if matches!(command, "sheet.insert" | "sheet.rename") || copy {
         out.add("workbook", ["~tabs"]);
         for i in 0..cx.wb.sheets.len() {
             out.add(&cx.sid(i), ["name"]);
         }
     }
-    if matches!(command, "home.deleteSheet" | "sheet.hide") {
+    if matches!(command, "sheet.delete" | "sheet.hide") {
         out.add("workbook", ["~tabs"]);
         for i in 0..cx.wb.sheets.len() {
             out.add(&cx.sid(i), ["props.visibility"]);
         }
     }
-    if copy || command == "home.deleteSheet" {
+    if copy || command == "sheet.delete" {
         out.add(&sid, ["*"]);
         out.position(&sid, &["*"]);
         for (id, (owner, _)) in &cx.ownership {
@@ -437,12 +438,12 @@ fn sheets(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usiz
     if command == "sheet.unhide" && params.as_object().unwrap().is_empty() {
         return;
     }
-    if command == "home.insertSheet" {
+    if command == "sheet.insert" {
         out.add("workbook", ["~headerSync"]);
         let at = params.get("before").and_then(Value::as_u64).map_or(cx.active + 1, |at| (at as usize).min(cx.wb.sheets.len()));
         out.window("workbook", "sheets", at, at);
     } else {
-        cx.shared(out, si, None, matches!(command, "home.deleteSheet" | "sheet.rename" | "sheet.move"));
+        cx.shared(out, si, None, matches!(command, "sheet.delete" | "sheet.rename" | "sheet.move"));
     }
 }
 
@@ -520,7 +521,7 @@ fn complex(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usi
                 false,
             );
         }
-        "home.insertCells" | "home.deleteCells" => {
+        "cell.insert" | "cell.delete" => {
             cx.entry(out, si, range, false);
             out.add("workbook", ["names"]);
             cx.shared(out, si, None, true);

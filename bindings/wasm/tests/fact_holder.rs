@@ -55,11 +55,11 @@ fn undo_redo_and_a_follower_keep_the_private_fact_holder() {
     };
     let edits = [
         ("range.setValues", json!({ "range": "A1", "values": [[1, 2], [3, 4], [5, 6]] })),
-        ("home.insertRows", json!({ "rows": "2:2" })),
+        ("row.insert", json!({ "rows": "2:2" })),
         ("cell.set", json!({ "cell": "B5", "input": "7" })),
-        ("home.insertColumns", json!({ "cols": "B:B" })),
-        ("home.bold", json!({ "range": "A1:C1", "on": true })),
-        ("home.deleteRows", json!({ "rows": "1" })),
+        ("column.insert", json!({ "cols": "B:B" })),
+        ("format.bold", json!({ "range": "A1:C1", "on": true })),
+        ("row.delete", json!({ "rows": "1" })),
     ];
     for (command, params) in &edits {
         run(&mut doc, command, params.clone());

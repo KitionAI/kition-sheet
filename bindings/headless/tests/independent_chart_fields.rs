@@ -13,7 +13,7 @@ async fn chart_move_holds_its_frame_and_preserves_outside_title_or_series_edits(
     let mut wrong = Vec::new();
     for change in ["frame", "title", "series"] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
+        fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[match change {
             "frame" => ("chart.set", json!({"chart":1,"width":333})),
@@ -48,8 +48,8 @@ async fn chart_shape_fill_on_targets_the_named_chart_instead_of_the_last_chart()
     for related in [true, false] {
         let fixture = Fixture::new();
         fixture.colleague(&[
-            ("insert.chart", json!({"range":"A1:C4","type":"column","title":"First"})),
-            ("insert.chart", json!({"range":"A1:C4","type":"line","title":"Last"})),
+            ("chart.insert", json!({"range":"A1:C4","type":"column","title":"First"})),
+            ("chart.insert", json!({"range":"A1:C4","type":"line","title":"Last"})),
         ]);
         let basis = fixture.basis().await;
         fixture.colleague(&[("chart.formatSelection", json!({"chart":if related {1} else {2},"series":0,"color":"#654321"}))]);
@@ -79,12 +79,12 @@ async fn chart_move_holds_destination_protection_without_holding_destination_cel
     let mut wrong = Vec::new();
     for related in [true, false] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
+        fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
         let basis = fixture.basis().await;
         if related {
             fixture.colleague(&[
                 ("sheet.activate", json!({"sheet":"Sheet2"})),
-                ("review.protectSheet", json!({})),
+                ("sheet.protect", json!({})),
                 ("sheet.activate", json!({"sheet":"Sheet1"})),
             ]);
         } else {
@@ -164,7 +164,7 @@ async fn chart_fields_conflict_only_with_the_fields_or_sources_the_operation_use
     ] {
         for related in [true, false] {
             let fixture = Fixture::new();
-            fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
+            fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
             let basis = fixture.basis().await;
             if related {
                 fixture.colleague(&[(related_command, related_params.clone())]);

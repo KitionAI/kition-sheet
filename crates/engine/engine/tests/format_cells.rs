@@ -17,9 +17,9 @@ fn session() -> Session {
 fn format_cells_applies_formats_borders_and_merge_in_one_step() {
     let mut s = session();
     s.execute("range.setValues", json!({"range": "B2", "values": [[1234.5, "x"], [2, 3]]})).unwrap();
-    s.execute("selection.set", json!({"range": "B2:C3"})).unwrap();
+    s.execute("select.set", json!({"range": "B2:C3"})).unwrap();
     s.execute(
-        "home.formatCells",
+        "format.cells",
         json!({
             "style": {"numFmt": "#,##0.00", "font": {"bold": true, "color": "#C00000"}, "align": {"h": "Center"}, "fill": "#FFF2CC"},
             "edges": [{"preset": "outside", "style": "medium", "color": "#1F4E79"}, {"preset": "inside", "style": "thin"}],
@@ -36,7 +36,7 @@ fn format_cells_applies_formats_borders_and_merge_in_one_step() {
     assert_eq!(b2.borders.right.style, BorderStyle::Thin, "FC-X5: inside");
     assert_eq!(b2.fill.fg, Color::Rgb(0xFFF2CC), "FC-X6");
     let undo = d.undo.len();
-    s.execute("home.formatCells", json!({"range": "E5:F6", "merge": true})).unwrap();
+    s.execute("format.cells", json!({"range": "E5:F6", "merge": true})).unwrap();
     assert_eq!(s.doc().unwrap().wb.active().unwrap().merges.len(), 1, "FC-X3: Merge Cells");
     assert_eq!(s.doc().unwrap().undo.len(), undo + 1);
     s.execute("edit.undo", json!({})).unwrap();
@@ -46,6 +46,6 @@ fn format_cells_applies_formats_borders_and_merge_in_one_step() {
     assert!(!b2.font.bold && b2.borders.top.style == BorderStyle::None, "one undo step takes all of it back");
     // From a menu without values, the editor is asked for the dialog.
     s.take_ui_requests();
-    s.execute("home.formatCells", json!({})).unwrap();
+    s.execute("format.cells", json!({})).unwrap();
     assert_eq!(s.take_ui_requests(), vec![UiRequest::Dialog("formatCells".into(), json!({}))], "FC-X1");
 }

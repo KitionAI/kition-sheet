@@ -17,7 +17,7 @@ const { page, kit, step, section, until, same, ai, exec, details, q, cellOf, reg
 
 const COLS = 'ABCDEFGHIJ'
 const settle = (ms = 250) => page.waitForTimeout(ms)
-/** The active sheet as `document.inspect` lists it. */
+/** The active sheet as `file.inspect` lists it. */
 const info = async () => {
   const wb = await h.workbook()
   return wb.sheets[wb.activeSheet]
@@ -718,9 +718,9 @@ try {
 
   await section('GRID-C10/C11 自定义边框、填充与文字格式', async () => {
     await table()
-    await exec('home.borders', { range: 'C3:D6', preset: 'all' })
-    await exec('home.fillColor', { range: 'F3', color: '#FFFF00' })
-    await ai([{ command: 'selection.set', params: { range: 'F3' } }, { command: 'home.bold', params: {} }])
+    await exec('format.borders', { range: 'C3:D6', preset: 'all' })
+    await exec('format.fillColor', { range: 'F3', color: '#FFFF00' })
+    await ai([{ command: 'select.set', params: { range: 'F3' } }, { command: 'format.bold', params: {} }])
     await goTo('A1')
     const style = async () => JSON.stringify([(await cellOf('C4')).style ?? null, (await cellOf('F3')).style ?? null])
     const before = await style()
@@ -768,7 +768,7 @@ try {
     await settle(300)
     // Row 7 is scrolled out of view; the highlight of column D runs down the frozen rows (column D is scrolled too): look at row 2's frozen band instead.
     // The person clicks B2, in the frozen corner (the Name Box is hidden with the formula bar; an
-    // agent's selection.set moves only its own editor state, KHP C3b).
+    // agent's select.set moves only its own editor state, KHP C3b).
     const b2 = inCell(1, 1, 1.5)
     const canvas = await region()
     await page.mouse.click(canvas.x + b2[0], canvas.y + b2[1])
@@ -941,7 +941,7 @@ try {
 
   await section('GRID-X2 打印网格线', async () => {
     await table()
-    await exec('pageLayout.printGridlines', { on: true })
+    await exec('page.printGridlines', { on: true })
     await saveAndReopen('PrintGrid.xlsx')
     const xml = (await zipPart('xl/worksheets/sheet1.xml')) ?? ''
     step('GRID-X2 页面布局 › 打印网格线：保存为 printOptions gridLines="1"，与屏幕上的网格线互不影响', /<printOptions\b[^>]*gridLines="1"/.test(xml) && (await details()).gridlines)
@@ -1109,7 +1109,7 @@ try {
 
   await section('HL-C27/C28 与网格线联动', async () => {
     await table()
-    await exec('home.borders', { range: 'E8', preset: 'all' })
+    await exec('format.borders', { range: 'E8', preset: 'all' })
     await setGridlines(false)
     await setFocus(true, PALETTE[0])
     await clickCell(4, 9)
@@ -1343,10 +1343,10 @@ try {
 
   await section('HL-C53 高亮不写入数据', async () => {
     await openEditor('')
-    const before = await exec('document.inspect')
+    const before = await exec('file.inspect')
     for (const color of [PALETTE[1], PALETTE[8], PALETTE[0]]) await setFocus(true, color)
     await setFocus(false)
-    const after = await exec('document.inspect')
+    const after = await exec('file.inspect')
     step('HL-C53 开启与多次换色后文档不进入未保存状态、无撤销记录', !after.dirty && same(after.undo, before.undo), JSON.stringify(after.undo))
   })
 
@@ -1377,7 +1377,7 @@ try {
     await kit.getByTestId('sheet-focus-arrow').click()
     await swatches('sheet-focus-colors').nth(2).click()
     await settle()
-    step('HL-C56 只读下可开启与换色，数据未改，编辑入口不可用', (await focusOn()) && (await details()).focusColor === PALETTE[2] && same((await cellOf('A1')).value, a1) && !(await exec('document.inspect')).dirty && (await kit.getByTestId('sheet-freeze').isDisabled()))
+    step('HL-C56 只读下可开启与换色，数据未改，编辑入口不可用', (await focusOn()) && (await details()).focusColor === PALETTE[2] && same((await cellOf('A1')).value, a1) && !(await exec('file.inspect')).dirty && (await kit.getByTestId('sheet-freeze').isDisabled()))
     await setFocus(false, PALETTE[0])
     } finally {
       await openEditor('')
@@ -1395,13 +1395,13 @@ try {
     await clickCell(2, 5)
     const again = await topRow()
     step('FRZ-X3 点击可见单元格不滚动', again === first, `${first} ${again}`)
-    // An agent's selection.set runs in the agent's own editor state (KHP C3b): the person's
+    // An agent's select.set runs in the agent's own editor state (KHP C3b): the person's
     // selection and view stay where they are.
     const mine = (await details()).active
-    await exec('selection.set', { range: 'A5' })
+    await exec('select.set', { range: 'A5' })
     const kept = (await details()).active
     const still = await topRow()
-    step('FRZ-X3 代理（selection.set）选中 A5：本人的选区与视图不动（C3b）', kept === mine && still === first, `${mine} ${kept} ${first} ${still}`)
+    step('FRZ-X3 代理（select.set）选中 A5：本人的选区与视图不动（C3b）', kept === mine && still === first, `${mine} ${kept} ${first} ${still}`)
     // The person moves the selection back to A5 (the Name Box): the view follows.
     await goTo('A5')
     await settle(400)
@@ -1422,7 +1422,7 @@ try {
     await clickCell(2, 4)
     step('FRZ-X4 前置：选中 C15', (await details()).active === 'C15', (await details()).active)
     await freezeBy('rows')
-    step('FRZ-X4 冻结第 11–14 行（冻结行数 4，起点第 11 行）', same(await freeze(), [4, 0]) && (await exec('document.inspect')).sheets !== undefined, JSON.stringify(await freeze()))
+    step('FRZ-X4 冻结第 11–14 行（冻结行数 4，起点第 11 行）', same(await freeze(), [4, 0]) && (await exec('file.inspect')).sheets !== undefined, JSON.stringify(await freeze()))
     step('FRZ-X4 冻结后首行仍是第 11 行', (await topRow()) === 11)
     await wheel(0, -2000)
     step('FRZ-X4 向上滚动看不到第 1–10 行（冻结窗格从第 11 行起）', (await topRow()) === 11)

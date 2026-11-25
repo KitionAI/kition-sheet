@@ -21,7 +21,7 @@ fn alignment_compares_newly_materialized_column_sizes_against_implicit_defaults(
     let before = doc.derived(&[json!("axis:all")], &["contents".into()]).unwrap();
     let before = before.iter().find(|value| value.id == "axis:all").unwrap().values["contents"].clone();
     let mut outside = SheetDocument::open("Book.xlsx", &doc.save(None).unwrap()).unwrap();
-    outside.execute("home.columnWidth", json!({"cols":"F","width":40})).unwrap();
+    outside.execute("column.setWidth", json!({"cols":"F","width":40})).unwrap();
     doc.reconcile_reread(&SheetDocument::open("Book.xlsx", &outside.save(None).unwrap()).unwrap()).unwrap();
     let under = doc.under_step("arrange.align", &json!({"kind":"shape","ids":[1,2],"align":"right"}), &Default::default()).unwrap().unwrap();
     let changed = under.content.iter().any(|content| {
@@ -56,12 +56,12 @@ async fn alignment_ignores_axes_beyond_anchor_conversions_and_retains_source_geo
             let (observed, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &f.bytes()).unwrap();
             let basis = f.basis().await;
             f.colleague(&[match change {
-                "tail row size" => ("home.rowHeight", json!({"rows":"10","height":44})),
-                "tail row deleted" => ("home.deleteRows", json!({"rows":"10"})),
-                "tail col size" => ("home.columnWidth", json!({"cols":"H","width":99})),
-                "tail col deleted" => ("home.deleteColumns", json!({"cols":"H"})),
+                "tail row size" => ("row.setHeight", json!({"rows":"10","height":44})),
+                "tail row deleted" => ("row.delete", json!({"rows":"10"})),
+                "tail col size" => ("column.setWidth", json!({"cols":"H","width":99})),
+                "tail col deleted" => ("column.delete", json!({"cols":"H"})),
                 "shape fill" => ("chart.shapeFill", json!({"kind":"shape","id":1,"color":"#123456"})),
-                "source row" => ("home.rowHeight", json!({"rows":"1","height":44})),
+                "source row" => ("row.setHeight", json!({"rows":"1","height":44})),
                 "source frame" => ("drawing.transform", json!({"id":1,"dx":20})),
                 _ => panic!("unknown change"),
             }]);
@@ -110,9 +110,9 @@ async fn alignment_holds_result_anchor_prefixes_beyond_the_source_anchors() {
         let (observed, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &f.bytes()).unwrap();
         let basis = f.basis().await;
         f.colleague(&[if how == "right" {
-            ("home.columnWidth", json!({"cols":"F","width":40}))
+            ("column.setWidth", json!({"cols":"F","width":40}))
         } else {
-            ("home.rowHeight", json!({"rows":"10","height":10}))
+            ("row.setHeight", json!({"rows":"10","height":10}))
         }]);
         let before = f.bytes();
         let (outside, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &before).unwrap();

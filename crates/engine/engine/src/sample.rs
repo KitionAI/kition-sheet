@@ -66,35 +66,35 @@ fn sales(s: &mut Session) -> bool {
     ]);
     let mut ok = run(s, "range.setValues", json!({"range": "B4", "values": rows}));
     ok &= run(s, "range.setValues", json!({"range": "B2", "values": [["Quarterly Sales Dashboard"]]}));
-    ok &= run(s, "home.cellStyle", json!({"range": "B2", "name": "Title"}));
+    ok &= run(s, "style.apply", json!({"range": "B2", "name": "Title"}));
     ok &= run(s, "range.setValues", json!({"range": "B3", "values": [["Fiscal year 2026 · all figures in USD"]]}));
-    ok &= run(s, "home.cellStyle", json!({"range": "B3", "name": "Explanatory Text"}));
+    ok &= run(s, "style.apply", json!({"range": "B3", "name": "Explanatory Text"}));
     for r in 5..=10 {
         ok &= run(s, "cell.set", json!({"cell": format!("G{r}"), "input": format!("=SUM(C{r}:F{r})")}));
         ok &= run(s, "cell.set", json!({"cell": format!("H{r}"), "input": format!("=F{r}/C{r}-1")}));
-        ok &= run(s, "insert.sparkline", json!({"range": format!("C{r}:F{r}"), "location": format!("I{r}"), "type": "line", "markers": true}));
+        ok &= run(s, "sparkline.insert", json!({"range": format!("C{r}:F{r}"), "location": format!("I{r}"), "type": "line", "markers": true}));
     }
-    ok &= run(s, "insert.table", json!({"range": "B4:I10", "style": "TableStyleMedium2", "name": "Sales"}));
+    ok &= run(s, "table.insert", json!({"range": "B4:I10", "style": "TableStyleMedium2", "name": "Sales"}));
     ok &= run(s, "table.totalRow", json!({"table": "Sales", "on": true}));
     for col in ["Q1", "Q2", "Q3", "Q4", "Total"] {
         ok &= run(s, "table.totalFunction", json!({"table": "Sales", "column": col, "function": "sum"}));
     }
     ok &= run(s, "table.totalFunction", json!({"table": "Sales", "column": "Growth", "function": "average"}));
     ok &= run(s, "table.totalFunction", json!({"table": "Sales", "column": "Trend", "function": "none"}));
-    ok &= run(s, "home.numberFormat", json!({"range": "C5:G11", "code": "\"$\"#,##0"}));
-    ok &= run(s, "home.numberFormat", json!({"range": "H5:H11", "code": "0.0%"}));
-    ok &= run(s, "home.conditionalFormat", json!({"range": "G5:G10", "rule": {"type": "dataBar", "color": "#5B9BD5"}}));
-    ok &= run(s, "home.conditionalFormat", json!({"range": "H5:H10", "rule": {"type": "iconSet", "set": "3Arrows"}}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "A:A", "width": 20}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "B:B", "width": 132}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "C:G", "width": 84}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "H:I", "width": 76}));
-    ok &= run(s, "selection.set", json!({"range": "B4:F10"}));
-    ok &= run(s, "insert.chart", json!({"type": "column", "title": "Revenue by Region", "at": "K3", "width": 460, "height": 270}));
-    ok &= run(s, "selection.set", json!({"range": "B4:B10"}));
+    ok &= run(s, "format.numberFormat", json!({"range": "C5:G11", "code": "\"$\"#,##0"}));
+    ok &= run(s, "format.numberFormat", json!({"range": "H5:H11", "code": "0.0%"}));
+    ok &= run(s, "conditionalFormat.apply", json!({"range": "G5:G10", "rule": {"type": "dataBar", "color": "#5B9BD5"}}));
+    ok &= run(s, "conditionalFormat.apply", json!({"range": "H5:H10", "rule": {"type": "iconSet", "set": "3Arrows"}}));
+    ok &= run(s, "column.setWidth", json!({"cols": "A:A", "width": 20}));
+    ok &= run(s, "column.setWidth", json!({"cols": "B:B", "width": 132}));
+    ok &= run(s, "column.setWidth", json!({"cols": "C:G", "width": 84}));
+    ok &= run(s, "column.setWidth", json!({"cols": "H:I", "width": 76}));
+    ok &= run(s, "select.set", json!({"range": "B4:F10"}));
+    ok &= run(s, "chart.insert", json!({"type": "column", "title": "Revenue by Region", "at": "K3", "width": 460, "height": 270}));
+    ok &= run(s, "select.set", json!({"range": "B4:B10"}));
     // Pie of totals.
     ok &=
-        run(s, "insert.chart", json!({"range": "B4:B10", "type": "pie", "title": "Share of Annual Total", "at": "K19", "width": 460, "height": 260}));
+        run(s, "chart.insert", json!({"range": "B4:B10", "type": "pie", "title": "Share of Annual Total", "at": "K19", "width": 460, "height": 260}));
     if let Ok(d) = s.doc_mut() {
         let wb = Arc::make_mut(&mut d.wb);
         if let Some(sh) = wb.sheet_mut(0)
@@ -121,13 +121,13 @@ fn sales(s: &mut Session) -> bool {
     ok &= run(s, "cell.set", json!({"cell": "C15", "input": "=AVERAGE(C5:F10)"}));
     ok &= run(s, "cell.set", json!({"cell": "C16", "input": "=G10/SUM(G5:G10)"}));
     ok &= run(s, "cell.set", json!({"cell": "C17", "input": "=SUM(F5:F10)/SUM(C5:C10)-1"}));
-    ok &= run(s, "home.numberFormat", json!({"range": "C15", "code": "\"$\"#,##0"}));
-    ok &= run(s, "home.numberFormat", json!({"range": "C16:C17", "code": "0.0%"}));
-    ok &= run(s, "home.bold", json!({"range": "B14:B17", "on": true}));
-    ok &= run(s, "home.borders", json!({"range": "B14:C17", "preset": "outside"}));
-    ok &= run(s, "home.fillColor", json!({"range": "B14:C17", "color": "#F2F7FC"}));
-    ok &= run(s, "review.newNote", json!({"cell": "H4", "text": "Q4 vs Q1 growth for each region."}));
-    ok &= run(s, "selection.set", json!({"cell": "B2"}));
+    ok &= run(s, "format.numberFormat", json!({"range": "C15", "code": "\"$\"#,##0"}));
+    ok &= run(s, "format.numberFormat", json!({"range": "C16:C17", "code": "0.0%"}));
+    ok &= run(s, "format.bold", json!({"range": "B14:B17", "on": true}));
+    ok &= run(s, "format.borders", json!({"range": "B14:C17", "preset": "outside"}));
+    ok &= run(s, "format.fillColor", json!({"range": "B14:C17", "color": "#F2F7FC"}));
+    ok &= run(s, "note.add", json!({"cell": "H4", "text": "Q4 vs Q1 growth for each region."}));
+    ok &= run(s, "select.set", json!({"cell": "B2"}));
     ok
 }
 
@@ -146,7 +146,7 @@ fn budget(s: &mut Session) -> bool {
         ["Art supplies", 150, 172.4],
     ]);
     let mut ok = run(s, "range.setValues", json!({"range": "B2", "values": [["Monthly Budget — October 2026"]]}));
-    ok &= run(s, "home.cellStyle", json!({"range": "B2", "name": "Title"}));
+    ok &= run(s, "style.apply", json!({"range": "B2", "name": "Title"}));
     ok &= run(s, "range.setValues", json!({"range": "B4", "values": rows}));
     for r in 5..=14 {
         ok &= run(s, "cell.set", json!({"cell": format!("E{r}"), "input": format!("=C{r}-D{r}")}));
@@ -157,22 +157,22 @@ fn budget(s: &mut Session) -> bool {
         ok &= run(s, "cell.set", json!({"cell": format!("{c}15"), "input": format!("=SUM({c}5:{c}14)")}));
     }
     ok &= run(s, "cell.set", json!({"cell": "F15", "input": "=D15/C15"}));
-    ok &= run(s, "home.cellStyle", json!({"range": "B4:F4", "name": "Heading 3"}));
-    ok &= run(s, "home.cellStyle", json!({"range": "B15:F15", "name": "Total"}));
-    ok &= run(s, "home.numberFormat", json!({"range": "C5:E15", "format": "Accounting"}));
-    ok &= run(s, "home.numberFormat", json!({"range": "F5:F15", "code": "0%"}));
+    ok &= run(s, "style.apply", json!({"range": "B4:F4", "name": "Heading 3"}));
+    ok &= run(s, "style.apply", json!({"range": "B15:F15", "name": "Total"}));
+    ok &= run(s, "format.numberFormat", json!({"range": "C5:E15", "format": "Accounting"}));
+    ok &= run(s, "format.numberFormat", json!({"range": "F5:F15", "code": "0%"}));
     ok &= run(
         s,
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "E5:E14", "rule": {"type": "cellIs", "operator": "less", "value": 0, "preset": "lightRedFillDarkRedText"}}),
     );
-    ok &= run(s, "home.conditionalFormat", json!({"range": "F5:F14", "rule": {"type": "colorScale", "colors": ["#63BE7B", "#FFEB84", "#F8696B"]}}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "B:B", "width": 130}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "C:E", "width": 90}));
-    ok &= run(s, "selection.set", json!({"range": "B4:D14"}));
-    ok &= run(s, "insert.chart", json!({"type": "bar", "title": "Budget vs Actual", "at": "H3", "width": 440, "height": 300}));
+    ok &= run(s, "conditionalFormat.apply", json!({"range": "F5:F14", "rule": {"type": "colorScale", "colors": ["#63BE7B", "#FFEB84", "#F8696B"]}}));
+    ok &= run(s, "column.setWidth", json!({"cols": "B:B", "width": 130}));
+    ok &= run(s, "column.setWidth", json!({"cols": "C:E", "width": 90}));
+    ok &= run(s, "select.set", json!({"range": "B4:D14"}));
+    ok &= run(s, "chart.insert", json!({"type": "bar", "title": "Budget vs Actual", "at": "H3", "width": 440, "height": 300}));
     ok &= run(s, "view.freezePanes", json!({"cell": "A5"}));
-    ok &= run(s, "selection.set", json!({"cell": "B2"}));
+    ok &= run(s, "select.set", json!({"cell": "B2"}));
     ok
 }
 
@@ -197,15 +197,15 @@ fn grades(s: &mut Session) -> bool {
             json!({"cell": format!("G{r}"), "input": format!("=IFS(F{r}>=90,\"A\",F{r}>=80,\"B\",F{r}>=70,\"C\",F{r}>=60,\"D\",TRUE,\"F\")")}),
         );
     }
-    ok &= run(s, "home.numberFormat", json!({"range": "F2:F9", "code": "0.0"}));
-    ok &= run(s, "insert.table", json!({"range": "A1:G9", "style": "TableStyleLight9", "name": "Grades"}));
-    ok &= run(s, "home.columnWidth", json!({"cols": "A:A", "width": 120}));
+    ok &= run(s, "format.numberFormat", json!({"range": "F2:F9", "code": "0.0"}));
+    ok &= run(s, "table.insert", json!({"range": "A1:G9", "style": "TableStyleLight9", "name": "Grades"}));
+    ok &= run(s, "column.setWidth", json!({"cols": "A:A", "width": 120}));
     ok &= run(
         s,
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "G2:G9", "rule": {"type": "cellIs", "operator": "equal", "value": "A", "preset": "greenFillDarkGreenText"}}),
     );
-    ok &= run(s, "home.conditionalFormat", json!({"range": "F2:F9", "rule": {"type": "dataBar", "color": "#63BE7B"}}));
+    ok &= run(s, "conditionalFormat.apply", json!({"range": "F2:F9", "rule": {"type": "dataBar", "color": "#63BE7B"}}));
     ok
 }
 

@@ -9,7 +9,7 @@ import { FONTS, backToGrid } from './sheet'
  * tabs, a name search, the font and the Unicode subset, the grid, the symbols used last, the
  * character's code and name). A symbol goes in at the caret of what is being typed (the cell, a
  * shape's text); with nothing typed, after the active cell's text with the cell left open, as
- * WPS does (`insert.symbol`, which the editor's engine routes so).
+ * WPS does (`symbol.insert`, which the editor's engine routes so).
  */
 
 /** The common symbols, row by row (the first two rows as the case sheet lists them; ours after). */
@@ -69,7 +69,7 @@ function useInsertSymbol(refocus = true) {
   const { run } = useKitEditor()
   return (symbol: string) => {
     rememberSymbol(symbol)
-    const done = run('insert.symbol', { char: symbol })
+    const done = run('symbol.insert', { char: symbol })
     return refocus ? done.finally(backToGrid) : done
   }
 }
@@ -80,7 +80,7 @@ export function SymbolGroup() {
   const readOnly = useReadOnly()
   return (
     <RibbonGroup label={p('Symbols')} icon={OmegaIcon}>
-      <RibbonMenu icon={OmegaIcon} label={p('Symbol')} size="large" primary testId="sheet-symbol" disabled={readOnly || !enabled('insert.symbol')}>
+      <RibbonMenu icon={OmegaIcon} label={p('Symbol')} size="large" primary testId="sheet-symbol" disabled={readOnly || !enabled('symbol.insert')}>
         <SymbolPanel />
       </RibbonMenu>
     </RibbonGroup>

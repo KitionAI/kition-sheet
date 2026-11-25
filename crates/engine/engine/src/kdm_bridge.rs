@@ -11,7 +11,7 @@
 //! undo step ([`Session::execute`]); their transactions are counted for it ([`Link::pending`])
 //! and given to the step it pushes, found by a push counter ([`Link::pushed`], not the stack's
 //! length: at the limit a push drops the oldest step). A change that pushed no step (view state,
-//! `formulas.calculateNow`, the watch list) is written as the system's: never an undo step, and
+//! `formula.calculateNow`, the watch list) is written as the system's: never an undo step, and
 //! the redo steps survive. The panic guard's rollback after commands that already wrote is
 //! written too, as part of the step below it.
 //!

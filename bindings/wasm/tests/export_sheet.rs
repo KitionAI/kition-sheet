@@ -11,7 +11,7 @@ use serde_json::json;
 fn a_picture_of_another_sheets_range_draws_that_sheet() {
     let mut book = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     book.execute("range.setValues", json!({ "range": "A1", "values": [["active", "sheet"], [1, 2]] })).unwrap();
-    book.execute("home.insertSheet", json!({ "name": "Notes", "before": 9 })).unwrap();
+    book.execute("sheet.insert", json!({ "name": "Notes", "before": 9 })).unwrap();
     book.execute("range.setValues", json!({ "range": "A1", "values": [["other", "words"], [3, 4]] })).unwrap();
     let there = book.execute("file.export", json!({ "format": "png", "range": "A1:B2" })).unwrap();
     book.execute("sheet.activate", json!({ "sheet": 0 })).unwrap();

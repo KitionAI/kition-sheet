@@ -57,7 +57,7 @@ export function SheetDialogs({ info }: { info: SheetInfo }) {
   if (dialog?.kind === 'delete') {
     const confirm = () => {
       close()
-      void run('home.deleteSheet', { sheet: dialog.sheet })
+      void run('sheet.delete', { sheet: dialog.sheet })
     }
     return (
       <Modal open onOpenChange={(open) => (open ? undefined : close())}>

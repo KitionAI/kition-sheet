@@ -3,8 +3,8 @@ id: regressions/issue-3
 feature: sheet.format.alignment
 intent: >-
   The kit's renderer (KitDocument::render, the editor's grid and thumbnails) draws what Excel
-  draws: sparklines (now also in `document.inspect`), checkboxes with their value,
-  strikethrough and underline on plain text, text turned or stacked by `home.orientation`, the
+  draws: sparklines (now also in `file.inspect`), checkboxes with their value,
+  strikethrough and underline on plain text, text turned or stacked by `format.orientation`, the
   marks of notes and comments, AutoFilter and table filter buttons, and the brackets of grouped
   rows and columns; the frozen-pane line stays under charts and shapes; right-aligned text wider
   than its cell spills left (centred text both ways) instead of being clipped.

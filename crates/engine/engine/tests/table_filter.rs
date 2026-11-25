@@ -22,7 +22,7 @@ fn fruit() -> Session {
             }
         }
     }
-    run(&mut s, "insert.table", json!({"range": "A1:B6", "header": true}));
+    run(&mut s, "table.insert", json!({"range": "A1:B6", "header": true}));
     s
 }
 

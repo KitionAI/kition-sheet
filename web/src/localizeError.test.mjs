@@ -28,7 +28,7 @@ test('open failures name the file in Chinese, with what it is', () => {
 
 test('a refusal wrapped by the command or an agent step keeps its translated reason', () => {
   const { t, phrase } = strings('zh-CN')
-  assert.equal(localizeError(phrase, t, 'command `home.mergeCells` is not available right now: The workbook is protected and cannot be changed.'), '命令现在不可用：工作簿受保护，不能更改。')
+  assert.equal(localizeError(phrase, t, 'command `cell.merge` is not available right now: The workbook is protected and cannot be changed.'), '命令现在不可用：工作簿受保护，不能更改。')
   assert.equal(localizeError(phrase, t, 'step 1 (`edit.paste`) failed: Nothing to paste.'), '没有可粘贴的内容。')
 })
 

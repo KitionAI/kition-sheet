@@ -53,21 +53,21 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
             <RibbonItem primary>
               <FontSizePicker info={info} />
             </RibbonItem>
-            <CommandButton command="home.increaseFontSize" icon={AArrowUp} size="icon" label={p('Increase Font Size')} title={p('Increase Font Size')} />
-            <CommandButton command="home.decreaseFontSize" icon={AArrowDown} size="icon" label={p('Decrease Font Size')} title={p('Decrease Font Size')} />
+            <CommandButton command="format.increaseFontSize" icon={AArrowUp} size="icon" label={p('Increase Font Size')} title={p('Increase Font Size')} />
+            <CommandButton command="format.decreaseFontSize" icon={AArrowDown} size="icon" label={p('Decrease Font Size')} title={p('Decrease Font Size')} />
           </RibbonRow>
           <RibbonRow>
-            <CommandButton command="home.bold" primary icon={Bold} size="icon" pressed={font.bold} label={p('Bold')} title={t('boldTip', { key })} />
-            <CommandButton command="home.italic" primary icon={Italic} size="icon" pressed={font.italic} label={p('Italic')} title={t('italicTip', { key })} />
-            <CommandButton command="home.underline" primary icon={Underline} size="icon" pressed={font.underline != null && font.underline !== 'None'} label={p('Underline')} title={t('underlineTip', { key })} />
-            <CommandButton command="home.strikethrough" icon={Strikethrough} size="icon" pressed={font.strike} label={p('Strikethrough')} title={t('strikeTip', { key })} />
+            <CommandButton command="format.bold" primary icon={Bold} size="icon" pressed={font.bold} label={p('Bold')} title={t('boldTip', { key })} />
+            <CommandButton command="format.italic" primary icon={Italic} size="icon" pressed={font.italic} label={p('Italic')} title={t('italicTip', { key })} />
+            <CommandButton command="format.underline" primary icon={Underline} size="icon" pressed={font.underline != null && font.underline !== 'None'} label={p('Underline')} title={t('underlineTip', { key })} />
+            <CommandButton command="format.strikethrough" icon={Strikethrough} size="icon" pressed={font.strike} label={p('Strikethrough')} title={t('strikeTip', { key })} />
             <RibbonMenu icon={Grid2x2} label={p('Borders')} size="icon" testId="sheet-borders">
               {BORDERS.map(([label, preset]) => (
-                <CommandItem key={preset} command="home.borders" params={{ preset }} label={p(label)} />
+                <CommandItem key={preset} command="format.borders" params={{ preset }} label={p(label)} />
               ))}
             </RibbonMenu>
-            <ColorSplit primary command="home.fillColor" none="none" noneLabel={t('colorNoFill')} icon={PaintBucket} label={p('Fill Color')} store="fillColor" initial="#FFFF00" testId="sheet-fill" />
-            <ColorSplit primary command="home.fontColor" none="auto" noneLabel={t('colorAutomatic')} icon={Baseline} label={p('Font Color')} store="fontColor" initial="#FF0000" testId="sheet-font-color" />
+            <ColorSplit primary command="format.fillColor" none="none" noneLabel={t('colorNoFill')} icon={PaintBucket} label={p('Fill Color')} store="fillColor" initial="#FFFF00" testId="sheet-fill" />
+            <ColorSplit primary command="format.color" none="auto" noneLabel={t('colorAutomatic')} icon={Baseline} label={p('Font Color')} store="fontColor" initial="#FF0000" testId="sheet-font-color" />
           </RibbonRow>
         </RibbonStack>
       </RibbonGroup>
@@ -75,29 +75,29 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
       <RibbonGroup label={p('Alignment')} icon={AlignLeft}>
         <RibbonStack>
           <RibbonRow>
-            <CommandButton command="home.alignTop" icon={AlignVerticalJustifyStart} size="icon" pressed={align.v === 'Top'} label={p('Top Align')} title={p('Top Align')} />
-            <CommandButton command="home.alignMiddle" icon={AlignVerticalJustifyCenter} size="icon" pressed={align.v === 'Center'} label={p('Middle Align')} title={p('Middle Align')} />
-            <CommandButton command="home.alignBottom" icon={AlignVerticalJustifyEnd} size="icon" pressed={align.v === 'Bottom'} label={p('Bottom Align')} title={p('Bottom Align')} />
+            <CommandButton command="format.alignTop" icon={AlignVerticalJustifyStart} size="icon" pressed={align.v === 'Top'} label={p('Top Align')} title={p('Top Align')} />
+            <CommandButton command="format.alignMiddle" icon={AlignVerticalJustifyCenter} size="icon" pressed={align.v === 'Center'} label={p('Middle Align')} title={p('Middle Align')} />
+            <CommandButton command="format.alignBottom" icon={AlignVerticalJustifyEnd} size="icon" pressed={align.v === 'Bottom'} label={p('Bottom Align')} title={p('Bottom Align')} />
             <RibbonMenu icon={RotateCcw} label={p('Orientation')} size="icon">
-              <CommandItem command="home.orientation" params={{ angle: 'counterclockwise' }} label={p('Angle Counterclockwise')} />
-              <CommandItem command="home.orientation" params={{ angle: 'clockwise' }} label={p('Angle Clockwise')} />
-              <CommandItem command="home.orientation" params={{ angle: 'vertical' }} label={p('Vertical Text')} />
-              <CommandItem command="home.orientation" params={{ angle: 'up' }} label={p('Rotate Text Up')} />
-              <CommandItem command="home.orientation" params={{ angle: 'down' }} label={p('Rotate Text Down')} />
+              <CommandItem command="format.orientation" params={{ angle: 'counterclockwise' }} label={p('Angle Counterclockwise')} />
+              <CommandItem command="format.orientation" params={{ angle: 'clockwise' }} label={p('Angle Clockwise')} />
+              <CommandItem command="format.orientation" params={{ angle: 'vertical' }} label={p('Vertical Text')} />
+              <CommandItem command="format.orientation" params={{ angle: 'up' }} label={p('Rotate Text Up')} />
+              <CommandItem command="format.orientation" params={{ angle: 'down' }} label={p('Rotate Text Down')} />
             </RibbonMenu>
-            <CommandButton command="home.wrapText" icon={WrapText} pressed={align.wrap} label={p('Wrap Text')} />
+            <CommandButton command="format.wrapText" icon={WrapText} pressed={align.wrap} label={p('Wrap Text')} />
           </RibbonRow>
           <RibbonRow>
-            <CommandButton command="home.alignLeft" icon={AlignLeft} size="icon" pressed={align.h === 'Left'} label={p('Align Left')} title={p('Align Left')} />
-            <CommandButton command="home.alignCenter" primary icon={AlignCenter} size="icon" pressed={align.h === 'Center'} label={p('Center')} title={p('Center')} />
-            <CommandButton command="home.alignRight" icon={AlignRight} size="icon" pressed={align.h === 'Right'} label={p('Align Right')} title={p('Align Right')} />
-            <CommandButton command="home.decreaseIndent" icon={IndentDecrease} size="icon" label={p('Decrease Indent')} title={p('Decrease Indent')} />
-            <CommandButton command="home.increaseIndent" icon={IndentIncrease} size="icon" label={p('Increase Indent')} title={p('Increase Indent')} />
+            <CommandButton command="format.alignLeft" icon={AlignLeft} size="icon" pressed={align.h === 'Left'} label={p('Align Left')} title={p('Align Left')} />
+            <CommandButton command="format.alignCenter" primary icon={AlignCenter} size="icon" pressed={align.h === 'Center'} label={p('Center')} title={p('Center')} />
+            <CommandButton command="format.alignRight" icon={AlignRight} size="icon" pressed={align.h === 'Right'} label={p('Align Right')} title={p('Align Right')} />
+            <CommandButton command="format.decreaseIndent" icon={IndentDecrease} size="icon" label={p('Decrease Indent')} title={p('Decrease Indent')} />
+            <CommandButton command="format.increaseIndent" icon={IndentIncrease} size="icon" label={p('Increase Indent')} title={p('Increase Indent')} />
             <RibbonMenu icon={TableCellsMerge} label={p('Merge & Center')} testId="sheet-merge" primary>
-              <CommandItem command="home.mergeCenter" label={p('Merge & Center')} />
-              <CommandItem command="home.mergeAcross" label={p('Merge Across')} />
-              <CommandItem command="home.mergeCells" label={p('Merge Cells')} />
-              <CommandItem command="home.unmergeCells" label={p('Unmerge Cells')} />
+              <CommandItem command="cell.mergeCenter" label={p('Merge & Center')} />
+              <CommandItem command="cell.mergeAcross" label={p('Merge Across')} />
+              <CommandItem command="cell.merge" label={p('Merge Cells')} />
+              <CommandItem command="cell.unmerge" label={p('Unmerge Cells')} />
             </RibbonMenu>
           </RibbonRow>
         </RibbonStack>
@@ -107,7 +107,7 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
         <RibbonStack>
           <RibbonRow>
             <RibbonItem primary>
-              <select className="kui-ribbon-field" style={{ width: 104 }} value={info.style.num_fmt ?? 'General'} aria-label={p('Number Format')} onChange={(event) => void run('home.numberFormat', { format: event.target.value })} data-testid="sheet-number-format">
+              <select className="kui-ribbon-field" style={{ width: 104 }} value={info.style.num_fmt ?? 'General'} aria-label={p('Number Format')} onChange={(event) => void run('format.numberFormat', { format: event.target.value })} data-testid="sheet-number-format">
                 {formats.map((format) => (
                   <option key={format} value={format}>
                     {p(format)}
@@ -117,28 +117,28 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
             </RibbonItem>
           </RibbonRow>
           <RibbonRow>
-            <CommandButton command="home.accounting" icon={DollarSign} size="icon" label={p('Accounting Number Format')} title={p('Accounting Number Format')} />
-            <CommandButton command="home.percent" icon={Percent} size="icon" label={p('Percent Style')} title={p('Percent Style')} />
-            <CommandButton command="home.comma" icon={Rows3} size="icon" label={p('Comma Style')} title={p('Comma Style')} />
-            <CommandButton command="home.increaseDecimal" icon={DecimalsArrowRight} size="icon" label={p('Increase Decimal')} title={p('Increase Decimal')} />
-            <CommandButton command="home.decreaseDecimal" icon={DecimalsArrowLeft} size="icon" label={p('Decrease Decimal')} title={p('Decrease Decimal')} />
+            <CommandButton command="format.accounting" icon={DollarSign} size="icon" label={p('Accounting Number Format')} title={p('Accounting Number Format')} />
+            <CommandButton command="format.percent" icon={Percent} size="icon" label={p('Percent Style')} title={p('Percent Style')} />
+            <CommandButton command="format.comma" icon={Rows3} size="icon" label={p('Comma Style')} title={p('Comma Style')} />
+            <CommandButton command="format.increaseDecimal" icon={DecimalsArrowRight} size="icon" label={p('Increase Decimal')} title={p('Increase Decimal')} />
+            <CommandButton command="format.decreaseDecimal" icon={DecimalsArrowLeft} size="icon" label={p('Decrease Decimal')} title={p('Decrease Decimal')} />
           </RibbonRow>
         </RibbonStack>
       </RibbonGroup>
 
       <RibbonGroup label={p('Styles')} icon={Palette}>
         <RibbonMenu icon={Palette} label={p('Conditional Formatting')} size="large" testId="sheet-cf">
-          <CommandItem command="home.conditionalFormat" params={{ rule: { type: 'dataBar' } }} label={p('Data Bars')} />
-          <CommandItem command="home.conditionalFormat" params={{ rule: { type: 'colorScale' } }} label={p('Color Scales')} />
-          <CommandItem command="home.conditionalFormat" params={{ rule: { type: 'iconSet' } }} label={p('Icon Sets')} />
+          <CommandItem command="conditionalFormat.apply" params={{ rule: { type: 'dataBar' } }} label={p('Data Bars')} />
+          <CommandItem command="conditionalFormat.apply" params={{ rule: { type: 'colorScale' } }} label={p('Color Scales')} />
+          <CommandItem command="conditionalFormat.apply" params={{ rule: { type: 'iconSet' } }} label={p('Icon Sets')} />
           <MenuSeparator />
-          <CommandItem command="home.clearRules" label={p('Clear Rules')} />
-          <CommandItem command="home.manageRules" label={p('Manage Rules')} />
+          <CommandItem command="conditionalFormat.clearRules" label={p('Clear Rules')} />
+          <CommandItem command="conditionalFormat.manageRules" label={p('Manage Rules')} />
         </RibbonMenu>
         <FormatAsTableMenu info={info} />
         <RibbonMenu icon={TableProperties} label={p('Cell Styles')} size="large">
           {CELL_STYLES.map((name) => (
-            <CommandItem key={name} command="home.cellStyle" params={{ name }} label={p(name)} />
+            <CommandItem key={name} command="style.apply" params={{ name }} label={p(name)} />
           ))}
         </RibbonMenu>
       </RibbonGroup>
@@ -152,27 +152,27 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
           <DeleteMenuItems info={info} testId="sheet-delete" sheet />
         </RibbonMenu>
         <RibbonMenu icon={SquareSplitVertical} label={p('Format')} size="large" testId="sheet-format-menu">
-          <CommandItem command="home.rowHeight" ask label={p('Row Height')} />
-          <CommandItem command="home.autofitRowHeight" label={p('AutoFit Row Height')} />
-          <CommandItem command="home.columnWidth" ask label={p('Column Width')} />
-          <CommandItem command="home.autofitColumnWidth" label={p('AutoFit Column Width')} />
+          <CommandItem command="row.setHeight" ask label={p('Row Height')} />
+          <CommandItem command="row.autofitHeight" label={p('AutoFit Row Height')} />
+          <CommandItem command="column.setWidth" ask label={p('Column Width')} />
+          <CommandItem command="column.autofitWidth" label={p('AutoFit Column Width')} />
           <MenuSeparator />
           {/* Hide & Unhide: Unhide lists the hidden sheets, as `sheet.unhide` asks with no sheet. */}
           <CommandItem command="sheet.hide" label={p('Hide Sheet')} />
           <MenuItem label={p('Unhide Sheet…')} disabled={!info.tabs.some((tab) => tab.hidden)} onSelect={openUnhideSheets} testId="sheet-format-unhide" />
           <MenuSeparator />
-          <CommandItem command="home.formatCells" label={p('Format Cells')} />
+          <CommandItem command="format.cells" label={p('Format Cells')} />
         </RibbonMenu>
       </RibbonGroup>
 
       <RibbonGroup label={p('Editing')} icon={Search}>
         <RibbonStack>
           <RibbonMenu icon={Sigma} label={p('AutoSum')} testId="sheet-autosum" primary>
-            <CommandItem command="formulas.autoSum" params={{ function: 'SUM' }} label={p('Sum')} />
-            <CommandItem command="formulas.autoSum" params={{ function: 'AVERAGE' }} label={p('Average')} />
-            <CommandItem command="formulas.autoSum" params={{ function: 'COUNT' }} label={p('Count Numbers')} />
-            <CommandItem command="formulas.autoSum" params={{ function: 'MAX' }} label={p('Max')} />
-            <CommandItem command="formulas.autoSum" params={{ function: 'MIN' }} label={p('Min')} />
+            <CommandItem command="formula.autoSum" params={{ function: 'SUM' }} label={p('Sum')} />
+            <CommandItem command="formula.autoSum" params={{ function: 'AVERAGE' }} label={p('Average')} />
+            <CommandItem command="formula.autoSum" params={{ function: 'COUNT' }} label={p('Count Numbers')} />
+            <CommandItem command="formula.autoSum" params={{ function: 'MAX' }} label={p('Max')} />
+            <CommandItem command="formula.autoSum" params={{ function: 'MIN' }} label={p('Min')} />
           </RibbonMenu>
           <RibbonMenu icon={ArrowDownToLine} label={p('Fill')}>
             <CommandItem command="edit.fillDown" label={p('Down')} />

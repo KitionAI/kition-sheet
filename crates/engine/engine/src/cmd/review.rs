@@ -8,7 +8,7 @@ use super::*;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(
-            "review.protectSheet",
+            "sheet.protect",
             "Protect Sheet…",
             ["Review", "Protect"],
             None,
@@ -16,10 +16,10 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             protect_sheet
         ),
-        cmd!("review.unprotectSheet", "Unprotect Sheet", ["Review", "Protect"], None, "{password?}", has_doc, unprotect_sheet),
-        cmd!("review.protectWorkbook", "Protect Workbook", ["Review", "Protect"], None, "{on?: bool}", has_doc, protect_workbook),
-        cmd!(query "review.workbookStatistics", "Workbook Statistics", ["Review", "Proofing"], None, "{}", has_doc, stats),
-        cmd!(query "review.checkAccessibility", "Check Accessibility", ["Review", "Accessibility"], None, "{} → issues", has_doc, accessibility),
+        cmd!("sheet.unprotect", "Unprotect Sheet", ["Review", "Protect"], None, "{password?}", has_doc, unprotect_sheet),
+        cmd!("workbook.protect", "Protect Workbook", ["Review", "Protect"], None, "{on?: bool}", has_doc, protect_workbook),
+        cmd!(query "workbook.statistics", "Workbook Statistics", ["Review", "Proofing"], None, "{}", has_doc, stats),
+        cmd!(query "accessibility.check", "Check Accessibility", ["Review", "Accessibility"], None, "{} → issues", has_doc, accessibility),
     ]
 }
 

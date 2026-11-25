@@ -31,26 +31,26 @@ Commands by namespace (the part of the id before the first dot):
 | --- | ---: | ---: | ---: | --- |
 | `app` | 1 | 0 | 1 | `app.commands` |
 | `arrange` | 6 | 5 | 6 | `arrange.bringForward`, `arrange.sendBackward`, `arrange.selectionPane` |
-| `automate` | 5 | 3 | 5 | `automate.recordActions`, `automate.newScript`, `automate.allScripts` |
+| `automate` | 5 | 3 | 5 | `script.record`, `script.new`, `script.list` |
 | `cell` | 4 | 3 | 4 | `cell.set`, `cell.formatText`, `cell.get` |
 | `chart` | 12 | 12 | 12 | `chart.set`, `chart.switchRowColumn`, `chart.delete` |
-| `commandLine` | 1 | 1 | 1 | `commandLine` |
+| `command.runLine` | 1 | 1 | 1 | `command.runLine` |
 | `data` | 32 | 28 | 32 | `data.sortAscending`, `data.sortDescending`, `data.sort` |
-| `document` | 1 | 0 | 1 | `document.inspect` |
-| `draw` | 10 | 2 | 10 | `draw.pen`, `draw.pencil`, `draw.highlighter` |
+| `document` | 1 | 0 | 1 | `file.inspect` |
+| `draw` | 10 | 2 | 10 | `ink.pen`, `ink.pencil`, `ink.highlighter` |
 | `drawing` | 14 | 13 | 14 | `drawing.ink`, `drawing.erase`, `drawing.describe` |
 | `edit` | 26 | 18 | 26 | `edit.selectAll`, `edit.goTo`, `edit.goToSpecial` |
 | `file` | 12 | 6 | 12 | `file.new`, `file.open`, `file.save` |
-| `formulas` | 27 | 8 | 27 | `formulas.autoSum`, `formulas.insertFunction`, `formulas.functions` |
+| `formulas` | 27 | 8 | 27 | `formula.autoSum`, `formula.insertFunction`, `formula.functions` |
 | `history` | 1 | 0 | 1 | `history.list` |
-| `home` | 63 | 62 | 63 | `home.bold`, `home.italic`, `home.underline` |
-| `insert` | 14 | 14 | 14 | `insert.table`, `insert.chart`, `insert.recommendedCharts` |
+| `home` | 63 | 62 | 63 | `format.bold`, `format.italic`, `format.underline` |
+| `insert` | 14 | 14 | 14 | `table.insert`, `chart.insert`, `chart.recommended` |
 | `object` | 3 | 3 | 3 | `object.delete`, `object.move`, `object.setAnchorMode` |
-| `pageLayout` | 16 | 16 | 16 | `pageLayout.orientation`, `pageLayout.size`, `pageLayout.margins` |
+| `pageLayout` | 16 | 16 | 16 | `page.orientation`, `page.size`, `page.margins` |
 | `pivot` | 19 | 16 | 19 | `pivot.fields`, `pivot.fieldList`, `pivot.list` |
 | `range` | 2 | 2 | 2 | `range.setValues`, `range.fill` |
-| `review` | 15 | 10 | 15 | `review.newNote`, `review.newComment`, `review.replyComment` |
-| `selection` | 7 | 0 | 7 | `selection.set`, `selection.move`, `selection.next` |
+| `review` | 15 | 10 | 15 | `note.add`, `comment.add`, `comment.reply` |
+| `selection` | 7 | 0 | 7 | `select.set`, `select.move`, `select.next` |
 | `shape` | 1 | 1 | 1 | `shape.setText` |
 | `sheet` | 9 | 5 | 9 | `sheet.rename`, `sheet.move`, `sheet.tabColor` |
 | `table` | 13 | 13 | 13 | `table.totalRow`, `table.bandedRows`, `table.bandedColumns` |
@@ -186,24 +186,24 @@ schema says which.
 | `kind` | `chart`, `image`, `shape` | `arrange.align`, `arrange.bringForward`, `arrange.group`, `arrange.sendBackward` and 3 more |
 | `kind` | `shape` | `arrange.rotate`, `chart.shapeFill`, `chart.shapeOutline` |
 | `kind` | `blanks`, `constants`, `formulas`, `comments`, `lastCell`, `currentRegion`, `visible`, `conditionalFormats`, `dataValidation`, `errors`, `numbers`, `text` | `edit.goToSpecial` |
-| `kind` | `rectangle`, `roundedRectangle`, `ellipse`, `triangle`, `line`, `arrow`, `textBox` | `insert.shape` |
+| `kind` | `rectangle`, `roundedRectangle`, `ellipse`, `triangle`, `line`, `arrow`, `textBox` | `shape.insert` |
 | `kind` | `shape`, `textBox`, `chart` | `drawing.insert` |
 | `layout` | `compact`, `outline`, `tabular` | `pivot.layout`, `pivot.reportLayout` |
 | `mode` | `series`, `copy`, `formats`, `values` | `edit.autoFill` |
-| `mode` | `moveOnly`, `moveAndSize`, `absolute` | `insert.picture` |
+| `mode` | `moveOnly`, `moveAndSize`, `absolute` | `image.insert` |
 | `mode` | `moveAndSize`, `moveOnly`, `absolute` | `object.setAnchorMode` |
-| `mode` | `automatic`, `automaticExceptTables`, `manual` | `formulas.calculationOptions` |
+| `mode` | `automatic`, `automaticExceptTables`, `manual` | `formula.calculationOptions` |
 | `mode` | `off`, `on`, `rows`, `columns` | `pivot.grandTotals` |
 | `mode` | `none`, `top`, `bottom` | `pivot.subtotals` |
-| `preset` | `bottom`, `top`, `left`, `right`, `none`, `all`, `outside`, `thickOutside`, `thickBottom`, `doubleBottom`, `topBottom`, `topThickBottom`, `topDoubleBottom`, `insideHorizontal`, `insideVertical`, `inside`, `diagonalDown`, `diagonalUp` | `home.borders` |
-| `preset` | `normal`, `wide`, `narrow` | `pageLayout.margins` |
+| `preset` | `bottom`, `top`, `left`, `right`, `none`, `all`, `outside`, `thickOutside`, `thickBottom`, `doubleBottom`, `topBottom`, `topThickBottom`, `topDoubleBottom`, `insideHorizontal`, `insideVertical`, `inside`, `diagonalDown`, `diagonalUp` | `format.borders` |
+| `preset` | `normal`, `wide`, `narrow` | `page.margins` |
 | `preset` | `straightConnector1`, `bentConnector3`, `curvedConnector3` | `drawing.connect` |
-| `style` | `single`, `double`, `singleAccounting`, `doubleAccounting` | `home.underline` |
-| `subtype` | `clustered`, `stacked`, `stacked100`, `markers` | `insert.chart` |
+| `style` | `single`, `double`, `singleAccounting`, `doubleAccounting` | `format.underline` |
+| `subtype` | `clustered`, `stacked`, `stacked100`, `markers` | `chart.insert` |
 | `type` | `linear`, `growth`, `date`, `autofill` | `edit.fillSeries` |
-| `type` | `column`, `bar`, `line`, `pie`, `doughnut`, `area`, `scatter`, `bubble`, `radar`, `combo`, `histogram`, `waterfall`, `funnel`, `treemap`, `sunburst`, `boxWhisker`, `stock` | `insert.chart` |
-| `type` | `line`, `column`, `winLoss` | `insert.sparkline` |
-| `type` | `cellIs`, `expression`, `containsText`, `beginsWith`, `endsWith`, `blanks`, `noBlanks`, `errors`, `noErrors`, `duplicate`, `unique`, `top10`, `aboveAverage`, `timePeriod`, `colorScale`, `dataBar`, `iconSet` | `home.conditionalFormat` |
+| `type` | `column`, `bar`, `line`, `pie`, `doughnut`, `area`, `scatter`, `bubble`, `radar`, `combo`, `histogram`, `waterfall`, `funnel`, `treemap`, `sunburst`, `boxWhisker`, `stock` | `chart.insert` |
+| `type` | `line`, `column`, `winLoss` | `sparkline.insert` |
+| `type` | `cellIs`, `expression`, `containsText`, `beginsWith`, `endsWith`, `blanks`, `noBlanks`, `errors`, `noErrors`, `duplicate`, `unique`, `top10`, `aboveAverage`, `timePeriod`, `colorScale`, `dataBar`, `iconSet` | `conditionalFormat.apply` |
 | `type` | `any`, `whole`, `decimal`, `list`, `date`, `time`, `textLength`, `custom` | `data.validation` |
 | `vertAlign` | `superscript`, `subscript`, `baseline` | `cell.formatText` |
 
@@ -278,6 +278,6 @@ sheet_run {
   (add the font, or for an Office font its stand-in: Carlito for Calibri);
   `sheet.missing-glyph` (warning) names characters no face draws, shown as empty boxes.
 - **Merges:** a merged range shows only its top-left value. `sheet.merge-hides-data` names a merge
-  that hides other values; its `fix` is `home.unmergeCells` on that range.
+  that hides other values; its `fix` is `cell.unmerge` on that range.
 - **Defined names:** `sheet.broken-name` is a name that points nowhere (`#REF!`, a deleted sheet);
   fix the name's formula or delete it.

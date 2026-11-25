@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 fn copied_window_keeps_the_source_active_sheet() {
     for name in ["Sheet1", "Sheet2"] {
         let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-        doc.execute("home.insertSheet", json!({"name":"Sheet2"})).unwrap();
+        doc.execute("sheet.insert", json!({"name":"Sheet2"})).unwrap();
         doc.execute("sheet.activate", json!({"sheet":name})).unwrap();
         doc.execute("view.newWindow", json!({})).unwrap();
         assert_eq!(doc.inspect().unwrap()["sheet"], name);
@@ -26,8 +26,8 @@ fn spelling_selection_does_not_choose_any_replacement() {
         for selected in ["A1", "Z20"] {
             let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
             doc.execute("cell.set", json!({"cell":"C3","input":"teh"})).unwrap();
-            doc.execute("selection.set", json!({"range":selected})).unwrap();
-            doc.execute("review.changeSpelling", json!({"cell":"C3","word":"teh","to":"the","all":all})).unwrap();
+            doc.execute("select.set", json!({"range":selected})).unwrap();
+            doc.execute("spelling.change", json!({"cell":"C3","word":"teh","to":"the","all":all})).unwrap();
             assert_eq!(doc.execute("cell.get", json!({"cell":"C3"})).unwrap()["value"], "the");
             let mut workbook: serde_json::Value = serde_json::from_slice(&doc.save(Some("Book.json")).unwrap()).unwrap();
             workbook.as_object_mut().unwrap().remove("identities");
@@ -37,7 +37,7 @@ fn spelling_selection_does_not_choose_any_replacement() {
             saved.push(workbook);
             // spelling.rs::change fixes all=true in its edit.replace delegation;
             // its other branch supplies cell.set with an explicit cell.
-            let command = doc.commands().into_iter().find(|command| command.id == "review.changeSpelling").unwrap();
+            let command = doc.commands().into_iter().find(|command| command.id == "spelling.change").unwrap();
             let states: BTreeSet<_> = command.reads.iter().map(|state| state.as_str()).collect();
             assert_eq!(states, BTreeSet::from(["part"]));
         }

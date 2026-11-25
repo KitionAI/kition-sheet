@@ -28,7 +28,7 @@ const val = async (ref) => {
   const v = (await cellOf(ref)).value
   return v == null ? '' : String(v)
 }
-/** The active sheet as `document.inspect` lists it. */
+/** The active sheet as `file.inspect` lists it. */
 const info = async () => {
   const wb = await h.workbook()
   return wb.sheets[wb.activeSheet]
@@ -410,9 +410,9 @@ try {
   await section('INS-C49 导入的 xlsx（合并、隐藏列、条件格式）四个方向插入', async () => {
     await table(10, 8, 'A1')
     await ai([
-      { command: 'home.mergeCells', params: { range: 'E2:F3' } },
-      { command: 'home.hideColumns', params: { cols: 'H:H' } },
-      { command: 'home.conditionalFormat', params: { range: 'A1:A5', rule: { type: 'expression', formula: 'TRUE', preset: 'lightRedFill' } } },
+      { command: 'cell.merge', params: { range: 'E2:F3' } },
+      { command: 'column.hide', params: { cols: 'H:H' } },
+      { command: 'conditionalFormat.apply', params: { range: 'A1:A5', rule: { type: 'expression', formula: 'TRUE', preset: 'lightRedFill' } } },
     ])
     await saveAndReopen('Imported.xlsx')
     await select('B3')
@@ -454,7 +454,7 @@ try {
   }
 
   // ———————————————————— Interaction with other features ————————————————————
-  const rule = (range) => ({ command: 'home.conditionalFormat', params: { range, rule: { type: 'expression', formula: 'TRUE', preset: 'lightRedFill' } } })
+  const rule = (range) => ({ command: 'conditionalFormat.apply', params: { range, rule: { type: 'expression', formula: 'TRUE', preset: 'lightRedFill' } } })
   await section('INS-C67 A5 规则 1、B5 规则 2，选中 A 列向右插入 1 列', async () => {
     await table(10, 6, 'A1')
     await ai([rule('A5'), rule('B5')])
@@ -485,7 +485,7 @@ try {
 
   await section('INS-C70 A1 有图片，四个方向插入不继承图片', async () => {
     await table(10, 6, 'A1')
-    await exec('insert.picture', { base64: PNG, at: 'A1', width: 40, height: 16 })
+    await exec('image.insert', { base64: PNG, at: 'A1', width: 40, height: 16 })
     for (const item of ['rows-above', 'rows-below', 'cols-left', 'cols-right']) {
       await select('A1')
       await viaRibbon('insert', item)
@@ -495,7 +495,7 @@ try {
 
   await section('INS-C71 单元格格式的继承（按 WPS：向上/向左取前一行列，向下/向右取后一行列）', async () => {
     await table(10, 6, 'A1')
-    await ai([{ command: 'home.bold', params: { range: 'B3', on: true } }, { command: 'home.bold', params: { range: 'A1', on: true } }])
+    await ai([{ command: 'format.bold', params: { range: 'B3', on: true } }, { command: 'format.bold', params: { range: 'A1', on: true } }])
     const bold = async (ref) => (await cellOf(ref)).style?.font?.bold === true
     await select('B4')
     await viaRibbon('insert', 'rows-above')
@@ -514,7 +514,7 @@ try {
 
   await section('INS-C72 A1 有超链接，四个方向插入不继承链接', async () => {
     await table(10, 6, 'A1')
-    await exec('insert.link', { cell: 'A1', target: 'https://example.com' })
+    await exec('link.insert', { cell: 'A1', target: 'https://example.com' })
     let fine = true
     for (const [item, fresh, moved] of [['rows-above', 'A1', 'A2'], ['rows-below', 'A2', 'A1'], ['cols-left', 'A1', 'B1'], ['cols-right', 'B1', 'A1']]) {
       await select('A1')
@@ -540,7 +540,7 @@ try {
 
   await section('INS-C76 某列有合并单元格，插入 1 列不继承合并', async () => {
     await table(10, 6, 'A1')
-    await exec('home.mergeCells', { range: 'B2:B3' })
+    await exec('cell.merge', { range: 'B2:B3' })
     await clickColHeading(1)
     await viaRibbon('insert', 'cols-right')
     const right = (await info()).merges
@@ -553,7 +553,7 @@ try {
 
   const hiddenRow = async () => {
     await table(10, 4, 'A1')
-    await exec('home.hideRows', { rows: '5:5' })
+    await exec('row.hide', { rows: '5:5' })
   }
   await section('INS-C77 第 5 行隐藏，选中第 4 行向下插入 1 行', async () => {
     await hiddenRow()
@@ -581,7 +581,7 @@ try {
   })
   const hiddenCol = async () => {
     await table(10, 6, 'A1')
-    await exec('home.hideColumns', { cols: 'C:C' })
+    await exec('column.hide', { cols: 'C:C' })
   }
   await section('INS-C81 C 列隐藏，选中 B 列向右插入 1 列', async () => {
     await hiddenCol()
@@ -656,7 +656,7 @@ try {
 
   await section('INS-C91 选中合并单元格，右键插入的行列数与合并所占行列数一致', async () => {
     await table(10, 6, 'A1')
-    await exec('home.mergeCells', { range: 'B2:C4' })
+    await exec('cell.merge', { range: 'B2:C4' })
     await rightCell(1, 1)
     await kit.getByTestId('sheet-grid-menu-insert').hover()
     const counts = []
@@ -856,9 +856,9 @@ try {
   await section('DEL-C25 导入的 xlsx（合并、隐藏列、条件格式）删除行', async () => {
     await table(10, 8, 'A1')
     await ai([
-      { command: 'home.mergeCells', params: { range: 'E5:F6' } },
-      { command: 'home.hideColumns', params: { cols: 'H:H' } },
-      { command: 'home.conditionalFormat', params: { range: 'A1:A5', rule: { type: 'expression', formula: 'TRUE', preset: 'lightRedFill' } } },
+      { command: 'cell.merge', params: { range: 'E5:F6' } },
+      { command: 'column.hide', params: { cols: 'H:H' } },
+      { command: 'conditionalFormat.apply', params: { range: 'A1:A5', rule: { type: 'expression', formula: 'TRUE', preset: 'lightRedFill' } } },
     ])
     await saveAndReopen('ImportedDelete.xlsx')
     await select('B2')
@@ -892,24 +892,24 @@ try {
   })
   await section('DEL-C31 第 2 行隐藏，选中 1~3 行删除', async () => {
     await table(10, 4)
-    await exec('home.hideRows', { rows: '2:2' })
+    await exec('row.hide', { rows: '2:2' })
     await select('1:3')
     await viaRibbon('delete', 'rows')
     step('DEL-C31 第 1~3 行（含隐藏的第 2 行）删除，原第 4 行到第 1 行', (await val('A1')) === 'A4' && same((await info()).hiddenRows, []) && (await used())[0] === 7)
   })
   await section('DEL-C32 第 3、5 行隐藏，删除第 4 行后取消隐藏', async () => {
     await table(10, 4)
-    await exec('home.hideRows', { rows: '3:3' })
-    await exec('home.hideRows', { rows: '5:5' })
+    await exec('row.hide', { rows: '3:3' })
+    await exec('row.hide', { rows: '5:5' })
     await select('4:4')
     await viaRibbon('delete', 'rows')
     const hidden = (await info()).hiddenRows
-    await exec('home.unhideRows', { rows: '1:10' })
+    await exec('row.show', { rows: '1:10' })
     step('DEL-C32 隐藏标记仍对应原第 3、5 行（现第 3、4 行），取消隐藏后位置正确', same(hidden, [3, 4]) && (await val('A3')) === 'A3' && (await val('A4')) === 'A5' && (await val('A5')) === 'A6', JSON.stringify(hidden))
   })
   await section('DEL-C33 C 列隐藏，删除 D 列', async () => {
     await table(10, 6)
-    await exec('home.hideColumns', { cols: 'C:C' })
+    await exec('column.hide', { cols: 'C:C' })
     await select('D:D')
     await viaRibbon('delete', 'cols')
     step('DEL-C33 C 列仍为隐藏', same((await info()).hiddenColumns, ['C']) && (await val('D1')) === 'E1')
@@ -937,7 +937,7 @@ try {
   })
   await section('DEL-C36 A1:B2 合并，删除第 1 行、撤销后删除 A 列', async () => {
     await table(10, 6)
-    await exec('home.mergeCells', { range: 'A1:B2' })
+    await exec('cell.merge', { range: 'A1:B2' })
     await clickRowHeading(0)
     await viaRibbon('delete', 'rows')
     const rows = (await info()).merges
@@ -958,7 +958,7 @@ try {
   await section('DEL-C38 图表引用 A1:B5，删除第 3 行', async () => {
     await build(numbered(2), { fill: false })
     await ai([{ command: 'range.setValues', params: { range: `${q('工作表1')}!A1`, values: [['名', '值'], ['a', 1], ['b', 2], ['c', 3], ['d', 4]] } }])
-    await exec('insert.chart', { range: 'A1:B5', type: 'column', at: 'D2' })
+    await exec('chart.insert', { range: 'A1:B5', type: 'column', at: 'D2' })
     await clickRowHeading(2)
     await viaRibbon('delete', 'rows')
     const sheet = await info()
@@ -975,7 +975,7 @@ try {
   })
   await section('DEL-C40 A1:A100 条件格式公式规则，删除 D 列', async () => {
     await table(10, 6)
-    await ai([{ command: 'home.conditionalFormat', params: { range: 'A1:A100', rule: { type: 'expression', formula: '$A1<>""', preset: 'lightRedFill' } } }])
+    await ai([{ command: 'conditionalFormat.apply', params: { range: 'A1:A100', rule: { type: 'expression', formula: '$A1<>""', preset: 'lightRedFill' } } }])
     await clickColHeading(3)
     await viaRibbon('delete', 'cols')
     step('DEL-C40 规则不丢失，作用范围仍为 A1:A100', same((await info()).conditionalFormatRanges, ['A1:A100']))
@@ -1063,7 +1063,7 @@ try {
   })
   await section('DEL-C52 先隐藏 C 列再删 B 列，与先删 B 列再隐藏原 C 列', async () => {
     await table(10, 6)
-    await exec('home.hideColumns', { cols: 'C:C' })
+    await exec('column.hide', { cols: 'C:C' })
     await clickColHeading(1)
     await viaRibbon('delete', 'cols')
     const pathA = (await info()).hiddenColumns
@@ -1071,7 +1071,7 @@ try {
     await table(10, 6)
     await clickColHeading(1)
     await viaRibbon('delete', 'cols')
-    await exec('home.hideColumns', { cols: 'B:B' })
+    await exec('column.hide', { cols: 'B:B' })
     const pathB = (await info()).hiddenColumns
     step('DEL-C52 两种顺序都是原 C 列（现 B 列）隐藏，不错位', same(pathA, ['B']) && same(pathB, ['B']) && shownA === 'C1', JSON.stringify([pathA, pathB]))
   })

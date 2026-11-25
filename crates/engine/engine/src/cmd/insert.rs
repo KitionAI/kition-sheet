@@ -11,7 +11,7 @@ use crate::selection::current_region;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(
-            "insert.table",
+            "table.insert",
             "Table",
             ["Insert", "Tables"],
             Some("Cmd+T"),
@@ -20,7 +20,7 @@ pub fn specs() -> Vec<CommandSpec> {
             insert_table
         ),
         cmd!(
-            "home.formatAsTable",
+            "table.formatAs",
             "Format as Table",
             ["Home", "Styles"],
             None,
@@ -90,7 +90,7 @@ pub fn specs() -> Vec<CommandSpec> {
             table_total_fn
         ),
         cmd!(
-            "insert.chart",
+            "chart.insert",
             "Insert Chart",
             ["Insert", "Charts"],
             None,
@@ -98,7 +98,7 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             insert_chart
         ),
-        cmd!("insert.recommendedCharts", "Recommended Charts", ["Insert", "Charts"], None, "{range?}", has_doc, |s, p| insert_chart(
+        cmd!("chart.recommended", "Recommended Charts", ["Insert", "Charts"], None, "{range?}", has_doc, |s, p| insert_chart(
             s,
             &with(p, "type", json!("auto"))
         )),
@@ -114,7 +114,7 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("chart.switchRowColumn", "Switch Row/Column", ["Chart Design", "Data"], None, "{chart?}", has_doc, chart_switch),
         cmd!("chart.delete", "Delete Chart", [], None, "{chart?}", has_doc, chart_delete),
         cmd!(
-            "insert.sparkline",
+            "sparkline.insert",
             "Sparklines",
             ["Insert", "Sparklines"],
             None,
@@ -123,7 +123,7 @@ pub fn specs() -> Vec<CommandSpec> {
             insert_sparkline
         ),
         cmd!(
-            "insert.picture",
+            "image.insert",
             "Picture",
             ["Insert", "Illustrations"],
             None,
@@ -132,7 +132,7 @@ pub fn specs() -> Vec<CommandSpec> {
             insert_picture
         ),
         cmd!(
-            "insert.shape",
+            "shape.insert",
             "Shapes",
             ["Insert", "Illustrations"],
             None,
@@ -141,7 +141,7 @@ pub fn specs() -> Vec<CommandSpec> {
             insert_shape
         ),
         cmd!(
-            "insert.icons",
+            "icon.insert",
             "Icons",
             ["Insert", "Illustrations"],
             None,
@@ -149,14 +149,14 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             insert_icon
         ),
-        cmd!("insert.textBox", "Text Box", ["Insert", "Text"], None, "{at?, width?, height?, text?}", has_doc, |s, p| insert_shape(
+        cmd!("textBox.insert", "Text Box", ["Insert", "Text"], None, "{at?, width?, height?, text?}", has_doc, |s, p| insert_shape(
             s,
             &with(p, "kind", json!("textBox"))
         )),
         // Art text: a text box without fill or outline, its text large and coloured, optionally
         // bent by a preset text warp (KitDrawing 1.3 DR26), as `drawing.insert` makes it.
         cmd!(
-            "insert.artText",
+            "artText.insert",
             "Art text",
             ["Insert", "Text"],
             None,
@@ -189,7 +189,7 @@ pub fn specs() -> Vec<CommandSpec> {
             set_anchor_mode
         ),
         cmd!(
-            "insert.link",
+            "link.insert",
             "Link",
             ["Insert", "Links"],
             Some("Cmd+K"),
@@ -197,14 +197,14 @@ pub fn specs() -> Vec<CommandSpec> {
             crate::cmd::extra::not_on_checkbox,
             insert_link
         ),
-        cmd!("review.newNote", "New Note", ["Review", "Notes"], None, "{cell?, text, author?}", has_doc, |s, p| comment(s, p, false)),
-        cmd!("review.newComment", "New Comment", ["Review", "Comments"], None, "{cell?, text, author?}", has_doc, |s, p| comment(s, p, true)),
-        cmd!("review.replyComment", "Reply", [], None, "{cell?, text, author?}", has_doc, reply_comment),
-        cmd!("review.resolveComment", "Resolve Thread", [], None, "{cell?, resolved?: true}", has_doc, resolve_comment),
-        cmd!("review.deleteComment", "Delete Comment", ["Review", "Comments"], None, "{cell?}", has_doc, delete_comment),
-        cmd!("review.showNote", "Show/Hide Note", ["Review", "Notes"], None, "{cell?}", has_doc, show_note),
+        cmd!("note.add", "New Note", ["Review", "Notes"], None, "{cell?, text, author?}", has_doc, |s, p| comment(s, p, false)),
+        cmd!("comment.add", "New Comment", ["Review", "Comments"], None, "{cell?, text, author?}", has_doc, |s, p| comment(s, p, true)),
+        cmd!("comment.reply", "Reply", [], None, "{cell?, text, author?}", has_doc, reply_comment),
+        cmd!("comment.resolve", "Resolve Thread", [], None, "{cell?, resolved?: true}", has_doc, resolve_comment),
+        cmd!("comment.delete", "Delete Comment", ["Review", "Comments"], None, "{cell?}", has_doc, delete_comment),
+        cmd!("note.show", "Show/Hide Note", ["Review", "Notes"], None, "{cell?}", has_doc, show_note),
         cmd!(
-            "insert.symbol",
+            "symbol.insert",
             "Symbol",
             ["Insert", "Symbols"],
             None,
@@ -213,7 +213,7 @@ pub fn specs() -> Vec<CommandSpec> {
             insert_symbol
         ),
         cmd!(
-            "home.conditionalFormat",
+            "conditionalFormat.apply",
             "Conditional Formatting",
             ["Home", "Styles"],
             None,
@@ -221,9 +221,17 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             add_cf
         ),
-        cmd!("home.clearRules", "Clear Rules", ["Home", "Styles", "Conditional Formatting"], None, "{range?|sheet: true}", has_doc, clear_cf),
         cmd!(
-            "home.manageRules",
+            "conditionalFormat.clearRules",
+            "Clear Rules",
+            ["Home", "Styles", "Conditional Formatting"],
+            None,
+            "{range?|sheet: true}",
+            has_doc,
+            clear_cf
+        ),
+        cmd!(
+            "conditionalFormat.manageRules",
             "Manage Rules…",
             ["Home", "Styles", "Conditional Formatting"],
             None,
@@ -300,7 +308,7 @@ fn insert_table(s: &mut Session, p: &Json) -> Result<Json> {
         return Err(EngineError::Other("A table can't overlap another table.".into()));
     }
     if r.count() > 50_000_000 {
-        return Err(bad("insert.table", "range too large"));
+        return Err(bad("table.insert", "range too large"));
     }
     // A table can't hold part of an array formula (Excel, WPS).
     let arrays = d
@@ -412,10 +420,10 @@ fn insert_table(s: &mut Session, p: &Json) -> Result<Json> {
 /// `title_rows` header rows; no table is made.
 fn format_only(s: &mut Session, sheet: usize, r: RangeRef, style: &str, title_rows: u32) -> Result<Json> {
     if r.count() > 2_000_000 {
-        return Err(bad("home.formatAsTable", "range too large to format cell by cell"));
+        return Err(bad("table.formatAs", "range too large to format cell by cell"));
     }
     if crate::tables::style_def(&s.doc()?.wb, style).is_none() {
-        return Err(bad("home.formatAsTable", format!("no table style named `{style}`")));
+        return Err(bad("table.formatAs", format!("no table style named `{style}`")));
     }
     edit(s, |cx| {
         let looks = crate::tables::range_looks(&cx.wb, sheet, r, style, title_rows);
@@ -1014,9 +1022,9 @@ fn chart_areas(s: &Session, p: &Json) -> Result<Vec<RangeRef>> {
         return Ok(vec![block(s, p)?]);
     }
     let areas = target_ranges(s, p)?;
-    let Some(first) = areas.first() else { return Err(bad("insert.chart", "no range")) };
+    let Some(first) = areas.first() else { return Err(bad("chart.insert", "no range")) };
     if areas.iter().any(|a| (a.start.row, a.end.row) != (first.start.row, first.end.row)) {
-        return Err(bad("insert.chart", "the areas of a chart's range share their rows, side by side (A1:A5,C1:D5)"));
+        return Err(bad("chart.insert", "the areas of a chart's range share their rows, side by side (A1:A5,C1:D5)"));
     }
     Ok(areas)
 }
@@ -1027,17 +1035,17 @@ fn combo_series_kind(name: &str) -> Result<ChartKind> {
         .filter(|k| !k.is_pie() && *k != kition_office_core::chart::ChartKind::Radar)
         .and_then(|k| super::chart_spec::type_of(&k))
         .ok_or_else(|| {
-            bad("insert.chart", format!("a combination's series are column, stackedColumn, bar, line, lineMarkers, area or scatter, not `{name}`"))
+            bad("chart.insert", format!("a combination's series are column, stackedColumn, bar, line, lineMarkers, area or scatter, not `{name}`"))
         })?;
     Ok(shared)
 }
 
 fn insert_chart(s: &mut Session, p: &Json) -> Result<Json> {
     let areas = chart_areas(s, p)?;
-    let Some(&r) = areas.first() else { return Err(bad("insert.chart", "no range")) };
+    let Some(&r) = areas.first() else { return Err(bad("chart.insert", "no range")) };
     let cells: u64 = areas.iter().map(RangeRef::count).sum();
     if cells > MAX_CHART_CELLS {
-        return Err(bad("insert.chart", "range too large for a chart"));
+        return Err(bad("chart.insert", "range too large for a chart"));
     }
     let sheet = target_sheet(s, p)?;
     let d = s.doc()?;
@@ -1062,20 +1070,20 @@ fn insert_chart(s: &mut Session, p: &Json) -> Result<Json> {
         None | Some(Json::Null) => None,
         Some(Json::Array(list)) => Some(
             list.iter()
-                .map(|v| v.as_str().map(str::to_string).ok_or_else(|| bad("insert.chart", "`seriesTypes` lists type names")))
+                .map(|v| v.as_str().map(str::to_string).ok_or_else(|| bad("chart.insert", "`seriesTypes` lists type names")))
                 .collect::<Result<_>>()?,
         ),
-        Some(other) => return Err(bad("insert.chart", format!("`seriesTypes` lists a type per series, got {other}"))),
+        Some(other) => return Err(bad("chart.insert", format!("`seriesTypes` lists a type per series, got {other}"))),
     };
     let secondary: Vec<u64> = match p.get("secondary") {
         None | Some(Json::Null) => vec![],
         Some(Json::Array(list)) => {
-            list.iter().map(|v| v.as_u64().ok_or_else(|| bad("insert.chart", "`secondary` lists series indexes from 0"))).collect::<Result<_>>()?
+            list.iter().map(|v| v.as_u64().ok_or_else(|| bad("chart.insert", "`secondary` lists series indexes from 0"))).collect::<Result<_>>()?
         }
-        Some(other) => return Err(bad("insert.chart", format!("`secondary` lists series indexes from 0, got {other}"))),
+        Some(other) => return Err(bad("chart.insert", format!("`secondary` lists series indexes from 0, got {other}"))),
     };
     if (types.is_some() || !secondary.is_empty()) && kind != ChartKind::Combo {
-        return Err(bad("insert.chart", "`seriesTypes` and `secondary` are for type: combo"));
+        return Err(bad("chart.insert", "`seriesTypes` and `secondary` are for type: combo"));
     }
     if kind == ChartKind::Combo {
         for (i, se) in series.iter_mut().enumerate() {
@@ -1087,7 +1095,7 @@ fn insert_chart(s: &mut Session, p: &Json) -> Result<Json> {
             se.secondary = secondary.contains(&(i as u64));
         }
     }
-    let totals = totals_param("insert.chart", p, kind)?;
+    let totals = totals_param("chart.insert", p, kind)?;
     let id = next_object_id(&d.wb)?;
     let at = cell_param(p, "at").unwrap_or_else(|| CellRef::new(r.start.row, r.end.col + 2));
     let title = str_param(p, "title").map(str::to_string).or_else(|| {
@@ -1290,8 +1298,8 @@ fn chart_delete(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn insert_sparkline(s: &mut Session, p: &Json) -> Result<Json> {
-    let src = str_param(p, "range").ok_or_else(|| bad("insert.sparkline", "missing `range`"))?.to_string();
-    let loc = cell_param(p, "location").ok_or_else(|| bad("insert.sparkline", "missing `location`"))?;
+    let src = str_param(p, "range").ok_or_else(|| bad("sparkline.insert", "missing `range`"))?.to_string();
+    let loc = cell_param(p, "location").ok_or_else(|| bad("sparkline.insert", "missing `location`"))?;
     let kind = match str_param(p, "type") {
         Some("column") => SparklineKind::Column,
         Some("winLoss") => SparklineKind::WinLoss,
@@ -1315,10 +1323,10 @@ struct PictureInput {
 fn picture_input(s: &mut Session, p: &Json) -> Result<Option<PictureInput>> {
     let placement = str_param(p, "placement").unwrap_or("overCells");
     if !matches!(placement, "cell" | "overCells") {
-        return Err(bad("insert.picture", "placement must be cell or overCells"));
+        return Err(bad("image.insert", "placement must be cell or overCells"));
     }
     let data = if let Some(b) = str_param(p, "base64") {
-        crate::io::base64_decode(b).ok_or_else(|| bad("insert.picture", "invalid base64"))?
+        crate::io::base64_decode(b).ok_or_else(|| bad("image.insert", "invalid base64"))?
     } else if let Some(path) = str_param(p, "path") {
         s.read_path(path)?
     } else {
@@ -1329,7 +1337,7 @@ fn picture_input(s: &mut Session, p: &Json) -> Result<Option<PictureInput>> {
         Some(validate_cell_picture(&data)?)
     } else {
         if data.len() > 64 * 1024 * 1024 {
-            return Err(bad("insert.picture", "image larger than 64 MB"));
+            return Err(bad("image.insert", "image larger than 64 MB"));
         }
         None
     };
@@ -1341,7 +1349,7 @@ fn insert_picture(s: &mut Session, p: &Json) -> Result<Json> {
     let d = s.doc()?;
     let at = if input.cell_mime.is_some() {
         match str_param(p, "at") {
-            Some(a) => CellRef::parse(a).ok_or_else(|| bad("insert.picture", "invalid cell address"))?,
+            Some(a) => CellRef::parse(a).ok_or_else(|| bad("image.insert", "invalid cell address"))?,
             None => d.selection.active,
         }
     } else {
@@ -1408,19 +1416,19 @@ fn insert_picture_input(s: &mut Session, p: &Json, input: PictureInput, at: Cell
 /// Validate before mutating the workbook; header dimensions alone do not prove the pixels decode.
 fn validate_cell_picture(data: &[u8]) -> Result<&'static str> {
     if data.len() > 16 * 1024 * 1024 {
-        return Err(bad("insert.picture", "cell pictures must be at most 16 MiB"));
+        return Err(bad("image.insert", "cell pictures must be at most 16 MiB"));
     }
-    let format = image::guess_format(data).map_err(|_| bad("insert.picture", "choose a valid PNG or JPEG picture"))?;
+    let format = image::guess_format(data).map_err(|_| bad("image.insert", "choose a valid PNG or JPEG picture"))?;
     let mime = match format {
         image::ImageFormat::Png => "image/png",
         image::ImageFormat::Jpeg => "image/jpeg",
-        _ => return Err(bad("insert.picture", "cell pictures support PNG and JPEG")),
+        _ => return Err(bad("image.insert", "cell pictures support PNG and JPEG")),
     };
     let (width, height) = image::ImageReader::with_format(std::io::Cursor::new(data), format)
         .into_dimensions()
-        .map_err(|_| bad("insert.picture", "invalid image dimensions"))?;
+        .map_err(|_| bad("image.insert", "invalid image dimensions"))?;
     if width == 0 || height == 0 || width > 8192 || height > 8192 || u64::from(width) * u64::from(height) > 16_000_000 {
-        return Err(bad("insert.picture", "cell pictures are limited to 8192 pixels per side and 16 million pixels"));
+        return Err(bad("image.insert", "cell pictures are limited to 8192 pixels per side and 16 million pixels"));
     }
     let mut reader = image::ImageReader::with_format(std::io::Cursor::new(data), format);
     let mut limits = image::Limits::default();
@@ -1428,7 +1436,7 @@ fn validate_cell_picture(data: &[u8]) -> Result<&'static str> {
     limits.max_image_height = Some(8192);
     limits.max_alloc = Some(64 * 1024 * 1024);
     reader.limits(limits);
-    reader.decode().map_err(|_| bad("insert.picture", "picture cannot be decoded within the 64 MiB limit"))?;
+    reader.decode().map_err(|_| bad("image.insert", "picture cannot be decoded within the 64 MiB limit"))?;
     Ok(mime)
 }
 
@@ -1752,7 +1760,7 @@ const ICON_SETS: &[&str] = &[
 ];
 
 fn add_cf(s: &mut Session, p: &Json) -> Result<Json> {
-    const CMD: &str = "home.conditionalFormat";
+    const CMD: &str = "conditionalFormat.apply";
     let ranges = target_ranges(s, p)?;
     let sheet = target_sheet(s, p)?;
     let Some(rule) = p.get("rule") else {
@@ -1970,7 +1978,7 @@ fn manage_cf(s: &mut Session, p: &Json) -> Result<Json> {
             cf.priority = u32::try_from(k)
                 .ok()
                 .and_then(|priority| priority.checked_add(1))
-                .ok_or_else(|| bad("home.manageRules", "conditional formatting priority space is exhausted"))?;
+                .ok_or_else(|| bad("conditionalFormat.manageRules", "conditional formatting priority space is exhausted"))?;
         }
         Ok(Json::Null)
     })
@@ -2011,13 +2019,13 @@ mod independent_read_tests {
             let mut session = Session::new();
             session.new_workbook();
             for range in ["A1", "B1"] {
-                session.execute("home.conditionalFormat", json!({"range":range,"rule":{"type":"blanks"}})).unwrap();
+                session.execute("conditionalFormat.apply", json!({"range":range,"rule":{"type":"blanks"}})).unwrap();
             }
             let mut params = movement;
             params["delete"] = json!(0);
-            let answer = session.execute("home.manageRules", params);
+            let answer = session.execute("conditionalFormat.manageRules", params);
             assert!(answer.is_ok(), "combined deletion and movement must not panic: {answer:?}");
-            let rules = session.execute("home.manageRules", json!({})).unwrap();
+            let rules = session.execute("conditionalFormat.manageRules", json!({})).unwrap();
             assert_eq!(rules["rules"].as_array().map(Vec::len), Some(1));
         }
     }

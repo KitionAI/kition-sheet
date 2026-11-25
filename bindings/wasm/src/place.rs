@@ -157,17 +157,17 @@ fn alignment_extent(sheet: &Sheet, ids: &[u32], command: &str, params: &Value) -
 
 fn property_fields(command: &str, params: &Value) -> Option<Vec<String>> {
     let fields: &[&str] = match command {
-        "review.protectSheet" | "review.unprotectSheet" => &["props.protection"],
+        "sheet.protect" | "sheet.unprotect" => &["props.protection"],
         "view.gridlines" => &["props.showGridlines"],
         "view.headings" => &["props.showHeadings"],
         "view.showZeros" => &["props.showZeros"],
         "view.rightToLeft" => &["props.rightToLeft"],
         "view.gridlineColor" => &["props.gridColor"],
-        "home.defaultWidth" => &["props.defaultColWidth"],
-        "pageLayout.orientation" => &["props.print.orientation"],
-        "pageLayout.size" => &["props.print.paper"],
-        "pageLayout.margins" => &["props.print.margins"],
-        "pageLayout.scaleToFit" => {
+        "column.setDefaultWidth" => &["props.defaultColWidth"],
+        "page.orientation" => &["props.print.orientation"],
+        "page.size" => &["props.print.paper"],
+        "page.margins" => &["props.print.margins"],
+        "page.scaleToFit" => {
             let scale = params.get("scale").and_then(Value::as_f64).is_some();
             let mut fields = Vec::new();
             if scale {
@@ -178,9 +178,9 @@ fn property_fields(command: &str, params: &Value) -> Option<Vec<String>> {
             }
             return Some(fields);
         }
-        "pageLayout.printGridlines" => &["props.print.gridlines"],
-        "pageLayout.printHeadings" => &["props.print.headings"],
-        "pageLayout.headerFooter" => {
+        "page.printGridlines" => &["props.print.gridlines"],
+        "page.printHeadings" => &["props.print.headings"],
+        "page.headerFooter" => {
             return Some(
                 ["header", "footer"].into_iter().filter(|field| params.get(*field).is_some()).map(|field| format!("props.print.{field}")).collect(),
             );
@@ -454,7 +454,7 @@ impl SheetDocument {
         let mut under = Under::default();
         let mut pending = Vec::new();
 
-        if command == "selection.set" {
+        if command == "select.set" {
             let ranges = if let Some(text) = params.get("range").or_else(|| params.get("cell")).and_then(Value::as_str) {
                 text.rsplit_once('!')
                     .map_or(text, |(_, body)| body)
@@ -519,7 +519,7 @@ impl SheetDocument {
         }
 
         let workbook_fields = match command {
-            "review.protectWorkbook" => Some(vec!["props.protectedStructure".to_owned()]),
+            "workbook.protect" => Some(vec!["props.protectedStructure".to_owned()]),
             "file.properties" => Some(
                 ["title", "subject", "author", "company", "keywords", "description"]
                     .into_iter()
@@ -527,7 +527,7 @@ impl SheetDocument {
                     .map(|key| format!("props.docProps.{key}"))
                     .collect(),
             ),
-            "formulas.calculationOptions" => {
+            "formula.calculationOptions" => {
                 let mut fields = vec!["props.calc.mode".to_owned()];
                 for (parameter, field) in [("iterative", "iterative"), ("maxIterations", "max_iterations"), ("maxChange", "max_change")] {
                     if params.get(parameter).is_some() {
@@ -572,7 +572,7 @@ impl SheetDocument {
             return Ok(Some(under));
         }
 
-        if matches!(command, "home.conditionalFormat" | "home.clearRules" | "home.manageRules") {
+        if matches!(command, "conditionalFormat.apply" | "conditionalFormat.clearRules" | "conditionalFormat.manageRules") {
             // Adding and reordering rules rewrites priorities; clearing rewrites membership.
             let mut fields = vec!["condFormats"];
             if params.get("range").and_then(Value::as_str).is_some_and(|range| range.contains('!'))
@@ -583,7 +583,9 @@ impl SheetDocument {
             under.objects.push(json!(sid));
             under.premises.push(premise(sid.clone(), fields));
             let mut ranges: Vec<_> = sheet.cond_formats.iter().flat_map(|rule| rule.ranges.iter().copied()).collect();
-            if command == "home.conditionalFormat" || command == "home.clearRules" && params.get("sheet").and_then(Value::as_bool) != Some(true) {
+            if command == "conditionalFormat.apply"
+                || command == "conditionalFormat.clearRules" && params.get("sheet").and_then(Value::as_bool) != Some(true)
+            {
                 if let Some(text) = params.get("range").and_then(Value::as_str) {
                     let body = text.rsplit_once('!').map_or(text, |(_, body)| body);
                     for part in body.split(',') {
@@ -659,23 +661,15 @@ impl SheetDocument {
         let sort = matches!(command, "data.sort" | "data.sortAscending" | "data.sortDescending") && params.get("range").is_some();
         let filter = matches!(command, "data.filter" | "data.filterBy" | "data.clearFilter" | "data.reapply");
         let validation = command == "data.validation";
-        let name_edit = matches!(command, "formulas.defineName" | "formulas.deleteName") && params.get("name").is_some();
+        let name_edit = matches!(command, "name.define" | "name.delete") && params.get("name").is_some();
         let table_resize = command == "table.resize";
-        let lines = matches!(command, "home.insertRows" | "home.insertColumns" | "home.deleteRows" | "home.deleteColumns");
-        let sheet_property = matches!(
-            command,
-            "sheet.rename" | "sheet.tabColor" | "sheet.hide" | "sheet.unhide" | "sheet.move" | "home.insertSheet" | "home.deleteSheet"
-        );
+        let lines = matches!(command, "row.insert" | "column.insert" | "row.delete" | "column.delete");
+        let sheet_property =
+            matches!(command, "sheet.rename" | "sheet.tabColor" | "sheet.hide" | "sheet.unhide" | "sheet.move" | "sheet.insert" | "sheet.delete");
         let drawing = !crate::references::drawing_parameters(command).is_empty();
         let properties = property_fields(command, &params);
-        let comments = matches!(
-            command,
-            "review.newNote" | "review.newComment" | "review.replyComment" | "review.resolveComment" | "review.deleteComment" | "review.showNote"
-        );
-        let fixed_axes = matches!(
-            command,
-            "home.rowHeight" | "home.columnWidth" | "home.hideRows" | "home.hideColumns" | "home.unhideRows" | "home.unhideColumns"
-        );
+        let comments = matches!(command, "note.add" | "comment.add" | "comment.reply" | "comment.resolve" | "comment.delete" | "note.show");
+        let fixed_axes = matches!(command, "row.setHeight" | "column.setWidth" | "row.hide" | "column.hide" | "row.show" | "column.show");
         if !entry
             && !sort
             && !filter
@@ -806,7 +800,7 @@ impl SheetDocument {
             let scope = match params.get("scope").and_then(Value::as_str) {
                 Some("Workbook") => Some(None),
                 Some(name) => Some(wb.sheet_index(name)),
-                None if command == "formulas.defineName" => Some(None),
+                None if command == "name.define" => Some(None),
                 _ => None,
             };
             let mut matched = false;
@@ -827,7 +821,7 @@ impl SheetDocument {
             if !matched {
                 under.premises.push(premise("workbook", ["names"]));
             }
-            if command == "formulas.defineName" && params.get("refersTo").and_then(Value::as_str).is_none() {
+            if command == "name.define" && params.get("refersTo").and_then(Value::as_str).is_none() {
                 sheet_fields.push("name".into());
                 let range = state.selection.current();
                 window(&mut under, &sid, "rows", range.start.row as usize, range.end.row as usize + 1);
@@ -876,7 +870,7 @@ impl SheetDocument {
         }
 
         if fixed_axes {
-            let rows = matches!(command, "home.rowHeight" | "home.hideRows" | "home.unhideRows");
+            let rows = matches!(command, "row.setHeight" | "row.hide" | "row.show");
             let unhide = command.starts_with("home.unhide");
             let spans = kition_sheet_engine::cmd::format::line_targets(&self.session, &params, rows).map_err(crate::engine_error)?;
             let spans: Vec<_> = spans
@@ -887,8 +881,8 @@ impl SheetDocument {
                 return self.document_premises().map(Some);
             }
             let fields: &[&str] = match command {
-                "home.rowHeight" => &["info.size", "info.hidden", "info.custom"],
-                "home.columnWidth" | "home.unhideRows" | "home.unhideColumns" => &["info.size", "info.hidden"],
+                "row.setHeight" => &["info.size", "info.hidden", "info.custom"],
+                "column.setWidth" | "row.show" | "column.show" => &["info.size", "info.hidden"],
                 _ => &["info.hidden"],
             };
             let axes = state.kdm().and_then(|kdm| kdm.model().ids().sheets.get(si));
@@ -909,7 +903,7 @@ impl SheetDocument {
         }
 
         if comments {
-            let ranges = if command == "review.deleteComment" {
+            let ranges = if command == "comment.delete" {
                 params
                     .get("range")
                     .or_else(|| params.get("cell"))
@@ -952,7 +946,7 @@ impl SheetDocument {
                 window(&mut under, "workbook", "sheets", destination, destination);
                 under.premises.push(premise(sid.clone(), Vec::<String>::new()).positions(["sheets"]));
             }
-            "home.insertSheet" => {
+            "sheet.insert" => {
                 let at = params
                     .get("before")
                     .and_then(Value::as_u64)
@@ -961,11 +955,11 @@ impl SheetDocument {
                     .min(wb.sheets.len());
                 window(&mut under, "workbook", "sheets", at, at);
             }
-            "home.deleteSheet" => under.premises.push(Premise::on(sid.clone())),
+            "sheet.delete" => under.premises.push(Premise::on(sid.clone())),
             _ => {}
         }
 
-        let is_lines = matches!(command, "home.insertRows" | "home.insertColumns" | "home.deleteRows" | "home.deleteColumns");
+        let is_lines = matches!(command, "row.insert" | "column.insert" | "row.delete" | "column.delete");
         if is_lines {
             let cols = command.ends_with("Columns");
             let field = if cols { "cols" } else { "rows" };

@@ -20,13 +20,13 @@ async fn sheet_commands_hold_other_tabs_names_and_visibility() {
     let mut failures = Vec::new();
     for (command, params, other_command, other_params) in [
         // The observed next default is Sheet3. The colleague occupies it and frees Sheet2.
-        ("home.insertSheet", json!({}), "sheet.rename", json!({"sheet":"Sheet2","name":"Sheet3"})),
+        ("sheet.insert", json!({}), "sheet.rename", json!({"sheet":"Sheet2","name":"Sheet3"})),
         ("sheet.rename", json!({"sheet":"Sheet1","name":"Renamed"}), "sheet.rename", json!({"sheet":"Sheet2","name":"Renamed"})),
         ("sheet.move", json!({"sheet":"Sheet1","to":2,"copy":true}), "sheet.rename", json!({"sheet":"Sheet2","name":"Sheet1(2)"})),
-        ("home.deleteSheet", json!({"sheet":"Sheet1"}), "sheet.hide", json!({"sheet":"Sheet2"})),
+        ("sheet.delete", json!({"sheet":"Sheet1"}), "sheet.hide", json!({"sheet":"Sheet2"})),
         ("sheet.hide", json!({"sheet":"Sheet1"}), "sheet.hide", json!({"sheet":"Sheet2"})),
         ("sheet.move", json!({"sheet":"Sheet1","to":2,"copy":true}), "cell.set", json!({"cell":"Sheet1!B2","input":"source changed"})),
-        ("home.deleteSheet", json!({"sheet":"Sheet1"}), "cell.set", json!({"cell":"Sheet1!B2","input":"source changed"})),
+        ("sheet.delete", json!({"sheet":"Sheet1"}), "cell.set", json!({"cell":"Sheet1!B2","input":"source changed"})),
     ] {
         for related in [true, false] {
             let fixture = Fixture::new();
@@ -60,12 +60,12 @@ async fn builtin_title_style_holds_the_theme_font_without_holding_other_sheet_ce
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
         if related {
-            fixture.colleague(&[("pageLayout.themeFonts", json!({"major":"Kition Mono"}))]);
+            fixture.colleague(&[("theme.fonts", json!({"major":"Kition Mono"}))]);
         } else {
             fixture.colleague(&[("cell.set", json!({"cell":"Sheet2!D10","input":"unrelated constant"}))]);
         }
         let before = fixture.bytes();
-        let answer = fixture.run(basis, "home.cellStyle", json!({"range":"B2","name":"Title"})).await;
+        let answer = fixture.run(basis, "style.apply", json!({"range":"B2","name":"Title"})).await;
         if related {
             if answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                 assert_eq!(fixture.bytes(), before, "refusal must preserve the colleague's file");

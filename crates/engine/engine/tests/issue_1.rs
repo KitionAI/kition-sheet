@@ -34,7 +34,7 @@ fn icon(s: &Session, cell: &str) -> usize {
 #[test]
 fn cell_is_honours_the_operator() {
     let mut s = workbook(&[-5.0, 0.0, 5.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "cellIs", "operator": "lessThan", "value": 0}})).unwrap();
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "cellIs", "operator": "lessThan", "value": 0}})).unwrap();
     assert_eq!([styled(&s, "A1"), styled(&s, "A2"), styled(&s, "A3")], [true, false, false]);
 
     for (operator, expected) in [
@@ -45,11 +45,11 @@ fn cell_is_honours_the_operator() {
         ("notEqual", [true, false, true]),
     ] {
         let mut s = workbook(&[-5.0, 0.0, 5.0]);
-        s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "cellIs", "operator": operator, "value": 0}})).unwrap();
+        s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "cellIs", "operator": operator, "value": 0}})).unwrap();
         assert_eq!([styled(&s, "A1"), styled(&s, "A2"), styled(&s, "A3")], expected, "{operator}");
     }
     let mut s = workbook(&[-5.0, 0.0, 5.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "cellIs", "operator": "between", "value": -1, "value2": 9}}))
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "cellIs", "operator": "between", "value": -1, "value2": 9}}))
         .unwrap();
     assert_eq!([styled(&s, "A1"), styled(&s, "A2"), styled(&s, "A3")], [false, true, true]);
 }
@@ -57,7 +57,7 @@ fn cell_is_honours_the_operator() {
 #[test]
 fn a_rule_refuses_what_it_does_not_read() {
     let mut s = workbook(&[1.0]);
-    let refused = |s: &mut Session, rule: Json| s.execute("home.conditionalFormat", json!({"range": "A1", "rule": rule})).unwrap_err().to_string();
+    let refused = |s: &mut Session, rule: Json| s.execute("conditionalFormat.apply", json!({"range": "A1", "rule": rule})).unwrap_err().to_string();
     let message = refused(&mut s, json!({"type": "cellIs", "operator": "smallerThan", "value": 0}));
     assert!(message.contains("lessThan"), "{message}");
     let message = refused(&mut s, json!({"type": "cellIs", "operator": "between", "values": [1, 2]}));
@@ -73,7 +73,7 @@ fn a_rule_refuses_what_it_does_not_read() {
 fn style_takes_hex_colours() {
     let mut s = workbook(&[1.0]);
     s.execute(
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "A1", "rule": {"type": "expression", "formula": "=A1>0", "style": {"fill": "#FFEB9C", "font": {"color": "#9C5700", "bold": true}, "borders": {"bottom": {"style": "Thin", "color": "#C00000"}}}}}),
     )
     .unwrap();
@@ -86,7 +86,7 @@ fn style_takes_hex_colours() {
     // A fill given as its colour alone is solid; the engine's own form still works.
     let mut s = workbook(&[1.0]);
     s.execute(
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "A1", "rule": {"type": "expression", "formula": "=A1>0", "style": {"fill": {"fg": "#00FF00"}}}}),
     )
     .unwrap();
@@ -94,29 +94,29 @@ fn style_takes_hex_colours() {
     assert_eq!((style.fill.pattern, style.fill.fg), (PatternType::Solid, Color::Rgb(0x00FF00)));
     let mut s = workbook(&[1.0]);
     s.execute(
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "A1", "rule": {"type": "expression", "formula": "=A1>0", "style": {"fill": {"fg": {"Rgb": 255}, "pattern": "Solid"}}}}),
     )
     .unwrap();
     assert_eq!(look(&s, "A1").unwrap().style.unwrap().fill.fg, Color::Rgb(255));
 
     // Format Cells takes them too.
-    s.execute("home.formatCells", json!({"range": "A1", "style": {"fill": "#123456", "font": {"color": "#654321"}}})).unwrap();
+    s.execute("format.cells", json!({"range": "A1", "style": {"fill": "#123456", "font": {"color": "#654321"}}})).unwrap();
     let wb = &s.doc().unwrap().wb;
     let cell_style = wb.styles.get(wb.active().unwrap().style_id(CellRef::parse("A1").unwrap()));
     assert_eq!(
         (cell_style.fill.pattern, cell_style.fill.fg, cell_style.font.color),
         (PatternType::Solid, Color::Rgb(0x123456), Color::Rgb(0x654321))
     );
-    assert!(s.execute("home.formatCells", json!({"range": "A1", "style": {"fill": "#12345"}})).is_err());
+    assert!(s.execute("format.cells", json!({"range": "A1", "style": {"fill": "#12345"}})).is_err());
 }
 
 #[test]
 fn the_higher_priority_rule_wins_the_fill() {
     // The newer rule has the higher priority: a formatted rule added after a colour scale wins.
     let mut s = workbook(&[1.0, 2.0, 3.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "colorScale"}})).unwrap();
-    s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "expression", "formula": "=A1=2", "style": {"fill": "#0000FF"}}}))
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "colorScale"}})).unwrap();
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "expression", "formula": "=A1=2", "style": {"fill": "#0000FF"}}}))
         .unwrap();
     let both = look(&s, "A2").unwrap();
     assert_eq!(both.scale_fill, None);
@@ -125,19 +125,19 @@ fn the_higher_priority_rule_wins_the_fill() {
 
     // A colour scale added last wins over the older rule's fill.
     let mut s = workbook(&[1.0, 2.0, 3.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "expression", "formula": "=A1=2", "style": {"fill": "#0000FF"}}}))
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "expression", "formula": "=A1=2", "style": {"fill": "#0000FF"}}}))
         .unwrap();
-    s.execute("home.conditionalFormat", json!({"range": "A1:A3", "rule": {"type": "colorScale"}})).unwrap();
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A3", "rule": {"type": "colorScale"}})).unwrap();
     assert!(look(&s, "A2").unwrap().scale_fill.is_some());
 }
 
 #[test]
 fn formatted_rules_combine_their_formats() {
     let mut s = workbook(&[5.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1", "rule": {"type": "expression", "formula": "=A1>0", "style": {"fill": "#00FF00"}}}))
+    s.execute("conditionalFormat.apply", json!({"range": "A1", "rule": {"type": "expression", "formula": "=A1>0", "style": {"fill": "#00FF00"}}}))
         .unwrap();
     s.execute(
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "A1", "rule": {"type": "expression", "formula": "=A1>1", "style": {"font": {"bold": true}}}}),
     )
     .unwrap();
@@ -151,7 +151,7 @@ fn icon_sets_cut_at_percent_of_the_span_by_default() {
     // Percent of min–max: 33 % and 67 % of 1..100 are 33.67 and 67.33. (Percentiles would put
     // 3 in the middle and 4 at the top.)
     let mut s = workbook(&[1.0, 2.0, 3.0, 4.0, 100.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Arrows"}})).unwrap();
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Arrows"}})).unwrap();
     assert_eq!([icon(&s, "A1"), icon(&s, "A3"), icon(&s, "A4"), icon(&s, "A5")], [0, 0, 0, 2]);
 }
 
@@ -159,7 +159,7 @@ fn icon_sets_cut_at_percent_of_the_span_by_default() {
 fn icon_sets_take_thresholds_and_keep_them_in_xlsx() {
     let mut s = workbook(&[1.0, 2.0, 3.0, 4.0, 100.0]);
     s.execute(
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Flags", "thresholds": [{"type": "number", "value": 2}, {"type": "number", "value": 4}]}}),
     )
     .unwrap();
@@ -173,10 +173,10 @@ fn icon_sets_take_thresholds_and_keep_them_in_xlsx() {
 
     // Bare numbers are percent of the span, as in Excel's dialog.
     let mut s = workbook(&[0.0, 10.0, 50.0, 90.0, 100.0]);
-    s.execute("home.conditionalFormat", json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Symbols", "thresholds": [10, 90]}})).unwrap();
+    s.execute("conditionalFormat.apply", json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Symbols", "thresholds": [10, 90]}})).unwrap();
     assert_eq!(icons(&s), [0, 1, 1, 2, 2]);
     // One threshold per boundary between icons.
     assert!(
-        s.execute("home.conditionalFormat", json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Symbols", "thresholds": [10]}})).is_err()
+        s.execute("conditionalFormat.apply", json!({"range": "A1:A5", "rule": {"type": "iconSet", "set": "3Symbols", "thresholds": [10]}})).is_err()
     );
 }

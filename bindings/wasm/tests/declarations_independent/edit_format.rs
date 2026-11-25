@@ -50,15 +50,15 @@ ROW range.setValues | params={"values":[["text"]]} | resolves=active sheet; curr
 ROW range.fill | params={"sheet":"Data","range":"B2:C3","input":"=A1"} | resolves=Data; explicit range first cell B2 is formula/style origin | holds=ADDRESS(Data,B2:C3);ENTRY(Data,B2 origin);existing each destination cell style;translated formula sources A1:B2;FIT(Data,2:3);HEADERS(Data,B2:C3);CONNECTORS(Data) | reads=none | writes=filled cells; missing cells inherit ORIGIN style not their own row/column style | note=edit.rs:450 base parsed once, per-existing-cell style retained
 ROW range.fill | params={"input":"=A1"} | resolves=active sheet; all selection areas; origin is active cell even when not first area start | holds=ADDRESS(active,selection areas);ENTRY(active,active origin);each destination existing cell style;translated precedents from active origin;FIT(active,selected rows);HEADERS(active,selection);CONNECTORS(active) | reads=part,selection | writes=every selected cell | note=edit.rs:450 implicit Ctrl+Enter path
 # cmd/edit.rs -- selection/session paths (retained even if binding excludes them as writes)
-ROW selection.set | params={"sheet":"Data","range":"A1:B2","active":"B2"} | resolves=Data name; all comma-separated areas; active B2 | holds=sheet membership/name and merges intersecting areas (transitive expansion) | reads=none | writes=active sheet and selection; remembered per-sheet selection | note=edit.rs:490 explicit range/active
-ROW selection.set | params={} | resolves=active sheet; prior selection ranges | holds=active sheet merges | reads=part,selection | writes=selection active/anchor reset to last range start | note=edit.rs:490 missing range
-ROW selection.move | params={"dr":1,"dc":0} | resolves=active sheet; active cell or far selection corner when extend | holds=travelled row/column hidden flags;source/destination merges;address windows | reads=part,selection | writes=selection, expanding merges | note=edit.rs:544 nonjump path
-ROW selection.move | params={"dr":1,"dc":0,"jump":true,"extend":true} | resolves=active sheet; far selection corner | holds=value occupancy along jump ray and used range;merges at landing/expanded selection;axis windows | reads=part,selection | writes=selection | note=edit.rs:544 jump branch; selection.rs:122
-ROW selection.next | params={} | resolves=selection ranges/current active | holds=none | reads=selection | writes=active cell cycles selected cells | note=edit.rs:611 cycle; no workbook read
+ROW select.set | params={"sheet":"Data","range":"A1:B2","active":"B2"} | resolves=Data name; all comma-separated areas; active B2 | holds=sheet membership/name and merges intersecting areas (transitive expansion) | reads=none | writes=active sheet and selection; remembered per-sheet selection | note=edit.rs:490 explicit range/active
+ROW select.set | params={} | resolves=active sheet; prior selection ranges | holds=active sheet merges | reads=part,selection | writes=selection active/anchor reset to last range start | note=edit.rs:490 missing range
+ROW select.move | params={"dr":1,"dc":0} | resolves=active sheet; active cell or far selection corner when extend | holds=travelled row/column hidden flags;source/destination merges;address windows | reads=part,selection | writes=selection, expanding merges | note=edit.rs:544 nonjump path
+ROW select.move | params={"dr":1,"dc":0,"jump":true,"extend":true} | resolves=active sheet; far selection corner | holds=value occupancy along jump ray and used range;merges at landing/expanded selection;axis windows | reads=part,selection | writes=selection | note=edit.rs:544 jump branch; selection.rs:122
+ROW select.next | params={} | resolves=selection ranges/current active | holds=none | reads=selection | writes=active cell cycles selected cells | note=edit.rs:611 cycle; no workbook read
 ROW edit.selectAll | params={} | resolves=active sheet/active cell/current selection | holds=current-region occupancy including spills and empty boundary cells | reads=part,selection | writes=current-region or whole-sheet selection | note=edit.rs:619 selection.rs:182
-ROW selection.currentRegion | params={} | resolves=active sheet/active cell | holds=current-region occupancy/spills and boundary | reads=part,selection | writes=selection | note=edit.rs:632
-ROW selection.row | params={} | resolves=current selection first area's row span | holds=none | reads=selection | writes=whole-row selection | note=edit.rs:642
-ROW selection.column | params={} | resolves=current selection first area's column span | holds=none | reads=selection | writes=whole-column selection | note=edit.rs:650
+ROW select.currentRegion | params={} | resolves=active sheet/active cell | holds=current-region occupancy/spills and boundary | reads=part,selection | writes=selection | note=edit.rs:632
+ROW select.row | params={} | resolves=current selection first area's row span | holds=none | reads=selection | writes=whole-row selection | note=edit.rs:642
+ROW select.column | params={} | resolves=current selection first area's column span | holds=none | reads=selection | writes=whole-column selection | note=edit.rs:650
 ROW edit.goTo | params={"reference":"Destination"} | resolves=defined name in active-sheet scope, else table name, else A1; table addresses data_range without totals/header | holds=selected name formula/scope or table definition;sheet-name lookup;destination merges | reads=part | writes=active sheet and selection | note=edit.rs:658 name/table branch
 ROW edit.goTo | params={"reference":"Data!B2"} | resolves=A1 sheet prefix Data | holds=sheet-name lookup and destination merges | reads=none | writes=active sheet and selection | note=edit.rs:658 A1 branch
 ROW edit.goToSpecial | params={"kind":"visible"} | resolves=active sheet; single selection expands to used range else selection bounds | holds=used-range if expanded;row/column hidden flags in scope;axis windows | reads=part,selection | writes=matching cell ranges | note=edit.rs:688 kind-specific predicate
@@ -106,75 +106,75 @@ ROW edit.moveCells | params={"from":"B2:C3","to":"E5"} | resolves=active sheet, 
 ROW edit.moveCells | params={"to":"E5","copy":true} | resolves=active sheet; selection.current as source, multiple areas refused | holds=ADDRESS(active,source/dest);source snapshot cells/styles/pictures/comments/merges;destination old data/protection;translated precedents;FIT(active,dest rows);HEADERS(active,dest);CONNECTORS(active) | reads=part,selection | writes=copied content/styles/comments/merges and selection | note=edit.rs:1953 copy path
 ROW edit.moveCells | params={"from":"2:3","to":"6:6","insert":"down"} | resolves=active sheet; whole rows source and row destination; whole lines coerce axis | holds=STRUCTURE(active,insertion/deletion bands);source line size/style/visibility;used-range cap | reads=part | writes=insert lines, move block, delete old lines;global refs/features;selection | note=edit.rs:2051 insert_block delegates nested commands; errors can follow earlier commits
 # cmd/format.rs
-ROW home.bold | params={} | resolves=active sheet and active cell decide toggle; target selection areas | holds=STYLE(active,selection);active-cell resolved bold | reads=part,selection | writes=font.bold inverse active style | note=format.rs:304 toggle
-ROW home.bold | params={"sheet":"Data","range":"B2","on":true} | resolves=Data B2; explicit on bypasses active-style read | holds=STYLE(Data,B2) | reads=none | writes=font.bold true | note=format.rs:304 explicit toggle
-ROW home.italic | params={} | resolves=active sheet/cell toggle and selection destinations | holds=STYLE(active,selection);active-cell italic | reads=part,selection | writes=font.italic | note=format.rs:304
-ROW home.italic | params={"sheet":"Data","range":"B2","on":false} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font.italic false | note=format.rs:304 explicit toggle
-ROW home.underline | params={"sheet":"Data","range":"B2","on":true} | resolves=Data B2 target; ALWAYS reads active cell underline before unwrap_or even explicit on | holds=STYLE(Data,B2);active-sheet active-cell style underline | reads=part,selection | writes=chosen underline | note=format.rs:313 eager active_style read
-ROW home.underline | params={} | resolves=active sheet/cell underline toggles default single; target selection | holds=STYLE(active,selection);active-cell underline | reads=part,selection | writes=underline single/none | note=format.rs:313
-ROW home.doubleUnderline | params={} | resolves=active sheet/cell underline compared double; target selection | holds=STYLE(active,selection);active-cell underline | reads=part,selection | writes=double underline or none | note=format.rs:313 style injected double
-ROW home.strikethrough | params={} | resolves=active sheet/cell toggle and selection destinations | holds=STYLE(active,selection);active-cell strike | reads=part,selection | writes=font.strike | note=format.rs:304
-ROW home.strikethrough | params={"sheet":"Data","range":"B2","on":true} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font.strike | note=format.rs:304 explicit toggle
-ROW home.superscript | params={} | resolves=active sheet/cell toggle and selection | holds=STYLE(active,selection);active-cell vert | reads=part,selection | writes=font.vert superscript/baseline | note=format.rs:304
-ROW home.subscript | params={} | resolves=active sheet/cell toggle and selection | holds=STYLE(active,selection);active-cell vert | reads=part,selection | writes=font.vert subscript/baseline | note=format.rs:304
-ROW home.fontName | params={"sheet":"Data","range":"B2","name":"Arial"} | resolves=Data B2; name is font text, NOT object name | holds=STYLE(Data,B2) | reads=none | writes=font name/script names plus rich override removal | note=format.rs:329
-ROW home.fontSize | params={"sheet":"Data","range":"B2","size":14} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font size rounded half point | note=format.rs:334
-ROW home.increaseFontSize | params={"sheet":"Data","range":"B2"} | resolves=target Data B2 but next size and enabled check from ACTIVE sheet's active cell | holds=STYLE(Data,B2);active-cell resolved font size | reads=part,selection | writes=next active size to B2, not B2 next size | note=format.rs:361 can_grow and 373 step_font
-ROW home.decreaseFontSize | params={"sheet":"Data","range":"B2"} | resolves=Data B2 but active cell size determines result | holds=STYLE(Data,B2);active-cell font size | reads=part,selection | writes=previous active size | note=format.rs:367 can_shrink/373
-ROW home.fontColor | params={"sheet":"Data","range":"B2","color":"#CC0000"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font colour;theme colours stored symbolic, no theme lookup | note=format.rs:405
-ROW home.fillColor | params={"sheet":"Data","range":"B2","color":"#FF0000"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=solid fill or clears | note=format.rs:410
-ROW home.borders | params={"sheet":"Data","range":"B2:C3","preset":"outside"} | resolves=Data explicit ranges; no filtered-row skip | holds=ADDRESS(Data,B2:C3);target style definitions/inherited styles;sheet protection.format_cells;CONNECTORS(Data) | reads=none | writes=selected boundary style fields; NO automatic FIT/touch | note=format.rs:437
-ROW home.borders | params={"sheet":"Data","range":"B2:C3","preset":"none"} | resolves=Data selected cells PLUS facing edges on adjacent cells A2:A3,D2:D3,B1:C1,B4:C4 | holds=ADDRESS(Data,selected+adjacent edges);selected and adjacent inherited styles/borders;protection;CONNECTORS(Data) | reads=none | writes=selected borders reset;neighbour facing edges cleared | note=format.rs:546 neighbour branch
-ROW home.formatCells | params={} | resolves=none | holds=none | reads=none | writes=dialog request only | note=format.rs:616 no style/edges/merge
-ROW home.formatCells | params={"sheet":"Data","range":"B2","style":{"font":{"bold":true}}} | resolves=Data B2 target; validation merges patch into ACTIVE cell style first | holds=STYLE(Data,B2);active-cell resolved style for patch validation | reads=part,selection | writes=partial style; no content edit | note=format.rs:616
-ROW home.formatCells | params={"sheet":"Data","range":"B2:C3","edges":[{"preset":"none"}],"merge":true} | resolves=Data B2:C3; nested border/merge callbacks; cell param discarded by extras forwarding | holds=border selected/neighbour styles;merge table+merge intersections;selected non-leading content/checkbox;FIT(Data,cleared rows);HEADERS(Data,cleared cells);CONNECTORS(Data) | reads=part,selection | writes=edges then merge; enabled can_merge checks active selection tables | note=format.rs:643 format_cells_extras; may fail after border edit
-ROW home.alignLeft | params={"sheet":"Data","range":"B2"} | resolves=Data target, active sheet/cell horizontal align toggles | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=left or General | note=format.rs:687 halign
-ROW home.alignCenter | params={"sheet":"Data","range":"B2"} | resolves=Data target, active horizontal alignment | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=center or General | note=format.rs:687
-ROW home.alignRight | params={"sheet":"Data","range":"B2"} | resolves=Data target, active horizontal alignment | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=right or General | note=format.rs:687
-ROW home.justify | params={"sheet":"Data","range":"B2"} | resolves=Data target, active horizontal alignment | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=justify or General | note=format.rs:687
-ROW home.alignTop | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=align.v top | note=format.rs:694 valign
-ROW home.alignMiddle | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=align.v center | note=format.rs:694
-ROW home.alignBottom | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=align.v bottom | note=format.rs:694
-ROW home.wrapText | params={} | resolves=active cell wrap toggle; selection destinations | holds=STYLE(active,selection);active-cell wrap | reads=part,selection | writes=align.wrap and fitted rows | note=format.rs:304
-ROW home.shrinkToFit | params={} | resolves=active cell shrink toggle; selection destinations | holds=STYLE(active,selection);active-cell shrink | reads=part,selection | writes=align.shrink | note=format.rs:304
-ROW home.increaseIndent | params={"sheet":"Data","range":"B2"} | resolves=Data B2; own current indent+horizontal alignment | holds=STYLE(Data,B2) | reads=none | writes=indent+1, alignment becomes left for unsupported alignments | note=format.rs:698
-ROW home.decreaseIndent | params={"sheet":"Data","range":"B2"} | resolves=Data B2; own indent/alignment | holds=STYLE(Data,B2) | reads=none | writes=indent-1 clamped, possibly left | note=format.rs:698
-ROW home.orientation | params={"sheet":"Data","range":"B2","angle":"vertical"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=rotation 255 or numeric clamp | note=format.rs:707
-ROW home.mergeCenter | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3; can_merge also checks ACTIVE selection tables | holds=ADDRESS(Data,B2:C3);active selection table intersection;Data overlapping tables/merges;nonleading cell values/formulas/styles/checkbox;FIT(Data,cleared rows);HEADERS(Data,cleared cells);STYLE(Data,B2:C3);CONNECTORS(Data) | reads=part,selection | writes=merge+center, or unmerge if exact merges already all present | note=format.rs:742
-ROW home.mergeAcross | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3; can_merge active selection check | holds=ADDRESS(Data,B2:C3);active selection tables;Data overlapping tables/merges;CONNECTORS(Data) | reads=part,selection | writes=one merge per row; DOES NOT clear nonleading cell contents | note=format.rs:742 across branch
-ROW home.mergeCells | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3; active-selection enabled table check | holds=ADDRESS(Data,B2:C3);active selection tables;Data overlapping tables/merges;nonleading input/style/checkbox;protection;FIT(Data,cleared rows);HEADERS(Data,cleared);CONNECTORS(Data) | reads=part,selection | writes=merge and clears nonleading content for <=1000000 cells | note=format.rs:742
-ROW home.unmergeCells | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3 | holds=ADDRESS(Data,B2:C3);intersecting merge entries;CONNECTORS(Data) | reads=none | writes=intersecting merges removed;no content/FIT | note=format.rs:742 unmerge branch
-ROW home.numberFormat | params={"sheet":"Data","range":"B2","code":"0.000"} | resolves=Data B2; code or feature-name mapping | holds=STYLE(Data,B2) | reads=none | writes=num_fmt | note=format.rs:791
-ROW home.accounting | params={"sheet":"Data","range":"B2","symbol":"EUR"} | resolves=Data B2; symbol ignored, fixed dollar accounting code | holds=STYLE(Data,B2) | reads=none | writes=num_fmt | note=format.rs:799 set_fmt
-ROW home.percent | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=num_fmt 0% | note=format.rs:799
-ROW home.comma | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=fixed comma num_fmt | note=format.rs:799
-ROW home.increaseDecimal | params={"sheet":"Data","range":"B2"} | resolves=Data target; active sheet/cell format AND computed value derive new code | holds=STYLE(Data,B2);active-cell num_fmt/value/spill and formula precedents if General | reads=part,selection | writes=active-derived number format on target | note=format.rs:881 decimals
-ROW home.decreaseDecimal | params={"sheet":"Data","range":"B2"} | resolves=Data target; active cell format/value | holds=STYLE(Data,B2);active-cell num_fmt/value/spill/precedents | reads=part,selection | writes=active-derived format | note=format.rs:881
-ROW home.cellStyle | params={"sheet":"Data","range":"B2","name":"Custom"} | resolves=Data B2; name case-insensitive cell_styles lookup before builtin | holds=STYLE(Data,B2);chosen named cell-style definition or absence;theme major_font for builtin Title only | reads=none | writes=chosen style retaining old num_fmt if chosen General | note=format.rs:1079 only_fmt depends exact input spelling, not resolved style identity
-ROW home.rowHeight | params={"rows":"Data!2:3","height":20} | resolves=Data prefix; rows 1-based positions; explicit sheet wins prefix | holds=ADDRESS(Data,rows2:3);row size/hidden/custom;CONNECTORS(Data) | reads=none | writes=size,hidden=(height zero),custom=true; no FIT | note=format.rs:1132
-ROW home.rowHeight | params={"height":20} | resolves=active sheet; all selection row spans | holds=ADDRESS(active,selected rows);row size/hidden/custom;CONNECTORS(active) | reads=part,selection | writes=row properties | note=format.rs:1132 line_targets fallback
-ROW home.columnWidth | params={"sheet":1,"cols":"B:C","width":64} | resolves=sheet numeric tab index 1; B:C positional columns | holds=ADDRESS(index1,colsB:C);column size/hidden;CONNECTORS(index1) | reads=none | writes=size,hidden=(width zero), not custom | note=format.rs:1152 chars uses fixed 7px digit metric, not default font
-ROW home.autofitRowHeight | params={"rows":"Data!2:3"} | resolves=Data prefix STRIPPED; ACTUAL sheet is active; ignores explicit sheet too | holds=ADDRESS(active,rows2:3);FIT(active,2:3);CONNECTORS(active) | reads=part | writes=active rows custom/hidden false and auto-fitted height | note=format.rs:1249 active-sheet mismatch
-ROW home.autofitColumnWidth | params={"cols":"Data!B:C"} | resolves=Data prefix STRIPPED; ACTUAL active sheet; used range clips source rows | holds=ADDRESS(active,colsB:C);used-range;column cells displayed value/styles/font/indent/date-system/merges;column size/hidden;CONNECTORS(active) | reads=part | writes=active column widths=max text width and hidden false if text exists | note=format.rs:1210 active-sheet mismatch
-ROW home.defaultWidth | params={"sheet":"Data","width":80} | resolves=ALWAYS active sheet, sheet ignored | holds=active default_col_width;CONNECTORS(active) | reads=part | writes=active default width clamped | note=format.rs:1270
-ROW home.hideRows | params={"rows":"Data!2:3"} | resolves=prefix stripped, ALWAYS active sheet | holds=ADDRESS(active,rows2:3);row hidden;HEADERS(all);CONNECTORS(active) | reads=part | writes=active rows hidden=true;structural full recalc | note=format.rs:1279 hide
-ROW home.hideColumns | params={"cols":"Data!B:C"} | resolves=prefix stripped, ALWAYS active sheet | holds=ADDRESS(active,colsB:C);column hidden;HEADERS(all);CONNECTORS(active) | reads=part | writes=active columns hidden=true | note=format.rs:1279
-ROW home.unhideRows | params={"rows":"Data!2"} | resolves=ALWAYS active sheet; single row reveals adjacent rows 1:3 too | holds=ADDRESS(active,rows1:3);existing row hidden/zero-size state;HEADERS(all);CONNECTORS(active) | reads=part | writes=hidden=false and zero size cleared on materialized lines only | note=format.rs:1286 neighbour expansion
-ROW home.unhideColumns | params={"cols":"Data!B"} | resolves=ALWAYS active sheet; single B also A:C | holds=ADDRESS(active,A:C);existing column hidden/zero-size state;HEADERS(all);CONNECTORS(active) | reads=part | writes=hidden=false and zero size cleared | note=format.rs:1286
-ROW home.lockCell | params={} | resolves=active cell locked toggle; selection destinations | holds=STYLE(active,selection);active-cell protection.locked | reads=part,selection | writes=style locked flag | note=format.rs:304
+ROW format.bold | params={} | resolves=active sheet and active cell decide toggle; target selection areas | holds=STYLE(active,selection);active-cell resolved bold | reads=part,selection | writes=font.bold inverse active style | note=format.rs:304 toggle
+ROW format.bold | params={"sheet":"Data","range":"B2","on":true} | resolves=Data B2; explicit on bypasses active-style read | holds=STYLE(Data,B2) | reads=none | writes=font.bold true | note=format.rs:304 explicit toggle
+ROW format.italic | params={} | resolves=active sheet/cell toggle and selection destinations | holds=STYLE(active,selection);active-cell italic | reads=part,selection | writes=font.italic | note=format.rs:304
+ROW format.italic | params={"sheet":"Data","range":"B2","on":false} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font.italic false | note=format.rs:304 explicit toggle
+ROW format.underline | params={"sheet":"Data","range":"B2","on":true} | resolves=Data B2 target; ALWAYS reads active cell underline before unwrap_or even explicit on | holds=STYLE(Data,B2);active-sheet active-cell style underline | reads=part,selection | writes=chosen underline | note=format.rs:313 eager active_style read
+ROW format.underline | params={} | resolves=active sheet/cell underline toggles default single; target selection | holds=STYLE(active,selection);active-cell underline | reads=part,selection | writes=underline single/none | note=format.rs:313
+ROW format.doubleUnderline | params={} | resolves=active sheet/cell underline compared double; target selection | holds=STYLE(active,selection);active-cell underline | reads=part,selection | writes=double underline or none | note=format.rs:313 style injected double
+ROW format.strikethrough | params={} | resolves=active sheet/cell toggle and selection destinations | holds=STYLE(active,selection);active-cell strike | reads=part,selection | writes=font.strike | note=format.rs:304
+ROW format.strikethrough | params={"sheet":"Data","range":"B2","on":true} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font.strike | note=format.rs:304 explicit toggle
+ROW format.superscript | params={} | resolves=active sheet/cell toggle and selection | holds=STYLE(active,selection);active-cell vert | reads=part,selection | writes=font.vert superscript/baseline | note=format.rs:304
+ROW format.subscript | params={} | resolves=active sheet/cell toggle and selection | holds=STYLE(active,selection);active-cell vert | reads=part,selection | writes=font.vert subscript/baseline | note=format.rs:304
+ROW format.fontName | params={"sheet":"Data","range":"B2","name":"Arial"} | resolves=Data B2; name is font text, NOT object name | holds=STYLE(Data,B2) | reads=none | writes=font name/script names plus rich override removal | note=format.rs:329
+ROW format.fontSize | params={"sheet":"Data","range":"B2","size":14} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font size rounded half point | note=format.rs:334
+ROW format.increaseFontSize | params={"sheet":"Data","range":"B2"} | resolves=target Data B2 but next size and enabled check from ACTIVE sheet's active cell | holds=STYLE(Data,B2);active-cell resolved font size | reads=part,selection | writes=next active size to B2, not B2 next size | note=format.rs:361 can_grow and 373 step_font
+ROW format.decreaseFontSize | params={"sheet":"Data","range":"B2"} | resolves=Data B2 but active cell size determines result | holds=STYLE(Data,B2);active-cell font size | reads=part,selection | writes=previous active size | note=format.rs:367 can_shrink/373
+ROW format.color | params={"sheet":"Data","range":"B2","color":"#CC0000"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=font colour;theme colours stored symbolic, no theme lookup | note=format.rs:405
+ROW format.fillColor | params={"sheet":"Data","range":"B2","color":"#FF0000"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=solid fill or clears | note=format.rs:410
+ROW format.borders | params={"sheet":"Data","range":"B2:C3","preset":"outside"} | resolves=Data explicit ranges; no filtered-row skip | holds=ADDRESS(Data,B2:C3);target style definitions/inherited styles;sheet protection.format_cells;CONNECTORS(Data) | reads=none | writes=selected boundary style fields; NO automatic FIT/touch | note=format.rs:437
+ROW format.borders | params={"sheet":"Data","range":"B2:C3","preset":"none"} | resolves=Data selected cells PLUS facing edges on adjacent cells A2:A3,D2:D3,B1:C1,B4:C4 | holds=ADDRESS(Data,selected+adjacent edges);selected and adjacent inherited styles/borders;protection;CONNECTORS(Data) | reads=none | writes=selected borders reset;neighbour facing edges cleared | note=format.rs:546 neighbour branch
+ROW format.cells | params={} | resolves=none | holds=none | reads=none | writes=dialog request only | note=format.rs:616 no style/edges/merge
+ROW format.cells | params={"sheet":"Data","range":"B2","style":{"font":{"bold":true}}} | resolves=Data B2 target; validation merges patch into ACTIVE cell style first | holds=STYLE(Data,B2);active-cell resolved style for patch validation | reads=part,selection | writes=partial style; no content edit | note=format.rs:616
+ROW format.cells | params={"sheet":"Data","range":"B2:C3","edges":[{"preset":"none"}],"merge":true} | resolves=Data B2:C3; nested border/merge callbacks; cell param discarded by extras forwarding | holds=border selected/neighbour styles;merge table+merge intersections;selected non-leading content/checkbox;FIT(Data,cleared rows);HEADERS(Data,cleared cells);CONNECTORS(Data) | reads=part,selection | writes=edges then merge; enabled can_merge checks active selection tables | note=format.rs:643 format_cells_extras; may fail after border edit
+ROW format.alignLeft | params={"sheet":"Data","range":"B2"} | resolves=Data target, active sheet/cell horizontal align toggles | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=left or General | note=format.rs:687 halign
+ROW format.alignCenter | params={"sheet":"Data","range":"B2"} | resolves=Data target, active horizontal alignment | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=center or General | note=format.rs:687
+ROW format.alignRight | params={"sheet":"Data","range":"B2"} | resolves=Data target, active horizontal alignment | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=right or General | note=format.rs:687
+ROW format.justify | params={"sheet":"Data","range":"B2"} | resolves=Data target, active horizontal alignment | holds=STYLE(Data,B2);active-cell align.h | reads=part,selection | writes=justify or General | note=format.rs:687
+ROW format.alignTop | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=align.v top | note=format.rs:694 valign
+ROW format.alignMiddle | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=align.v center | note=format.rs:694
+ROW format.alignBottom | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=align.v bottom | note=format.rs:694
+ROW format.wrapText | params={} | resolves=active cell wrap toggle; selection destinations | holds=STYLE(active,selection);active-cell wrap | reads=part,selection | writes=align.wrap and fitted rows | note=format.rs:304
+ROW format.shrinkToFit | params={} | resolves=active cell shrink toggle; selection destinations | holds=STYLE(active,selection);active-cell shrink | reads=part,selection | writes=align.shrink | note=format.rs:304
+ROW format.increaseIndent | params={"sheet":"Data","range":"B2"} | resolves=Data B2; own current indent+horizontal alignment | holds=STYLE(Data,B2) | reads=none | writes=indent+1, alignment becomes left for unsupported alignments | note=format.rs:698
+ROW format.decreaseIndent | params={"sheet":"Data","range":"B2"} | resolves=Data B2; own indent/alignment | holds=STYLE(Data,B2) | reads=none | writes=indent-1 clamped, possibly left | note=format.rs:698
+ROW format.orientation | params={"sheet":"Data","range":"B2","angle":"vertical"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=rotation 255 or numeric clamp | note=format.rs:707
+ROW cell.mergeCenter | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3; can_merge also checks ACTIVE selection tables | holds=ADDRESS(Data,B2:C3);active selection table intersection;Data overlapping tables/merges;nonleading cell values/formulas/styles/checkbox;FIT(Data,cleared rows);HEADERS(Data,cleared cells);STYLE(Data,B2:C3);CONNECTORS(Data) | reads=part,selection | writes=merge+center, or unmerge if exact merges already all present | note=format.rs:742
+ROW cell.mergeAcross | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3; can_merge active selection check | holds=ADDRESS(Data,B2:C3);active selection tables;Data overlapping tables/merges;CONNECTORS(Data) | reads=part,selection | writes=one merge per row; DOES NOT clear nonleading cell contents | note=format.rs:742 across branch
+ROW cell.merge | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3; active-selection enabled table check | holds=ADDRESS(Data,B2:C3);active selection tables;Data overlapping tables/merges;nonleading input/style/checkbox;protection;FIT(Data,cleared rows);HEADERS(Data,cleared);CONNECTORS(Data) | reads=part,selection | writes=merge and clears nonleading content for <=1000000 cells | note=format.rs:742
+ROW cell.unmerge | params={"sheet":"Data","range":"B2:C3"} | resolves=Data B2:C3 | holds=ADDRESS(Data,B2:C3);intersecting merge entries;CONNECTORS(Data) | reads=none | writes=intersecting merges removed;no content/FIT | note=format.rs:742 unmerge branch
+ROW format.numberFormat | params={"sheet":"Data","range":"B2","code":"0.000"} | resolves=Data B2; code or feature-name mapping | holds=STYLE(Data,B2) | reads=none | writes=num_fmt | note=format.rs:791
+ROW format.accounting | params={"sheet":"Data","range":"B2","symbol":"EUR"} | resolves=Data B2; symbol ignored, fixed dollar accounting code | holds=STYLE(Data,B2) | reads=none | writes=num_fmt | note=format.rs:799 set_fmt
+ROW format.percent | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=num_fmt 0% | note=format.rs:799
+ROW format.comma | params={"sheet":"Data","range":"B2"} | resolves=Data B2 | holds=STYLE(Data,B2) | reads=none | writes=fixed comma num_fmt | note=format.rs:799
+ROW format.increaseDecimal | params={"sheet":"Data","range":"B2"} | resolves=Data target; active sheet/cell format AND computed value derive new code | holds=STYLE(Data,B2);active-cell num_fmt/value/spill and formula precedents if General | reads=part,selection | writes=active-derived number format on target | note=format.rs:881 decimals
+ROW format.decreaseDecimal | params={"sheet":"Data","range":"B2"} | resolves=Data target; active cell format/value | holds=STYLE(Data,B2);active-cell num_fmt/value/spill/precedents | reads=part,selection | writes=active-derived format | note=format.rs:881
+ROW style.apply | params={"sheet":"Data","range":"B2","name":"Custom"} | resolves=Data B2; name case-insensitive cell_styles lookup before builtin | holds=STYLE(Data,B2);chosen named cell-style definition or absence;theme major_font for builtin Title only | reads=none | writes=chosen style retaining old num_fmt if chosen General | note=format.rs:1079 only_fmt depends exact input spelling, not resolved style identity
+ROW row.setHeight | params={"rows":"Data!2:3","height":20} | resolves=Data prefix; rows 1-based positions; explicit sheet wins prefix | holds=ADDRESS(Data,rows2:3);row size/hidden/custom;CONNECTORS(Data) | reads=none | writes=size,hidden=(height zero),custom=true; no FIT | note=format.rs:1132
+ROW row.setHeight | params={"height":20} | resolves=active sheet; all selection row spans | holds=ADDRESS(active,selected rows);row size/hidden/custom;CONNECTORS(active) | reads=part,selection | writes=row properties | note=format.rs:1132 line_targets fallback
+ROW column.setWidth | params={"sheet":1,"cols":"B:C","width":64} | resolves=sheet numeric tab index 1; B:C positional columns | holds=ADDRESS(index1,colsB:C);column size/hidden;CONNECTORS(index1) | reads=none | writes=size,hidden=(width zero), not custom | note=format.rs:1152 chars uses fixed 7px digit metric, not default font
+ROW row.autofitHeight | params={"rows":"Data!2:3"} | resolves=Data prefix STRIPPED; ACTUAL sheet is active; ignores explicit sheet too | holds=ADDRESS(active,rows2:3);FIT(active,2:3);CONNECTORS(active) | reads=part | writes=active rows custom/hidden false and auto-fitted height | note=format.rs:1249 active-sheet mismatch
+ROW column.autofitWidth | params={"cols":"Data!B:C"} | resolves=Data prefix STRIPPED; ACTUAL active sheet; used range clips source rows | holds=ADDRESS(active,colsB:C);used-range;column cells displayed value/styles/font/indent/date-system/merges;column size/hidden;CONNECTORS(active) | reads=part | writes=active column widths=max text width and hidden false if text exists | note=format.rs:1210 active-sheet mismatch
+ROW column.setDefaultWidth | params={"sheet":"Data","width":80} | resolves=ALWAYS active sheet, sheet ignored | holds=active default_col_width;CONNECTORS(active) | reads=part | writes=active default width clamped | note=format.rs:1270
+ROW row.hide | params={"rows":"Data!2:3"} | resolves=prefix stripped, ALWAYS active sheet | holds=ADDRESS(active,rows2:3);row hidden;HEADERS(all);CONNECTORS(active) | reads=part | writes=active rows hidden=true;structural full recalc | note=format.rs:1279 hide
+ROW column.hide | params={"cols":"Data!B:C"} | resolves=prefix stripped, ALWAYS active sheet | holds=ADDRESS(active,colsB:C);column hidden;HEADERS(all);CONNECTORS(active) | reads=part | writes=active columns hidden=true | note=format.rs:1279
+ROW row.show | params={"rows":"Data!2"} | resolves=ALWAYS active sheet; single row reveals adjacent rows 1:3 too | holds=ADDRESS(active,rows1:3);existing row hidden/zero-size state;HEADERS(all);CONNECTORS(active) | reads=part | writes=hidden=false and zero size cleared on materialized lines only | note=format.rs:1286 neighbour expansion
+ROW column.show | params={"cols":"Data!B"} | resolves=ALWAYS active sheet; single B also A:C | holds=ADDRESS(active,A:C);existing column hidden/zero-size state;HEADERS(all);CONNECTORS(active) | reads=part | writes=hidden=false and zero size cleared | note=format.rs:1286
+ROW cell.lock | params={} | resolves=active cell locked toggle; selection destinations | holds=STYLE(active,selection);active-cell protection.locked | reads=part,selection | writes=style locked flag | note=format.rs:304
 # cmd/sheet.rs
-ROW home.insertRows | params={"sheet":"Data","rows":"3:4"} | resolves=Data; rows positional range 3:4; rows prefix stripped rather than used for sheet | holds=STRUCTURE(Data,rows>=3);used-range room check;row BEFORE insertion cells/style/size, neighbour outline minimum;CF ending previous row;ADDRESS(Data,insertion) | reads=none | writes=insert rows, inherited formats sans checkbox, refs/features shifted | note=sheet.rs:409 format_inserted/unbox_inserted; count replaces span size
-ROW home.insertRows | params={"below":true} | resolves=active sheet; selection row spans coalesced; inserts AFTER each run | holds=STRUCTURE(active,insertion bands);source row AFTER insertion styles/size;neighbour outlines;used-range;CF preceding boundary | reads=part,selection | writes=insert lines and selection;clipboard invalidated | note=sheet.rs:409 below reverses format source
-ROW home.insertColumns | params={"sheet":"Data","cols":"B:C","right":true} | resolves=Data; positional columns; insert after C;cols prefix ignored by target_sheet | holds=STRUCTURE(Data,cols>=D);source column AFTER new block styles/size;neighbour outlines;used range;CF boundary | reads=none | writes=insert columns;table column definitions and formulas updated | note=sheet.rs:409
-ROW home.deleteRows | params={"sheet":"Data","rows":"3:5"} | resolves=Data positional row blocks; filter-hidden rows INSIDE active filter criteria skipped | holds=STRUCTURE(Data,rows>=3);filter range/criteria and candidate row hidden;deleted line/cell locked styles;ADDRESS(Data,rows3:5) | reads=none | writes=visible requested rows removed and following shifted;clipboard invalidated | note=sheet.rs:493 deleted_runs
-ROW home.deleteColumns | params={"sheet":"Data","cols":"B:C"} | resolves=Data positional columns; no filter skip for columns | holds=STRUCTURE(Data,cols>=B);deleted column/cell protection/locked styles;ADDRESS(Data,B:C) | reads=none | writes=columns removed, features/global references shifted | note=sheet.rs:493
-ROW home.insertCells | params={"sheet":"Data","range":"B2:C3","shift":"down"} | resolves=Data B2:C3; first range only | holds=STRUCTURE(Data,colsB:C rows>=2);ADDRESS(Data,B2:C3) | reads=none | writes=band shifted down, feature/global references adjusted;no format inherited | note=sheet.rs:532 shift non-row/column branch
-ROW home.insertCells | params={"sheet":"Data","range":"B2:C3","shift":"row"} | resolves=range rows2:3, but delegate DROPS sheet; ACTUAL active sheet | holds=STRUCTURE(active,rows>=2);previous row format and neighbour outlines;used-range room/protection | reads=part | writes=active rows inserted | note=sheet.rs:536 delegation wrong-sheet risk
-ROW home.deleteCells | params={"sheet":"Data","range":"B2:C3","shift":"left"} | resolves=Data B2:C3; first range only | holds=STRUCTURE(Data,rows2:3 cols>=B);ADDRESS(Data,B2:C3) | reads=none | writes=band cells removed/shifted, features/references updated | note=sheet.rs:561
-ROW home.deleteCells | params={"sheet":"Data","range":"B2:C3","shift":"column"} | resolves=columns B:C but delegate drops sheet; ACTUAL active sheet | holds=STRUCTURE(active,cols>=B);deleted column/cell protection | reads=part | writes=active columns removed | note=sheet.rs:566 wrong-sheet delegation
-ROW home.insertSheet | params={"name":"Added","before":1} | resolves=before numeric insertion position clamped; name explicit uniqueness lookup | holds=tab order/membership;all sheet names;protected_structure;defined-name scopes;active remembered selection | reads=part,selection | writes=sheet inserted, name scopes shifted, active sheet/selection and memories | note=sheet.rs:594
-ROW home.insertSheet | params={} | resolves=default unique SheetN name; insert AFTER active sheet | holds=tab order/membership and names;protected_structure;name scopes | reads=part,selection | writes=new active sheet at A1 | note=sheet.rs:594 default position/name
-ROW home.deleteSheet | params={"sheet":"Data"} | resolves=Data by name; last-visible check | holds=Data whole sheet;all sheet visibility/tab order;protected_structure;affected formula/name/feature refs to Data and 3D order;defined scopes | reads=part,selection | writes=sheet removed, refs #REF or shifted 3D, names scoped removed;active/memory follows | note=sheet.rs:671
+ROW row.insert | params={"sheet":"Data","rows":"3:4"} | resolves=Data; rows positional range 3:4; rows prefix stripped rather than used for sheet | holds=STRUCTURE(Data,rows>=3);used-range room check;row BEFORE insertion cells/style/size, neighbour outline minimum;CF ending previous row;ADDRESS(Data,insertion) | reads=none | writes=insert rows, inherited formats sans checkbox, refs/features shifted | note=sheet.rs:409 format_inserted/unbox_inserted; count replaces span size
+ROW row.insert | params={"below":true} | resolves=active sheet; selection row spans coalesced; inserts AFTER each run | holds=STRUCTURE(active,insertion bands);source row AFTER insertion styles/size;neighbour outlines;used-range;CF preceding boundary | reads=part,selection | writes=insert lines and selection;clipboard invalidated | note=sheet.rs:409 below reverses format source
+ROW column.insert | params={"sheet":"Data","cols":"B:C","right":true} | resolves=Data; positional columns; insert after C;cols prefix ignored by target_sheet | holds=STRUCTURE(Data,cols>=D);source column AFTER new block styles/size;neighbour outlines;used range;CF boundary | reads=none | writes=insert columns;table column definitions and formulas updated | note=sheet.rs:409
+ROW row.delete | params={"sheet":"Data","rows":"3:5"} | resolves=Data positional row blocks; filter-hidden rows INSIDE active filter criteria skipped | holds=STRUCTURE(Data,rows>=3);filter range/criteria and candidate row hidden;deleted line/cell locked styles;ADDRESS(Data,rows3:5) | reads=none | writes=visible requested rows removed and following shifted;clipboard invalidated | note=sheet.rs:493 deleted_runs
+ROW column.delete | params={"sheet":"Data","cols":"B:C"} | resolves=Data positional columns; no filter skip for columns | holds=STRUCTURE(Data,cols>=B);deleted column/cell protection/locked styles;ADDRESS(Data,B:C) | reads=none | writes=columns removed, features/global references shifted | note=sheet.rs:493
+ROW cell.insert | params={"sheet":"Data","range":"B2:C3","shift":"down"} | resolves=Data B2:C3; first range only | holds=STRUCTURE(Data,colsB:C rows>=2);ADDRESS(Data,B2:C3) | reads=none | writes=band shifted down, feature/global references adjusted;no format inherited | note=sheet.rs:532 shift non-row/column branch
+ROW cell.insert | params={"sheet":"Data","range":"B2:C3","shift":"row"} | resolves=range rows2:3, but delegate DROPS sheet; ACTUAL active sheet | holds=STRUCTURE(active,rows>=2);previous row format and neighbour outlines;used-range room/protection | reads=part | writes=active rows inserted | note=sheet.rs:536 delegation wrong-sheet risk
+ROW cell.delete | params={"sheet":"Data","range":"B2:C3","shift":"left"} | resolves=Data B2:C3; first range only | holds=STRUCTURE(Data,rows2:3 cols>=B);ADDRESS(Data,B2:C3) | reads=none | writes=band cells removed/shifted, features/references updated | note=sheet.rs:561
+ROW cell.delete | params={"sheet":"Data","range":"B2:C3","shift":"column"} | resolves=columns B:C but delegate drops sheet; ACTUAL active sheet | holds=STRUCTURE(active,cols>=B);deleted column/cell protection | reads=part | writes=active columns removed | note=sheet.rs:566 wrong-sheet delegation
+ROW sheet.insert | params={"name":"Added","before":1} | resolves=before numeric insertion position clamped; name explicit uniqueness lookup | holds=tab order/membership;all sheet names;protected_structure;defined-name scopes;active remembered selection | reads=part,selection | writes=sheet inserted, name scopes shifted, active sheet/selection and memories | note=sheet.rs:594
+ROW sheet.insert | params={} | resolves=default unique SheetN name; insert AFTER active sheet | holds=tab order/membership and names;protected_structure;name scopes | reads=part,selection | writes=new active sheet at A1 | note=sheet.rs:594 default position/name
+ROW sheet.delete | params={"sheet":"Data"} | resolves=Data by name; last-visible check | holds=Data whole sheet;all sheet visibility/tab order;protected_structure;affected formula/name/feature refs to Data and 3D order;defined scopes | reads=part,selection | writes=sheet removed, refs #REF or shifted 3D, names scoped removed;active/memory follows | note=sheet.rs:671
 ROW sheet.rename | params={"sheet":"Data","name":"Renamed"} | resolves=Data by name; new name trimmed; validates all sheet names;no protected_structure check in handler | holds=Data name;all names for uniqueness;affected cell/feature formula/name/internal hyperlink references to old name;tab lookup | reads=none | writes=sheet name and refs;structural recalc;CONNECTORS changed sheets | note=sheet.rs:747
 ROW sheet.move | params={"sheet":"Data","to":0} | resolves=Data source; to numeric final position clamped after removal | holds=tab order/membership;protected_structure;defined-name scopes;HEADERS(all);CONNECTORS(changed sheets) | reads=part,selection | writes=tab moved;name scope indexes;active/memory follows identity | note=sheet.rs:1008 noncopy
 ROW sheet.move | params={"sheet":"Data","to":0,"copy":true} | resolves=Data copy;to insertion position clamped before addition | holds=source Data whole sheet;tab/names/table names/object ids for unique names/ids;source scoped names;protected_structure;HEADERS(all);CONNECTORS(copy) | reads=part,selection | writes=new sheet deep clone/rekeyed objects/tables/groups;rewritten self refs;new active A1 | note=sheet.rs:1008 sheet_copy;connector endpoint ids not remapped in sheet_copy
@@ -197,35 +197,31 @@ pub fn reviewed_editor(command: &str) -> Option<(&'static [&'static str], &'stat
         "edit.fillDown" | "edit.fillRight" | "edit.fillUp" | "edit.fillLeft" | "edit.fillSeries" | "edit.smartFill" => {
             Some((&["part", "selection"], "edit.rs fill_dir/fill_series/smart_fill -> target_range default"))
         }
-        "home.fontName"
-        | "home.fontSize"
-        | "home.fontColor"
-        | "home.fillColor"
-        | "home.alignTop"
-        | "home.alignMiddle"
-        | "home.alignBottom"
-        | "home.increaseIndent"
-        | "home.decreaseIndent"
-        | "home.orientation"
-        | "home.numberFormat"
-        | "home.accounting"
-        | "home.percent"
-        | "home.comma"
-        | "home.cellStyle" => Some((&["part", "selection"], "format.rs apply_style -> target_sheet/target_ranges defaults")),
-        "home.borders" | "home.unmergeCells" => Some((&["part", "selection"], "format.rs borders/merge -> target_sheet/target_ranges defaults")),
-        "home.columnWidth"
-        | "home.autofitRowHeight"
-        | "home.autofitColumnWidth"
-        | "home.hideRows"
-        | "home.hideColumns"
-        | "home.unhideRows"
-        | "home.unhideColumns" => Some((&["part", "selection"], "format.rs line_sheet/line_targets default axes from selection")),
-        "home.insertColumns" | "home.deleteRows" | "home.deleteColumns" => {
+        "format.fontName"
+        | "format.fontSize"
+        | "format.color"
+        | "format.fillColor"
+        | "format.alignTop"
+        | "format.alignMiddle"
+        | "format.alignBottom"
+        | "format.increaseIndent"
+        | "format.decreaseIndent"
+        | "format.orientation"
+        | "format.numberFormat"
+        | "format.accounting"
+        | "format.percent"
+        | "format.comma"
+        | "style.apply" => Some((&["part", "selection"], "format.rs apply_style -> target_sheet/target_ranges defaults")),
+        "format.borders" | "cell.unmerge" => Some((&["part", "selection"], "format.rs borders/merge -> target_sheet/target_ranges defaults")),
+        "column.setWidth" | "row.autofitHeight" | "column.autofitWidth" | "row.hide" | "column.hide" | "row.show" | "column.show" => {
+            Some((&["part", "selection"], "format.rs line_sheet/line_targets default axes from selection"))
+        }
+        "column.insert" | "row.delete" | "column.delete" => {
             Some((&["part", "selection"], "sheet.rs insert_lines/delete_lines -> line_blocks default; implicit selection span"))
         }
-        "home.insertCells" | "home.deleteCells" => Some((&["part", "selection"], "sheet.rs insert_cells/delete_cells -> target_range default")),
+        "cell.insert" | "cell.delete" => Some((&["part", "selection"], "sheet.rs insert_cells/delete_cells -> target_range default")),
         "sheet.rename" | "sheet.tabColor" => Some((&["part"], "sheet.rs rename_sheet/tab_color -> target_sheet default")),
-        "home.deleteSheet" => Some((&["part"], "sheet.rs delete_sheet restores remembered selection, not current selection")),
+        "sheet.delete" => Some((&["part"], "sheet.rs delete_sheet restores remembered selection, not current selection")),
         "edit.undo" | "edit.redo" => {
             Some((&["selection"], "edit.rs step_history saves/restores selection; snapshot active tab does not choose target"))
         }
@@ -278,11 +274,11 @@ fn required_edit_facts_have_an_only_decreasing_missing_floor() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).expect("create fixture");
     doc.execute("range.setValues", json!({"range":"A1","values":[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]]}))
         .expect("fixture cells");
-    doc.execute("home.insertSheet", json!({"name":"Sheet2"})).expect("second sheet");
+    doc.execute("sheet.insert", json!({"name":"Sheet2"})).expect("second sheet");
     doc.execute("range.setValues", json!({"range":"A1","values":[[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,16],[17,18,19,20]]}))
         .expect("second fixture cells");
     doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).expect("first active");
-    doc.execute("selection.set", json!({"range":"C5"})).expect("first selection");
+    doc.execute("select.set", json!({"range":"C5"})).expect("first selection");
     doc.version().expect("materialize observed identities");
     let field_held = |under: &kition_kit::Under, id: &str, field: &str| {
         under.premises.iter().any(|premise| {
@@ -309,7 +305,7 @@ fn required_edit_facts_have_an_only_decreasing_missing_floor() {
             missing.push(format!("{command}: automatic fitting reads the rest of row {}", row + 1));
         }
     }
-    for (command, params, axis) in [("home.insertRows", json!({"rows":"3:3"}), "row"), ("home.insertColumns", json!({"cols":"C:C"}), "col")] {
+    for (command, params, axis) in [("row.insert", json!({"rows":"3:3"}), "row"), ("column.insert", json!({"cols":"C:C"}), "col")] {
         let under = doc.under(command, &params).expect(command).expect("premises");
         if !under.premises.iter().any(|premise| {
             premise.id.as_str().is_some_and(|id| id.starts_with(axis))
@@ -318,10 +314,10 @@ fn required_edit_facts_have_an_only_decreasing_missing_floor() {
             missing.push(format!("{command}: inherits neighbouring cell and line formats"));
         }
     }
-    for command in ["home.insertSheet", "home.deleteSheet", "sheet.move"] {
+    for command in ["sheet.insert", "sheet.delete", "sheet.move"] {
         let params: Value = match command {
-            "home.insertSheet" => json!({"name":"Added"}),
-            "home.deleteSheet" => json!({"sheet":"Sheet2"}),
+            "sheet.insert" => json!({"name":"Added"}),
+            "sheet.delete" => json!({"sheet":"Sheet2"}),
             _ => json!({"sheet":"Sheet2","to":0}),
         };
         let under = doc.under(command, &params).expect(command).expect("premises");
@@ -332,9 +328,9 @@ fn required_edit_facts_have_an_only_decreasing_missing_floor() {
     // The SDK sets the command's part before asking `under`; reproduce that context rather
     // than comparing with a first-sheet selection the handler will never see.
     doc.set_context(&kition_kit::CallContext { part: Some(json!({"sheet":"sheet:2"})), ..Default::default() }).expect("second-sheet context");
-    let under = doc.under("home.increaseFontSize", &json!({"range":"Sheet2!B2"})).expect("font premises").expect("under");
+    let under = doc.under("format.increaseFontSize", &json!({"range":"Sheet2!B2"})).expect("font premises").expect("under");
     if !field_held(&under, "cell:2!A1", "style") {
-        missing.push("home.increaseFontSize: target sheet's remembered active cell A1, not first sheet's C5".into());
+        missing.push("format.increaseFontSize: target sheet's remembered active cell A1, not first sheet's C5".into());
     }
     eprintln!("edit required facts missing {}: {}", missing.len(), missing.join("; "));
     assert!(missing.is_empty(), "missing fact floor only decreases: {missing:?}");
@@ -384,7 +380,7 @@ fn independently_read_edit_reference_roles_have_only_decreasing_missing_floor() 
                 continue;
             }
             let names_place = match key.as_str() {
-                "sheet" => id != "home.defaultWidth",
+                "sheet" => id != "column.setDefaultWidth",
                 "cell" => true,
                 "range" => id != "edit.replace",
                 "rows" | "cols" => true,
@@ -393,8 +389,8 @@ fn independently_read_edit_reference_roles_have_only_decreasing_missing_floor() 
                 "apply" => id == "edit.formatPainter",
                 "from" => id == "edit.moveCells",
                 "to" => matches!(id, "edit.moveCells" | "sheet.move"),
-                "before" => id == "home.insertSheet",
-                "name" => matches!(id, "cell.set" | "home.cellStyle"),
+                "before" => id == "sheet.insert",
+                "name" => matches!(id, "cell.set" | "style.apply"),
                 _ => false,
             };
             if names_place
@@ -438,15 +434,15 @@ fn all_edit_read_footprints_have_only_decreasing_missing_and_excessive_floors() 
     doc.execute("sheet.rename", json!({"name":"Data"})).expect("first sheet name");
     for sheet in ["Data", "Second"] {
         if sheet == "Second" {
-            doc.execute("home.insertSheet", json!({"name":sheet})).expect("second sheet");
+            doc.execute("sheet.insert", json!({"name":sheet})).expect("second sheet");
         }
         doc.execute("range.setValues", json!({"range":"A1","values":[[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[21,22,23,24,25],[26,27,28,29,30],[31,32,33,34,35],[36,37,38,39,40]]})).expect("cells");
     }
     doc.execute("cell.set", json!({"cell":"Z20","input":"99"})).expect("unrelated constant");
-    doc.execute("formulas.defineName", json!({"name":"Destination","refersTo":"=Second!$B$2"})).expect("cross-sheet name");
+    doc.execute("name.define", json!({"name":"Destination","refersTo":"=Second!$B$2"})).expect("cross-sheet name");
     doc.execute("sheet.activate", json!({"sheet":"Data"})).expect("active sheet");
-    doc.execute("selection.set", json!({"range":"C5"})).expect("distinct active cell");
-    doc.execute("home.newCellStyle", json!({"name":"Custom"})).expect("named cell style");
+    doc.execute("select.set", json!({"range":"C5"})).expect("distinct active cell");
+    doc.execute("style.add", json!({"name":"Custom"})).expect("named cell style");
     doc.execute("edit.copy", json!({"range":"B2:C3"})).expect("clipboard snapshot");
     doc.execute("edit.formatPainter", json!({"sticky":true})).expect("painter snapshot");
     doc.version().expect("observed identities");
@@ -469,7 +465,7 @@ fn all_edit_read_footprints_have_only_decreasing_missing_and_excessive_floors() 
         .collect();
     // Pinned from the declaration after review: the blind cellStyle note records Title's
     // theme-font branch, but its original concrete sample used Custom. Preserve that sample.
-    samples.push(("home.cellStyle", json!({"sheet":"Data","range":"B2","name":"Title"})));
+    samples.push(("style.apply", json!({"sheet":"Data","range":"B2","name":"Title"})));
     for (id, params) in samples {
         if !catalogue.iter().any(|command| command.id == id && command.mutates) {
             continue;
@@ -541,80 +537,76 @@ fn all_edit_read_footprints_have_only_decreasing_missing_and_excessive_floors() 
             "edit.formatPainter" if params.get("cancel").is_none() => cell(if params.get("apply").is_some() { "B2" } else { "C5" }, "style"),
             "edit.formatPainter" | "edit.undo" | "edit.redo" => {}
             "edit.moveCells" => cell(if params.get("from").is_some() { "B2" } else { "C5" }, "input"),
-            "home.bold"
-            | "home.italic"
-            | "home.underline"
-            | "home.doubleUnderline"
-            | "home.strikethrough"
-            | "home.superscript"
-            | "home.subscript"
-            | "home.fontName"
-            | "home.fontSize"
-            | "home.increaseFontSize"
-            | "home.decreaseFontSize"
-            | "home.fontColor"
-            | "home.fillColor"
-            | "home.alignLeft"
-            | "home.alignCenter"
-            | "home.alignRight"
-            | "home.justify"
-            | "home.alignTop"
-            | "home.alignMiddle"
-            | "home.alignBottom"
-            | "home.wrapText"
-            | "home.shrinkToFit"
-            | "home.increaseIndent"
-            | "home.decreaseIndent"
-            | "home.orientation"
-            | "home.numberFormat"
-            | "home.accounting"
-            | "home.percent"
-            | "home.comma"
-            | "home.increaseDecimal"
-            | "home.decreaseDecimal"
-            | "home.lockCell" => cell(&target, "style"),
-            "home.borders" => {
+            "format.bold"
+            | "format.italic"
+            | "format.underline"
+            | "format.doubleUnderline"
+            | "format.strikethrough"
+            | "format.superscript"
+            | "format.subscript"
+            | "format.fontName"
+            | "format.fontSize"
+            | "format.increaseFontSize"
+            | "format.decreaseFontSize"
+            | "format.color"
+            | "format.fillColor"
+            | "format.alignLeft"
+            | "format.alignCenter"
+            | "format.alignRight"
+            | "format.justify"
+            | "format.alignTop"
+            | "format.alignMiddle"
+            | "format.alignBottom"
+            | "format.wrapText"
+            | "format.shrinkToFit"
+            | "format.increaseIndent"
+            | "format.decreaseIndent"
+            | "format.orientation"
+            | "format.numberFormat"
+            | "format.accounting"
+            | "format.percent"
+            | "format.comma"
+            | "format.increaseDecimal"
+            | "format.decreaseDecimal"
+            | "cell.lock" => cell(&target, "style"),
+            "format.borders" => {
                 cell(&target, "style");
                 if params["preset"] == "none" {
                     cell("A2", "style");
                     cell("D3", "style");
                 }
             }
-            "home.formatCells" if params.get("style").is_some() || params.get("edges").is_some() => cell(&target, "style"),
-            "home.formatCells" => {}
-            "home.mergeCenter" | "home.mergeCells" => cell("C3", "input"),
-            "home.mergeAcross" | "home.unmergeCells" => {
+            "format.cells" if params.get("style").is_some() || params.get("edges").is_some() => cell(&target, "style"),
+            "format.cells" => {}
+            "cell.mergeCenter" | "cell.merge" => cell("C3", "input"),
+            "cell.mergeAcross" | "cell.unmerge" => {
                 assert!(under.within.iter().any(|window| window.parent == "sheet:1" && window.field == "rows"), "{id}: merge address window");
             }
-            "home.cellStyle" => {
+            "style.apply" => {
                 cell(&target, "style");
                 if params["name"] == "Title" {
                     required.push(("workbook".into(), "theme.major_font"));
                 }
             }
-            "home.rowHeight"
-            | "home.columnWidth"
-            | "home.autofitRowHeight"
-            | "home.autofitColumnWidth"
-            | "home.hideRows"
-            | "home.hideColumns"
-            | "home.unhideRows"
-            | "home.unhideColumns" => {
-                let prefix = if matches!(id, "home.columnWidth" | "home.autofitColumnWidth" | "home.hideColumns" | "home.unhideColumns") {
-                    "col:"
-                } else {
-                    "row:"
-                };
+            "row.setHeight"
+            | "column.setWidth"
+            | "row.autofitHeight"
+            | "column.autofitWidth"
+            | "row.hide"
+            | "column.hide"
+            | "row.show"
+            | "column.show" => {
+                let prefix = if matches!(id, "column.setWidth" | "column.autofitWidth" | "column.hide" | "column.show") { "col:" } else { "row:" };
                 assert!(
                     under.premises.iter().any(|premise| premise.id.as_str().is_some_and(|id| id.starts_with(prefix))),
                     "{id}: resolved axis reads"
                 );
             }
-            "home.defaultWidth" => required.push(("sheet:1".into(), "props.defaultColWidth")),
-            "home.insertRows" | "home.insertColumns" | "home.deleteRows" | "home.deleteColumns" | "home.insertCells" | "home.deleteCells" => {
+            "column.setDefaultWidth" => required.push(("sheet:1".into(), "props.defaultColWidth")),
+            "row.insert" | "column.insert" | "row.delete" | "column.delete" | "cell.insert" | "cell.delete" => {
                 required.push(("sheet:1".into(), "props.protection"));
             }
-            "home.insertSheet" => {
+            "sheet.insert" => {
                 required.extend([("workbook".into(), "props.protectedStructure"), ("sheet:2".into(), "name")]);
                 let at = params.get("before").and_then(Value::as_u64).unwrap_or(1) as usize;
                 if !under.within.iter().any(|window| window.parent == "workbook" && window.field == "sheets" && window.from == at && window.to == at)
@@ -623,7 +615,7 @@ fn all_edit_read_footprints_have_only_decreasing_missing_and_excessive_floors() 
                     eprintln!("FOOTPRINT LESS {id} params={params}: default insertion is after the active tab, workbook.sheets gap {at}");
                 }
             }
-            "home.deleteSheet" => {
+            "sheet.delete" => {
                 required.extend([
                     ("workbook".into(), "props.protectedStructure"),
                     ("sheet:2".into(), "props.visibility"),
@@ -663,8 +655,8 @@ fn all_edit_read_footprints_have_only_decreasing_missing_and_excessive_floors() 
         "edit.replace",
         "edit.formatPainter",
         "edit.moveCells",
-        "home.insertCells",
-        "home.deleteCells",
+        "cell.insert",
+        "cell.delete",
     ]);
     eprintln!("edit footprint projection: {} writes; LESS {less:?}; MORE {more:?}", compared.len());
     assert!(less.is_subset(&missing_baseline), "new missing edit facts: {less:?}");

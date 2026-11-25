@@ -13,10 +13,10 @@ use super::*;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        cmd!(query "review.spelling", "Spelling", ["Review", "Proofing"], Some("F7"), "{range?, sheet?} → misspelled words with cells and suggestions", has_doc, spelling),
-        cmd!(noundo "review.addToDictionary", "Add to Dictionary", [], None, "{word}", has_doc, add_word),
-        cmd!("review.changeSpelling", "Change", [], None, "{cell, word, to, all?: bool}", has_doc, change),
-        cmd!(query "review.thesaurus", "Thesaurus", ["Review", "Proofing"], None, "{word} → related words (words sharing the stem in the dictionary)", has_doc, thesaurus),
+        cmd!(query "spelling.check", "Spelling", ["Review", "Proofing"], Some("F7"), "{range?, sheet?} → misspelled words with cells and suggestions", has_doc, spelling),
+        cmd!(noundo "spelling.addToDictionary", "Add to Dictionary", [], None, "{word}", has_doc, add_word),
+        cmd!("spelling.change", "Change", [], None, "{cell, word, to, all?: bool}", has_doc, change),
+        cmd!(query "spelling.thesaurus", "Thesaurus", ["Review", "Proofing"], None, "{word} → related words (words sharing the stem in the dictionary)", has_doc, thesaurus),
     ]
 }
 
@@ -162,7 +162,7 @@ fn spelling(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn add_word(s: &mut Session, p: &Json) -> Result<Json> {
-    let w = str_param(p, "word").ok_or_else(|| bad("review.addToDictionary", "missing `word`"))?.to_string();
+    let w = str_param(p, "word").ok_or_else(|| bad("spelling.addToDictionary", "missing `word`"))?.to_string();
     if !s.prefs.user_dictionary.iter().any(|u| u.eq_ignore_ascii_case(&w)) {
         s.prefs.user_dictionary.push(w);
     }
@@ -170,12 +170,12 @@ fn add_word(s: &mut Session, p: &Json) -> Result<Json> {
 }
 
 fn change(s: &mut Session, p: &Json) -> Result<Json> {
-    let word = str_param(p, "word").ok_or_else(|| bad("review.changeSpelling", "missing `word`"))?.to_string();
-    let to = str_param(p, "to").ok_or_else(|| bad("review.changeSpelling", "missing `to`"))?.to_string();
+    let word = str_param(p, "word").ok_or_else(|| bad("spelling.change", "missing `word`"))?.to_string();
+    let to = str_param(p, "to").ok_or_else(|| bad("spelling.change", "missing `to`"))?.to_string();
     if bool_param(p, "all").unwrap_or(false) {
         return s.execute("edit.replace", json!({"what": word, "with": to, "matchCase": true, "all": true}));
     }
-    let c = cell_param(p, "cell").ok_or_else(|| bad("review.changeSpelling", "missing `cell`"))?;
+    let c = cell_param(p, "cell").ok_or_else(|| bad("spelling.change", "missing `cell`"))?;
     let text = s.doc()?.wb.active().and_then(|sh| sh.cell(c)).map(|x| x.input_text()).unwrap_or_default();
     s.execute("cell.set", json!({"cell": c.a1(), "input": text.replacen(&word, &to, 1)}))
 }

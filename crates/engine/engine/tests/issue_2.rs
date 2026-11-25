@@ -36,7 +36,7 @@ impl kition_sheet_chart::Measure for Approx {
 #[test]
 fn scatter_takes_the_first_column_as_x() {
     let mut s = workbook(json!([["Height", "Weight"], [150, 50], [160, 58], [175, 70]]));
-    s.execute("insert.chart", json!({"range": "A1:B4", "type": "scatter"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B4", "type": "scatter"})).unwrap();
     let d = data(&s);
     assert_eq!(d.series.len(), 1);
     assert_eq!(d.series[0].name, "Weight");
@@ -45,7 +45,7 @@ fn scatter_takes_the_first_column_as_x() {
 
     // Without headers too.
     let mut s = workbook(json!([[1, 10], [2, 20], [4, 30]]));
-    s.execute("insert.chart", json!({"range": "A1:B3", "type": "scatter"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B3", "type": "scatter"})).unwrap();
     assert_eq!(data(&s).series.len(), 1);
     assert_eq!(data(&s).series[0].x, Some(vec![Some(1.0), Some(2.0), Some(4.0)]));
 }
@@ -54,7 +54,7 @@ fn scatter_takes_the_first_column_as_x() {
 fn combo_is_columns_and_lines() {
     let table = json!([["Month", "Revenue", "Profit", "Margin"], ["Jan", 100, 30, 0.3], ["Feb", 120, 40, 0.33], ["Mar", 90, 20, 0.22]]);
     let mut s = workbook(table.clone());
-    s.execute("insert.chart", json!({"range": "A1:D4", "type": "combo"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:D4", "type": "combo"})).unwrap();
     let c = chart(&s);
     assert_eq!(c.kind, ChartKind::Combo);
     let kinds: Vec<Option<ChartKind>> = c.series.iter().map(|x| x.kind).collect();
@@ -62,7 +62,7 @@ fn combo_is_columns_and_lines() {
 
     // Each series' type, and the secondary axis, as given.
     let mut s = workbook(table);
-    s.execute("insert.chart", json!({"range": "A1:D4", "type": "combo", "seriesTypes": ["column", "column", "line"], "secondary": [2]})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:D4", "type": "combo", "seriesTypes": ["column", "column", "line"], "secondary": [2]})).unwrap();
     let c = chart(&s);
     let kinds: Vec<(Option<ChartKind>, bool)> = c.series.iter().map(|x| (x.kind, x.secondary)).collect();
     assert_eq!(kinds, [(Some(ChartKind::ColumnClustered), false), (Some(ChartKind::ColumnClustered), false), (Some(ChartKind::Line), true)]);
@@ -73,13 +73,13 @@ fn combo_is_columns_and_lines() {
     let resolved = resolve(&wb, 0, back);
     let kinds: Vec<(ChartKind, bool)> = resolved.series.iter().map(|x| (x.kind, x.secondary)).collect();
     assert_eq!(kinds, [(ChartKind::ColumnClustered, false), (ChartKind::ColumnClustered, false), (ChartKind::Line, true)]);
-    assert!(s.execute("insert.chart", json!({"range": "A1:D4", "type": "combo", "seriesTypes": ["column", "pie", "line"]})).is_err());
+    assert!(s.execute("chart.insert", json!({"range": "A1:D4", "type": "combo", "seriesTypes": ["column", "pie", "line"]})).is_err());
 }
 
 #[test]
 fn a_numeric_first_column_under_a_blank_corner_is_the_categories() {
     let mut s = workbook(json!([[null, "Sales", "Costs"], [2021, 10, 4], [2022, 12, 5], [2023, 15, 6]]));
-    s.execute("insert.chart", json!({"range": "A1:C4", "type": "column"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:C4", "type": "column"})).unwrap();
     let d = data(&s);
     assert_eq!(d.series.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(), ["Sales", "Costs"]);
     assert_eq!(d.categories, ["2021", "2022", "2023"]);
@@ -88,8 +88,8 @@ fn a_numeric_first_column_under_a_blank_corner_is_the_categories() {
 #[test]
 fn a_date_first_column_is_the_categories() {
     let mut s = workbook(json!([["Day", "Visits"], [46000, 10], [46001, 12], [46002, 15]]));
-    s.execute("home.numberFormat", json!({"range": "A2:A4", "format": "d mmm"})).unwrap();
-    s.execute("insert.chart", json!({"range": "A1:B4", "type": "line"})).unwrap();
+    s.execute("format.numberFormat", json!({"range": "A2:A4", "format": "d mmm"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B4", "type": "line"})).unwrap();
     let d = data(&s);
     assert_eq!(d.series.len(), 1);
     assert_eq!(d.series[0].name, "Visits");
@@ -100,21 +100,21 @@ fn a_date_first_column_is_the_categories() {
 #[test]
 fn a_multi_area_range_charts_every_area() {
     let mut s = workbook(json!([["Region", "Skip", "Q1", "Q2"], ["North", "x", 10, 11], ["South", "y", 20, 21], ["West", "z", 30, 31]]));
-    s.execute("insert.chart", json!({"range": "A1:A4,C1:D4", "type": "column"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:A4,C1:D4", "type": "column"})).unwrap();
     let d = data(&s);
     assert_eq!(d.series.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(), ["Q1", "Q2"]);
     assert_eq!(d.categories, ["North", "South", "West"]);
     assert_eq!(d.series[1].values, vec![Some(11.0), Some(21.0), Some(31.0)]);
     // Areas must line up.
-    assert!(s.execute("insert.chart", json!({"range": "A1:A4,C2:D3", "type": "column"})).is_err());
+    assert!(s.execute("chart.insert", json!({"range": "A1:A4,C2:D3", "type": "column"})).is_err());
 }
 
 #[test]
 fn a_doughnut_follows_the_theme_in_every_slice() {
     let mut s = workbook(json!([["Brand", "Share"], ["A", 40], ["B", 30], ["C", 20], ["D", 10]]));
-    s.execute("insert.chart", json!({"range": "A1:B5", "type": "doughnut"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B5", "type": "doughnut"})).unwrap();
     let colors = ["#112233", "#445566", "#778899", "#AABBCC", "#102030", "#405060", "#708090", "#A0B0C0", "#123456", "#654321", "#0563C1", "#954F72"];
-    s.execute("pageLayout.themeColors", json!({"colors": colors})).unwrap();
+    s.execute("theme.colors", json!({"colors": colors})).unwrap();
     let wb = &s.doc().unwrap().wb;
     let c = chart(&s);
     let entries = legend_entries(&c, &resolve(wb, 0, &c));
@@ -128,7 +128,7 @@ fn a_doughnut_follows_the_theme_in_every_slice() {
 #[test]
 fn chart_change_colors_recolours_every_slice() {
     let mut s = workbook(json!([["Brand", "Share"], ["A", 40], ["B", 30], ["C", 20]]));
-    s.execute("insert.chart", json!({"range": "A1:B4", "type": "pie"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B4", "type": "pie"})).unwrap();
     s.execute("chart.changeColors", json!({"colors": ["#FF0000", "#00FF00", "#0000FF"]})).unwrap();
     let wb = &s.doc().unwrap().wb;
     let c = chart(&s);
@@ -153,7 +153,7 @@ fn inside(prims: &[Prim], w: f32, h: f32) -> bool {
 #[test]
 fn a_forecast_trendline_stays_in_the_plot() {
     let mut s = workbook(json!([["Month", "Sales"], ["Jan", 10], ["Feb", 14], ["Mar", 19], ["Apr", 22]]));
-    s.execute("insert.chart", json!({"range": "A1:B5", "type": "line"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B5", "type": "line"})).unwrap();
     let id = chart(&s).id.to_string();
     s.execute("drawing.chart", json!({"id": id, "seriesFormat": [{"index": 0, "trendline": {"kind": "linear", "forward": 6}}]})).unwrap();
     let d = data(&s);
@@ -179,7 +179,7 @@ fn a_forecast_trendline_stays_in_the_plot() {
 
     // A scatter chart's X axis widens to show the forecast.
     let mut s = workbook(json!([["X", "Y"], [1, 2], [2, 4], [3, 6]]));
-    s.execute("insert.chart", json!({"range": "A1:B4", "type": "scatter"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B4", "type": "scatter"})).unwrap();
     let id = chart(&s).id.to_string();
     s.execute("drawing.chart", json!({"id": id, "seriesFormat": [{"index": 0, "trendline": {"kind": "linear", "forward": 5}}]})).unwrap();
     let prims = render(&chart(&s), &data(&s), 400.0, 300.0, &Approx);
@@ -194,7 +194,7 @@ fn texts(prims: &[Prim]) -> Vec<String> {
 fn a_waterfall_draws_only_the_totals_it_is_given() {
     let table = json!([["Step", "Amount"], ["Last year", 100], ["Volume", 20], ["Price", -5], ["Costs", -15], ["This year", "=SUM(B2:B5)"]]);
     let mut s = workbook(table.clone());
-    s.execute("insert.chart", json!({"range": "A1:B6", "type": "waterfall", "totals": [0, 4]})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B6", "type": "waterfall", "totals": [0, 4]})).unwrap();
     let c = chart(&s);
     assert_eq!(c.totals, vec![0, 4]);
     let d = data(&s);
@@ -205,7 +205,7 @@ fn a_waterfall_draws_only_the_totals_it_is_given() {
 
     // No Total of its own: five points, five categories, no total in the legend.
     let mut s = workbook(table);
-    s.execute("insert.chart", json!({"range": "A1:B6", "type": "waterfall"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B6", "type": "waterfall"})).unwrap();
     let plain = chart(&s);
     assert!(plain.totals.is_empty());
     let prims = render(&plain, &data(&s), 400.0, 300.0, &Approx);

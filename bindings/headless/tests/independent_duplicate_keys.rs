@@ -11,7 +11,7 @@ use serde_json::json;
 async fn table_duplicate_removal_holds_external_comparison_keys() {
     for related in [true, false] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("insert.table", json!({"range":"A1:C4","name":"Data","header":true}))]);
+        fixture.colleague(&[("table.insert", json!({"range":"A1:C4","name":"Data","header":true}))]);
         let basis = fixture.basis().await;
         if related {
             fixture.colleague(&[("cell.set", json!({"cell":"D3","input":"6"}))]);

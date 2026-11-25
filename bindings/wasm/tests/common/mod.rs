@@ -170,7 +170,7 @@ impl KitAdapter for SheetKit {
         for (cell, input) in [("A1", "Hello world"), ("A2", "Budget"), ("B1", "120"), ("B2", "=B1*2"), ("A5", "below")] {
             run(&mut doc, "cell.set", json!({ "cell": cell, "input": input }))?;
         }
-        run(&mut doc, "home.insertSheet", json!({ "name": "Notes" }))?;
+        run(&mut doc, "sheet.insert", json!({ "name": "Notes" }))?;
         run(&mut doc, "sheet.activate", json!({ "sheet": 0 }))?;
         doc.version()?;
         Ok(doc)
@@ -232,17 +232,17 @@ impl KitAdapter for SheetKit {
             }
             7 => ("cell.set", json!({ "cell": cell, "input": "=SUM(A1:F12)" })),
             8 => ("cell.set", json!({ "cell": cell, "input": "=Notes!A1*2" })),
-            9 => ("home.bold", json!({ "range": range })),
-            10 => ("home.fillColor", json!({ "range": range, "color": format!("#{:06X}", value * 16_111 % 0xFF_FFFF) })),
-            11 => ("home.insertRows", json!({ "rows": format!("{line}:{line}") })),
-            12 => ("home.deleteRows", json!({ "rows": format!("{line}:{line}") })),
-            13 => ("home.insertColumns", json!({ "cols": format!("{c}:{c}", c = column(rng.below(5))) })),
-            14 => ("home.deleteColumns", json!({ "cols": format!("{c}:{c}", c = column(rng.below(5))) })),
-            15 => ("home.mergeCells", json!({ "range": format!("{c}{line}:{d}{line}", c = column(0), d = column(1 + rng.below(3))) })),
+            9 => ("format.bold", json!({ "range": range })),
+            10 => ("format.fillColor", json!({ "range": range, "color": format!("#{:06X}", value * 16_111 % 0xFF_FFFF) })),
+            11 => ("row.insert", json!({ "rows": format!("{line}:{line}") })),
+            12 => ("row.delete", json!({ "rows": format!("{line}:{line}") })),
+            13 => ("column.insert", json!({ "cols": format!("{c}:{c}", c = column(rng.below(5))) })),
+            14 => ("column.delete", json!({ "cols": format!("{c}:{c}", c = column(rng.below(5))) })),
+            15 => ("cell.merge", json!({ "range": format!("{c}{line}:{d}{line}", c = column(0), d = column(1 + rng.below(3))) })),
             16 => ("edit.fillDown", json!({ "range": range })),
-            17 => ("home.insertSheet", json!({ "name": format!("S{value}") })),
+            17 => ("sheet.insert", json!({ "name": format!("S{value}") })),
             18 => ("sheet.rename", json!({ "sheet": rng.below(count), "name": format!("R{value}") })),
-            _ if count > 1 && rng.chance(50) => ("home.deleteSheet", json!({ "sheet": rng.below(count) })),
+            _ if count > 1 && rng.chance(50) => ("sheet.delete", json!({ "sheet": rng.below(count) })),
             _ => ("sheet.move", json!({ "sheet": rng.below(count), "to": rng.below(count) })),
         };
         Ok(run(doc, command, params).ok().map(|_| command.to_owned()))
@@ -254,10 +254,10 @@ impl KitAdapter for SheetKit {
             // B1's value (its `input`) and its fill (its `style`): two registers of one `Cell`.
             Script::SetField { slot: 0, value } => run(doc, "cell.set", json!({ "cell": "B1", "input": (1000 + value).to_string() }))?,
             Script::SetField { value, .. } => {
-                run(doc, "home.fillColor", json!({ "range": "B1", "color": format!("#{:06X}", (value + 1) * 40_503 % 0xFF_FFFF) }))?
+                run(doc, "format.fillColor", json!({ "range": "B1", "color": format!("#{:06X}", (value + 1) * 40_503 % 0xFF_FFFF) }))?
             }
-            Script::Create => run(doc, "home.insertSheet", json!({}))?,
-            Script::Delete => run(doc, "home.deleteRows", json!({ "rows": "1:1" }))?,
+            Script::Create => run(doc, "sheet.insert", json!({}))?,
+            Script::Delete => run(doc, "row.delete", json!({ "rows": "1:1" }))?,
             Script::Duplicate => run(doc, "sheet.move", json!({ "sheet": 0, "to": sheets(doc), "copy": true }))?,
             Script::Reorder { which } => {
                 let count = sheets(doc);
@@ -286,7 +286,7 @@ impl KitAdapter for SheetKit {
                 return self.script(doc, &Script::DeleteText { at: *at, len: 1 });
             }
             Script::InsertBlob { seed } => {
-                run(doc, "insert.picture", json!({ "base64": base64(&png(*seed)), "mime": "image/png", "at": "D4", "placement": "overCells" }))?
+                run(doc, "image.insert", json!({ "base64": base64(&png(*seed)), "mime": "image/png", "at": "D4", "placement": "overCells" }))?
             }
             _ => return Ok(false),
         };

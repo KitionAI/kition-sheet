@@ -37,19 +37,19 @@ fn every_object_allocator_rejects_an_imported_maximum_id_without_a_caught_panic(
         ("drawing.insert", json!({"kind":"shape","geometry":{"preset":"rect"}})),
         ("drawing.connect", json!({"from":"1","to":"2"})),
         ("drawing.group", json!({"ids":["1","2"]})),
-        ("insert.shape", json!({"kind":"rectangle"})),
-        ("insert.textBox", json!({"text":"Hello"})),
-        ("insert.artText", json!({"text":"Hello"})),
-        ("insert.icons", json!({"name":"check"})),
-        ("draw.stroke", json!({"points":[[10,10],[20,20]]})),
+        ("shape.insert", json!({"kind":"rectangle"})),
+        ("textBox.insert", json!({"text":"Hello"})),
+        ("artText.insert", json!({"text":"Hello"})),
+        ("icon.insert", json!({"name":"check"})),
+        ("ink.stroke", json!({"points":[[10,10],[20,20]]})),
         ("drawing.ink", json!({"strokes":[{"points":[[10,10],[20,20]]}]})),
-        ("insert.chart", json!({"range":"A1:B3","type":"column"})),
-        ("insert.table", json!({"range":"A1:B3","header":true,"name":"Data"})),
+        ("chart.insert", json!({"range":"A1:B3","type":"column"})),
+        ("table.insert", json!({"range":"A1:B3","header":true,"name":"Data"})),
         (
-            "insert.picture",
+            "image.insert",
             json!({"base64":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==","mime":"image/png"}),
         ),
-        ("insert.pivotTable", json!({"source":"A1:B3","destination":"D5","rows":["Item"],"values":["Amount"]})),
+        ("pivot.insert", json!({"source":"A1:B3","destination":"D5","rows":["Item"],"values":["Amount"]})),
         ("sheet.move", json!({"sheet":"Sheet1","to":1,"copy":true})),
     ] {
         let mut session = fixture();
@@ -69,9 +69,9 @@ fn sheet_copy_rejects_exhaustion_after_the_last_available_id_without_duplicate_i
 fn the_last_object_id_is_usable_once_then_allocation_refuses() {
     let mut session = fixture();
     add_imported_shape(&mut session, u32::MAX - 1);
-    let result = session.execute("insert.shape", json!({"kind":"rectangle"})).unwrap();
+    let result = session.execute("shape.insert", json!({"kind":"rectangle"})).unwrap();
     assert_eq!(result["shape"], json!(u32::MAX));
-    assert_exhausted(&mut session, "insert.shape", json!({"kind":"rectangle"}));
+    assert_exhausted(&mut session, "shape.insert", json!({"kind":"rectangle"}));
 }
 
 #[test]
@@ -83,5 +83,5 @@ fn pivot_ids_do_not_saturate_and_reuse_an_imported_maximum_pivot_id() {
         source: "Sheet1!A1:B3".into(),
         ..Default::default()
     });
-    assert_exhausted(&mut session, "insert.pivotTable", json!({"source":"A1:B3","destination":"D5","rows":["Item"],"values":["Amount"]}));
+    assert_exhausted(&mut session, "pivot.insert", json!({"source":"A1:B3","destination":"D5","rows":["Item"],"values":["Amount"]}));
 }

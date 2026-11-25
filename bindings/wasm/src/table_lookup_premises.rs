@@ -106,7 +106,7 @@ impl SheetDocument {
     }
 
     pub(crate) fn table_insert_covered(&self, command: &str, given: &Value, objects: &[CoveredAsk]) -> Result<Option<CoveredAt>, String> {
-        if command != "insert.table" || given.get("name").and_then(Value::as_str).is_none() {
+        if command != "table.insert" || given.get("name").and_then(Value::as_str).is_none() {
             return Ok(None);
         }
         let mut params = given.clone();

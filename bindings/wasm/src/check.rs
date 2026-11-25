@@ -220,7 +220,7 @@ fn merges(sheet: &Sheet, found: &mut Found) {
                     format!("{}!{} and {} are merged ranges that overlap.", sheet.name, merge.a1(), other.a1()),
                 )
                 .on(at(sheet, merge.a1()))
-                .fix("home.unmergeCells", Some(json!({ "range": other.a1() }))),
+                .fix("cell.unmerge", Some(json!({ "range": other.a1() }))),
             );
         }
         let hidden = sheet.cells.iter_range(*merge).filter(|(cell, content)| *cell != merge.start && !content.value.is_empty()).count();
@@ -232,7 +232,7 @@ fn merges(sheet: &Sheet, found: &mut Found) {
                     format!("{}!{} is merged over {hidden} more cells with values; only its top-left cell shows.", sheet.name, merge.a1()),
                 )
                 .on(at(sheet, merge.a1()))
-                .fix("home.unmergeCells", Some(json!({ "range": merge.a1() }))),
+                .fix("cell.unmerge", Some(json!({ "range": merge.a1() }))),
             );
         }
     }
@@ -265,7 +265,7 @@ fn names(wb: &Workbook, found: &mut Found) {
         if let Some(why) = why {
             let scope = name.scope.and_then(|scope| wb.sheets.get(scope)).map(|sheet| sheet.name.clone());
             let mut diagnostic = Diagnostic::new("sheet.broken-name", Severity::Error, format!("The defined name {} {why}.", name.name)).fix(
-                "formulas.deleteName",
+                "name.delete",
                 Some(match &scope {
                     Some(sheet) => json!({ "name": name.name, "scope": sheet }),
                     None => json!({ "name": name.name, "scope": "Workbook" }),
@@ -368,7 +368,7 @@ mod tests {
         let mut seen = codes(&found);
         seen.sort_unstable();
         assert_eq!(seen, ["sheet.merge-hides-data", "sheet.overlapping-merges"]);
-        assert_eq!(found[0].fix.as_ref().map(|fix| fix.command.as_str()), Some("home.unmergeCells"));
+        assert_eq!(found[0].fix.as_ref().map(|fix| fix.command.as_str()), Some("cell.unmerge"));
     }
 
     #[test]

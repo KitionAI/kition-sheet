@@ -131,7 +131,7 @@ try {
   await openEditor('')
   // The cases work on a sheet of their own, which the person shows (an agent's new sheet stays the
   // agent's until the person clicks its tab).
-  await exec('home.insertSheet', { name: 'Paint' })
+  await exec('sheet.insert', { name: 'Paint' })
   await tab('Paint').click()
   await until(async () => (await details()).sheet === 'Paint', 30)
   await clickCell(0, 0)
@@ -144,12 +144,12 @@ try {
     const box = await nameBox()
     for (let i = 1; i <= 20; i += 1) await exec('cell.get', { cell: `A${i}` })
     await ai([
-      { command: 'document.inspect' },
+      { command: 'file.inspect' },
       { command: 'sheet.read', params: {} },
-      { command: 'selection.set', params: { range: 'H30' } },
-      { command: 'selection.stats' },
+      { command: 'select.set', params: { range: 'H30' } },
+      { command: 'select.stats' },
       { command: 'history.list' },
-      { command: 'formulas.evaluate', params: { formula: '=1+2' } },
+      { command: 'formula.evaluate', params: { formula: '=1+2' } },
     ])
     await page.waitForTimeout(800)
     const after = await renders()
@@ -189,7 +189,7 @@ try {
 
   await section('PAINT-4 an agent’s fill is repainted', async () => {
     await quiet()
-    await exec('home.fillColor', { range: 'E3', color: '#FF0000' })
+    await exec('format.fillColor', { range: 'E3', color: '#FF0000' })
     const red = await until(async () => {
       const [r, g, b] = (await cellShows(4, 2)).middle
       return r > 200 && g < 60 && b < 60
@@ -200,7 +200,7 @@ try {
   await section('PAINT-5 an agent’s conditional format is repainted', async () => {
     await exec('cell.set', { cell: 'F3', input: '5' })
     await quiet()
-    await exec('home.conditionalFormat', { range: 'F3', rule: { type: 'cellIs', operator: 'greaterThan', value: 3, style: { fill: '#00B050' } } })
+    await exec('conditionalFormat.apply', { range: 'F3', rule: { type: 'cellIs', operator: 'greaterThan', value: 3, style: { fill: '#00B050' } } })
     const green = await until(async () => {
       const [r, g, b] = (await cellShows(5, 2)).middle
       return g > 140 && r < 60 && b < 120
@@ -214,7 +214,7 @@ try {
     const value = (await exec('cell.get', { cell: 'G3' })).value
     const before = await cellShows(6, 2)
     const start = await renders()
-    await exec('formulas.calculateNow')
+    await exec('formula.calculateNow')
     step('PAINT-6 the value changed', (await exec('cell.get', { cell: 'G3' })).value !== value)
     const redrawn = await until(async () => (await cellShows(6, 2)).hash !== before.hash, 30)
     step('PAINT-6 the person sees the new number in G3', redrawn)
@@ -227,7 +227,7 @@ try {
   // told to paint nothing, and the box stayed drawn empty while the formula bar showed TRUE
   // (INSC-C53/C60 on a loaded WebKit runner).
   await section('PAINT-9 a checkbox clicked while React is busy is drawn checked once it renders', async () => {
-    await exec('insert.checkbox', { range: 'B8' })
+    await exec('checkbox.insert', { range: 'B8' })
     await quiet()
     const before = await box(1, 7)
     const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
@@ -252,7 +252,7 @@ try {
   // An agent reads between the person's tick (Space) and its paint: each read asks to paint nothing
   // (agentSkipsUnchangedPaint), and must not replace the tick's repaint.
   await section('PAINT-10 the person’s tick is drawn though an agent reads before it is painted', async () => {
-    await exec('insert.checkbox', { range: 'B10' })
+    await exec('checkbox.insert', { range: 'B10' })
     const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
     // Beside the box: selects B10 without ticking it.
     await page.mouse.click(region.x + 46 + h.grid.cw + 6, region.y + 21 + 9 * h.grid.rh + 10)

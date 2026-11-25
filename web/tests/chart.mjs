@@ -38,7 +38,7 @@ const at = async (x, y) => {
   const region = await kit.getByTestId('sheet-canvas-region').boundingBox()
   return { x: region.x + HEADER.x + x, y: region.y + HEADER.y + y }
 }
-// The person selects `range` through the Name Box: an agent's selection.set moves only the
+// The person selects `range` through the Name Box: an agent's select.set moves only the
 // agent's own editor state (KHP C3b), and Insert › Chart charts the person's selection.
 const select = async (range) => {
   await kit.getByTestId('sheet-name-box').fill(range)

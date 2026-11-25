@@ -17,10 +17,10 @@ fn v(s: &Session, a: &str) -> Value {
 fn entering_empty_cells_preserves_whole_sheet_formatting() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "A1", "input": "existing"})).unwrap();
-    s.execute("selection.set", json!({"range": "A1:XFD1048576"})).unwrap();
-    s.execute("home.alignCenter", json!({})).unwrap();
+    s.execute("select.set", json!({"range": "A1:XFD1048576"})).unwrap();
+    s.execute("format.alignCenter", json!({})).unwrap();
     let border = kition_sheet_model::BorderLine { style: kition_sheet_model::BorderStyle::Thin, color: kition_sheet_model::Color::Auto };
-    s.execute("home.formatCells", json!({"style": {"borders": {"top": border, "bottom": border, "left": border, "right": border}}})).unwrap();
+    s.execute("format.cells", json!({"style": {"borders": {"top": border, "bottom": border, "left": border, "right": border}}})).unwrap();
     let expected = {
         let d = s.doc().unwrap();
         d.wb.styles.get(d.wb.active().unwrap().style_id(CellRef::parse("B1").unwrap())).clone()
@@ -55,9 +55,9 @@ fn entering_empty_cells_preserves_whole_sheet_formatting() {
 #[test]
 fn entry_and_text_paste_use_inherited_formats_and_cell_overrides() {
     let mut s = s();
-    s.execute("home.bold", json!({"range": "B:B", "on": true})).unwrap();
-    s.execute("home.formatCells", json!({"range": "3:3", "style": {"num_fmt": "@", "font": {"italic": true}}})).unwrap();
-    s.execute("home.fontColor", json!({"range": "B3", "color": "#FF0000"})).unwrap();
+    s.execute("format.bold", json!({"range": "B:B", "on": true})).unwrap();
+    s.execute("format.cells", json!({"range": "3:3", "style": {"num_fmt": "@", "font": {"italic": true}}})).unwrap();
+    s.execute("format.color", json!({"range": "B3", "color": "#FF0000"})).unwrap();
     let expected = {
         let d = s.doc().unwrap();
         d.wb.styles.get(d.wb.active().unwrap().style_id(CellRef::parse("B3").unwrap())).clone()
@@ -113,7 +113,7 @@ fn undo_redo() {
 #[test]
 fn shape_text_edit_undo_redo_and_noop() {
     let mut s = s();
-    let id = s.execute("insert.textBox", json!({"at": "C4", "width": 210, "height": 90, "text": "Original"})).unwrap()["shape"].clone();
+    let id = s.execute("textBox.insert", json!({"at": "C4", "width": 210, "height": 90, "text": "Original"})).unwrap()["shape"].clone();
     let original = s.doc().unwrap().wb.active().unwrap().shapes[0].clone();
     let mut changed = original.clone();
     changed.text = "First line\n\nSecond line & <text>".into();
@@ -143,8 +143,8 @@ fn shape_text_edit_undo_redo_and_noop() {
 #[test]
 fn shape_text_rejects_invalid_targets_and_params() {
     let mut s = s();
-    let id = s.execute("insert.textBox", json!({"text": "Original"})).unwrap()["shape"].clone();
-    let rectangle = s.execute("insert.shape", json!({"kind": "rectangle", "text": "Rectangle"})).unwrap()["shape"].clone();
+    let id = s.execute("textBox.insert", json!({"text": "Original"})).unwrap()["shape"].clone();
+    let rectangle = s.execute("shape.insert", json!({"kind": "rectangle", "text": "Rectangle"})).unwrap()["shape"].clone();
     let before = s.doc().unwrap().wb.clone();
     let undo_len = s.doc().unwrap().undo.len();
     for params in [
@@ -162,7 +162,7 @@ fn shape_text_rejects_invalid_targets_and_params() {
         assert!(std::sync::Arc::ptr_eq(&s.doc().unwrap().wb, &before));
         assert_eq!(s.doc().unwrap().undo.len(), undo_len);
     }
-    s.execute("home.insertSheet", json!({})).unwrap();
+    s.execute("sheet.insert", json!({})).unwrap();
     assert!(matches!(s.execute("shape.setText", json!({"id": id, "text": "wrong sheet"})), Err(crate::EngineError::BadParams { .. })));
     assert_eq!(s.doc().unwrap().wb.sheet(0).unwrap().shapes[0].text, "Original");
     assert!(s.doc().unwrap().wb.active().unwrap().shapes.is_empty());
@@ -171,14 +171,14 @@ fn shape_text_rejects_invalid_targets_and_params() {
 #[test]
 fn shape_text_respects_sheet_protection() {
     let mut s = s();
-    let id = s.execute("insert.textBox", json!({"text": "Original"})).unwrap()["shape"].clone();
-    s.execute("review.protectSheet", json!({})).unwrap();
+    let id = s.execute("textBox.insert", json!({"text": "Original"})).unwrap()["shape"].clone();
+    s.execute("sheet.protect", json!({})).unwrap();
     let before = s.doc().unwrap().wb.clone();
     let undo_len = s.doc().unwrap().undo.len();
     assert!(s.execute("shape.setText", json!({"id": id, "text": "Changed"})).is_err());
     assert!(std::sync::Arc::ptr_eq(&s.doc().unwrap().wb, &before));
     assert_eq!(s.doc().unwrap().undo.len(), undo_len);
-    s.execute("review.unprotectSheet", json!({})).unwrap();
+    s.execute("sheet.unprotect", json!({})).unwrap();
     s.execute("shape.setText", json!({"id": id, "text": "Changed"})).unwrap();
     assert_eq!(s.doc().unwrap().wb.active().unwrap().shapes[0].text, "Changed");
 }
@@ -186,7 +186,7 @@ fn shape_text_respects_sheet_protection() {
 #[test]
 fn shape_text_is_capped_like_a_cell() {
     let mut s = s();
-    let id = s.execute("insert.textBox", json!({"text": "Original"})).unwrap()["shape"].clone();
+    let id = s.execute("textBox.insert", json!({"text": "Original"})).unwrap()["shape"].clone();
     // The cap counts characters, not bytes.
     let longest = "é".repeat(32_767);
     s.execute("shape.setText", json!({"id": id, "text": longest})).unwrap();
@@ -201,7 +201,7 @@ fn shape_text_is_capped_like_a_cell() {
 #[test]
 fn shape_text_edit_survives_xlsx_roundtrip() {
     let mut s = s();
-    s.execute("insert.textBox", json!({"text": "Imported"})).unwrap();
+    s.execute("textBox.insert", json!({"text": "Imported"})).unwrap();
     let saved = s.execute("file.saveBytes", json!({"format": "xlsx"})).unwrap();
     s.execute("file.open", json!({"name": "text-box.xlsx", "base64": saved["base64"]})).unwrap();
     let id = s.doc().unwrap().wb.active().unwrap().shapes[0].id;
@@ -229,12 +229,12 @@ fn no_border_clears_only_shared_edges_and_undo_restores_them() {
         let mut s = s();
         s.execute("range.setValues", json!({"range": "A1", "values": [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]})).unwrap();
         s.execute("cell.set", json!({"cell": "D4", "input": "=SUM(A1:C1)"})).unwrap();
-        s.execute("home.bold", json!({"range": "A1:D4", "on": true})).unwrap();
+        s.execute("format.bold", json!({"range": "A1:D4", "on": true})).unwrap();
         for preset in ["all", "diagonalDown"] {
-            s.execute("home.borders", json!({"range": "A1:D4", "preset": preset, "style": "double", "color": "#CC3344"})).unwrap();
+            s.execute("format.borders", json!({"range": "A1:D4", "preset": preset, "style": "double", "color": "#CC3344"})).unwrap();
         }
         let before: Vec<_> = RangeRef::parse("A1:D4").unwrap().iter().map(|c| s.execute("cell.get", json!({"cell": c.a1()})).unwrap()).collect();
-        s.execute("home.borders", json!({"range": range, "preset": "none"})).unwrap();
+        s.execute("format.borders", json!({"range": range, "preset": "none"})).unwrap();
         let selected = RangeRef::parse(range).unwrap();
         for original in &before {
             let address = original["cell"].as_str().unwrap();
@@ -260,8 +260,8 @@ fn no_border_handles_sheet_corners_without_creating_out_of_bounds_cells() {
         ("XFC1048575:XFD1048576", "XFD1048576", [("XFC1048576", "right"), ("XFD1048575", "bottom")]),
     ] {
         let mut s = s();
-        s.execute("home.borders", json!({"range": range, "preset": "all"})).unwrap();
-        s.execute("home.borders", json!({"range": corner, "preset": "none"})).unwrap();
+        s.execute("format.borders", json!({"range": range, "preset": "all"})).unwrap();
+        s.execute("format.borders", json!({"range": corner, "preset": "none"})).unwrap();
         for (neighbor, edge) in neighbors {
             assert_eq!(s.execute("cell.get", json!({"cell": neighbor})).unwrap()["style"]["borders"][edge]["style"], "None");
         }
@@ -274,18 +274,18 @@ fn no_border_handles_sheet_corners_without_creating_out_of_bounds_cells() {
 #[test]
 fn borders_respect_sheet_formatting_protection() {
     let mut s = s();
-    s.execute("home.borders", json!({"range": "A1:B2", "preset": "all"})).unwrap();
-    s.execute("review.protectSheet", json!({})).unwrap();
+    s.execute("format.borders", json!({"range": "A1:B2", "preset": "all"})).unwrap();
+    s.execute("sheet.protect", json!({})).unwrap();
     let before = s.doc().unwrap().wb.clone();
     let undo_count = s.doc().unwrap().undo.len();
     for preset in ["none", "left"] {
-        assert!(s.execute("home.borders", json!({"range": "A1", "preset": preset})).is_err());
+        assert!(s.execute("format.borders", json!({"range": "A1", "preset": preset})).is_err());
         assert_eq!(s.doc().unwrap().wb.styles, before.styles);
         assert_eq!(s.doc().unwrap().wb.active().unwrap().cells, before.active().unwrap().cells);
         assert_eq!(s.doc().unwrap().undo.len(), undo_count);
     }
-    s.execute("review.protectSheet", json!({"formatCells": true})).unwrap();
-    s.execute("home.borders", json!({"range": "A1", "preset": "none"})).unwrap();
+    s.execute("sheet.protect", json!({"formatCells": true})).unwrap();
+    s.execute("format.borders", json!({"range": "A1", "preset": "none"})).unwrap();
     assert_eq!(s.execute("cell.get", json!({"cell": "B1"})).unwrap()["style"]["borders"]["left"]["style"], "None");
 }
 
@@ -295,11 +295,11 @@ fn copy_paste_shifts_formulas() {
     s.execute("range.setValues", json!({"range": "A1", "values": [[1, 2], [3, 4]]})).unwrap();
     s.execute("cell.set", json!({"cell": "C1", "input": "=A1+B1"})).unwrap();
     s.execute("edit.copy", json!({"range": "C1"})).unwrap();
-    s.execute("selection.set", json!({"range": "C2"})).unwrap();
+    s.execute("select.set", json!({"range": "C2"})).unwrap();
     s.execute("edit.paste", json!({})).unwrap();
     assert_eq!(v(&s, "C2"), Value::Number(7.0));
     s.execute("edit.cut", json!({"range": "A1"})).unwrap();
-    s.execute("selection.set", json!({"range": "E5"})).unwrap();
+    s.execute("select.set", json!({"range": "E5"})).unwrap();
     s.execute("edit.paste", json!({})).unwrap();
     assert_eq!(v(&s, "E5"), Value::Number(1.0));
     let f = s.execute("cell.get", json!({"cell": "C1"})).unwrap();
@@ -311,11 +311,11 @@ fn rich_clipboard_copies_selected_displayed_cells_and_styles() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "A1", "input": "outside selection"})).unwrap();
     s.execute("range.setValues", json!({"range": "B2", "values": [[0.125, "<tag>&\"\nnext"], [0.25, "last"]]})).unwrap();
-    s.execute("home.numberFormat", json!({"range": "B2:B3", "code": "0.0%"})).unwrap();
-    s.execute("home.bold", json!({"range": "B2", "on": true})).unwrap();
-    s.execute("home.italic", json!({"range": "B2", "on": true})).unwrap();
-    s.execute("home.fontColor", json!({"range": "B2", "color": "#123456"})).unwrap();
-    s.execute("home.fillColor", json!({"range": "B2", "color": "#FEDCBA"})).unwrap();
+    s.execute("format.numberFormat", json!({"range": "B2:B3", "code": "0.0%"})).unwrap();
+    s.execute("format.bold", json!({"range": "B2", "on": true})).unwrap();
+    s.execute("format.italic", json!({"range": "B2", "on": true})).unwrap();
+    s.execute("format.color", json!({"range": "B2", "color": "#123456"})).unwrap();
+    s.execute("format.fillColor", json!({"range": "B2", "color": "#FEDCBA"})).unwrap();
     let copied = s.execute("edit.copy", json!({"range": "B2:C3", "html": true})).unwrap();
     let html = copied["html"].as_str().expect("copy publishes HTML as well as plain text");
     assert_eq!(copied["text"], "12.5%\t\"<tag>&\"\"\nnext\"\n25.0%\tlast\n");
@@ -357,8 +357,8 @@ fn copy_and_cut_return_html_only_when_requested() {
 fn rich_clipboard_clips_merges_and_skips_hidden_rows() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "B2", "input": "merged"})).unwrap();
-    s.execute("home.mergeCenter", json!({"range": "B2:D5"})).unwrap();
-    s.execute("home.hideRows", json!({"rows": "3:3"})).unwrap();
+    s.execute("cell.mergeCenter", json!({"range": "B2:D5"})).unwrap();
+    s.execute("row.hide", json!({"rows": "3:3"})).unwrap();
     s.execute("cell.set", json!({"cell": "E4", "input": "side"})).unwrap();
     let copied = s.execute("edit.copy", json!({"range": "B2:C4", "html": true})).unwrap();
     let html = copied["html"].as_str().expect("merged copy publishes HTML");
@@ -408,11 +408,11 @@ fn insert_delete_rows_adjust() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [[1], [2], [3]]})).unwrap();
     s.execute("cell.set", json!({"cell": "B1", "input": "=SUM(A1:A3)"})).unwrap();
-    s.execute("home.insertRows", json!({"rows": "2:2"})).unwrap();
+    s.execute("row.insert", json!({"rows": "2:2"})).unwrap();
     assert_eq!(s.execute("cell.get", json!({"cell": "B1"})).unwrap()["formula"], "=SUM(A1:A4)");
     s.execute("cell.set", json!({"cell": "A2", "input": "10"})).unwrap();
     assert_eq!(v(&s, "B1"), Value::Number(16.0));
-    s.execute("home.deleteRows", json!({"rows": "1:1"})).unwrap();
+    s.execute("row.delete", json!({"rows": "1:1"})).unwrap();
     assert_eq!(v(&s, "B1"), Value::Empty);
     assert_eq!(v(&s, "A1"), Value::Number(10.0));
 }
@@ -422,19 +422,19 @@ fn inserting_or_deleting_cells_cancels_copy_mode() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [[1], [2], [3]]})).unwrap();
     s.execute("edit.cut", json!({"range": "3:3"})).unwrap();
-    s.execute("home.insertRows", json!({"rows": "3:3"})).unwrap();
+    s.execute("row.insert", json!({"rows": "3:3"})).unwrap();
     assert!(s.clipboard.is_none());
     // The cut data is now in row 4; a paste must not move the new blank row 3 instead.
     assert!(s.execute("edit.paste", json!({"at": "A10"})).is_err());
     assert_eq!(v(&s, "A4"), Value::Number(3.0));
     s.execute("edit.copy", json!({"range": "A:A"})).unwrap();
-    s.execute("home.deleteColumns", json!({"cols": "B:B"})).unwrap();
+    s.execute("column.delete", json!({"cols": "B:B"})).unwrap();
     assert!(s.clipboard.is_none());
     s.execute("edit.copy", json!({"range": "A1"})).unwrap();
-    s.execute("home.insertCells", json!({"range": "A1", "shift": "down"})).unwrap();
+    s.execute("cell.insert", json!({"range": "A1", "shift": "down"})).unwrap();
     assert!(s.clipboard.is_none());
     s.execute("edit.copy", json!({"range": "A2"})).unwrap();
-    s.execute("home.deleteCells", json!({"range": "A1", "shift": "up"})).unwrap();
+    s.execute("cell.delete", json!({"range": "A1", "shift": "up"})).unwrap();
     assert!(s.clipboard.is_none());
 }
 
@@ -460,16 +460,16 @@ fn insert_delete_cells_adjust() {
     s.execute("cell.set", json!({"cell": "C1", "input": "=SUM(A1:A5)"})).unwrap();
     s.execute("cell.set", json!({"cell": "C2", "input": "=A4*10"})).unwrap();
     s.execute("cell.set", json!({"cell": "C3", "input": "=SUM(A1:B5)"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Fourth", "refersTo": "=Sheet1!$A$4"})).unwrap();
+    s.execute("name.define", json!({"name": "Fourth", "refersTo": "=Sheet1!$A$4"})).unwrap();
     s.execute(
-        "home.conditionalFormat",
+        "conditionalFormat.apply",
         json!({"range": "A4:A5", "rule": {"type": "cellIs", "operator": "greater", "value": "3", "preset": "redText"}}),
     )
     .unwrap();
     s.execute("data.validation", json!({"range": "A5", "type": "whole", "operator": "greater", "formula1": "0"})).unwrap();
-    s.execute("insert.chart", json!({"range": "A1:A5", "type": "line"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:A5", "type": "line"})).unwrap();
     // Insert A3 shifting down: ranges across the insertion grow, references below move.
-    s.execute("home.insertCells", json!({"range": "A3", "shift": "down"})).unwrap();
+    s.execute("cell.insert", json!({"range": "A3", "shift": "down"})).unwrap();
     assert_eq!(formula(&mut s, "C1"), "=SUM(A1:A6)");
     assert_eq!(formula(&mut s, "C2"), "=A5*10");
     assert_eq!(formula(&mut s, "C3"), "=SUM(A1:B5)");
@@ -480,7 +480,7 @@ fn insert_delete_cells_adjust() {
     assert_eq!(sh.validations[0].ranges[0].a1(), "A6");
     assert_eq!(sh.charts[0].series[0].values, "Sheet1!$A$1:$A$6");
     // Delete A5 (the 4) shifting up: references to it become #REF!, those below move up.
-    s.execute("home.deleteCells", json!({"range": "A5", "shift": "up"})).unwrap();
+    s.execute("cell.delete", json!({"range": "A5", "shift": "up"})).unwrap();
     assert_eq!(formula(&mut s, "C1"), "=SUM(A1:A5)");
     assert_eq!(formula(&mut s, "C2"), "=#REF!*10");
     assert_eq!(s.doc().unwrap().wb.names[0].formula, "#REF!");
@@ -492,9 +492,9 @@ fn insert_delete_cells_adjust() {
     // Shifting right and left.
     s.execute("range.setValues", json!({"range": "E1", "values": [[1, 2, 3]]})).unwrap();
     s.execute("cell.set", json!({"cell": "E3", "input": "=G1+SUM(E1:G1)"})).unwrap();
-    s.execute("home.insertCells", json!({"range": "F1", "shift": "right"})).unwrap();
+    s.execute("cell.insert", json!({"range": "F1", "shift": "right"})).unwrap();
     assert_eq!(formula(&mut s, "E3"), "=H1+SUM(E1:H1)");
-    s.execute("home.deleteCells", json!({"range": "E1:F1", "shift": "left"})).unwrap();
+    s.execute("cell.delete", json!({"range": "E1:F1", "shift": "left"})).unwrap();
     assert_eq!(formula(&mut s, "E3"), "=F1+SUM(E1:F1)");
     assert_eq!(v(&s, "E3"), Value::Number(8.0));
 }
@@ -503,7 +503,7 @@ fn insert_delete_cells_adjust() {
 fn sort_and_filter() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [["Name", "Score"], ["b", 2], ["c", 3], ["a", 1]]})).unwrap();
-    s.execute("selection.set", json!({"cell": "B2"})).unwrap();
+    s.execute("select.set", json!({"cell": "B2"})).unwrap();
     s.execute("data.sortDescending", json!({})).unwrap();
     assert_eq!(v(&s, "A2"), Value::from("c"));
     assert_eq!(v(&s, "A1"), Value::from("Name"));
@@ -518,9 +518,9 @@ fn protected(extra: serde_json::Value) -> Session {
     s.execute("range.setValues", json!({"range": "A1", "values": [[1], [2], [3]]})).unwrap();
     s.execute("cell.set", json!({"cell": "B1", "input": "=A1+D1"})).unwrap();
     s.execute("range.setValues", json!({"range": "D1", "values": [[10], [20], [30]]})).unwrap();
-    s.execute("home.lockCell", json!({"range": "D1:D3", "on": false})).unwrap();
-    s.execute("home.lockCell", json!({"range": "10:10", "on": false})).unwrap();
-    s.execute("review.protectSheet", extra).unwrap();
+    s.execute("cell.lock", json!({"range": "D1:D3", "on": false})).unwrap();
+    s.execute("cell.lock", json!({"range": "10:10", "on": false})).unwrap();
+    s.execute("sheet.protect", extra).unwrap();
     s
 }
 
@@ -546,11 +546,11 @@ fn protection_refuses_edits_of_locked_cells() {
     s.execute("edit.copy", json!({"range": "D1"})).unwrap();
     refused(&mut s, "edit.paste", json!({"at": "A2"}));
     refused(&mut s, "edit.paste", json!({"at": "A2", "text": "x\ty"}));
-    refused(&mut s, "home.deleteRows", json!({"rows": "2:2"}));
-    refused(&mut s, "home.deleteColumns", json!({"cols": "A:A"}));
-    refused(&mut s, "home.insertRows", json!({"rows": "1:1"}));
-    refused(&mut s, "home.deleteCells", json!({"range": "A1", "shift": "up"}));
-    refused(&mut s, "home.insertCells", json!({"range": "A1", "shift": "down"}));
+    refused(&mut s, "row.delete", json!({"rows": "2:2"}));
+    refused(&mut s, "column.delete", json!({"cols": "A:A"}));
+    refused(&mut s, "row.insert", json!({"rows": "1:1"}));
+    refused(&mut s, "cell.delete", json!({"range": "A1", "shift": "up"}));
+    refused(&mut s, "cell.insert", json!({"range": "A1", "shift": "down"}));
     refused(&mut s, "edit.replace", json!({"what": "2", "with": "5"}));
     refused(&mut s, "data.goalSeek", json!({"set": "B1", "to": 50, "changing": "A1"}));
     // Unlocked cells stay editable.
@@ -571,13 +571,13 @@ fn protection_refuses_edits_of_locked_cells() {
 fn protection_allows_permitted_row_and_column_edits() {
     let mut s = protected(json!({"insertRows": true, "deleteRows": true, "insertColumns": true}));
     // Inserting shifts locked cells, which the protection allows.
-    s.execute("home.insertRows", json!({"rows": "1:1"})).unwrap();
+    s.execute("row.insert", json!({"rows": "1:1"})).unwrap();
     assert_eq!(v(&s, "A2"), Value::Number(1.0));
-    s.execute("home.insertColumns", json!({"cols": "A:A"})).unwrap();
+    s.execute("column.insert", json!({"cols": "A:A"})).unwrap();
     // Deleting a row with locked cells isn't; deleting an unlocked row is.
-    assert!(s.execute("home.deleteRows", json!({"rows": "2:2"})).is_err());
-    s.execute("home.deleteRows", json!({"rows": "11:11"})).unwrap();
-    assert!(s.execute("home.deleteColumns", json!({"cols": "Z:Z"})).is_err());
+    assert!(s.execute("row.delete", json!({"rows": "2:2"})).is_err());
+    s.execute("row.delete", json!({"rows": "11:11"})).unwrap();
+    assert!(s.execute("column.delete", json!({"cols": "Z:Z"})).is_err());
 }
 
 #[test]
@@ -585,8 +585,8 @@ fn hidden_formulas_stay_hidden_on_protected_sheets() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "A1", "input": "=SEQUENCE(3)*7"})).unwrap();
     s.execute("cell.set", json!({"cell": "B1", "input": "=1+1"})).unwrap();
-    s.execute("home.formatCells", json!({"range": "A1", "style": {"protection": {"locked": true, "hidden": true}}})).unwrap();
-    s.execute("formulas.showFormulas", json!({"on": true})).unwrap();
+    s.execute("format.cells", json!({"range": "A1", "style": {"protection": {"locked": true, "hidden": true}}})).unwrap();
+    s.execute("formula.showFormulas", json!({"on": true})).unwrap();
     let text = |s: &Session, a: &str| {
         let d = s.doc().unwrap();
         let sh = d.wb.active().unwrap();
@@ -594,7 +594,7 @@ fn hidden_formulas_stay_hidden_on_protected_sheets() {
     };
     assert_eq!(text(&s, "A1"), "=SEQUENCE(3)*7");
     assert_eq!(s.execute("edit.find", json!({"what": "SEQUENCE", "all": true})).unwrap()["count"], 1);
-    s.execute("review.protectSheet", json!({})).unwrap();
+    s.execute("sheet.protect", json!({})).unwrap();
     assert_eq!(text(&s, "A1"), "7");
     assert_eq!(text(&s, "B1"), "=1+1");
     let d = s.doc().unwrap();
@@ -609,14 +609,14 @@ fn hidden_formulas_stay_hidden_on_protected_sheets() {
 #[test]
 fn formatting_and_styles() {
     let mut s = s();
-    s.execute("selection.set", json!({"range": "A1:B2"})).unwrap();
-    s.execute("home.bold", json!({})).unwrap();
-    s.execute("home.fillColor", json!({"color": "#FFFF00"})).unwrap();
-    s.execute("home.mergeCenter", json!({})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B2"})).unwrap();
+    s.execute("format.bold", json!({})).unwrap();
+    s.execute("format.fillColor", json!({"color": "#FFFF00"})).unwrap();
+    s.execute("cell.mergeCenter", json!({})).unwrap();
     let c = s.execute("cell.get", json!({"cell": "B2"})).unwrap();
     assert_eq!(c["style"]["font"]["bold"], true);
     assert_eq!(c["merge"], "A1:B2");
-    s.execute("home.cellStyle", json!({"range": "D1", "name": "Good"})).unwrap();
+    s.execute("style.apply", json!({"range": "D1", "name": "Good"})).unwrap();
 }
 
 #[test]
@@ -627,9 +627,9 @@ fn redefining_a_built_in_cell_style_keeps_it_built_in_and_marks_it_changed() {
         wb.cell_styles.push(("Good".into(), kition_sheet_model::Style::default()));
         wb.cell_style_info.insert("Good".into(), kition_sheet_model::CellStyleInfo { builtin: Some(26), ..Default::default() });
     }
-    s.execute("home.bold", json!({})).unwrap();
-    s.execute("home.newCellStyle", json!({"name": "good"})).unwrap();
-    s.execute("home.newCellStyle", json!({"name": "Mine"})).unwrap();
+    s.execute("format.bold", json!({})).unwrap();
+    s.execute("style.add", json!({"name": "good"})).unwrap();
+    s.execute("style.add", json!({"name": "Mine"})).unwrap();
     let wb = &s.doc().unwrap().wb;
     assert_eq!(
         wb.cell_style_info.get("good"),
@@ -646,7 +646,7 @@ fn spill_references_roundtrip_through_xlsx() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "B1", "input": "=SEQUENCE(4)"})).unwrap();
     s.execute("cell.set", json!({"cell": "C1", "input": "=sum(b1#)"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Seq", "refersTo": "=Sheet1!$B$1#"})).unwrap();
+    s.execute("name.define", json!({"name": "Seq", "refersTo": "=Sheet1!$B$1#"})).unwrap();
     s.execute("cell.set", json!({"cell": "C2", "input": "=MAX(Seq)"})).unwrap();
     assert_eq!(s.execute("cell.get", json!({"cell": "C1"})).unwrap()["formula"], "=SUM(B1#)");
     assert_eq!((v(&s, "C1"), v(&s, "C2")), (Value::Number(10.0), Value::Number(4.0)));
@@ -662,7 +662,7 @@ fn spill_references_roundtrip_through_xlsx() {
 fn tables_and_structured_refs() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [["Item", "Qty"], ["x", 2], ["y", 5]]})).unwrap();
-    s.execute("insert.table", json!({"range": "A1:B3"})).unwrap();
+    s.execute("table.insert", json!({"range": "A1:B3"})).unwrap();
     s.execute("cell.set", json!({"cell": "D1", "input": "=SUM(Table1[Qty])"})).unwrap();
     assert_eq!(v(&s, "D1"), Value::Number(7.0));
     s.execute("table.totalRow", json!({"on": true, "table": "Table1"})).unwrap();
@@ -683,18 +683,18 @@ fn create_names_from_selection() {
         json!({"range": "A1", "values": [["", "Jan", "Feb", ""], ["North", 1, 2, "N"], ["South", 3, 4, "S"], ["", "First", "Second", ""]]}),
     )
     .unwrap();
-    s.execute("formulas.createFromSelection", json!({"range": "A1:D4", "top": false, "bottom": true, "right": true})).unwrap();
+    s.execute("name.addFromSelection", json!({"range": "A1:D4", "top": false, "bottom": true, "right": true})).unwrap();
     assert_eq!(
         names(&s),
         [named("First", "Sheet1!$B$1:$B$3"), named("N", "Sheet1!$A$2:$C$2"), named("S", "Sheet1!$A$3:$C$3"), named("Second", "Sheet1!$C$1:$C$3")]
     );
     // Existing names are kept unless replacing is asked for.
-    let r = s.execute("formulas.createFromSelection", json!({"range": "A1:C3", "top": true, "left": true})).unwrap();
+    let r = s.execute("name.addFromSelection", json!({"range": "A1:C3", "top": true, "left": true})).unwrap();
     assert_eq!(r["created"], 4);
-    let r = s.execute("formulas.createFromSelection", json!({"range": "B1:C3", "top": true})).unwrap();
+    let r = s.execute("name.addFromSelection", json!({"range": "B1:C3", "top": true})).unwrap();
     assert_eq!((r["created"].clone(), r["skipped"].clone()), (json!(0), json!(["Jan", "Feb"])));
     s.execute("cell.set", json!({"cell": "B1", "input": "N"})).unwrap();
-    let r = s.execute("formulas.createFromSelection", json!({"range": "B1:B3", "replace": true})).unwrap();
+    let r = s.execute("name.addFromSelection", json!({"range": "B1:B3", "replace": true})).unwrap();
     assert_eq!(r["created"], 1);
     assert!(names(&s).contains(&named("N", "Sheet1!$B$2:$B$3")));
     assert!(names(&s).contains(&named("North", "Sheet1!$B$2:$C$2")));
@@ -704,18 +704,18 @@ fn create_names_from_selection() {
 fn names_that_look_like_references_are_refused() {
     let mut s = s();
     for bad in ["R1C1", "r2", "C3", "RC", "R", "c", "rc12", "A1", "XFD1048576", "1st"] {
-        assert!(s.execute("formulas.defineName", json!({"name": bad, "refersTo": "=1"})).is_err(), "{bad}");
+        assert!(s.execute("name.define", json!({"name": bad, "refersTo": "=1"})).is_err(), "{bad}");
     }
     for good in ["R1C1X", "Rate", "RCx", "Rx", "_R1", "Cost"] {
-        s.execute("formulas.defineName", json!({"name": good, "refersTo": "=1"})).unwrap();
+        s.execute("name.define", json!({"name": good, "refersTo": "=1"})).unwrap();
     }
 }
 
 #[test]
 fn lambda_names_keep_their_case_in_calls() {
     let mut s = s();
-    s.execute("formulas.defineName", json!({"name": "Double", "refersTo": "=LAMBDA(x,x*2)"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Quad", "refersTo": "=LAMBDA(x,Double(Double(x)))"})).unwrap();
+    s.execute("name.define", json!({"name": "Double", "refersTo": "=LAMBDA(x,x*2)"})).unwrap();
+    s.execute("name.define", json!({"name": "Quad", "refersTo": "=LAMBDA(x,Double(Double(x)))"})).unwrap();
     s.execute("cell.set", json!({"cell": "A1", "input": "=double(4)+Quad(1)+sum(1)"})).unwrap();
     assert_eq!(s.execute("cell.get", json!({"cell": "A1"})).unwrap()["formula"], "=Double(4)+Quad(1)+SUM(1)");
     assert_eq!(v(&s, "A1"), Value::Number(13.0));
@@ -731,7 +731,7 @@ fn lambda_names_keep_their_case_in_calls() {
 #[test]
 fn sheets() {
     let mut s = s();
-    s.execute("home.insertSheet", json!({})).unwrap();
+    s.execute("sheet.insert", json!({})).unwrap();
     s.execute("cell.set", json!({"cell": "A1", "input": "5"})).unwrap();
     s.execute("sheet.rename", json!({"name": "Data"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": 0})).unwrap();
@@ -749,10 +749,10 @@ fn renaming_a_sheet_rewrites_every_reference_to_it() {
     s.execute("sheet.rename", json!({"name": "工作表1"})).unwrap();
     s.execute("cell.set", json!({"cell": "A1", "input": "10"})).unwrap();
     s.execute("cell.set", json!({"cell": "A2", "input": "32"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "工作表2"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "工作表2"})).unwrap();
     s.execute("cell.set", json!({"cell": "A1", "input": "5"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "Results"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Base", "refersTo": "=工作表1!$A$1:$A$2"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Results"})).unwrap();
+    s.execute("name.define", json!({"name": "Base", "refersTo": "=工作表1!$A$1:$A$2"})).unwrap();
     for (cell, input) in [
         ("A1", "=工作表1!A1"),
         ("A2", "=SUM(工作表1:工作表2!A1)"),
@@ -762,7 +762,7 @@ fn renaming_a_sheet_rewrites_every_reference_to_it() {
     ] {
         s.execute("cell.set", json!({"cell": cell, "input": input})).unwrap();
     }
-    s.execute("insert.link", json!({"cell": "B1", "target": "工作表1!A2", "text": "go"})).unwrap();
+    s.execute("link.insert", json!({"cell": "B1", "target": "工作表1!A2", "text": "go"})).unwrap();
     let formula = |s: &mut Session, cell: &str| s.execute("cell.get", json!({"cell": cell, "sheet": "Results"})).unwrap()["formula"].clone();
     let values = |s: &Session| -> Vec<Value> {
         let wb = &s.doc().unwrap().wb;
@@ -807,7 +807,7 @@ fn renaming_a_sheet_rewrites_every_reference_to_it() {
 #[test]
 fn renaming_a_sheet_rewrites_rules_that_name_it() {
     let mut s = s();
-    s.execute("home.insertSheet", json!({"name": "Lists"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Lists"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();
     let mut doc = s.doc().unwrap().wb.as_ref().clone();
     let sheet = std::sync::Arc::make_mut(doc.sheets.get_mut(0).unwrap());
@@ -843,11 +843,11 @@ fn moving_a_sheet_keeps_the_active_sheet_and_each_selection() {
     let mut s = s();
     s.execute("sheet.rename", json!({"name": "工作表1"})).unwrap();
     s.execute("cell.set", json!({"cell": "A1", "input": "10"})).unwrap();
-    s.execute("selection.set", json!({"range": "B10"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "工作表2"})).unwrap();
+    s.execute("select.set", json!({"range": "B10"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "工作表2"})).unwrap();
     s.execute("cell.set", json!({"cell": "B1", "input": "=工作表1!A1"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "工作表3"})).unwrap();
-    s.execute("selection.set", json!({"range": "B2:C4"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "工作表3"})).unwrap();
+    s.execute("select.set", json!({"range": "B2:C4"})).unwrap();
     let order = |s: &Session| s.doc().unwrap().wb.sheets.iter().map(|sh| sh.name.clone()).collect::<Vec<_>>();
     let active = |s: &Session| s.doc().unwrap().wb.active().unwrap().name.clone();
 
@@ -891,24 +891,24 @@ fn inserting_and_deleting_sheets_keep_each_selection() {
     let mut s = s();
     let names = |s: &Session| s.doc().unwrap().wb.sheets.iter().map(|sh| sh.name.clone()).collect::<Vec<_>>();
     let selection = |s: &Session| s.doc().unwrap().selection.a1();
-    s.execute("selection.set", json!({"range": "B10"})).unwrap();
-    s.execute("home.insertSheet", json!({})).unwrap();
+    s.execute("select.set", json!({"range": "B10"})).unwrap();
+    s.execute("sheet.insert", json!({})).unwrap();
     assert_eq!(selection(&s), "A1");
     s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();
     assert_eq!(selection(&s), "B10");
     s.execute("sheet.hide", json!({"sheet": "Sheet2"})).unwrap();
-    s.execute("home.deleteSheet", json!({"sheet": "Sheet2"})).unwrap();
+    s.execute("sheet.delete", json!({"sheet": "Sheet2"})).unwrap();
     assert_eq!(names(&s), ["Sheet1"]);
-    assert!(s.execute("home.deleteSheet", json!({"sheet": "Sheet1"})).is_err(), "the last visible sheet stays");
-    s.execute("home.insertSheet", json!({"name": "B"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "C"})).unwrap();
+    assert!(s.execute("sheet.delete", json!({"sheet": "Sheet1"})).is_err(), "the last visible sheet stays");
+    s.execute("sheet.insert", json!({"name": "B"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "C"})).unwrap();
     assert_eq!(names(&s), ["Sheet1", "B", "C"]);
-    s.execute("selection.set", json!({"range": "E5"})).unwrap();
+    s.execute("select.set", json!({"range": "E5"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": "B"})).unwrap();
-    s.execute("home.deleteSheet", json!({})).unwrap();
+    s.execute("sheet.delete", json!({})).unwrap();
     assert_eq!(s.doc().unwrap().wb.active().unwrap().name, "C");
     assert_eq!(selection(&s), "E5");
-    s.execute("home.deleteSheet", json!({"sheet": "Sheet1"})).unwrap();
+    s.execute("sheet.delete", json!({"sheet": "Sheet1"})).unwrap();
     assert_eq!(s.doc().unwrap().wb.active().unwrap().name, "C");
     assert_eq!(selection(&s), "E5");
 }
@@ -919,10 +919,10 @@ fn inserting_and_deleting_sheets_keep_each_selection() {
 fn hiding_the_active_sheet_activates_its_neighbour() {
     let mut s = s();
     for name in ["Sheet2", "Sheet3", "Sheet4"] {
-        s.execute("home.insertSheet", json!({"name": name})).unwrap();
+        s.execute("sheet.insert", json!({"name": name})).unwrap();
     }
     s.execute("sheet.activate", json!({"sheet": "Sheet3"})).unwrap();
-    s.execute("selection.set", json!({"range": "C5"})).unwrap();
+    s.execute("select.set", json!({"range": "C5"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": "Sheet4"})).unwrap();
     s.execute("sheet.hide", json!({})).unwrap();
     assert_eq!(s.doc().unwrap().wb.active().unwrap().name, "Sheet3");
@@ -945,11 +945,11 @@ fn sheet_operations_keep_names_on_their_sheets() {
     };
     let named = |n: &str, scope: Option<&str>, f: &str| (n.to_string(), scope.map(str::to_string), f.to_string());
     let mut s = s();
-    s.execute("home.insertSheet", json!({"name": "Data"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "Notes"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Rate", "refersTo": "=Data!$A$1", "scope": "Data"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Rate", "refersTo": "=Notes!$B$1", "scope": "Notes"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Total", "refersTo": "=Data!$C$1"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Data"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Notes"})).unwrap();
+    s.execute("name.define", json!({"name": "Rate", "refersTo": "=Data!$A$1", "scope": "Data"})).unwrap();
+    s.execute("name.define", json!({"name": "Rate", "refersTo": "=Notes!$B$1", "scope": "Notes"})).unwrap();
+    s.execute("name.define", json!({"name": "Total", "refersTo": "=Data!$C$1"})).unwrap();
     // Moving Data (index 1) to the end: its names go with it.
     s.execute("sheet.move", json!({"sheet": "Data", "to": 2})).unwrap();
     assert_eq!(names(&s), [named("Rate", Some("Data"), "Data!$A$1"), named("Rate", Some("Notes"), "Notes!$B$1"), named("Total", None, "Data!$C$1")]);
@@ -966,16 +966,16 @@ fn sheet_operations_keep_names_on_their_sheets() {
         ]
     );
     // Deleting Data removes its names; names referring to it become #REF!.
-    s.execute("home.deleteSheet", json!({"sheet": "Data"})).unwrap();
+    s.execute("sheet.delete", json!({"sheet": "Data"})).unwrap();
     assert_eq!(
         names(&s),
         [named("Rate", Some("Data(2)"), "'Data(2)'!$A$1"), named("Rate", Some("Notes"), "Notes!$B$1"), named("Total", None, "#REF!")]
     );
     // Deleting a name in one scope keeps the others.
-    s.execute("formulas.deleteName", json!({"name": "rate", "scope": "Notes"})).unwrap();
+    s.execute("name.delete", json!({"name": "rate", "scope": "Notes"})).unwrap();
     assert_eq!(names(&s), [named("Rate", Some("Data(2)"), "'Data(2)'!$A$1"), named("Total", None, "#REF!")]);
-    assert!(s.execute("formulas.deleteName", json!({"name": "Total", "scope": "Notes"})).is_err());
-    s.execute("formulas.deleteName", json!({"name": "Total", "scope": "Workbook"})).unwrap();
+    assert!(s.execute("name.delete", json!({"name": "Total", "scope": "Notes"})).is_err());
+    s.execute("name.delete", json!({"name": "Total", "scope": "Workbook"})).unwrap();
     assert_eq!(names(&s).len(), 1);
 }
 
@@ -984,7 +984,7 @@ fn deleting_a_3d_span_end_sheet_keeps_the_rest() {
     let book = || {
         let mut s = s();
         for name in ["Sheet2", "Sheet3", "Results"] {
-            s.execute("home.insertSheet", json!({"name": name})).unwrap();
+            s.execute("sheet.insert", json!({"name": name})).unwrap();
         }
         for (sheet, n) in [("Sheet1", 3), ("Sheet2", 5), ("Sheet3", 7)] {
             s.execute("sheet.activate", json!({"sheet": sheet})).unwrap();
@@ -998,7 +998,7 @@ fn deleting_a_3d_span_end_sheet_keeps_the_rest() {
     let gone = Value::Error(kition_sheet_core::CellError::Ref);
     for (deleted, total, direct) in [("Sheet1", 12.0, gone), ("Sheet3", 8.0, Value::Number(3.0)), ("Sheet2", 10.0, Value::Number(3.0))] {
         let mut s = book();
-        s.execute("home.deleteSheet", json!({"sheet": deleted})).unwrap();
+        s.execute("sheet.delete", json!({"sheet": deleted})).unwrap();
         s.execute("sheet.activate", json!({"sheet": "Results"})).unwrap();
         assert_eq!(v(&s, "A1"), Value::Number(total), "deleting {deleted}");
         assert_eq!(v(&s, "B1"), direct, "deleting {deleted}");
@@ -1184,10 +1184,10 @@ fn range_ending_in_index_recalculates() {
 fn structural_edits_move_spills_with_their_formula() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "A5", "input": "=SEQUENCE(3)"})).unwrap();
-    s.execute("home.deleteRows", json!({"rows": "1:1"})).unwrap();
+    s.execute("row.delete", json!({"rows": "1:1"})).unwrap();
     let col = |s: &Session| (4..=7).map(|r| v(s, &format!("A{r}"))).collect::<Vec<_>>();
     assert_eq!(col(&s), [Value::Number(1.0), Value::Number(2.0), Value::Number(3.0), Value::Empty]);
-    s.execute("home.deleteRows", json!({"rows": "4:4"})).unwrap();
+    s.execute("row.delete", json!({"rows": "4:4"})).unwrap();
     assert_eq!(col(&s), [Value::Empty, Value::Empty, Value::Empty, Value::Empty]);
 }
 
@@ -1222,7 +1222,7 @@ fn an_array_reading_another_arrays_spill_is_updated() {
     s.execute("cell.set", json!({"cell": "G5", "input": "=UNIQUE(VSTACK(F9:F12,A1))"})).unwrap();
     s.execute("cell.set", json!({"cell": "A1", "input": "10"})).unwrap();
     assert_eq!((v(&s, "G6"), v(&s, "G7")), (Value::Number(12.0), Value::Number(10.0)));
-    s.execute("formulas.calculateNow", json!({})).unwrap();
+    s.execute("formula.calculateNow", json!({})).unwrap();
     assert_eq!((v(&s, "G6"), v(&s, "G7")), (Value::Number(12.0), Value::Number(10.0)));
 }
 
@@ -1230,10 +1230,10 @@ fn an_array_reading_another_arrays_spill_is_updated() {
 fn indirect_reads_a_spill_laid_out_in_the_same_pass() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "F5", "input": "=SEQUENCE(2,2,7)"})).unwrap();
-    s.execute("home.insertRows", json!({"rows": "3:3"})).unwrap();
+    s.execute("row.insert", json!({"rows": "3:3"})).unwrap();
     s.execute("cell.set", json!({"cell": "E5", "input": "=INDIRECT(\"F7\")"})).unwrap();
     assert_eq!(v(&s, "E5"), Value::Number(9.0));
-    s.execute("formulas.calculateNow", json!({})).unwrap();
+    s.execute("formula.calculateNow", json!({})).unwrap();
     assert_eq!(v(&s, "E5"), Value::Number(9.0));
 }
 
@@ -1242,7 +1242,7 @@ fn every_command_survives_empty_params() {
     let mut s = Session::new();
     s.execute("file.new", json!({"sample": "sales"})).unwrap();
     for spec in crate::command_specs() {
-        if matches!(spec.id, "file.close" | "file.open" | "file.save" | "file.saveAs" | "file.exportCsv" | "file.exportHtml" | "insert.picture") {
+        if matches!(spec.id, "file.close" | "file.open" | "file.save" | "file.saveAs" | "file.exportCsv" | "file.exportHtml" | "image.insert") {
             continue;
         }
         let _ = s.execute(spec.id, json!({}));
@@ -1284,7 +1284,7 @@ fn every_chart_kind_survives_xlsx() {
     for (t, kind) in kinds {
         let mut s = s();
         chart_data(&mut s);
-        s.execute("insert.chart", json!({"type": t, "range": "A1:E7", "title": "Week"})).unwrap();
+        s.execute("chart.insert", json!({"type": t, "range": "A1:E7", "title": "Week"})).unwrap();
         let before = s.doc().unwrap().wb.active().unwrap().charts[0].clone();
         assert_eq!(before.kind, kind);
         reopen(&mut s);
@@ -1313,7 +1313,7 @@ fn whole_sheet_selection_stays_within_the_data() {
         s.execute(cmd, json!({})).unwrap();
     }
     s.execute("range.setValues", json!({"range": "A1", "values": [[1, 2], [3, 4], [5, 6]]})).unwrap();
-    s.execute("selection.set", json!({"range": "A1:XFD1048576"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:XFD1048576"})).unwrap();
     s.execute("edit.fillUp", json!({})).unwrap();
     assert_eq!(v(&s, "A1"), Value::Number(5.0));
     assert!(s.execute("edit.fillDown", json!({"range": "A1:Z1000000"})).is_err(), "too large to fill");
@@ -1339,7 +1339,7 @@ fn switch_row_column_on_a_chart_read_from_a_file() {
         json!({"range": "A1", "values": [["", "North", "South", "East", "West"], ["Mon", 10, 14, 9, 12], ["Tue", 12, 15, 11, 14], ["Wed", 14, 16, 10, 11], ["Thu", 11, 13, 8, 9], ["Fri", 9, 12, 7, 11], ["Sat", 11, 15, 10, 14]]}),
     )
     .unwrap();
-    s.execute("insert.chart", json!({"type": "column", "range": "A1:E7"})).unwrap();
+    s.execute("chart.insert", json!({"type": "column", "range": "A1:E7"})).unwrap();
     let r = s.execute("file.saveBytes", json!({"format": "xlsx"})).unwrap();
     let b64 = r["base64"].as_str().unwrap().to_string();
     s.execute("file.open", json!({"name": "x.xlsx", "base64": b64})).unwrap();
@@ -1370,7 +1370,7 @@ fn switch_row_column_with_whole_column_refs_is_bounded() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [["", "North", "South"], ["Mon", 10, 14], ["Tue", 12, 15], ["Wed", 14, 16]]}))
         .unwrap();
-    s.execute("insert.chart", json!({"type": "column", "range": "A1:C4"})).unwrap();
+    s.execute("chart.insert", json!({"type": "column", "range": "A1:C4"})).unwrap();
     // As read from a file: no source block, series over whole columns.
     let whole = |s: &mut Session| {
         let c = &mut std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().wb).sheet_mut(0).unwrap().charts[0];
@@ -1401,16 +1401,16 @@ fn ink_strokes_and_ink_to_shape() {
     let mut s = s();
     // A rough closed box.
     let pts: Vec<[f64; 2]> = vec![[100.0, 100.0], [200.0, 102.0], [201.0, 180.0], [99.0, 181.0], [101.0, 104.0]];
-    s.execute("draw.stroke", json!({"points": pts})).unwrap();
+    s.execute("ink.stroke", json!({"points": pts})).unwrap();
     let sh = s.doc().unwrap().wb.active().unwrap().clone();
     assert_eq!(sh.shapes.len(), 1);
     assert_eq!(sh.shapes[0].kind, kition_sheet_model::ShapeKind::Ink);
-    let r = s.execute("draw.inkToShape", json!({})).unwrap();
+    let r = s.execute("ink.toShape", json!({})).unwrap();
     assert_eq!(r["kind"], "Rectangle");
     // An open stroke becomes a line.
-    s.execute("draw.stroke", json!({"points": [[0.0, 0.0], [50.0, 10.0], [120.0, 30.0]]})).unwrap();
-    assert_eq!(s.execute("draw.inkToShape", json!({})).unwrap()["kind"], "Line");
-    assert!(s.execute("draw.stroke", json!({"points": [[1.0, 1.0]]})).is_err());
+    s.execute("ink.stroke", json!({"points": [[0.0, 0.0], [50.0, 10.0], [120.0, 30.0]]})).unwrap();
+    assert_eq!(s.execute("ink.toShape", json!({})).unwrap()["kind"], "Line");
+    assert!(s.execute("ink.stroke", json!({"points": [[1.0, 1.0]]})).is_err());
 }
 
 #[test]
@@ -1520,7 +1520,7 @@ fn sort_moves_anchored_images_with_their_rows() {
     let ib = add_image(&mut s, "A2", AnchorMode::MoveAndSize);
     let ic = add_image(&mut s, "A3", AnchorMode::MoveAndSize);
     let ia = add_image(&mut s, "A4", AnchorMode::MoveAndSize);
-    s.execute("selection.set", json!({"range": "A1:B4"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B4"})).unwrap();
     s.execute("data.sortAscending", json!({"header": true, "column": "A"})).unwrap();
     // Ascending by name: b, c, a → a, b, c. Each picture lands in its row's new home.
     assert_eq!(image_cell(&s, ib), Some(CellRef::parse("A3").unwrap()));
@@ -1535,10 +1535,10 @@ fn absolute_objects_ignore_sort_and_structural_edits() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [["Name", "Score"], ["b", 2], ["c", 3], ["a", 1]]})).unwrap();
     let pinned = add_image(&mut s, "A3", AnchorMode::Absolute);
-    s.execute("selection.set", json!({"range": "A1:B4"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B4"})).unwrap();
     s.execute("data.sortAscending", json!({"header": true, "column": "A"})).unwrap();
     assert_eq!(image_cell(&s, pinned), Some(CellRef::parse("A3").unwrap()));
-    s.execute("home.deleteRows", json!({"rows": "2:2"})).unwrap();
+    s.execute("row.delete", json!({"rows": "2:2"})).unwrap();
     assert_eq!(image_cell(&s, pinned), Some(CellRef::parse("A3").unwrap()));
 }
 
@@ -1549,7 +1549,7 @@ fn move_only_objects_follow_but_do_not_resize() {
     let mut s = s();
     s.execute("range.setValues", json!({"range": "A1", "values": [["Name", "N"], ["b", 2], ["a", 1]]})).unwrap();
     let id = add_image(&mut s, "A2", AnchorMode::MoveOnly);
-    s.execute("selection.set", json!({"range": "A1:B3"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B3"})).unwrap();
     s.execute("data.sortAscending", json!({"column": "A"})).unwrap();
     // "a" moved to row 2 and "b" to row 3, so the image follows from A2 to A3.
     assert_eq!(image_cell(&s, id), Some(CellRef::parse("A3").unwrap()));
@@ -1566,7 +1566,7 @@ fn set_anchor_mode_changes_following() {
     let id = add_image(&mut s, "A2", AnchorMode::MoveAndSize);
     let r = s.execute("object.setAnchorMode", json!({"kind": "image", "id": id, "mode": "dontMoveOrSizeWithCells"})).unwrap();
     assert_eq!(r["mode"], "absolute");
-    s.execute("selection.set", json!({"range": "A1:B3"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B3"})).unwrap();
     s.execute("data.sortAscending", json!({"column": "A"})).unwrap();
     // Pinned absolute: it stays put even though its row moved.
     assert_eq!(image_cell(&s, id), Some(CellRef::parse("A2").unwrap()));
@@ -1583,7 +1583,7 @@ fn sort_leaves_objects_outside_the_block_alone() {
     s.execute("range.setValues", json!({"range": "A1", "values": [["Name", "Score"], ["b", 2], ["c", 3], ["a", 1]]})).unwrap();
     let beside = add_image(&mut s, "Z3", AnchorMode::MoveAndSize);
     let inside = add_image(&mut s, "B3", AnchorMode::MoveAndSize);
-    s.execute("selection.set", json!({"range": "A1:B4"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B4"})).unwrap();
     s.execute("data.sortAscending", json!({"header": true, "column": "A"})).unwrap();
     assert_eq!(image_cell(&s, beside), Some(CellRef::parse("Z3").unwrap()));
     // "c" moved from row 3 to row 4, taking the picture in B3 with it.
@@ -1595,11 +1595,11 @@ fn sort_leaves_objects_outside_the_block_alone() {
 fn inserted_pictures_move_but_do_not_size() {
     let mut s = s();
     let b64 = crate::io::base64_encode(&tiny_png());
-    let id = s.execute("insert.picture", json!({"base64": b64, "at": "C3"})).unwrap()["image"].as_u64().unwrap() as u32;
+    let id = s.execute("image.insert", json!({"base64": b64, "at": "C3"})).unwrap()["image"].as_u64().unwrap() as u32;
     let mode = |s: &Session| s.doc().unwrap().wb.active().unwrap().images.iter().find(|i| i.id == id).unwrap().anchor.mode;
     assert_eq!(mode(&s), kition_sheet_model::AnchorMode::MoveOnly);
     let b64 = crate::io::base64_encode(&tiny_png());
-    let id2 = s.execute("insert.picture", json!({"base64": b64, "mode": "absolute"})).unwrap()["image"].as_u64().unwrap() as u32;
+    let id2 = s.execute("image.insert", json!({"base64": b64, "mode": "absolute"})).unwrap()["image"].as_u64().unwrap() as u32;
     let m2 = s.doc().unwrap().wb.active().unwrap().images.iter().find(|i| i.id == id2).unwrap().anchor.mode;
     assert_eq!(m2, kition_sheet_model::AnchorMode::Absolute);
 }
@@ -1627,7 +1627,7 @@ fn original_cell_picture() -> Vec<u8> {
 }
 
 fn insert_cell_picture(s: &mut Session, at: &str, alt: &str) {
-    s.execute("insert.picture", json!({"placement": "cell", "at": at, "base64": crate::io::base64_encode(&original_cell_picture()), "alt": alt}))
+    s.execute("image.insert", json!({"placement": "cell", "at": at, "base64": crate::io::base64_encode(&original_cell_picture()), "alt": alt}))
         .unwrap();
 }
 
@@ -1639,9 +1639,9 @@ fn cell_picture(s: &Session, at: &str) -> Option<std::sync::Arc<kition_sheet_mod
 fn cell_picture_insert_validates_content_preserves_style_and_replaces_with_undo() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "B2", "input": "old"})).unwrap();
-    s.execute("home.bold", json!({"range": "B2"})).unwrap();
+    s.execute("format.bold", json!({"range": "B2"})).unwrap();
     for bytes in [b"not an image".as_slice(), b"GIF89a", &original_cell_picture()[..24]] {
-        assert!(s.execute("insert.picture", json!({"placement": "cell", "at": "B2", "base64": crate::io::base64_encode(bytes)})).is_err());
+        assert!(s.execute("image.insert", json!({"placement": "cell", "at": "B2", "base64": crate::io::base64_encode(bytes)})).is_err());
         assert_eq!(v(&s, "B2"), Value::from("old"));
     }
     insert_cell_picture(&mut s, "B2", "Original picture");
@@ -1665,7 +1665,7 @@ fn cell_picture_insert_validates_content_preserves_style_and_replaces_with_undo(
     image::DynamicImage::ImageRgb8(image::RgbImage::from_pixel(2, 1, image::Rgb([60, 80, 100])))
         .write_to(&mut std::io::Cursor::new(&mut jpeg), image::ImageFormat::Jpeg)
         .unwrap();
-    s.execute("insert.picture", json!({"placement": "cell", "at": "D2", "base64": crate::io::base64_encode(&jpeg), "mime": "wrong/client-mime"}))
+    s.execute("image.insert", json!({"placement": "cell", "at": "D2", "base64": crate::io::base64_encode(&jpeg), "mime": "wrong/client-mime"}))
         .unwrap();
     assert_eq!(cell_picture(&s, "D2").unwrap().mime, "image/jpeg");
 }
@@ -1678,7 +1678,7 @@ fn cell_picture_clipboard_clear_and_structural_edits_keep_complete_payload() {
     s.execute("edit.copy", json!({"range": "B2"})).unwrap();
     s.execute("edit.pasteSpecial", json!({"what": "values", "at": "D2"})).unwrap();
     assert!(std::sync::Arc::ptr_eq(&original, &cell_picture(&s, "D2").unwrap()));
-    s.execute("home.bold", json!({"range": "C1"})).unwrap();
+    s.execute("format.bold", json!({"range": "C1"})).unwrap();
     s.execute("edit.copy", json!({"range": "C1"})).unwrap();
     s.execute("edit.pasteSpecial", json!({"what": "formats", "at": "D2"})).unwrap();
     assert_eq!(cell_picture(&s, "D2").unwrap().alt, original.alt);
@@ -1691,15 +1691,15 @@ fn cell_picture_clipboard_clear_and_structural_edits_keep_complete_payload() {
     s.execute("edit.pasteSpecial", json!({"what": "values", "at": "C1", "operation": "add"})).unwrap();
     assert!(cell_picture(&s, "C1").is_none());
     assert_eq!(v(&s, "C1"), Value::Error(kition_sheet_core::CellError::Value));
-    s.execute("home.insertRows", json!({"rows": "2:2"})).unwrap();
-    s.execute("home.insertColumns", json!({"cols": "B:B"})).unwrap();
+    s.execute("row.insert", json!({"rows": "2:2"})).unwrap();
+    s.execute("column.insert", json!({"cols": "B:B"})).unwrap();
     assert_eq!(cell_picture(&s, "C3").unwrap().alt, original.alt);
     s.execute("edit.cut", json!({"range": "C3"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "Destination"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Destination"})).unwrap();
     s.execute("edit.paste", json!({"at": "E4"})).unwrap();
     assert_eq!(cell_picture(&s, "E4").unwrap().alt, original.alt);
     assert!(s.doc().unwrap().wb.sheet(0).unwrap().cell(CellRef::parse("C3").unwrap()).is_none());
-    s.execute("home.deleteColumns", json!({"cols": "E:E"})).unwrap();
+    s.execute("column.delete", json!({"cols": "E:E"})).unwrap();
     assert!(cell_picture(&s, "E4").is_none());
     s.execute("edit.undo", json!({})).unwrap();
     assert_eq!(cell_picture(&s, "E4").unwrap().data, original.data);
@@ -1714,7 +1714,7 @@ fn cell_picture_follows_sort_filter_and_blocks_formula_spills() {
     s.execute("data.sort", json!({"range": "A1:B3", "header": true, "keys": [{"column": "A", "order": "asc"}]})).unwrap();
     assert_eq!(cell_picture(&s, "B2").unwrap().alt, "rank one");
     assert_eq!(cell_picture(&s, "B3").unwrap().alt, "rank two");
-    s.execute("selection.set", json!({"range": "A1:B3"})).unwrap();
+    s.execute("select.set", json!({"range": "A1:B3"})).unwrap();
     s.execute("data.filter", json!({})).unwrap();
     s.execute("data.filterBy", json!({"column": "A", "values": ["1"]})).unwrap();
     assert!(s.doc().unwrap().wb.active().unwrap().is_row_hidden(2));
@@ -1739,7 +1739,7 @@ fn cell_picture_json_save_retains_content_and_pdf_draws_without_error_text() {
     let pdf_text = String::from_utf8_lossy(&data);
     assert!(pdf_text.contains("/Subtype /Image"));
     assert!(!pdf_text.contains("(#VALUE!) Tj"));
-    s.execute("home.hideRows", json!({"rows": "2:2"})).unwrap();
+    s.execute("row.hide", json!({"rows": "2:2"})).unwrap();
     let pdf = s.execute("file.exportPdf", json!({"range": "A1:C3"})).unwrap();
     let data = crate::io::base64_decode(pdf["base64"].as_str().unwrap()).unwrap();
     assert!(!String::from_utf8_lossy(&data).contains("/Subtype /Image"));
@@ -1758,21 +1758,21 @@ fn cell_picture_side_map_follows_fill_shift_merge_and_undo() {
     assert!(cell_picture(&s, "B2").is_some());
     s.execute("edit.autoFill", json!({"source": "A3", "target": "A3:B3", "mode": "copy"})).unwrap();
     assert!(cell_picture(&s, "B3").is_none());
-    s.execute("home.insertCells", json!({"range": "B2", "shift": "down"})).unwrap();
+    s.execute("cell.insert", json!({"range": "B2", "shift": "down"})).unwrap();
     assert!(cell_picture(&s, "B2").is_none());
     assert!(cell_picture(&s, "B3").is_some());
     assert!(cell_picture(&s, "B5").is_some());
-    s.execute("home.deleteCells", json!({"range": "B3", "shift": "up"})).unwrap();
+    s.execute("cell.delete", json!({"range": "B3", "shift": "up"})).unwrap();
     assert!(cell_picture(&s, "B3").is_none());
     assert!(cell_picture(&s, "B4").is_some());
-    s.execute("home.mergeCells", json!({"range": "A4:B4"})).unwrap();
+    s.execute("cell.merge", json!({"range": "A4:B4"})).unwrap();
     assert!(cell_picture(&s, "B4").is_none());
     s.execute("edit.undo", json!({})).unwrap();
     assert!(cell_picture(&s, "B4").is_some());
     s.execute("edit.clearAll", json!({"range": "A1:C5"})).unwrap();
     assert!(s.doc().unwrap().wb.active().unwrap().cell_pictures.is_empty());
     insert_cell_picture(&mut s, "XFD1048576", "grid edge");
-    assert!(s.execute("home.insertRows", json!({"rows": "1048576:1048576"})).is_err());
+    assert!(s.execute("row.insert", json!({"rows": "1048576:1048576"})).is_err());
     assert_eq!(cell_picture(&s, "XFD1048576").unwrap().alt, "grid edge");
 }
 
@@ -1853,9 +1853,9 @@ fn autofill_month_pattern_clamps_to_month_end() {
 fn notes_comments_and_links_survive_a_json_save() {
     let mut s = s();
     s.execute("cell.set", json!({"cell": "A1", "input": "x"})).unwrap();
-    s.execute("review.newNote", json!({"cell": "A1", "text": "note", "author": "Example"})).unwrap();
-    s.execute("review.newComment", json!({"cell": "B2", "text": "comment", "author": "Example"})).unwrap();
-    s.execute("insert.link", json!({"cell": "C3", "target": "Sheet1!A1", "tooltip": "jump"})).unwrap();
+    s.execute("note.add", json!({"cell": "A1", "text": "note", "author": "Example"})).unwrap();
+    s.execute("comment.add", json!({"cell": "B2", "text": "comment", "author": "Example"})).unwrap();
+    s.execute("link.insert", json!({"cell": "C3", "target": "Sheet1!A1", "tooltip": "jump"})).unwrap();
     let wb = &s.doc().unwrap().wb;
     let bytes = crate::io::save_bytes(wb, "book.json").unwrap();
     let (back, _) = crate::io::open_bytes("book.json", &bytes).unwrap();
@@ -1878,10 +1878,10 @@ fn structural_edits_are_logged_for_the_kdm_bridge() {
     let mut s = Unsynced(s);
     s.execute("cell.set", json!({"cell": "A1", "input": "=A5+1"})).unwrap();
     assert!(s.doc().unwrap().structural_edits().is_empty(), "a content edit is not structural");
-    s.execute("home.insertRows", json!({"rows": "2:4"})).unwrap();
-    s.execute("home.deleteColumns", json!({"cols": "C:D"})).unwrap();
-    s.execute("home.insertCells", json!({"range": "B2:B3", "shift": "down"})).unwrap();
-    s.execute("home.deleteCells", json!({"range": "B2", "shift": "left"})).unwrap();
+    s.execute("row.insert", json!({"rows": "2:4"})).unwrap();
+    s.execute("column.delete", json!({"cols": "C:D"})).unwrap();
+    s.execute("cell.insert", json!({"range": "B2:B3", "shift": "down"})).unwrap();
+    s.execute("cell.delete", json!({"range": "B2", "shift": "left"})).unwrap();
     let range = |a: &str| kition_sheet_core::RangeRef::parse(a).unwrap();
     assert_eq!(
         s.doc().unwrap().structural_edits(),
@@ -1900,7 +1900,7 @@ fn structural_edits_are_logged_for_the_kdm_bridge() {
 
     // A refused insert logs nothing.
     s.execute("cell.set", json!({"cell": "A1048576", "input": "edge"})).unwrap();
-    assert!(s.execute("home.insertRows", json!({"rows": "1:1"})).is_err());
+    assert!(s.execute("row.insert", json!({"rows": "1:1"})).is_err());
     assert!(s.doc().unwrap().structural_edits().is_empty());
 
     // A cut and paste is a move; on another sheet, a move to that sheet.
@@ -1910,7 +1910,7 @@ fn structural_edits_are_logged_for_the_kdm_bridge() {
     assert_eq!(s.doc().unwrap().structural_edits(), &[StructuralEdit::new(0, Edit::Move { from: range("D4"), to_row: 5, to_col: 5 })]);
     s.doc_mut().unwrap().take_structural_edits();
     s.execute("edit.cut", json!({"range": "F6"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "Other"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Other"})).unwrap();
     s.execute("edit.paste", json!({"at": "B2"})).unwrap();
     assert_eq!(
         s.doc().unwrap().structural_edits(),
@@ -1986,11 +1986,11 @@ fn editing_a_rich_cell_keeps_its_runs_and_typing_takes_the_run_at_the_caret() {
 #[test]
 fn formatting_a_rich_cell_formats_all_of_its_text() {
     let mut s = rich_session();
-    s.execute("selection.set", json!({"range": "A1"})).unwrap();
+    s.execute("select.set", json!({"range": "A1"})).unwrap();
     // Bold on the cell: the first run no longer sets its own (it was bold already); italic
     // untouched by any run stays from the style.
-    s.execute("home.bold", json!({"on": true})).unwrap();
-    s.execute("home.fontColor", json!({"color": "#0000FF"})).unwrap();
+    s.execute("format.bold", json!({"on": true})).unwrap();
+    s.execute("format.color", json!({"color": "#0000FF"})).unwrap();
     let after = runs(&s, "A1");
     assert!(after.is_empty(), "every run property the cell's style now sets is gone: {after:?}");
     let sheet = s.doc().unwrap().wb.active().unwrap();
@@ -2054,11 +2054,11 @@ fn copying_a_sheet_names_and_places_the_copy_as_wps_does() {
         let out = s.execute("sheet.move", json!({"sheet": sheet, "to": i + 1, "copy": true})).unwrap();
         out["name"].as_str().unwrap().to_string()
     };
-    s.execute("home.insertSheet", json!({"name": "Sheet2"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "Sheet3"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Sheet2"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Sheet3"})).unwrap();
     s.execute("sheet.tabColor", json!({"sheet": "Sheet3", "color": "#FF0000"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": "Sheet3"})).unwrap();
-    s.execute("selection.set", json!({"range": "D4"})).unwrap();
+    s.execute("select.set", json!({"range": "D4"})).unwrap();
     assert_eq!(copy(&mut s, "Sheet3"), "Sheet3(2)");
     assert_eq!(names(&s), ["Sheet1", "Sheet2", "Sheet3", "Sheet3(2)"]);
     assert_eq!(s.doc().unwrap().wb.active().unwrap().name, "Sheet3(2)");
@@ -2073,14 +2073,14 @@ fn copying_a_sheet_names_and_places_the_copy_as_wps_does() {
     s.execute("sheet.rename", json!({"sheet": "Sheet3(2)", "name": "备份A"})).unwrap();
     assert_eq!(copy(&mut s, "Sheet3"), "Sheet3(2)");
     // Chinese, spaces and symbols stay as they are; full-width brackets are part of the name.
-    s.execute("home.insertSheet", json!({"name": "2026-Q1 汇总 A（终版）"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "2026-Q1 汇总 A（终版）"})).unwrap();
     assert_eq!(copy(&mut s, "2026-Q1 汇总 A（终版）"), "2026-Q1 汇总 A（终版）(2)");
-    s.execute("home.insertSheet", json!({"name": "工作表_1"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "工作表_1"})).unwrap();
     assert_eq!(copy(&mut s, "工作表_1"), "工作表_1(2)");
     assert_eq!(copy(&mut s, "工作表_1"), "工作表_1(3)");
     // A name at the 31-character limit is cut for the number.
     let long = "1234567890123456789012345678901";
-    s.execute("home.insertSheet", json!({"name": long})).unwrap();
+    s.execute("sheet.insert", json!({"name": long})).unwrap();
     let copied = copy(&mut s, long);
     assert_eq!(copied, "1234567890123456789012345678(2)");
     assert_eq!(copied.chars().count(), 31);
@@ -2100,15 +2100,15 @@ fn copying_a_sheet_names_and_places_the_copy_as_wps_does() {
 #[test]
 fn a_copied_sheet_refers_to_itself_and_keeps_other_references() {
     let mut s = s();
-    s.execute("home.insertSheet", json!({"name": "Data"})).unwrap();
-    s.execute("home.insertSheet", json!({"name": "Last"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Data"})).unwrap();
+    s.execute("sheet.insert", json!({"name": "Last"})).unwrap();
     s.execute("cell.set", json!({"cell": "Sheet1!A1", "input": "10"})).unwrap();
     s.execute("cell.set", json!({"cell": "Sheet1!F1", "input": "10"})).unwrap();
     s.execute("cell.set", json!({"cell": "Last!F1", "input": "100"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": "Data"})).unwrap();
     s.execute("range.setValues", json!({"range": "A1", "values": [["Item", "Amount"], ["a", 3], ["b", 5]]})).unwrap();
-    s.execute("insert.table", json!({"range": "A1:B3", "name": "Sales"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Rate", "refersTo": "=Data!$B$2", "scope": "Data"})).unwrap();
+    s.execute("table.insert", json!({"range": "A1:B3", "name": "Sales"})).unwrap();
+    s.execute("name.define", json!({"name": "Rate", "refersTo": "=Data!$B$2", "scope": "Data"})).unwrap();
     for (cell, input) in [
         ("D1", "=Sheet1!A1"),
         ("D2", "=Data!B2*2"),
@@ -2119,9 +2119,9 @@ fn a_copied_sheet_refers_to_itself_and_keeps_other_references() {
     ] {
         s.execute("cell.set", json!({"cell": cell, "input": input})).unwrap();
     }
-    s.execute("insert.chart", json!({"range": "A1:B3", "type": "column", "at": "F2"})).unwrap();
+    s.execute("chart.insert", json!({"range": "A1:B3", "type": "column", "at": "F2"})).unwrap();
     let png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DAwMDAxMDAwMDAAAANHQEDasKb6QAAAABJRU5ErkJggg==";
-    s.execute("insert.picture", json!({"base64": png, "at": "H10", "width": 40, "height": 30})).unwrap();
+    s.execute("image.insert", json!({"base64": png, "at": "H10", "width": 40, "height": 30})).unwrap();
     let mut doc = s.doc().unwrap().wb.as_ref().clone();
     let data = std::sync::Arc::make_mut(doc.sheets.get_mut(1).unwrap());
     let range = kition_sheet_core::RangeRef::parse("B2:B3").unwrap();
@@ -2193,10 +2193,10 @@ fn a_copied_sheet_refers_to_itself_and_keeps_other_references() {
 fn deleting_a_sheet_turns_references_to_it_into_ref_errors() {
     let mut s = s();
     for name in ["Sheet2", "Sheet3"] {
-        s.execute("home.insertSheet", json!({"name": name})).unwrap();
+        s.execute("sheet.insert", json!({"name": name})).unwrap();
     }
     s.execute("cell.set", json!({"cell": "Sheet3!A1", "input": "4"})).unwrap();
-    s.execute("formulas.defineName", json!({"name": "Rate", "refersTo": "=Sheet3!$A$1", "scope": "Sheet3"})).unwrap();
+    s.execute("name.define", json!({"name": "Rate", "refersTo": "=Sheet3!$A$1", "scope": "Sheet3"})).unwrap();
     s.execute("cell.set", json!({"cell": "Sheet2!B2", "input": "=Sheet3!A1*2"})).unwrap();
     s.execute("cell.set", json!({"cell": "Sheet2!B3", "input": "=Sheet3!Rate+1"})).unwrap();
     s.execute("cell.set", json!({"cell": "Sheet2!B4", "input": "=1+1"})).unwrap();
@@ -2206,7 +2206,7 @@ fn deleting_a_sheet_turns_references_to_it_into_ref_errors() {
     // A copy of Sheet3 outlives it, and keeps a formula naming it.
     s.execute("cell.set", json!({"cell": "Sheet3!A2", "input": "=Sheet2!B4"})).unwrap();
     s.execute("sheet.move", json!({"sheet": "Sheet3", "to": 3, "copy": true})).unwrap();
-    s.execute("home.deleteSheet", json!({"sheet": "Sheet3"})).unwrap();
+    s.execute("sheet.delete", json!({"sheet": "Sheet3"})).unwrap();
     assert_eq!(get(&mut s, "Sheet2!B2")["formula"], "=#REF!*2");
     assert_eq!(get(&mut s, "Sheet2!B2")["value"]["error"], "#REF!");
     assert_eq!(get(&mut s, "Sheet2!B3")["formula"], "=#REF!+1");
@@ -2236,13 +2236,13 @@ fn deleting_a_sheet_turns_references_to_it_into_ref_errors() {
 fn new_sheet_names_count_on_and_unhide_can_stay_put() {
     let mut s = s();
     for _ in 0..3 {
-        s.execute("home.insertSheet", json!({})).unwrap();
+        s.execute("sheet.insert", json!({})).unwrap();
     }
     let names = |s: &Session| s.doc().unwrap().wb.sheets.iter().map(|sh| sh.name.clone()).collect::<Vec<_>>();
     assert_eq!(names(&s), ["Sheet1", "Sheet2", "Sheet3", "Sheet4"]);
-    s.execute("home.deleteSheet", json!({"sheet": "Sheet2"})).unwrap();
+    s.execute("sheet.delete", json!({"sheet": "Sheet2"})).unwrap();
     s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();
-    let out = s.execute("home.insertSheet", json!({})).unwrap();
+    let out = s.execute("sheet.insert", json!({})).unwrap();
     assert_eq!(out["name"], "Sheet5");
     assert_eq!(names(&s), ["Sheet1", "Sheet5", "Sheet3", "Sheet4"]);
     s.execute("sheet.hide", json!({"sheet": "Sheet3"})).unwrap();

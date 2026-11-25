@@ -118,7 +118,7 @@ impl SheetDocument {
     /// Runs a command as `origin` (a person, an agent): the replica records it as theirs, and it
     /// undoes as this replica's own step. Contract 1's
     /// [`SheetDocument::execute`](kition_kit::KitDocument::execute) is this with the local
-    /// person (`commandLine` included).
+    /// person (`command.runLine` included).
     pub fn execute_as(&mut self, command: &str, params: Value, origin: &Origin) -> Result<Value, String> {
         let previous = self.session.set_origin(Some(origin.clone()));
         let result = self.execute(command, params);
@@ -321,7 +321,7 @@ mod tests {
 
     fn extra_edit(doc: &mut SheetDocument) {
         doc.execute("cell.set", json!({ "cell": "C2", "input": "=B2*12" })).unwrap();
-        doc.execute("home.bold", json!({ "range": "A1:B1", "on": true })).unwrap();
+        doc.execute("format.bold", json!({ "range": "A1:B1", "on": true })).unwrap();
     }
 
     fn cell(doc: &mut SheetDocument, a1: &str) -> Value {
@@ -373,7 +373,7 @@ mod tests {
         let origin = Origin::person("user:agent-1");
         doc.execute_as("cell.set", json!({ "cell": "D1", "input": "agent" }), &origin).unwrap();
         assert!(doc.can_undo());
-        doc.execute_as("commandLine", json!({ "text": "typed" }), &origin).unwrap();
+        doc.execute_as("command.runLine", json!({ "text": "typed" }), &origin).unwrap();
         assert_eq!(doc.session.origin(), kition_sheet_engine::kdm_bridge::local_person(), "the origin is restored after the call");
     }
 
@@ -501,8 +501,8 @@ mod tests {
         let mut b = SheetDocument::open_with_replica("Budget.xlsx", &bytes, &snapshot, &blobs).unwrap();
         assert_eq!(b.version().unwrap(), a.version().unwrap(), "b starts from a's own replica");
 
-        a.execute("home.insertRows", json!({ "rows": "2:2" })).unwrap();
-        a.execute("insert.picture", json!({ "placement": "cell", "at": "D2", "base64": picture(), "alt": "dot" })).unwrap();
+        a.execute("row.insert", json!({ "rows": "2:2" })).unwrap();
+        a.execute("image.insert", json!({ "placement": "cell", "at": "D2", "base64": picture(), "alt": "dot" })).unwrap();
 
         let since = b.version().unwrap();
         let changes = a.export_changes(&since).unwrap();
@@ -537,7 +537,7 @@ mod tests {
 
     /// The names the workbook defines, sorted.
     fn names(doc: &mut SheetDocument) -> Vec<String> {
-        let listed = doc.execute("formulas.nameManager", json!({})).unwrap();
+        let listed = doc.execute("name.manage", json!({})).unwrap();
         let mut names: Vec<String> = listed.as_array().into_iter().flatten().filter_map(|n| n["name"].as_str().map(str::to_owned)).collect();
         names.sort();
         names
@@ -555,10 +555,10 @@ mod tests {
         let base = doc.version().unwrap();
         let mut draft = SheetDocument::open_with_replica("Budget.xlsx", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
         draft.execute("cell.set", json!({ "cell": "B3", "input": "500" })).unwrap();
-        draft.execute("formulas.defineName", json!({ "name": "Rate", "refersTo": "=Sheet1!$B$3" })).unwrap();
+        draft.execute("name.define", json!({ "name": "Rate", "refersTo": "=Sheet1!$B$3" })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
         doc.execute("cell.set", json!({ "cell": "A2", "input": "Rent and bills" })).unwrap();
-        doc.execute("formulas.defineName", json!({ "name": "Tax", "refersTo": "=Sheet1!$B$2" })).unwrap();
+        doc.execute("name.define", json!({ "name": "Tax", "refersTo": "=Sheet1!$B$2" })).unwrap();
         let version = doc.version().unwrap();
         let before = whole(&mut doc);
         let preview = doc.compare_changes(&changes).unwrap();
@@ -619,7 +619,7 @@ mod tests {
         doc.version().unwrap();
         let checkpoint = doc.snapshot().unwrap();
         doc.execute("cell.set", json!({ "cell": "B2", "input": "1300" })).unwrap();
-        doc.execute("formulas.defineName", json!({ "name": "Tax", "refersTo": "=Sheet1!$B$2" })).unwrap();
+        doc.execute("name.define", json!({ "name": "Tax", "refersTo": "=Sheet1!$B$2" })).unwrap();
         let before = whole(&mut doc);
         let origin = Origin::person("person:local");
         let damage = doc.restore_state(&checkpoint, &origin).unwrap();
@@ -670,7 +670,7 @@ mod tests {
         let plain = json!({ "summary": "Budget", "cells": ["A1", "B2"], "sheet": 1 });
         assert_eq!(serde_json::from_str::<Value>(&doc.model_reply(&plain.to_string()).unwrap()).unwrap(), plain, "a reply naming no object stays");
         // A sheet made since is named too.
-        doc.execute("home.insertSheet", json!({ "name": "Second" })).unwrap();
+        doc.execute("sheet.insert", json!({ "name": "Second" })).unwrap();
         let state = doc.replicated_state().unwrap();
         let second = state["objects"]
             .as_object()

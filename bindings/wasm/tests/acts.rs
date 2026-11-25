@@ -712,14 +712,14 @@ fn local_closures_keep_their_reads_without_resolving_unrelated_global_functions(
 
 #[test]
 fn private_session_construction_excludes_only_plain_input_factories() {
-    let factory = "{ let mut s = Session::new(); s.execute(\"selection.move\", p); }";
+    let factory = "{ let mut s = Session::new(); s.execute(\"select.move\", p); }";
     assert!(private_session_factory(b"name: &str, bytes: &[u8]", &code_only(factory)));
     assert!(!private_session_factory(b"s: &mut Session", &code_only(factory)));
     assert!(!private_session_factory(b"wb: &Workbook", &code_only(factory)));
     assert!(!private_session_factory(b"&mut self", &code_only(factory)));
     assert!(!private_session_factory(b"name: &str", b"{ s.selection.active; }"));
     let source = r#"
-        fn factory(name: &str) { let mut s = Session::new(); s.execute("selection.move", p); }
+        fn factory(name: &str) { let mut s = Session::new(); s.execute("select.move", p); }
         fn existing(s: &mut Session) { let mut local = Session::new(); s.selection.active; }
         cmd!("factory", "Factory", [], None, "{}", always, factory);
         cmd!("existing", "Existing", [], None, "{}", always, existing);

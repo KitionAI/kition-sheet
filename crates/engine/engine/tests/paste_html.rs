@@ -33,7 +33,7 @@ fn at(cell: &str) -> CellRef {
 #[test]
 fn an_html_table_keeps_merges_line_breaks_and_formatting() {
     let mut s = session();
-    s.execute("selection.set", json!({"range": "B2"})).unwrap();
+    s.execute("select.set", json!({"range": "B2"})).unwrap();
     let answer = s.execute("edit.paste", json!({"text": TEXT, "html": HTML})).unwrap();
     assert_eq!((answer["rows"].as_u64(), answer["cols"].as_u64()), (Some(5), Some(3)));
 
@@ -79,7 +79,7 @@ fn an_html_table_keeps_merges_line_breaks_and_formatting() {
 fn a_pasted_table_replaces_the_merges_under_it_and_undoes_in_one_step() {
     let mut s = session();
     s.execute("cell.set", json!({"cell": "C3", "input": "old"})).unwrap();
-    s.execute("home.mergeCells", json!({"range": "C3:E4"})).unwrap();
+    s.execute("cell.merge", json!({"range": "C3:E4"})).unwrap();
     s.execute("edit.paste", json!({"at": "B2", "text": TEXT, "html": HTML})).unwrap();
     {
         let wb = &s.doc().unwrap().wb;
@@ -98,7 +98,7 @@ fn a_pasted_table_replaces_the_merges_under_it_and_undoes_in_one_step() {
 #[test]
 fn html_without_a_table_and_our_own_copy_paste_as_before() {
     let mut s = session();
-    s.execute("selection.set", json!({"range": "A1"})).unwrap();
+    s.execute("select.set", json!({"range": "A1"})).unwrap();
     s.execute("edit.paste", json!({"text": "a\tb\n", "html": "<p>a b</p>"})).unwrap();
     {
         let wb = &s.doc().unwrap().wb;

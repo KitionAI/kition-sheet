@@ -23,7 +23,7 @@ async fn numeric_spelling_still_holds_old_and_new_matching_inputs() {
             fixture.colleague(&[("cell.set", json!({"cell":cell,"input":input}))]);
         }
         let before = fixture.bytes();
-        let result = fixture.run(basis, "review.changeSpelling", json!({"word":"12","to":"13","all":true})).await;
+        let result = fixture.run(basis, "spelling.change", json!({"word":"12","to":"13","all":true})).await;
         if change == "unmatched" {
             assert_eq!(result.as_ref().ok().map(|value| &value["saved"]), Some(&json!(true)), "{change}: {result:?}");
             let mut saved = kition_sheet_kit::SheetDocument::open("Book.xlsx", &fixture.bytes()).unwrap();
@@ -49,7 +49,7 @@ fn spelling_text_vectors_live_on_stable_rows_while_numbers_keep_their_input_regi
     assert!(row.values["spellingHeader"].as_str().is_some_and(|digest| digest.len() == 64));
     assert_eq!(doc.execute("cell.get", json!({"cell":"C3"})).unwrap()["value"], 12.0, "numeric input remains in its existing cell register");
 
-    doc.execute("home.insertRows", json!({"rows":"1:1"})).unwrap();
+    doc.execute("row.insert", json!({"rows":"1:1"})).unwrap();
     doc.snapshot().unwrap();
     let projected = doc.derived(std::slice::from_ref(&identity), &["spellingInputs".into()]).unwrap();
     let moved = projected.iter().find(|entry| entry.id == identity).unwrap();
@@ -63,7 +63,7 @@ async fn same_row_unmatched_input_changes_preserve_numeric_and_text_spelling_edi
         fixture.colleague(&[("cell.set", json!({"cell":"C3","input":word})), ("cell.set", json!({"cell":"D3","input":"ordinary"}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[("cell.set", json!({"cell":"D3","input":"colleague"}))]);
-        let result = fixture.run(basis, "review.changeSpelling", json!({"word":word,"to":replacement,"all":true})).await;
+        let result = fixture.run(basis, "spelling.change", json!({"word":word,"to":replacement,"all":true})).await;
         assert_eq!(
             result.as_ref().ok().map(|value| &value["saved"]),
             Some(&json!(true)),
@@ -79,13 +79,13 @@ async fn same_row_unmatched_input_changes_preserve_numeric_and_text_spelling_edi
 
 #[tokio::test]
 async fn deleting_a_matching_source_row_or_column_refuses_spelling_without_cell_derived_fields() {
-    for (command, params) in [("home.deleteRows", json!({"rows":"3:3"})), ("home.deleteColumns", json!({"cols":"C:C"}))] {
+    for (command, params) in [("row.delete", json!({"rows":"3:3"})), ("column.delete", json!({"cols":"C:C"}))] {
         let fixture = Fixture::new();
         fixture.colleague(&[("cell.set", json!({"cell":"C3","input":"teh"}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[(command, params)]);
         let before = fixture.bytes();
-        let result = fixture.run(basis, "review.changeSpelling", json!({"word":"teh","to":"the","all":true})).await;
+        let result = fixture.run(basis, "spelling.change", json!({"word":"teh","to":"the","all":true})).await;
         assert_eq!(
             result.as_ref().err().map(|value| &value["error"]["code"]),
             Some(&json!("conflict")),
@@ -111,7 +111,7 @@ async fn spelling_history_combines_numeric_registers_with_text_row_snapshots() {
         let basis = fixture.basis().await;
         fixture.colleague(&[("cell.set", json!({"cell":"C3","input":changed}))]);
         let before = fixture.bytes();
-        let result = fixture.run(basis, "review.changeSpelling", json!({"word":word,"to":replacement,"all":true})).await;
+        let result = fixture.run(basis, "spelling.change", json!({"word":word,"to":replacement,"all":true})).await;
         if related {
             assert_eq!(
                 result.as_ref().err().map(|value| &value["error"]["code"]),

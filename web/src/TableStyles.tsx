@@ -231,10 +231,10 @@ export function TableStyleDialogs({ info }: { info: SheetInfo }) {
       close()
       // A header row can't hold pictures: WPS asks, then clears them (the header is named 列1…).
       if (mode === 'table' && header && (await headerHasPictures(plain(range)))) {
-        askConfirm({ title: t('tablePicturesTitle'), message: t('tablePicturesConfirm'), testId: 'sheet-table-pictures', onOk: () => void run('home.formatAsTable', { ...params, clearPictures: true }) })
+        askConfirm({ title: t('tablePicturesTitle'), message: t('tablePicturesConfirm'), testId: 'sheet-table-pictures', onOk: () => void run('table.formatAs', { ...params, clearPictures: true }) })
         return
       }
-      await run('home.formatAsTable', params)
+      await run('table.formatAs', params)
     }
     return (
       <Modal open onOpenChange={(open) => (open ? undefined : close())}>
@@ -587,7 +587,7 @@ export function TableStyleGallery({ info, testId = 'sheet-table' }: { info: Shee
 export function FormatAsTableMenu({ info }: { info: SheetInfo }) {
   const { enabled, phrase: p } = useKitEditor()
   return (
-    <RibbonMenu icon={Table2} label={p('Format as Table')} size="large" testId="sheet-format-table" disabled={!enabled('home.formatAsTable')}>
+    <RibbonMenu icon={Table2} label={p('Format as Table')} size="large" testId="sheet-format-table" disabled={!enabled('table.formatAs')}>
       <TableStyleGallery info={info} />
     </RibbonMenu>
   )

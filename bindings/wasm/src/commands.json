@@ -454,19 +454,19 @@
  "arrange.sendBackward": {
   "description": "Sends a chart, image or shape one step backward, or to the back, in the stacking order."
  },
- "automate.allScripts": {
+ "script.list": {
   "description": "Lists the saved scripts with their names and steps.",
   "output": {
    "type": "array"
   }
  },
- "automate.deleteScript": {
+ "script.delete": {
   "description": "Deletes a saved script by name."
  },
- "automate.newScript": {
-  "description": "Saves a script: a named list of commands with their parameters, to run later with automate.runScript."
+ "script.new": {
+  "description": "Saves a script: a named list of commands with their parameters, to run later with script.run."
  },
- "automate.recordActions": {
+ "script.record": {
   "description": "Starts recording actions into a script, or stops and saves the recording under a name; answers whether it is recording.",
   "output": {
    "additionalProperties": true,
@@ -483,7 +483,7 @@
    }
   }
  },
- "automate.runScript": {
+ "script.run": {
   "description": "Runs a saved script's commands in order, as one undo step."
  },
  "cell.formatText": {
@@ -791,7 +791,7 @@
   "description": "Adds or removes a chart element (title, legend, data labels, gridlines, axis titles, smooth lines) with its position.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
@@ -807,7 +807,7 @@
     "description": "hex colours such as #4472C4, given to the series (or slices) in turn; instead of palette"
    },
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    },
    "palette": {
@@ -820,7 +820,7 @@
   "description": "Changes a chart's type (column, line, pie…) and subtype, keeping its data.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    },
    "subtype": {
@@ -836,7 +836,7 @@
   "description": "Deletes a chart (default: the selected one).",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
@@ -845,7 +845,7 @@
   "description": "Sets the colour of one series of a chart, by its 0-based index.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
@@ -854,7 +854,7 @@
   "description": "Moves a chart to another sheet or to a cell position.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
@@ -863,7 +863,7 @@
   "description": "Applies one of the six quick layouts to a chart (which elements it shows and where).",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
@@ -872,7 +872,7 @@
   "description": "Changes the data range a chart plots, optionally with series by rows.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
@@ -911,7 +911,7 @@
   "description": "Sets the fill colour of a chart (or a series of it) or of a shape.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    },
    "kind": {
@@ -941,12 +941,12 @@
   "description": "Swaps which of a chart's data runs as series and which as categories.",
   "params": {
    "chart": {
-    "description": "a chart id from document.inspect; default: the selected chart",
+    "description": "a chart id from file.inspect; default: the selected chart",
     "type": "integer"
    }
   }
  },
- "commandLine": {
+ "command.runLine": {
   "description": "Enters text into the active cell as if typed there and confirmed with Enter."
  },
  "data.advancedFilter": {
@@ -1281,7 +1281,7 @@
    }
   }
  },
- "document.inspect": {
+ "file.inspect": {
   "description": "Answers the workbook's structure: sheets, active sheet and cell, selection, defined names, tables, charts, calculation mode, unsaved state and undo history. Use sheet.read or cell.get for cell contents.",
   "output": {
    "additionalProperties": true,
@@ -1386,7 +1386,7 @@
    "type": "object"
   }
  },
- "draw.eraser": {
+ "ink.eraser": {
   "description": "Selects the ink eraser tool in the editor; answers the tool state.",
   "output": {
    "additionalProperties": true,
@@ -1404,7 +1404,7 @@
    "type": "object"
   }
  },
- "draw.highlighter": {
+ "ink.highlighter": {
   "description": "Selects the highlighter ink tool in the editor with a colour and width; answers the tool state.",
   "output": {
    "additionalProperties": true,
@@ -1422,13 +1422,13 @@
    "type": "object"
   }
  },
- "draw.inkToShape": {
+ "ink.toShape": {
   "description": "Converts an ink stroke (default: the last one) into the rectangle, ellipse, triangle or line it resembles."
  },
- "draw.lasso": {
+ "ink.lasso": {
   "description": "Selects the lasso tool for picking ink strokes in the editor."
  },
- "draw.pen": {
+ "ink.pen": {
   "description": "Selects the pen ink tool in the editor with a colour and width, or turns it off; answers the tool state.",
   "output": {
    "additionalProperties": true,
@@ -1446,7 +1446,7 @@
    "type": "object"
   }
  },
- "draw.pencil": {
+ "ink.pencil": {
   "description": "Selects the pencil ink tool in the editor with a colour and width; answers the tool state.",
   "output": {
    "additionalProperties": true,
@@ -1464,7 +1464,7 @@
    "type": "object"
   }
  },
- "draw.select": {
+ "ink.select": {
   "description": "Switches the editor back to selecting objects; answers the tool state.",
   "output": {
    "additionalProperties": true,
@@ -1482,7 +1482,7 @@
    "type": "object"
   }
  },
- "draw.shape": {
+ "ink.shape": {
   "description": "Selects a DrawingML shape preset to draw next in the editor, or none; answers it.",
   "output": {
    "additionalProperties": true,
@@ -1506,7 +1506,7 @@
    }
   }
  },
- "draw.state": {
+ "ink.state": {
   "description": "Answers the editor's current ink tool, colour and width.",
   "output": {
    "additionalProperties": true,
@@ -1524,7 +1524,7 @@
    "type": "object"
   }
  },
- "draw.stroke": {
+ "ink.stroke": {
   "description": "Adds one ink stroke through points given in sheet points, with a colour and width.",
   "params": {
    "points": {
@@ -2241,7 +2241,7 @@
    }
   }
  },
- "formulas.autoSum": {
+ "formula.autoSum": {
   "description": "Inserts a SUM (or AVERAGE, COUNT, MAX, MIN) formula below or beside the selected numbers, guessing the range when none is given.",
   "params": {
    "function": {
@@ -2253,7 +2253,7 @@
    }
   }
  },
- "formulas.calculateNow": {
+ "formula.calculateNow": {
   "description": "Recalculates every formula in the workbook now (F9) and answers how many cells were calculated; needed in manual calculation mode.",
   "output": {
    "additionalProperties": true,
@@ -2265,7 +2265,7 @@
    "type": "object"
   }
  },
- "formulas.calculateSheet": {
+ "formula.calculateSheet": {
   "description": "Recalculates the formulas of the active sheet only and answers how many cells were calculated.",
   "output": {
    "additionalProperties": true,
@@ -2277,7 +2277,7 @@
    "type": "object"
   }
  },
- "formulas.calculationOptions": {
+ "formula.calculationOptions": {
   "description": "Sets the workbook's calculation mode (automatic, automatic except tables, manual) and iterative calculation limits.",
   "params": {
    "iterative": {
@@ -2291,7 +2291,7 @@
    }
   }
  },
- "formulas.createFromSelection": {
+ "name.addFromSelection": {
   "description": "Creates names for the rows or columns of a range from its top row or left column labels; existing names are kept unless replace is true.",
   "params": {
    "range": {
@@ -2300,7 +2300,7 @@
    }
   }
  },
- "formulas.dateTime": {
+ "formula.dateTime": {
   "description": "Lists the date and time worksheet functions with their signatures and descriptions.",
   "output": {
    "items": {
@@ -2324,7 +2324,7 @@
    "type": "array"
   }
  },
- "formulas.defineName": {
+ "name.define": {
   "description": "Defines a named range or constant (default: the selection) at workbook or sheet scope, usable in formulas.",
   "params": {
    "comment": {
@@ -2336,7 +2336,7 @@
    }
   }
  },
- "formulas.deleteName": {
+ "name.delete": {
   "description": "Deletes a defined name in one scope, or in every scope when none is given; formulas that used it show #NAME?.",
   "params": {
    "scope": {
@@ -2345,7 +2345,7 @@
    }
   }
  },
- "formulas.errorChecking": {
+ "formula.errorChecking": {
   "description": "Lists cells whose formulas end in errors (#DIV/0!, #REF!, #NAME?…) and circular references on the active sheet.",
   "output": {
    "additionalProperties": true,
@@ -2360,7 +2360,7 @@
    "type": "object"
   }
  },
- "formulas.evaluate": {
+ "formula.evaluate": {
   "description": "Calculates a formula as if it were in a cell (default: the active cell) and answers its value without writing anything to the sheet.",
   "output": {
    "type": "number"
@@ -2372,7 +2372,7 @@
    }
   }
  },
- "formulas.evaluateFormula": {
+ "formula.evaluateFormula": {
   "description": "Evaluates a cell's formula (or a given formula) step by step and answers each intermediate step.",
   "output": {
    "additionalProperties": true,
@@ -2412,7 +2412,7 @@
    }
   }
  },
- "formulas.financial": {
+ "formula.financial": {
   "description": "Lists the financial worksheet functions with their signatures and descriptions.",
   "output": {
    "items": {
@@ -2436,7 +2436,7 @@
    "type": "array"
   }
  },
- "formulas.functions": {
+ "formula.functions": {
   "description": "Lists the worksheet functions this sheet supports with their category, signature and description, optionally filtered by category or a search word.",
   "output": {
    "items": {
@@ -2468,10 +2468,10 @@
    }
   }
  },
- "formulas.insertFunction": {
+ "formula.insertFunction": {
   "description": "Starts a formula with a function name in the active cell, as the Insert Function dialog would."
  },
- "formulas.logical": {
+ "formula.logical": {
   "description": "Lists the logical worksheet functions (IF, AND, OR…) with their signatures and descriptions.",
   "output": {
    "items": {
@@ -2495,7 +2495,7 @@
    "type": "array"
   }
  },
- "formulas.lookupReference": {
+ "formula.lookupReference": {
   "description": "Lists the lookup and reference worksheet functions (XLOOKUP, INDEX, MATCH…) with their signatures and descriptions.",
   "output": {
    "items": {
@@ -2519,7 +2519,7 @@
    "type": "array"
   }
  },
- "formulas.mathTrig": {
+ "formula.mathTrig": {
   "description": "Lists the math and trigonometry worksheet functions with their signatures and descriptions.",
   "output": {
    "items": {
@@ -2543,7 +2543,7 @@
    "type": "array"
   }
  },
- "formulas.moreFunctions": {
+ "formula.moreFunctions": {
   "description": "Lists the worksheet functions of another category (Statistical, Engineering, Information, Database…).",
   "output": {
    "items": {
@@ -2567,22 +2567,22 @@
    "type": "array"
   }
  },
- "formulas.nameManager": {
+ "name.manage": {
   "description": "Lists every defined name with its scope, what it refers to and its current value.",
   "output": {
    "type": "array"
   }
  },
- "formulas.recentlyUsed": {
+ "formula.recentlyUsed": {
   "description": "Lists the functions used most recently in this workbook's formulas.",
   "output": {
    "type": "array"
   }
  },
- "formulas.removeArrows": {
+ "formula.removeArrows": {
   "description": "Hides the trace arrows drawn by trace precedents and dependents."
  },
- "formulas.showFormulas": {
+ "formula.showFormulas": {
   "description": "Shows formulas instead of their results in the cells of the sheet, or turns that off.",
   "params": {
    "on": {
@@ -2591,7 +2591,7 @@
    }
   }
  },
- "formulas.text": {
+ "formula.text": {
   "description": "Lists the text worksheet functions with their signatures and descriptions.",
   "output": {
    "items": {
@@ -2615,7 +2615,7 @@
    "type": "array"
   }
  },
- "formulas.traceDependents": {
+ "formula.traceDependents": {
   "description": "Answers the cells whose formulas read a cell (default: the active cell), without changing the sheet.",
   "output": {
    "type": "array"
@@ -2627,7 +2627,7 @@
    }
   }
  },
- "formulas.tracePrecedents": {
+ "formula.tracePrecedents": {
   "description": "Answers the cells and ranges a cell's formula reads (default: the active cell), without changing the sheet.",
   "output": {
    "type": "array"
@@ -2639,10 +2639,10 @@
    }
   }
  },
- "formulas.useInFormula": {
+ "formula.useInFormula": {
   "description": "Inserts a defined name into the formula being edited in the active cell."
  },
- "formulas.watchWindow": {
+ "formula.watchWindow": {
   "description": "Adds or removes a cell from the watch window and answers the watched cells with their current values.",
   "output": {
    "type": "array"
@@ -2663,7 +2663,7 @@
    "type": "object"
   }
  },
- "home.accounting": {
+ "format.accounting": {
   "description": "Applies the accounting number format to a range, with a currency symbol ($ by default).",
   "params": {
    "range": {
@@ -2672,7 +2672,7 @@
    }
   }
  },
- "home.addIns": {
+ "addIn.manage": {
   "description": "Answers that the sheet has no add-ins and points to the agent and scripts instead.",
   "output": {
    "additionalProperties": true,
@@ -2687,7 +2687,7 @@
    "type": "object"
   }
  },
- "home.alignBottom": {
+ "format.alignBottom": {
   "description": "Aligns the text of a range to the bottom of its cells.",
   "params": {
    "range": {
@@ -2696,7 +2696,7 @@
    }
   }
  },
- "home.alignCenter": {
+ "format.alignCenter": {
   "description": "Centres the text of a range horizontally in its cells.",
   "params": {
    "range": {
@@ -2705,7 +2705,7 @@
    }
   }
  },
- "home.alignLeft": {
+ "format.alignLeft": {
   "description": "Aligns the text of a range (default: the selection) to the left of its cells.",
   "params": {
    "range": {
@@ -2714,7 +2714,7 @@
    }
   }
  },
- "home.alignMiddle": {
+ "format.alignMiddle": {
   "description": "Centres the text of a range vertically in its cells.",
   "params": {
    "range": {
@@ -2723,7 +2723,7 @@
    }
   }
  },
- "home.alignRight": {
+ "format.alignRight": {
   "description": "Aligns the text of a range to the right of its cells.",
   "params": {
    "range": {
@@ -2732,7 +2732,7 @@
    }
   }
  },
- "home.alignTop": {
+ "format.alignTop": {
   "description": "Aligns the text of a range to the top of its cells.",
   "params": {
    "range": {
@@ -2741,7 +2741,7 @@
    }
   }
  },
- "home.autofitColumnWidth": {
+ "column.autofitWidth": {
   "description": "Fits the width of columns to their widest content (default: the selection's columns).",
   "params": {
    "cols": {
@@ -2750,7 +2750,7 @@
    }
   }
  },
- "home.autofitRowHeight": {
+ "row.autofitHeight": {
   "description": "Fits the height of rows to their content (default: the selection's rows).",
   "params": {
    "rows": {
@@ -2759,7 +2759,7 @@
    }
   }
  },
- "home.bold": {
+ "format.bold": {
   "description": "Turns bold on or off for a range (default: the selection); without on it toggles from the first cell.",
   "params": {
    "range": {
@@ -2768,7 +2768,7 @@
    }
   }
  },
- "home.borders": {
+ "format.borders": {
   "description": "Applies a border preset (bottom, all, outside, thick box, none…) to a range, optionally with a line style and colour.",
   "params": {
    "range": {
@@ -2780,7 +2780,7 @@
    }
   }
  },
- "home.cellStyle": {
+ "style.apply": {
   "description": "Applies a named cell style (Good, Bad, Heading 1, Title, Total, Accent1…) to a range.",
   "params": {
    "name": {
@@ -2792,7 +2792,7 @@
    }
   }
  },
- "home.clearRules": {
+ "conditionalFormat.clearRules": {
   "description": "Removes conditional formatting rules from a range, or from the whole sheet.",
   "params": {
    "range": {
@@ -2805,7 +2805,7 @@
    }
   }
  },
- "home.columnWidth": {
+ "column.setWidth": {
   "description": "Sets the width of columns given as a column span such as B:D, one column such as C, or a list such as A,C:D (default: the selection's columns), in points or in characters.",
   "params": {
    "cols": {
@@ -2818,7 +2818,7 @@
    }
   }
  },
- "home.comma": {
+ "format.comma": {
   "description": "Applies the comma style (thousands separator, two decimals) to a range.",
   "params": {
    "range": {
@@ -2827,7 +2827,7 @@
    }
   }
  },
- "home.conditionalFormat": {
+ "conditionalFormat.apply": {
   "description": "Adds a conditional formatting rule to a range (cell value with an operator, formula, text, duplicates, top/bottom, dates, data bar, colour scale, icon set) with its format; Excel's names and defaults (icon sets cut at percent of the min–max span).",
   "params": {
    "rule": {
@@ -3011,7 +3011,7 @@
    }
   }
  },
- "home.decreaseDecimal": {
+ "format.decreaseDecimal": {
   "description": "Shows one fewer decimal place in a range's number format.",
   "params": {
    "range": {
@@ -3020,7 +3020,7 @@
    }
   }
  },
- "home.decreaseFontSize": {
+ "format.decreaseFontSize": {
   "description": "Steps a range's font size down to the previous size in the size list.",
   "params": {
    "range": {
@@ -3029,7 +3029,7 @@
    }
   }
  },
- "home.decreaseIndent": {
+ "format.decreaseIndent": {
   "description": "Decreases the indent level of a range's text by one.",
   "params": {
    "range": {
@@ -3038,10 +3038,10 @@
    }
   }
  },
- "home.defaultWidth": {
+ "column.setDefaultWidth": {
   "description": "Sets the default column width of the sheet for columns without their own width."
  },
- "home.deleteCells": {
+ "cell.delete": {
   "description": "Deletes the cells of a range, shifting the cells beside them left or up, or deleting entire rows or columns.",
   "params": {
    "range": {
@@ -3050,7 +3050,7 @@
    }
   }
  },
- "home.deleteColumns": {
+ "column.delete": {
   "description": "Deletes whole columns (default: the selection's columns), shifting the others left; formulas that pointed into them become #REF!.",
   "params": {
    "cols": {
@@ -3059,10 +3059,10 @@
    }
   }
  },
- "home.deleteRows": {
+ "row.delete": {
   "description": "Deletes whole rows (default: the selection's rows), shifting the rows below up; formulas that pointed into them become #REF!."
  },
- "home.deleteSheet": {
+ "sheet.delete": {
   "description": "Deletes a sheet (default: the active one) with all its data; the last remaining sheet cannot be deleted.",
   "params": {
    "sheet": {
@@ -3079,7 +3079,7 @@
    }
   }
  },
- "home.doubleUnderline": {
+ "format.doubleUnderline": {
   "description": "Toggles a double underline on a range (default: the selection).",
   "params": {
    "range": {
@@ -3088,7 +3088,7 @@
    }
   }
  },
- "home.drawBorder": {
+ "format.drawBorder": {
   "description": "Draws a border on one edge (top, bottom, left, right) or as a grid on a range, with a line style and colour.",
   "params": {
    "range": {
@@ -3097,7 +3097,7 @@
    }
   }
  },
- "home.fillColor": {
+ "format.fillColor": {
   "description": "Sets the background fill of a range: a #rrggbb hex, none, or a theme colour with tint.",
   "params": {
    "color": {
@@ -3126,7 +3126,7 @@
    }
   }
  },
- "home.fontColor": {
+ "format.color": {
   "description": "Sets the text colour of a range: a #rrggbb hex, auto, or a theme colour with tint.",
   "params": {
    "color": {
@@ -3155,7 +3155,7 @@
    }
   }
  },
- "home.fontName": {
+ "format.fontName": {
   "description": "Sets the font family of a range (default: the selection).",
   "params": {
    "range": {
@@ -3164,7 +3164,7 @@
    }
   }
  },
- "home.fontSize": {
+ "format.fontSize": {
   "description": "Sets the font size in points for a range (default: the selection).",
   "params": {
    "range": {
@@ -3173,7 +3173,7 @@
    }
   }
  },
- "home.formatAsTable": {
+ "table.formatAs": {
   "description": "Formats a range (default: the selection, or the data around the active cell) with a table style: as a table (mode table, the default), or only its look written into the cells (mode format, WPS's Only Format As Table, with titleRows header rows).",
   "params": {
    "header": {
@@ -3209,7 +3209,7 @@
    }
   }
  },
- "home.formatCells": {
+ "format.cells": {
   "description": "Merges a partial Style object (font, fill, borders, alignment, number format, protection) into every cell of a range, with border presets (edges) and Merge Cells (merge) in the same step: the Format Cells dialog. Colours are hex (\"#C00000\"), \"auto\" or {theme, tint}; fill: \"#RRGGBB\" is a solid fill. Run from a menu without any of them, it opens the dialog.",
   "params": {
    "style": {
@@ -3221,7 +3221,7 @@
     "type": "string"
    },
    "edges": {
-    "description": "border presets as home.borders takes them: [{preset: outside|inside|top|bottom|left|right|insideHorizontal|insideVertical|diagonalDown|diagonalUp|none, style, color}]",
+    "description": "border presets as format.borders takes them: [{preset: outside|inside|top|bottom|left|right|insideHorizontal|insideVertical|diagonalDown|diagonalUp|none, style, color}]",
     "type": "json"
    },
    "merge": {
@@ -3230,7 +3230,7 @@
    }
   }
  },
- "home.hideColumns": {
+ "column.hide": {
   "description": "Hides columns given as a span such as B:C (default: the selection's columns); their data is kept.",
   "params": {
    "cols": {
@@ -3239,7 +3239,7 @@
    }
   }
  },
- "home.hideRows": {
+ "row.hide": {
   "description": "Hides rows given as a span such as 3:5 (default: the selection's rows); their data is kept.",
   "params": {
    "rows": {
@@ -3248,7 +3248,7 @@
    }
   }
  },
- "home.increaseDecimal": {
+ "format.increaseDecimal": {
   "description": "Shows one more decimal place in a range's number format.",
   "params": {
    "range": {
@@ -3257,7 +3257,7 @@
    }
   }
  },
- "home.increaseFontSize": {
+ "format.increaseFontSize": {
   "description": "Steps a range's font size up to the next size in the size list.",
   "params": {
    "range": {
@@ -3266,7 +3266,7 @@
    }
   }
  },
- "home.increaseIndent": {
+ "format.increaseIndent": {
   "description": "Increases the indent level of a range's text by one.",
   "params": {
    "range": {
@@ -3275,7 +3275,7 @@
    }
   }
  },
- "home.insertCells": {
+ "cell.insert": {
   "description": "Inserts blank cells at a range, shifting existing cells right or down, or inserting entire rows or columns.",
   "params": {
    "range": {
@@ -3284,16 +3284,16 @@
    }
   }
  },
- "home.insertColumns": {
+ "column.insert": {
   "description": "Inserts whole columns left of the given columns, or count columns left of (right: true, right of) each area of the selection, shifting the columns after them right and adjusting formulas. The new columns take the formats of the column before them (left) or after them (right), and are selected."
  },
- "home.insertRows": {
+ "row.insert": {
   "description": "Inserts whole rows above the given rows, or count rows above (below: true, under) each area of the selection, shifting the rows after them down and adjusting formulas. The new rows take the formats of the row before them (above) or after them (below), and are selected."
  },
- "home.insertSheet": {
+ "sheet.insert": {
   "description": "Adds a new worksheet, optionally named and placed before the sheet at a 0-based index."
  },
- "home.italic": {
+ "format.italic": {
   "description": "Turns italic on or off for a range (default: the selection); without on it toggles.",
   "params": {
    "on": {
@@ -3306,7 +3306,7 @@
    }
   }
  },
- "home.justify": {
+ "format.justify": {
   "description": "Justifies the text of a range across the width of its cells.",
   "params": {
    "range": {
@@ -3315,7 +3315,7 @@
    }
   }
  },
- "home.lockCell": {
+ "cell.lock": {
   "description": "Locks or unlocks cells for sheet protection; locking takes effect only once the sheet is protected.",
   "params": {
    "on": {
@@ -3328,10 +3328,10 @@
    }
   }
  },
- "home.manageRules": {
+ "conditionalFormat.manageRules": {
   "description": "Deletes a conditional formatting rule or moves it up or down in priority, by its index in the sheet's rule list."
  },
- "home.mergeAcross": {
+ "cell.mergeAcross": {
   "description": "Merges each row of a range into one cell per row; only each row's leftmost value is kept.",
   "params": {
    "range": {
@@ -3340,7 +3340,7 @@
    }
   }
  },
- "home.mergeCells": {
+ "cell.merge": {
   "description": "Merges a range into one cell without changing alignment; only the top-left value is kept.",
   "params": {
    "range": {
@@ -3349,7 +3349,7 @@
    }
   }
  },
- "home.mergeCenter": {
+ "cell.mergeCenter": {
   "description": "Merges a range into one cell and centres its text; only the top-left value is kept.",
   "params": {
    "range": {
@@ -3358,10 +3358,10 @@
    }
   }
  },
- "home.newCellStyle": {
-  "description": "Creates a named cell style from a cell's formatting (default: the active cell) for use with home.cellStyle."
+ "style.add": {
+  "description": "Creates a named cell style from a cell's formatting (default: the active cell) for use with style.apply."
  },
- "home.numberFormat": {
+ "format.numberFormat": {
   "description": "Sets how numbers in a range display: a named format (Currency, Percentage, Short Date, Text…) or a custom format code such as 0.00%.",
   "params": {
    "format": {
@@ -3373,7 +3373,7 @@
    }
   }
  },
- "home.orientation": {
+ "format.orientation": {
   "description": "Rotates a range's text by an angle from -90 to 90 degrees, or stacks it vertically.",
   "params": {
    "angle": {
@@ -3400,7 +3400,7 @@
    }
   }
  },
- "home.percent": {
+ "format.percent": {
   "description": "Formats a range as a percentage without decimals (0.25 shows as 25%); the values stay as they are.",
   "params": {
    "range": {
@@ -3409,7 +3409,7 @@
    }
   }
  },
- "home.rowHeight": {
+ "row.setHeight": {
   "description": "Sets the height in points of rows given as a row span such as 2:5, one row such as 9, or a list such as 2:3,7 (default: the selection's rows).",
   "params": {
    "rows": {
@@ -3418,7 +3418,7 @@
    }
   }
  },
- "home.shrinkToFit": {
+ "format.shrinkToFit": {
   "description": "Turns shrink-to-fit on or off for a range so text shrinks to fit the column width instead of overflowing.",
   "params": {
    "on": {
@@ -3431,7 +3431,7 @@
    }
   }
  },
- "home.strikethrough": {
+ "format.strikethrough": {
   "description": "Turns strikethrough on or off for a range (default: the selection).",
   "params": {
    "on": {
@@ -3444,7 +3444,7 @@
    }
   }
  },
- "home.subscript": {
+ "format.subscript": {
   "description": "Turns subscript on or off for a range's text (default: the selection).",
   "params": {
    "on": {
@@ -3457,7 +3457,7 @@
    }
   }
  },
- "home.superscript": {
+ "format.superscript": {
   "description": "Turns superscript on or off for a range's text (default: the selection).",
   "params": {
    "on": {
@@ -3470,7 +3470,7 @@
    }
   }
  },
- "home.underline": {
+ "format.underline": {
   "description": "Sets or toggles underline on a range, with a single, double or accounting style.",
   "params": {
    "on": {
@@ -3483,7 +3483,7 @@
    }
   }
  },
- "home.unhideColumns": {
+ "column.show": {
   "description": "Shows hidden columns within a span (default: the selection's columns).",
   "params": {
    "cols": {
@@ -3492,7 +3492,7 @@
    }
   }
  },
- "home.unhideRows": {
+ "row.show": {
   "description": "Shows hidden rows within a span (default: the selection's rows).",
   "params": {
    "rows": {
@@ -3501,7 +3501,7 @@
    }
   }
  },
- "home.unmergeCells": {
+ "cell.unmerge": {
   "description": "Splits merged cells in a range back into separate cells; the value stays in the top-left cell.",
   "params": {
    "range": {
@@ -3510,7 +3510,7 @@
    }
   }
  },
- "home.wrapText": {
+ "format.wrapText": {
   "description": "Turns text wrapping on or off for a range so long text breaks onto several lines inside the cell.",
   "params": {
    "on": {
@@ -3523,7 +3523,7 @@
    }
   }
  },
- "insert.chart": {
+ "chart.insert": {
   "description": "Inserts a chart of a range (default: the current region; several areas side by side, such as A1:A5,C1:D5, chart together) with a type, title and position, and answers the new chart's id for chart.* commands. As in Excel, the first row names the series and the first column holds the categories when it is text, when the corner cell is blank, or when it holds dates; a scatter chart takes the first column as X. A combo chart is clustered columns and lines (the first series columns, the others lines) unless seriesTypes says otherwise; a waterfall marks as totals only the points listed in totals.",
   "params": {
    "seriesTypes": {
@@ -3553,7 +3553,7 @@
    }
   }
  },
- "insert.checkbox": {
+ "checkbox.insert": {
   "description": "Turns the cells of a range (a merged area's first cell) into checkboxes: each holds FALSE unless it held TRUE or FALSE, and what else was in it (text, a formula, a picture) goes. Refused across part of an array formula. A checkbox is the cell's content: Clear Contents removes it; Clear Formats, the format painter and Paste Special › Formats leave it.",
   "params": {
    "range": {
@@ -3562,7 +3562,7 @@
    }
   }
  },
- "insert.icons": {
+ "icon.insert": {
   "description": "Inserts a built-in icon (chart, table, sum, filter, lock, check…) at a cell, with size and colour.",
   "params": {
    "at": {
@@ -3574,7 +3574,7 @@
    }
   }
  },
- "insert.link": {
+ "link.insert": {
   "description": "Adds a hyperlink to a cell (to a web address, a place in the workbook, or an email address) or removes it.",
   "params": {
    "cell": {
@@ -3586,7 +3586,7 @@
    }
   }
  },
- "insert.picture": {
+ "image.insert": {
   "description": "Inserts a picture from a file path or base64 bytes at a cell, with size, alternative text and how it moves with cells.",
   "params": {
    "alt": {
@@ -3597,7 +3597,7 @@
    }
   }
  },
- "insert.pivotTable": {
+ "pivot.insert": {
   "description": "Creates a pivot table from a source range or table (default: around the selection) on a new sheet or at a destination, optionally with rows, columns and values.",
   "params": {
    "source": {
@@ -3606,7 +3606,7 @@
    }
   }
  },
- "insert.recommendedCharts": {
+ "chart.recommended": {
   "description": "Inserts the chart type that best fits a range's data shape, as Recommended Charts suggests.",
   "params": {
    "range": {
@@ -3615,7 +3615,7 @@
    }
   }
  },
- "insert.recommendedPivotTables": {
+ "pivot.recommended": {
   "description": "Suggests pivot table layouts for a source and answers them; with apply, creates the suggestion at that index.",
   "params": {
    "destination": {
@@ -3628,7 +3628,7 @@
    }
   }
  },
- "insert.shape": {
+ "shape.insert": {
   "description": "Inserts a shape (rectangle, rounded rectangle, ellipse, triangle, line, arrow or text box) at a cell, with size, text, fill and line.",
   "params": {
    "at": {
@@ -3637,7 +3637,7 @@
    }
   }
  },
- "insert.sparkline": {
+ "sparkline.insert": {
   "description": "Adds sparklines (tiny line, column or win/loss charts) for a data range into location cells.",
   "params": {
    "markers": {
@@ -3645,10 +3645,10 @@
    }
   }
  },
- "insert.symbol": {
+ "symbol.insert": {
   "description": "Appends a character such as € to the end of the active cell's text (in the editor: at the caret of what is being typed, else after the cell's text with the cell left open, as WPS does)."
  },
- "insert.table": {
+ "table.insert": {
   "description": "Turns a range (default: the current region) into a structured table with a style, a header row and a name.",
   "params": {
    "range": {
@@ -3665,7 +3665,7 @@
    }
   }
  },
- "insert.textBox": {
+ "textBox.insert": {
   "description": "Inserts a text box at a cell with a size and text.",
   "params": {
    "at": {
@@ -3674,7 +3674,7 @@
    }
   }
  },
- "insert.artText": {
+ "artText.insert": {
   "description": "Inserts decorative art text, optionally warped by a preset such as textArchUp.",
   "params": {
    "warp": {
@@ -3692,10 +3692,10 @@
  "object.setAnchorMode": {
   "description": "Sets how a chart, image or shape follows its cells: move and size with them, move only, or stay fixed."
  },
- "pageLayout.background": {
+ "page.background": {
   "description": "Sets a picture file as the active sheet's background, or clears it."
  },
- "pageLayout.breaks": {
+ "page.breaks": {
   "description": "Inserts or removes a manual page break at a cell, or resets all page breaks of the sheet.",
   "params": {
    "cell": {
@@ -3704,10 +3704,10 @@
    }
   }
  },
- "pageLayout.headerFooter": {
+ "page.headerFooter": {
   "description": "Sets the printed header and footer using codes such as &C&P (page number, centred) and &N (page count)."
  },
- "pageLayout.margins": {
+ "page.margins": {
   "description": "Sets the active sheet's page margins from a preset or in inches per side, including header and footer distance.",
   "params": {
    "footer": {
@@ -3720,10 +3720,10 @@
    }
   }
  },
- "pageLayout.orientation": {
+ "page.orientation": {
   "description": "Sets the active sheet's printed page orientation to portrait or landscape."
  },
- "pageLayout.pageSetup": {
+ "page.pageSetup": {
   "description": "Sets a sheet's page setup in one call: orientation, paper size, margins, scaling and print options.",
   "params": {
    "centerH": {
@@ -3761,7 +3761,7 @@
    }
   }
  },
- "pageLayout.printArea": {
+ "page.printArea": {
   "description": "Sets the range that prints for the active sheet (default: the selection), or clears it.",
   "params": {
    "range": {
@@ -3770,7 +3770,7 @@
    }
   }
  },
- "pageLayout.printGridlines": {
+ "page.printGridlines": {
   "description": "Turns printing of gridlines on or off for the active sheet.",
   "params": {
    "on": {
@@ -3779,7 +3779,7 @@
    }
   }
  },
- "pageLayout.printHeadings": {
+ "page.printHeadings": {
   "description": "Turns printing of row and column headings on or off for the active sheet.",
   "params": {
    "on": {
@@ -3788,10 +3788,10 @@
    }
   }
  },
- "pageLayout.printTitles": {
+ "page.printTitles": {
   "description": "Sets rows (such as 1:1) and columns (such as A:A) that repeat on every printed page."
  },
- "pageLayout.scaleToFit": {
+ "page.scaleToFit": {
   "description": "Scales printing by a percentage, or fits the sheet to a number of pages wide and tall.",
   "params": {
    "height": {
@@ -3804,10 +3804,10 @@
    }
   }
  },
- "pageLayout.size": {
+ "page.size": {
   "description": "Sets the active sheet's paper size (Letter, Legal, A4, A3…)."
  },
- "pageLayout.theme": {
+ "theme.set": {
   "description": "Applies a document theme (colours and fonts), by name or with custom colours and fonts; styles that use theme colours change with it.",
   "params": {
    "majorFont": {
@@ -3818,7 +3818,7 @@
    }
   }
  },
- "pageLayout.themeColors": {
+ "theme.colors": {
   "description": "Sets the theme's colour scheme by name or as twelve hex colours.",
   "params": {
    "name": {
@@ -3826,10 +3826,10 @@
    }
   }
  },
- "pageLayout.themeEffects": {
+ "theme.effects": {
   "description": "Sets the theme's chart effects preset by name."
  },
- "pageLayout.themeFonts": {
+ "theme.fonts": {
   "description": "Sets the theme's heading (major) and body (minor) fonts.",
   "params": {
    "major": {
@@ -4556,7 +4556,7 @@
  "range.setValues": {
   "description": "Writes a block of values starting at the range's top-left cell, one inner list per row; strings starting with = become formulas. The fastest way to fill a table."
  },
- "review.addToDictionary": {
+ "spelling.addToDictionary": {
   "description": "Adds a word to the dictionary so spelling no longer reports it.",
   "params": {
    "word": {
@@ -4564,7 +4564,7 @@
    }
   }
  },
- "review.changeSpelling": {
+ "spelling.change": {
   "description": "Replaces a misspelled word in a cell, or in every cell when all is true.",
   "params": {
    "cell": {
@@ -4579,13 +4579,13 @@
    }
   }
  },
- "review.checkAccessibility": {
+ "accessibility.check": {
   "description": "Lists accessibility issues in the workbook, such as pictures without alternative text or merged cells, with where they are.",
   "output": {
    "type": "array"
   }
  },
- "review.deleteComment": {
+ "comment.delete": {
   "description": "Deletes the comment thread or note on a cell.",
   "params": {
    "cell": {
@@ -4594,8 +4594,8 @@
    }
   }
  },
- "review.newComment": {
-  "description": "Starts a threaded comment on a cell; use review.replyComment to answer an existing thread.",
+ "comment.add": {
+  "description": "Starts a threaded comment on a cell; use comment.reply to answer an existing thread.",
   "params": {
    "author": {
     "type": "string"
@@ -4606,7 +4606,7 @@
    }
   }
  },
- "review.newNote": {
+ "note.add": {
   "description": "Adds a note (a plain, unthreaded annotation) to a cell.",
   "params": {
    "author": {
@@ -4618,7 +4618,7 @@
    }
   }
  },
- "review.protectSheet": {
+ "sheet.protect": {
   "description": "Protects the active sheet so locked cells cannot be edited, with an optional password and the actions still allowed (formatting, inserting rows, sorting…).",
   "params": {
    "autofilter": {
@@ -4653,10 +4653,10 @@
    }
   }
  },
- "review.protectWorkbook": {
+ "workbook.protect": {
   "description": "Protects or unprotects the workbook's structure so sheets cannot be added, deleted, moved or renamed."
  },
- "review.replyComment": {
+ "comment.reply": {
   "description": "Adds a reply to the comment thread on a cell.",
   "params": {
    "author": {
@@ -4668,7 +4668,7 @@
    }
   }
  },
- "review.resolveComment": {
+ "comment.resolve": {
   "description": "Marks the comment thread on a cell as resolved, or reopens it.",
   "params": {
    "cell": {
@@ -4677,7 +4677,7 @@
    }
   }
  },
- "review.showNote": {
+ "note.show": {
   "description": "Shows or hides a cell's note on the sheet.",
   "params": {
    "cell": {
@@ -4686,7 +4686,7 @@
    }
   }
  },
- "review.spelling": {
+ "spelling.check": {
   "description": "Checks spelling in a range or sheet and answers misspelled words with their cells and suggestions; changes nothing.",
   "output": {
    "additionalProperties": true,
@@ -4719,7 +4719,7 @@
    }
   }
  },
- "review.thesaurus": {
+ "spelling.thesaurus": {
   "description": "Answers words related to a word from the dictionary (sharing its stem).",
   "output": {
    "type": "array"
@@ -4730,7 +4730,7 @@
    }
   }
  },
- "review.unprotectSheet": {
+ "sheet.unprotect": {
   "description": "Removes protection from the active sheet, with its password when it has one.",
   "params": {
    "password": {
@@ -4738,7 +4738,7 @@
    }
   }
  },
- "review.workbookStatistics": {
+ "workbook.statistics": {
   "description": "Answers counts for the active sheet and workbook: cells with data, formulas, sheets, tables, charts, comments and the last used cell.",
   "output": {
    "additionalProperties": true,
@@ -4795,7 +4795,7 @@
    "type": "object"
   }
  },
- "selection.column": {
+ "select.column": {
   "description": "Selects the entire columns of the current selection; answers the selection.",
   "output": {
    "additionalProperties": true,
@@ -4807,7 +4807,7 @@
    "type": "object"
   }
  },
- "selection.currentRegion": {
+ "select.currentRegion": {
   "description": "Selects the block of non-empty cells around the active cell, bounded by empty rows and columns; answers the selection.",
   "output": {
    "additionalProperties": true,
@@ -4819,7 +4819,7 @@
    "type": "object"
   }
  },
- "selection.move": {
+ "select.move": {
   "description": "Moves the active cell by rows and columns, optionally extending the selection or jumping to the data edge like Ctrl+arrow; answers the new selection.",
   "output": {
    "additionalProperties": true,
@@ -4844,7 +4844,7 @@
    }
   }
  },
- "selection.next": {
+ "select.next": {
   "description": "Moves the active cell to the next (or previous) cell inside the current selection, as Enter or Tab does; answers the new active cell.",
   "output": {
    "additionalProperties": true,
@@ -4856,7 +4856,7 @@
    "type": "object"
   }
  },
- "selection.row": {
+ "select.row": {
   "description": "Selects the entire rows of the current selection; answers the selection.",
   "output": {
    "additionalProperties": true,
@@ -4868,7 +4868,7 @@
    "type": "object"
   }
  },
- "selection.set": {
+ "select.set": {
   "description": "Selects cells (one range or several separated by commas) and optionally sets the active cell and sheet; answers the new selection.",
   "output": {
    "additionalProperties": true,
@@ -4901,7 +4901,7 @@
    }
   }
  },
- "selection.stats": {
+ "select.stats": {
   "description": "Answers count, numeric count, sum, average, minimum and maximum of the selected cells, as the status bar shows.",
   "output": {
    "additionalProperties": true,
@@ -5391,7 +5391,7 @@
   "description": "Freezes the first row of the active sheet so it stays visible while scrolling."
  },
  "view.gridlines": {
-  "description": "Shows or hides the cell gridlines of the active sheet on screen; use pageLayout.printGridlines for printing.",
+  "description": "Shows or hides the cell gridlines of the active sheet on screen; use page.printGridlines for printing.",
   "params": {
    "on": {
     "description": "true turns it on, false off; left out, it toggles",

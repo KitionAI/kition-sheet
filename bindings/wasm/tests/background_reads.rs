@@ -9,7 +9,7 @@ fn background_declares_only_its_active_part() {
     // clear branch ignore selection). insert.rs insert_picture's fallback to
     // selection.active cannot choose where this wrapper's write lands.
     let doc = kition_sheet_kit::SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    let command = doc.commands().into_iter().find(|command| command.id == "pageLayout.background").unwrap();
+    let command = doc.commands().into_iter().find(|command| command.id == "page.background").unwrap();
     let reads: std::collections::BTreeSet<_> = command.reads.iter().map(|state| state.as_str()).collect();
     assert_eq!(reads, std::collections::BTreeSet::from(["part"]));
 }

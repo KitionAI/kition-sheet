@@ -196,7 +196,7 @@ export function FormulaBar({ info }: { info: SheetInfo }) {
     const was = owns.current || info.editing
     openInsertFunction({
       onChoose: async (name) => {
-        await run('formulas.insertFunction', { name })
+        await run('formula.insertFunction', { name })
         const answer = await run('editor.formula', { peek: true })
         const state = answer ? (JSON.parse(answer) as BarState) : null
         if (state?.editing) resume(state.text ?? '', state.end, state.end)

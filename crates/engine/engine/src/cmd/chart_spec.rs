@@ -69,7 +69,7 @@ pub(crate) fn type_of(k: &Kind) -> Option<ChartKind> {
     })
 }
 
-/// `insert.chart`'s `type` and `subtype` for a shared type.
+/// `chart.insert`'s `type` and `subtype` for a shared type.
 pub fn insert_type(k: &Kind) -> Option<(&'static str, &'static str)> {
     Some(match k {
         Kind::Column => ("column", "clustered"),

@@ -24,7 +24,7 @@ fn freeze(s: &Session) -> Option<(u32, u32)> {
 #[test]
 fn each_freeze_choice_replaces_the_frozen_panes() {
     let mut s = session();
-    run(&mut s, "selection.set", json!({"range": "D6"}));
+    run(&mut s, "select.set", json!({"range": "D6"}));
     run(&mut s, "view.freezeRows", json!({}));
     assert_eq!(freeze(&s), Some((5, 0)), "冻结至第 5 行: the rows above the active cell");
     run(&mut s, "view.freezeColumns", json!({}));
@@ -42,10 +42,10 @@ fn each_freeze_choice_replaces_the_frozen_panes() {
 #[test]
 fn nothing_to_freeze_above_or_left_of_the_first_cell() {
     let mut s = session();
-    run(&mut s, "selection.set", json!({"range": "A1"}));
+    run(&mut s, "select.set", json!({"range": "A1"}));
     assert!(s.execute("view.freezeRows", json!({})).is_err());
     assert!(s.execute("view.freezeColumns", json!({})).is_err());
-    run(&mut s, "selection.set", json!({"range": "A5"}));
+    run(&mut s, "select.set", json!({"range": "A5"}));
     assert!(s.execute("view.freezeColumns", json!({})).is_err(), "column A has no columns left of it");
     run(&mut s, "view.freezeRows", json!({}));
     assert_eq!(freeze(&s), Some((4, 0)));

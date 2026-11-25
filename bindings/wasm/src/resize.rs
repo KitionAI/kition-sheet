@@ -64,9 +64,9 @@ impl SheetDocument {
                     {
                         let lines = self.resize_lines(resize.rows, resize.line);
                         let (command, params) = if resize.rows {
-                            ("home.rowHeight", json!({ "rows": lines, "height": resize.size }))
+                            ("row.setHeight", json!({ "rows": lines, "height": resize.size }))
                         } else {
-                            ("home.columnWidth", json!({ "cols": lines, "width": resize.size }))
+                            ("column.setWidth", json!({ "cols": lines, "width": resize.size }))
                         };
                         self.session.execute(command, params).map_err(engine_error)?;
                     }
@@ -97,7 +97,7 @@ impl SheetDocument {
             PointerAction::DoubleClick => {
                 let lines = self.resize_lines(rows, line);
                 let (command, params) =
-                    if rows { ("home.autofitRowHeight", json!({ "rows": lines })) } else { ("home.autofitColumnWidth", json!({ "cols": lines })) };
+                    if rows { ("row.autofitHeight", json!({ "rows": lines })) } else { ("column.autofitWidth", json!({ "cols": lines })) };
                 self.session.execute(command, params).map_err(engine_error)?;
                 Ok(true)
             }

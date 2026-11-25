@@ -29,7 +29,7 @@ impl SheetDocument {
         }
         let cells = matches!(command, "edit.clearAll" | "edit.clearFormats");
         let mut under = if cells {
-            let Some(mut under) = self.format_premises("home.fontName", params, si)? else { return Ok(None) };
+            let Some(mut under) = self.format_premises("format.fontName", params, si)? else { return Ok(None) };
             for premise in &mut under.premises {
                 if premise.id.as_str() == Some("workbook") {
                     for fields in premise.fields.iter_mut() {

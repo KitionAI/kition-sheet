@@ -12,7 +12,7 @@ use super::*;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(
-            "home.insertRows",
+            "row.insert",
             "Insert Sheet Rows",
             ["Home", "Cells", "Insert"],
             Some("Ctrl+Shift+="),
@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
             |s, p| insert_lines(s, p, Axis::Rows)
         ),
         cmd!(
-            "home.insertColumns",
+            "column.insert",
             "Insert Sheet Columns",
             ["Home", "Cells", "Insert"],
             None,
@@ -29,20 +29,16 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             |s, p| insert_lines(s, p, Axis::Cols)
         ),
-        cmd!("home.deleteRows", "Delete Sheet Rows", ["Home", "Cells", "Delete"], Some("Cmd+-"), "{rows?}", has_doc, |s, p| delete_lines(
+        cmd!("row.delete", "Delete Sheet Rows", ["Home", "Cells", "Delete"], Some("Cmd+-"), "{rows?}", has_doc, |s, p| delete_lines(
             s,
             p,
             Axis::Rows
         )),
-        cmd!("home.deleteColumns", "Delete Sheet Columns", ["Home", "Cells", "Delete"], None, "{cols?}", has_doc, |s, p| delete_lines(
-            s,
-            p,
-            Axis::Cols
-        )),
-        cmd!("home.insertCells", "Insert Cells…", ["Home", "Cells", "Insert"], None, "{range?, shift: right|down|row|column}", has_doc, insert_cells),
-        cmd!("home.deleteCells", "Delete Cells…", ["Home", "Cells", "Delete"], None, "{range?, shift: left|up|row|column}", has_doc, delete_cells),
-        cmd!("home.insertSheet", "Insert Sheet", ["Home", "Cells", "Insert"], Some("Shift+F11"), "{name?, before?: index}", has_doc, insert_sheet),
-        cmd!("home.deleteSheet", "Delete Sheet", ["Home", "Cells", "Delete"], None, "{sheet?}", has_doc, delete_sheet),
+        cmd!("column.delete", "Delete Sheet Columns", ["Home", "Cells", "Delete"], None, "{cols?}", has_doc, |s, p| delete_lines(s, p, Axis::Cols)),
+        cmd!("cell.insert", "Insert Cells…", ["Home", "Cells", "Insert"], None, "{range?, shift: right|down|row|column}", has_doc, insert_cells),
+        cmd!("cell.delete", "Delete Cells…", ["Home", "Cells", "Delete"], None, "{range?, shift: left|up|row|column}", has_doc, delete_cells),
+        cmd!("sheet.insert", "Insert Sheet", ["Home", "Cells", "Insert"], Some("Shift+F11"), "{name?, before?: index}", has_doc, insert_sheet),
+        cmd!("sheet.delete", "Delete Sheet", ["Home", "Cells", "Delete"], None, "{sheet?}", has_doc, delete_sheet),
         cmd!("sheet.rename", "Rename Sheet", ["Home", "Cells", "Format"], None, "{sheet?, name}", has_doc, rename_sheet),
         cmd!(
             "sheet.move",

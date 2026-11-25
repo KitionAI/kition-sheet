@@ -1242,7 +1242,7 @@ fn circle_invalid(s: &mut Session, _: &Json) -> Result<Json> {
 // ---------------------------------------------------------------- outline
 
 pub fn outline_lines(s: &Session, p: &Json) -> Result<(bool, u32, u32)> {
-    // One row or column may be given alone (`"3"`, `"B"`), as `home.insertRows` takes it.
+    // One row or column may be given alone (`"3"`, `"B"`), as `row.insert` takes it.
     let span = |key: &str| str_param(p, key).map(|t| if t.contains(':') { t.to_string() } else { format!("{t}:{t}") });
     if let Some(r) = span("rows").as_deref().and_then(RangeRef::parse) {
         return Ok((true, r.start.row, r.end.row));
@@ -1342,7 +1342,7 @@ fn subtotal(s: &mut Session, p: &Json) -> Result<Json> {
     // Insert a total row after each group, bottom-up so indices stay valid.
     let mut inserted = 0;
     for (g0, g1, name) in groups.iter().rev() {
-        s.execute("home.insertRows", json!({"rows": format!("{}:{}", g1 + 2, g1 + 2)}))?;
+        s.execute("row.insert", json!({"rows": format!("{}:{}", g1 + 2, g1 + 2)}))?;
         let row = g1 + 1;
         let lbl = CellRef::new(row, group_col).a1();
         s.execute("cell.set", json!({"cell": lbl, "input": format!("{name} {label}")}))?;
@@ -1350,13 +1350,13 @@ fn subtotal(s: &mut Session, p: &Json) -> Result<Json> {
             let range = RangeRef::new(CellRef::new(*g0, *c), CellRef::new(*g1, *c)).a1();
             s.execute("cell.set", json!({"cell": CellRef::new(row, *c).a1(), "input": format!("=SUBTOTAL({code},{range})")}))?;
         }
-        s.execute("home.bold", json!({"range": RangeRef::new(CellRef::new(row, r.start.col), CellRef::new(row, r.end.col)).a1(), "on": true}))?;
+        s.execute("format.bold", json!({"range": RangeRef::new(CellRef::new(row, r.start.col), CellRef::new(row, r.end.col)).a1(), "on": true}))?;
         s.execute("data.group", json!({"rows": format!("{}:{}", g0 + 1, g1 + 1)}))?;
         inserted += 1;
     }
     let last = r.end.row + inserted + 1;
     let lbl = CellRef::new(last, group_col).a1();
-    s.execute("home.insertRows", json!({"rows": format!("{}:{}", last + 1, last + 1)}))?;
+    s.execute("row.insert", json!({"rows": format!("{}:{}", last + 1, last + 1)}))?;
     s.execute("cell.set", json!({"cell": lbl, "input": format!("Grand {label}")}))?;
     for c in &cols {
         let range = RangeRef::new(CellRef::new(r.start.row + 1, *c), CellRef::new(last - 1, *c)).a1();

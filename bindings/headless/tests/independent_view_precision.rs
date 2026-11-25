@@ -87,7 +87,7 @@ async fn supported_single_cell_spelling_holds_the_named_source_and_allows_anothe
             let changed = if related { target } else { "Sheet1!Z20" };
             f.colleague(&[("cell.set", json!({"cell":changed,"input":"colleague"}))]);
             let before = f.bytes();
-            let answer = f.run(basis, "review.changeSpelling", json!({"cell":target,"word":"teh","to":"the"})).await;
+            let answer = f.run(basis, "spelling.change", json!({"cell":target,"word":"teh","to":"the"})).await;
             if related {
                 if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                     failures.push(format!("{target}: the source changed: {answer:?}"));
@@ -117,7 +117,7 @@ async fn supported_spelling_replacement_that_becomes_a_formula_holds_its_precede
         let changed = if related { "E10" } else { "Z20" };
         f.colleague(&[("cell.set", json!({"cell":changed,"input":"9"}))]);
         let before = f.bytes();
-        let answer = f.run(basis, "review.changeSpelling", json!({"cell":"C3","word":"teh","to":"=E10+1"})).await;
+        let answer = f.run(basis, "spelling.change", json!({"cell":"C3","word":"teh","to":"=E10+1"})).await;
         if related {
             if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                 failures.push(format!("the replacement reads changed E10: {answer:?}"));
@@ -172,7 +172,7 @@ async fn supported_all_spelling_holds_source_membership_but_allows_other_sheet_i
                 "new source" => f.colleague(&[("cell.set", json!({"cell":format!("{sheet}!M19"),"input":"teh new"}))]),
                 "deleted source" => f.colleague(&[("edit.clearAll", json!({"range":format!("{sheet}!C3")}))]),
                 "other sheet" => f.colleague(&[("cell.set", json!({"cell":format!("{other}!Z20"),"input":"colleague"}))]),
-                "unmatched style" => f.colleague(&[("home.fontColor", json!({"range":format!("{sheet}!A1"),"color":"#123456"}))]),
+                "unmatched style" => f.colleague(&[("format.color", json!({"range":format!("{sheet}!A1"),"color":"#123456"}))]),
                 "unmatched input" => f.colleague(&[("cell.set", json!({"cell":format!("{sheet}!A1"),"input":"ordinary"}))]),
                 "new unmatched input" => f.colleague(&[("cell.set", json!({"cell":format!("{sheet}!M19"),"input":"ordinary"}))]),
                 "deleted unmatched" => f.colleague(&[("edit.clearAll", json!({"range":format!("{sheet}!A1")}))]),
@@ -183,7 +183,7 @@ async fn supported_all_spelling_holds_source_membership_but_allows_other_sheet_i
             if qualified {
                 params["cell"] = json!("Sheet2!C3");
             }
-            let answer = f.run(basis, "review.changeSpelling", params).await;
+            let answer = f.run(basis, "spelling.change", params).await;
             if related {
                 if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                     failures.push(format!("{sheet} {change}: source scan changed: {answer:?}"));
@@ -223,7 +223,7 @@ async fn supported_all_spelling_holds_formula_sources_in_another_sheet() {
         let changed = if related { "Sheet2!E10" } else { "Sheet2!Z20" };
         f.colleague(&[("cell.set", json!({"cell":changed,"input":"9"}))]);
         let before = f.bytes();
-        let answer = f.run(basis, "review.changeSpelling", json!({"word":"teh","to":"=Sheet2!E10+1","all":true})).await;
+        let answer = f.run(basis, "spelling.change", json!({"word":"teh","to":"=Sheet2!E10+1","all":true})).await;
         if related {
             if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                 failures.push(format!("the replacement reads changed Sheet2!E10: {answer:?}"));
@@ -248,7 +248,7 @@ async fn supported_all_spelling_preserves_wildcard_matching_and_malformed_formul
         f.colleague(&[("cell.set", json!({"cell":"C3","input":"teh"}))]);
         let basis = f.basis().await;
         f.colleague(&[("cell.set", json!({"cell":"Sheet2!Z20","input":"colleague"}))]);
-        let answer = f.run(basis, "review.changeSpelling", json!({"word":word,"to":to,"all":true})).await;
+        let answer = f.run(basis, "spelling.change", json!({"word":word,"to":to,"all":true})).await;
         match answer {
             Err(error) => failures.push(format!("{word:?} to {to:?}: other-sheet input must apply: {error}")),
             Ok(output) => {
@@ -276,7 +276,7 @@ async fn supported_cell_tool_id_spelling_targets_its_named_sheet_and_holds_that_
             f.colleague(&[("cell.set", json!({"cell":"Sheet1!C3","input":"colleague active"}))]);
         }
         let before = f.bytes();
-        let answer = f.run(basis, "review.changeSpelling", json!({"cell":"cell:2!C3","word":"teh","to":"the"})).await;
+        let answer = f.run(basis, "spelling.change", json!({"cell":"cell:2!C3","word":"teh","to":"the"})).await;
         if change == "named source" {
             if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                 failures.push(format!("cell:2!C3 changed after observation: {answer:?}"));
@@ -306,9 +306,9 @@ async fn supported_all_spelling_holds_covering_header_membership_and_allows_unre
         f.colleague(&[("cell.set", json!({"cell":"C3","input":"teh cost"})), ("cell.set", json!({"cell":"D6","input":"teh price"}))]);
         let basis = f.basis().await;
         let range = if related { "C3:D7" } else { "Q15:R17" };
-        f.colleague(&[("insert.table", json!({"range":range,"header":true,"name":"ColleagueTable"}))]);
+        f.colleague(&[("table.insert", json!({"range":range,"header":true,"name":"ColleagueTable"}))]);
         let before = f.bytes();
-        let answer = f.run(basis, "review.changeSpelling", json!({"word":"teh","to":"the","all":true})).await;
+        let answer = f.run(basis, "spelling.change", json!({"word":"teh","to":"the","all":true})).await;
         if related {
             if !answer.as_ref().is_err_and(|error| error["error"]["code"] == "conflict") {
                 failures.push(format!("C3 became a table header after observation: {answer:?}"));

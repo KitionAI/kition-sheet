@@ -13,7 +13,7 @@ fn book() -> SheetDocument {
     for (cell, input) in [("A1", "Region"), ("B1", "Sales"), ("A2", "North"), ("B2", "12"), ("A3", "South <&>"), ("B3", "=B2*2")] {
         doc.execute("cell.set", json!({ "cell": cell, "input": input })).unwrap();
     }
-    doc.execute("home.insertSheet", json!({ "name": "Second" })).unwrap();
+    doc.execute("sheet.insert", json!({ "name": "Second" })).unwrap();
     doc.execute("sheet.activate", json!({ "sheet": "Second" })).unwrap();
     doc.execute("cell.set", json!({ "cell": "A1", "input": "second" })).unwrap();
     doc.execute("sheet.activate", json!({ "sheet": "Sheet1" })).unwrap();

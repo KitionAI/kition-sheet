@@ -13,7 +13,7 @@ fn month_autofill_uses_the_workbooks_date_system() {
         std::sync::Arc::make_mut(&mut session.doc_mut().unwrap().wb).date_system = system;
         let serial = |month, day| serial_from_ymd(system, 2024, month, day).unwrap();
         session.execute("range.setValues", json!({"range":"A1","values":[[serial(2,1)],[serial(3,1)]]})).unwrap();
-        session.execute("home.numberFormat", json!({"range":"A1:A3","format":"m/d/yyyy"})).unwrap();
+        session.execute("format.numberFormat", json!({"range":"A1:A3","format":"m/d/yyyy"})).unwrap();
         session.execute("edit.autoFill", json!({"source":"A1:A2","target":"A1:A3"})).unwrap();
         assert_eq!(session.doc().unwrap().wb.active().unwrap().value(CellRef::new(2, 0)), Value::number(serial(4, 1)), "{system:?}");
     }

@@ -9,7 +9,7 @@ use serde_json::json;
 async fn image_creation_sampling_honors_container_sample_false() {
     use kition_kit::session::model::ReplicaPort;
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("formulas.defineName", json!({"name":"Rate","refersTo":"0.2"})).unwrap();
+    doc.execute("name.define", json!({"name":"Rate","refersTo":"0.2"})).unwrap();
     assert_eq!(doc.model_schema().types["Sheet"].fields["images"].sample, Some(false));
     let directory = tempfile::tempdir().unwrap();
     std::fs::write(directory.path().join("Book.xlsx"), doc.save(None).unwrap()).unwrap();

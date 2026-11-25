@@ -17,7 +17,7 @@ use crate::selection::current_region;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         cmd!(
-            "insert.pivotTable",
+            "pivot.insert",
             "Pivot table",
             ["Insert", "Tables"],
             None,
@@ -26,7 +26,7 @@ pub fn specs() -> Vec<CommandSpec> {
             insert_pivot
         ),
         cmd!(
-            "insert.recommendedPivotTables",
+            "pivot.recommended",
             "Recommended Pivot Tables",
             ["Insert", "Tables"],
             None,
@@ -546,10 +546,10 @@ fn insert_pivot(s: &mut Session, p: &Json) -> Result<Json> {
         let d = s.doc()?;
         let (sh, body) = super::split_sheet(&dest);
         let si = match sh {
-            Some(n) => d.wb.sheet_index(&n).ok_or_else(|| bad("insert.pivotTable", format!("no sheet named `{n}`")))?,
+            Some(n) => d.wb.sheet_index(&n).ok_or_else(|| bad("pivot.insert", format!("no sheet named `{n}`")))?,
             None => active,
         };
-        let at = RangeRef::parse(body).map(|r| r.start).ok_or_else(|| bad("insert.pivotTable", format!("not a cell: `{dest}`")))?;
+        let at = RangeRef::parse(body).map(|r| r.start).ok_or_else(|| bad("pivot.insert", format!("not a cell: `{dest}`")))?;
         Some((si, at))
     };
     let replace = bool_param(p, "replace").unwrap_or(false);
@@ -581,10 +581,10 @@ fn insert_pivot(s: &mut Session, p: &Json) -> Result<Json> {
         let add = |pt: &mut PivotTable, list: &[Json], area: &str| -> Result<()> {
             for f in list {
                 match f {
-                    Json::String(n) => add_to_area("insert.pivotTable", pt, &src, n, area, None, None, None)?,
+                    Json::String(n) => add_to_area("pivot.insert", pt, &src, n, area, None, None, None)?,
                     Json::Object(_) => {
-                        let n = str_param(f, "field").ok_or_else(|| bad("insert.pivotTable", "a field object needs `field`"))?;
-                        add_to_area("insert.pivotTable", pt, &src, n, area, func_param(str_param(f, "func")), str_param(f, "name"), None)?;
+                        let n = str_param(f, "field").ok_or_else(|| bad("pivot.insert", "a field object needs `field`"))?;
+                        add_to_area("pivot.insert", pt, &src, n, area, func_param(str_param(f, "func")), str_param(f, "name"), None)?;
                         let by = group_param(str_param(f, "group"));
                         if let Some(by) = by.filter(|b| *b != PivotDateGroup::None)
                             && matches!(area, "rows" | "columns")
@@ -594,7 +594,7 @@ fn insert_pivot(s: &mut Session, p: &Json) -> Result<Json> {
                             af.date_group = by;
                         }
                     }
-                    _ => return Err(bad("insert.pivotTable", "fields are names or {field, func?, name?}")),
+                    _ => return Err(bad("pivot.insert", "fields are names or {field, func?, name?}")),
                 }
             }
             Ok(())
@@ -1258,7 +1258,7 @@ fn recommended(s: &mut Session, p: &Json) -> Result<Json> {
     let Some(apply) = p.get("apply").and_then(Json::as_u64) else {
         return Ok(json!({"source": source, "suggestions": list}));
     };
-    let pick = list.get(apply as usize).cloned().ok_or_else(|| bad("insert.recommendedPivotTables", "no suggestion with that index"))?;
+    let pick = list.get(apply as usize).cloned().ok_or_else(|| bad("pivot.recommended", "no suggestion with that index"))?;
     let mut q = json!({
         "source": source,
         "rows": pick.get("rows").cloned().unwrap_or(json!([])),
@@ -1305,7 +1305,7 @@ mod tests {
             ["East", "Pears", "12/12/2026", 5, 75]
         ]);
         s.execute("range.setValues", json!({"range": "A1", "values": rows})).unwrap();
-        s.execute("selection.set", json!({"range": "A1"})).unwrap();
+        s.execute("select.set", json!({"range": "A1"})).unwrap();
         s
     }
     const TOTAL: f64 = 835.0;
@@ -1329,7 +1329,7 @@ mod tests {
     #[test]
     fn insert_creates_placeholder_on_new_sheet() {
         let mut s = sales();
-        let r = s.execute("insert.pivotTable", json!({})).unwrap();
+        let r = s.execute("pivot.insert", json!({})).unwrap();
         assert_eq!(r["name"], "Pivot table 1");
         assert_eq!(r["anchor"], "A3");
         assert_eq!(r["fields"], json!(["Region", "Product", "Date", "Units", "Sales"]));
@@ -1347,7 +1347,7 @@ mod tests {
     #[test]
     fn region_by_product_sum_of_sales() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({})).unwrap();
+        s.execute("pivot.insert", json!({})).unwrap();
         s.execute("pivot.addField", json!({"field": "region", "area": "rows"})).unwrap();
         s.execute("pivot.addField", json!({"field": "Product", "area": "columns"})).unwrap();
         let r = s.execute("pivot.addField", json!({"field": "Sales", "area": "values"})).unwrap();
@@ -1386,7 +1386,7 @@ mod tests {
     #[test]
     fn multiple_value_fields_make_a_values_dimension() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Region"], "values": ["Sales", {"field": "Units", "func": "average"}]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Region"], "values": ["Sales", {"field": "Units", "func": "average"}]})).unwrap();
         assert_eq!(text(&s, "A3"), "Row Labels");
         assert_eq!(text(&s, "B3"), "Sum of Sales");
         assert_eq!(text(&s, "C3"), "Average of Units");
@@ -1408,7 +1408,7 @@ mod tests {
     #[test]
     fn date_grouping_by_quarter_and_month() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Date"], "values": ["Sales"]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Date"], "values": ["Sales"]})).unwrap();
         // Ungrouped: one row per date, shown with the source date format.
         assert_eq!(pt(&s).last_range.unwrap().height(), 14);
         s.execute("pivot.group", json!({"field": "Date", "by": "quarters"})).unwrap();
@@ -1428,7 +1428,7 @@ mod tests {
     #[test]
     fn filters_and_report_filter_rows() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Product"], "values": ["Sales"], "filters": ["Region"]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Product"], "values": ["Sales"], "filters": ["Region"]})).unwrap();
         // Report filter above the body; the body stays at A3.
         assert_eq!(text(&s, "A1"), "Region");
         assert_eq!(text(&s, "B1"), "(All)");
@@ -1453,7 +1453,7 @@ mod tests {
     #[test]
     fn show_values_as() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Region"], "values": ["Sales"]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Region"], "values": ["Sales"]})).unwrap();
         s.execute("pivot.valueSettings", json!({"field": "Sum of Sales", "showAs": "percentOfGrandTotal"})).unwrap();
         let east = val(&s, "B4").as_f64().unwrap();
         assert!((east - 415.0 / TOTAL).abs() < 1e-12);
@@ -1481,7 +1481,7 @@ mod tests {
     #[test]
     fn compact_vs_tabular_shapes() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Region", "Product"], "values": ["Sales"]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Region", "Product"], "values": ["Sales"]})).unwrap();
         // Compact: one label column; parents carry subtotals at the top; children indented.
         let r = pt(&s).last_range.unwrap();
         assert_eq!(r.width(), 2);
@@ -1528,7 +1528,7 @@ mod tests {
     #[test]
     fn refresh_after_source_edits() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Region"], "values": ["Sales"]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Region"], "values": ["Sales"]})).unwrap();
         s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();
         s.execute("cell.set", json!({"cell": "E2", "input": "1100"})).unwrap();
         // Refresh All picks the change up.
@@ -1554,21 +1554,19 @@ mod tests {
     fn replace_protection() {
         let mut s = sales();
         s.execute("cell.set", json!({"cell": "H5", "input": "keep me"})).unwrap();
-        let e = s.execute("insert.pivotTable", json!({"destination": "Sheet1!H3", "rows": ["Region"], "values": ["Sales"]})).unwrap_err().to_string();
+        let e = s.execute("pivot.insert", json!({"destination": "Sheet1!H3", "rows": ["Region"], "values": ["Sales"]})).unwrap_err().to_string();
         assert!(e.contains("There's already data in Sheet1!H5"), "{e}");
         assert_eq!(s.doc().unwrap().wb.active().unwrap().pivots.len(), 0);
         // Growing into data is refused as well.
-        s.execute("insert.pivotTable", json!({"destination": "Sheet1!H3"})).unwrap();
+        s.execute("pivot.insert", json!({"destination": "Sheet1!H3"})).unwrap();
         assert!(s.execute("pivot.addField", json!({"field": "Region", "area": "rows"})).is_err());
         s.execute("pivot.addField", json!({"field": "Region", "area": "rows", "replace": true})).unwrap();
         assert_eq!(text(&s, "H5"), "North");
         // A second pivot can't overlap the first.
-        let e =
-            s.execute("insert.pivotTable", json!({"source": "Sheet1!A1:E13", "destination": "Sheet1!H6", "replace": true})).unwrap_err().to_string();
+        let e = s.execute("pivot.insert", json!({"source": "Sheet1!A1:E13", "destination": "Sheet1!H6", "replace": true})).unwrap_err().to_string();
         assert!(e.contains("overlap"), "{e}");
         // Nor its own source data.
-        let e =
-            s.execute("insert.pivotTable", json!({"source": "Sheet1!A1:E13", "destination": "Sheet1!B2", "replace": true})).unwrap_err().to_string();
+        let e = s.execute("pivot.insert", json!({"source": "Sheet1!A1:E13", "destination": "Sheet1!B2", "replace": true})).unwrap_err().to_string();
         assert!(e.contains("source data"), "{e}");
         // Delete clears the report.
         s.execute("pivot.delete", json!({})).unwrap();
@@ -1579,7 +1577,7 @@ mod tests {
     #[test]
     fn fields_move_remove_sort() {
         let mut s = sales();
-        s.execute("insert.pivotTable", json!({"rows": ["Region"], "values": ["Sales"]})).unwrap();
+        s.execute("pivot.insert", json!({"rows": ["Region"], "values": ["Sales"]})).unwrap();
         let f = s.execute("pivot.fields", json!({})).unwrap();
         assert_eq!(f["fields"][0]["name"], "Region");
         assert_eq!(f["fields"][0]["samples"], json!(["East", "North", "West"]));
@@ -1603,17 +1601,17 @@ mod tests {
     #[test]
     fn recommended_and_summarize() {
         let mut s = sales();
-        let r = s.execute("insert.recommendedPivotTables", json!({})).unwrap();
+        let r = s.execute("pivot.recommended", json!({})).unwrap();
         let list = r["suggestions"].as_array().unwrap();
         assert!((3..=5).contains(&list.len()), "{list:?}");
         assert_eq!(list[0]["title"], "Sum of Units by Region");
-        let r = s.execute("insert.recommendedPivotTables", json!({"apply": 2})).unwrap();
+        let r = s.execute("pivot.recommended", json!({"apply": 2})).unwrap();
         assert!(r["suggestion"]["title"].as_str().unwrap().contains("quarters"));
         assert_eq!(text(&s, "A4"), "Qtr1");
         // From a table.
         s.execute("sheet.activate", json!({"sheet": "Sheet1"})).unwrap();
-        s.execute("insert.table", json!({"range": "A1:E13"})).unwrap();
-        s.execute("selection.set", json!({"range": "B2"})).unwrap();
+        s.execute("table.insert", json!({"range": "A1:E13"})).unwrap();
+        s.execute("select.set", json!({"range": "B2"})).unwrap();
         let r = s.execute("table.summarizePivot", json!({"rows": ["Product"], "values": ["Units"]})).unwrap();
         assert_eq!(pt(&s).source, "Table1");
         assert_eq!(r["name"], "Pivot table 2");
@@ -1637,7 +1635,7 @@ mod tests {
         assert_eq!(src.headers[4], "x");
         assert_eq!(src.headers.last().map(String::as_str), Some("x3000"));
         // Table column names follow the same rule.
-        s.execute("insert.table", json!({"range": format!("A1:{end}"), "header": true})).unwrap();
+        s.execute("table.insert", json!({"range": format!("A1:{end}"), "header": true})).unwrap();
         let text = |s: &mut Session, a: &str| s.execute("cell.get", json!({"cell": a})).unwrap()["text"].clone();
         assert_eq!(text(&mut s, "B1"), "A2");
         let last = CellRef::new(0, 3003).a1();
@@ -1648,8 +1646,8 @@ mod tests {
     fn hostile_params_never_panic() {
         let mut s = sales();
         let cmds = [
-            "insert.pivotTable",
-            "insert.recommendedPivotTables",
+            "pivot.insert",
+            "pivot.recommended",
             "table.summarizePivot",
             "pivot.fields",
             "pivot.fieldList",
@@ -1694,7 +1692,7 @@ mod tests {
             }
         }
         // And on a real pivot.
-        s.execute("insert.pivotTable", json!({"source": "Sheet1!A1:E13", "rows": ["Region"], "values": ["Sales"]})).unwrap();
+        s.execute("pivot.insert", json!({"source": "Sheet1!A1:E13", "rows": ["Region"], "values": ["Sales"]})).unwrap();
         for c in cmds {
             for h in &hostile {
                 let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -1711,8 +1709,8 @@ mod tests {
         let mut s = Session::new();
         s.new_workbook();
         s.execute("range.setValues", json!({"range": "A1", "values": [["Region", ""], ["East", 1]]})).unwrap();
-        let e = s.execute("insert.pivotTable", json!({"source": "A1:B2"})).unwrap_err().to_string();
+        let e = s.execute("pivot.insert", json!({"source": "A1:B2"})).unwrap_err().to_string();
         assert!(e.contains("field name is not valid"), "{e}");
-        assert!(s.execute("insert.pivotTable", json!({"source": "NoSuchTable"})).is_err());
+        assert!(s.execute("pivot.insert", json!({"source": "NoSuchTable"})).is_err());
     }
 }

@@ -10,7 +10,7 @@ fn cell_entry_through_a_defined_name_reaches_its_cell_and_survives_save() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("sheet.rename", json!({"name":"Data"})).unwrap();
     doc.execute("cell.set", json!({"cell":"B7","input":"7"})).unwrap();
-    doc.execute("formulas.defineName", json!({"name":"Destination","refersTo":"=Data!$B$7"})).unwrap();
+    doc.execute("name.define", json!({"name":"Destination","refersTo":"=Data!$B$7"})).unwrap();
     doc.execute("cell.set", json!({"name":"Destination","input":"42"})).unwrap();
     let loaded = Exchange::new().batch(&mut doc, &json!({"load":[{"target":"workbook","fields":["names"]}]}), true).unwrap();
     let id = loaded["loaded"][0]["fields"]["names"][0].as_str().unwrap();
@@ -27,12 +27,12 @@ fn cell_entry_through_a_defined_name_reaches_its_cell_and_survives_save() {
 #[test]
 fn named_entry_resolves_aliases_and_rejects_ambiguous_or_dynamic_destinations() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("formulas.defineName", json!({"name":"Destination","refersTo":"=$B$7"})).unwrap();
-    doc.execute("formulas.defineName", json!({"name":"Alias","refersTo":"=Destination"})).unwrap();
+    doc.execute("name.define", json!({"name":"Destination","refersTo":"=$B$7"})).unwrap();
+    doc.execute("name.define", json!({"name":"Alias","refersTo":"=Destination"})).unwrap();
     doc.execute("cell.set", json!({"name":"Alias","input":"42"})).unwrap();
     assert_eq!(doc.execute("cell.get", json!({"cell":"B7"})).unwrap()["value"], 42.0);
     for formula in ["=Destination", "=B7:C8", "=OFFSET(B7,1,0)"] {
-        doc.execute("formulas.defineName", json!({"name":"Destination","refersTo":formula})).unwrap();
+        doc.execute("name.define", json!({"name":"Destination","refersTo":formula})).unwrap();
         assert!(doc.execute("cell.set", json!({"name":"Destination","input":"99"})).is_err(), "{formula}");
         assert_eq!(doc.execute("cell.get", json!({"cell":"B7"})).unwrap()["value"], 42.0);
     }

@@ -108,7 +108,7 @@ fn every_agent_step_that_changes_the_grid_moves_the_revision_or_inspect() {
 /// undo step, so the drawing's own count moves the revision.
 #[test]
 fn an_agents_recalculation_moves_the_revision_and_draws_the_new_values() {
-    for command in ["formulas.calculateNow", "formulas.calculateSheet"] {
+    for command in ["formula.calculateNow", "formula.calculateSheet"] {
         let mut doc = workbook();
         let before = seen(&doc);
         let value = doc.execute("cell.get", json!({ "cell": "F3" })).unwrap()["value"].clone();
@@ -127,9 +127,9 @@ fn an_agents_recalculation_moves_the_revision_and_draws_the_new_values() {
 fn an_agents_reading_steps_move_neither_the_revision_nor_inspect() {
     let mut doc = workbook();
     let first = doc.inspect().unwrap()["sheet"].as_str().unwrap().to_owned();
-    doc.execute("home.insertSheet", json!({ "name": "Notes" })).unwrap();
+    doc.execute("sheet.insert", json!({ "name": "Notes" })).unwrap();
     doc.execute("sheet.activate", json!({ "sheet": first })).unwrap();
-    doc.execute("selection.set", json!({ "range": "B2" })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2" })).unwrap();
     let before = seen(&doc);
     let mut agent = Agent::default();
     let steps = [
@@ -138,11 +138,11 @@ fn an_agents_reading_steps_move_neither_the_revision_nor_inspect() {
         ("cell.get", json!({ "sheet": "Notes", "cell": "A1" })),
         ("sheet.read", json!({})),
         ("sheet.read", json!({ "range": "A1:B5", "formulas": true })),
-        ("document.inspect", json!({})),
-        ("selection.set", json!({ "range": "H30" })),
-        ("selection.stats", json!({})),
+        ("file.inspect", json!({})),
+        ("select.set", json!({ "range": "H30" })),
+        ("select.stats", json!({})),
         ("history.list", json!({})),
-        ("formulas.evaluate", json!({ "formula": "=SUM(B2:B5)" })),
+        ("formula.evaluate", json!({ "formula": "=SUM(B2:B5)" })),
         ("sheet.activate", json!({ "sheet": "Notes" })),
         ("cell.get", json!({ "cell": "A1" })),
         ("file.render", json!({ "target": { "range": "A1:D10" } })),
@@ -178,8 +178,8 @@ fn only_anothers_viewport_moves_the_revision() {
 fn an_agents_visible_edits_move_the_revision() {
     let steps = [
         ("cell.set", json!({ "cell": "D4", "input": "42" })),
-        ("home.fillColor", json!({ "range": "D2:D6", "color": "#FFC000" })),
-        ("home.conditionalFormat", json!({ "range": "B2:B5", "rule": { "type": "dataBar" } })),
+        ("format.fillColor", json!({ "range": "D2:D6", "color": "#FFC000" })),
+        ("conditionalFormat.apply", json!({ "range": "B2:B5", "rule": { "type": "dataBar" } })),
         ("view.freezePanes", json!({ "cell": "B3" })),
         ("view.zoom", json!({ "percent": 150 })),
         ("editor.scheme", json!({ "scheme": "dark" })),

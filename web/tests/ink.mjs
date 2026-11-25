@@ -49,10 +49,10 @@ try {
   await open()
   await kit.getByTestId('ribbon-tab-draw').click()
   await kit.getByTestId('sheet-ink-pen').click()
-  await until(async () => (await run('draw.state')).tool === 'pen', 'the pen is in hand')
+  await until(async () => (await run('ink.state')).tool === 'pen', 'the pen is in hand')
   await kit.getByTestId('sheet-ink-weight').click()
   await kit.getByTestId('sheet-ink-weight-3').click()
-  await until(async () => (await run('draw.state')).width === 3, 'the pen is 3 pt')
+  await until(async () => (await run('ink.state')).width === 3, 'the pen is 3 pt')
   const before = (await inks()).length
   await drag([300, 300], [420, 330])
   await until(async () => (await inks()).length === before + 1, 'one stroke on release')
@@ -66,7 +66,7 @@ try {
   console.log('PASS draw a stroke with the shared pen, with undo')
 
   await kit.getByTestId('sheet-ink-highlighter').click()
-  await until(async () => (await run('draw.state')).tool === 'highlighter', 'the highlighter is in hand')
+  await until(async () => (await run('ink.state')).tool === 'highlighter', 'the highlighter is in hand')
   await drag([300, 400], [400, 400])
   await until(async () => (await inks()).some((o) => o.ink[0].tool === 'highlighter'), 'a highlighter stroke')
   await kit.getByTestId('sheet-ink-eraser').click()

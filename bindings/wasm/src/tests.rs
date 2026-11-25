@@ -49,7 +49,7 @@ fn inspect_says_when_escape_has_something_to_cancel() {
     assert_eq!(get(&doc, "escape"), json!(true), "typing in a cell");
     doc.key("Escape", ToolMods::default(), 1.0).unwrap();
     assert_eq!(get(&doc, "escape"), json!(false), "Escape dropped the typing");
-    doc.execute("draw.shape", json!({ "preset": "rect" })).unwrap();
+    doc.execute("ink.shape", json!({ "preset": "rect" })).unwrap();
     assert_eq!(get(&doc, "escape"), json!(true), "a shape chosen to draw");
     doc.key("Escape", ToolMods::default(), 1.0).unwrap();
     assert_eq!(get(&doc, "escape"), json!(false), "Escape put the shape down");
@@ -195,8 +195,8 @@ fn drags_shift_clicks_and_headings_select_ranges() {
 fn the_formula_bar_enters_formulas_and_double_click_edits_in_place() {
     let mut doc = SheetDocument::create("New.xlsx", 0, 0).unwrap();
     assert!(!doc.dirty());
-    doc.execute("commandLine", json!({ "text": "21" })).unwrap();
-    doc.execute("commandLine", json!({ "text": "=A1*2" })).unwrap();
+    doc.execute("command.runLine", json!({ "text": "21" })).unwrap();
+    doc.execute("command.runLine", json!({ "text": "=A1*2" })).unwrap();
     assert_eq!(value(&mut doc, "A2")["value"], 42.0);
     assert_eq!(get(&doc, "active"), "A3");
     doc.pointer(&event(PointerAction::DoubleClick, centre(0, 1).0, centre(0, 1).1, false)).unwrap();
@@ -249,13 +249,13 @@ fn draws_conditional_formats() {
     use kition_kit::KitDocument;
     let mut doc = numbers();
     let plain = pixels_like(&doc, (0.0, 0.0, 200, 120), [0x63, 0x8E, 0xC6]);
-    doc.execute("home.conditionalFormat", json!({ "range": "A1:A4", "rule": { "type": "dataBar" } })).unwrap();
+    doc.execute("conditionalFormat.apply", json!({ "range": "A1:A4", "rule": { "type": "dataBar" } })).unwrap();
     let barred = doc.render(0.0, 0.0, 1.0, 200, 120).unwrap();
     let blue = barred.chunks(4).filter(|px| px[2] > px[0].saturating_add(40)).count();
     assert!(blue > 200 && plain == 0, "data bars drew {blue} bluish pixels");
 
     let mut scaled = numbers();
-    scaled.execute("home.conditionalFormat", json!({ "range": "A1:A4", "rule": { "type": "colorScale" } })).unwrap();
+    scaled.execute("conditionalFormat.apply", json!({ "range": "A1:A4", "rule": { "type": "colorScale" } })).unwrap();
     let pixels = scaled.render(0.0, 0.0, 1.0, 200, 120).unwrap();
     let tinted = pixels.chunks(4).filter(|px| px[0].abs_diff(px[1]) > 40 || px[1].abs_diff(px[2]) > 40).count();
     assert!(tinted > 500, "a color scale tinted {tinted} pixels");
@@ -266,15 +266,15 @@ fn wraps_text_onto_more_lines() {
     use kition_kit::KitDocument;
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "B2", "input": "one two three four five six seven" })).unwrap();
-    doc.execute("home.rowHeight", json!({ "rows": "2:2", "height": 80 })).unwrap();
+    doc.execute("row.setHeight", json!({ "rows": "2:2", "height": 80 })).unwrap();
     let ink = |doc: &SheetDocument, y: f64| {
         let pixels = doc.render(60.0, y, 1.0, 120, 20).unwrap();
         pixels.chunks(4).filter(|px| px[0] < 120).count()
     };
     let bottom_before = ink(&doc, 60.0);
-    doc.execute("selection.set", json!({ "range": "B2" })).unwrap();
-    doc.execute("home.wrapText", json!({})).unwrap();
-    doc.execute("home.alignTop", json!({})).unwrap();
+    doc.execute("select.set", json!({ "range": "B2" })).unwrap();
+    doc.execute("format.wrapText", json!({})).unwrap();
+    doc.execute("format.alignTop", json!({})).unwrap();
     // Wrapped, the words fill lines further down the tall cell.
     assert!(ink(&doc, 40.0) + ink(&doc, 60.0) > bottom_before + 40, "{} {} {bottom_before}", ink(&doc, 40.0), ink(&doc, 60.0));
 }
@@ -284,7 +284,7 @@ fn draws_charts_over_the_cells() {
     use kition_kit::KitDocument;
     let mut doc = numbers();
     let blank = doc.render(200.0, 0.0, 1.0, 400, 300).unwrap();
-    doc.execute("insert.chart", json!({ "range": "A1:A4", "type": "column", "at": "D2" })).unwrap();
+    doc.execute("chart.insert", json!({ "range": "A1:A4", "type": "column", "at": "D2" })).unwrap();
     let drawn = doc.render(200.0, 0.0, 1.0, 400, 300).unwrap();
     let changed = blank.chunks(4).zip(drawn.chunks(4)).filter(|(a, b)| a != b).count();
     assert!(changed > 5_000, "the chart changed {changed} pixels");
@@ -312,7 +312,7 @@ fn the_catalog_flags_as_mutating_exactly_what_changes_the_workbook() {
     for id in [
         "cell.set",
         "cell.formatText",
-        "home.bold",
+        "format.bold",
         "edit.undo",
         "edit.redo",
         "file.new",
@@ -320,11 +320,11 @@ fn the_catalog_flags_as_mutating_exactly_what_changes_the_workbook() {
         "file.save",
         "view.freezePanes",
         "view.gridlines",
-        "commandLine",
+        "command.runLine",
     ] {
         assert!(mutates(id), "{id} changes the workbook");
     }
-    for id in ["selection.set", "edit.selectAll", "edit.copy", "sheet.next", "view.zoom", "file.saveBytes", "file.exportPdf", "cell.get"] {
+    for id in ["select.set", "edit.selectAll", "edit.copy", "sheet.next", "view.zoom", "file.saveBytes", "file.exportPdf", "cell.get"] {
         assert!(!mutates(id), "{id} does not change the workbook");
     }
 }
@@ -367,9 +367,9 @@ fn draws_rich_text_runs_in_their_own_colours() {
     let rows = pixels.as_chunks::<4>().0.chunks(area.2 as usize).map(|row| row.iter().filter(|px| px[0] > 200 && px[1] < 60).count()).max();
     assert!(rows.unwrap_or(0) >= 12, "an underline as wide as the run: {rows:?}");
     // Wrapped onto lines, the run keeps its colour.
-    doc.execute("selection.set", json!({ "range": "B2" })).unwrap();
-    doc.execute("home.wrapText", json!({})).unwrap();
-    doc.execute("home.rowHeight", json!({ "rows": "2:2", "height": 80 })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2" })).unwrap();
+    doc.execute("format.wrapText", json!({})).unwrap();
+    doc.execute("row.setHeight", json!({ "rows": "2:2", "height": 80 })).unwrap();
     let wrapped = pixels_like(&doc, (HEADER_W + CW, HEADER_H + RH, CW as u32, 80), red);
     assert!(wrapped > 10, "wrapped, the red run is still red: {wrapped} pixels");
 }
@@ -401,12 +401,12 @@ fn italic_text_is_slanted() {
     assert!(top.0 > 1000.0 && bottom.0 > 1000.0, "{top:?} {bottom:?}");
     let upright = top.1 - bottom.1;
     assert!(upright.abs() < 0.3, "upright: {top:?} {bottom:?}");
-    doc.execute("selection.set", json!({ "range": "B2" })).unwrap();
-    doc.execute("home.italic", json!({})).unwrap();
+    doc.execute("select.set", json!({ "range": "B2" })).unwrap();
+    doc.execute("format.italic", json!({})).unwrap();
     let [top, bottom] = ink_halves(&doc, area);
     assert!(top.1 - bottom.1 > upright + 0.7, "italic leans right: {top:?} {bottom:?}");
     // An italic run of rich text leans too.
-    doc.execute("home.italic", json!({})).unwrap();
+    doc.execute("format.italic", json!({})).unwrap();
     doc.execute("cell.formatText", json!({ "cell": "B2", "toggle": "italic" })).unwrap();
     let [top, bottom] = ink_halves(&doc, area);
     assert!(top.1 - bottom.1 > upright + 0.7, "an italic run leans right: {top:?} {bottom:?}");
@@ -427,10 +427,10 @@ fn selected_characters_of_the_cell_being_typed_take_font_commands() {
     let revision = doc.revision();
     // Bold (as Cmd+B or the ribbon runs it) formats the selection, not the cell; the ribbon shows
     // the selection bold.
-    assert_eq!(doc.execute("home.bold", json!({})).unwrap()["editing"], true);
+    assert_eq!(doc.execute("format.bold", json!({})).unwrap()["editing"], true);
     assert!(doc.revision() > revision, "drawn again");
     assert_eq!(get(&doc, "style")["font"]["bold"], true);
-    doc.execute("home.fontColor", json!({ "color": "#FF0000" })).unwrap();
+    doc.execute("format.color", json!({ "color": "#FF0000" })).unwrap();
     // While typing, the red run is drawn red in the cell.
     assert!(pixels_like(&doc, (HEADER_W + CW, HEADER_H + RH, CW as u32, RH as u32), [255, 0, 0]) > 10, "the editor shows the run's colour");
     assert_eq!(value(&mut doc, "B2")["runs"], Json::Null, "nothing entered yet");
@@ -596,7 +596,7 @@ fn draws_office_fonts_in_their_metric_compatible_stand_ins() {
 #[test]
 fn switching_sheets_enters_the_typing_on_its_own_sheet() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("home.insertSheet", json!({ "name": "Two" })).unwrap();
+    doc.execute("sheet.insert", json!({ "name": "Two" })).unwrap();
     doc.execute("sheet.activate", json!({ "sheet": 0 })).unwrap();
     click(&mut doc, centre(0, 0), false);
     KitTools::text(&mut doc, "测试", 1.0).unwrap();
@@ -625,12 +625,12 @@ fn inspect_gives_the_tabs_and_the_selection_statistics() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("range.setValues", json!({ "range": "A1", "values": [[1], [2], [3]] })).unwrap();
     for name in ["Two", "Three"] {
-        doc.execute("home.insertSheet", json!({ "name": name })).unwrap();
+        doc.execute("sheet.insert", json!({ "name": name })).unwrap();
     }
     doc.execute("sheet.tabColor", json!({ "sheet": "Sheet1", "color": "#FF0000" })).unwrap();
     doc.execute("sheet.hide", json!({ "sheet": "Three" })).unwrap();
     doc.execute("sheet.activate", json!({ "sheet": "Two" })).unwrap();
-    doc.execute("review.protectSheet", json!({})).unwrap();
+    doc.execute("sheet.protect", json!({})).unwrap();
     let tabs = get(&doc, "tabs");
     assert_eq!(tabs[1]["protected"], json!(true), "{tabs}");
     assert_eq!(tabs.as_array().map(Vec::len), Some(3), "{tabs}");
@@ -638,10 +638,10 @@ fn inspect_gives_the_tabs_and_the_selection_statistics() {
     assert_eq!(tabs[2]["hidden"], json!(true));
     assert_eq!(tabs[0]["hidden"], json!(false));
     doc.execute("sheet.activate", json!({ "sheet": "Sheet1" })).unwrap();
-    doc.execute("selection.set", json!({ "range": "A1:A3" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1:A3" })).unwrap();
     let stats = get(&doc, "stats");
     assert_eq!((stats["sum"].as_f64(), stats["count"].as_u64(), stats["average"].as_f64()), (Some(6.0), Some(3), Some(2.0)), "{stats}");
-    doc.execute("selection.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     assert_eq!(get(&doc, "stats"), Json::Null, "one cell has no statistics");
 }
 
@@ -651,7 +651,7 @@ fn inspect_gives_the_tabs_and_the_selection_statistics() {
 #[test]
 fn switching_sheets_makes_no_replica_and_no_change() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("home.insertSheet", json!({ "name": "Two" })).unwrap();
+    doc.execute("sheet.insert", json!({ "name": "Two" })).unwrap();
     let bytes = doc.save(Some("Book.xlsx")).unwrap();
     let mut doc = SheetDocument::open("Book.xlsx", &bytes).unwrap();
     assert!(!doc.has_replica());
@@ -728,7 +728,7 @@ fn pointing_at_cells_while_typing_a_formula_inserts_their_references() {
 #[test]
 fn pointing_at_another_sheets_cells() {
     let mut doc = SheetDocument::create("Sheets.xlsx", 0, 0).unwrap();
-    doc.execute("home.insertSheet", json!({ "name": "数据 表" })).unwrap();
+    doc.execute("sheet.insert", json!({ "name": "数据 表" })).unwrap();
     doc.execute("cell.set", json!({ "sheet": "数据 表", "cell": "B2", "input": "21" })).unwrap();
     doc.execute("sheet.activate", json!({ "sheet": "Sheet1" })).unwrap();
     click(&mut doc, centre(0, 0), false);
@@ -879,11 +879,11 @@ fn the_formula_bar_keeps_the_fonts_of_untouched_characters() {
 fn insert_function_and_f2_type_in_the_active_cell() {
     let mut doc = SheetDocument::create("Functions.xlsx", 0, 0).unwrap();
     click(&mut doc, centre(0, 0), false);
-    doc.execute("formulas.insertFunction", json!({ "name": "sum" })).unwrap();
+    doc.execute("formula.insertFunction", json!({ "name": "sum" })).unwrap();
     assert_eq!(get(&doc, "editText"), json!("=SUM("));
     assert!(get(&doc, "formulaHint")["call"]["name"] == json!("SUM"));
     doc.execute("editor.formula", json!({ "text": "=SUM(1,2)+" })).unwrap();
-    doc.execute("formulas.insertFunction", json!({ "name": "MAX" })).unwrap();
+    doc.execute("formula.insertFunction", json!({ "name": "MAX" })).unwrap();
     assert_eq!(get(&doc, "editText"), json!("=SUM(1,2)+MAX("));
     KitTools::text(&mut doc, "4)", 1.0).unwrap();
     key(&mut doc, "Enter", false);
@@ -948,7 +948,7 @@ fn a_right_click_selects_what_it_presses_and_names_its_menu() {
         doc.execute("cell.set", json!({ "cell": cell, "input": input })).unwrap();
     }
     let menu = |doc: &mut SheetDocument, (x, y): (f64, f64)| doc.execute("editor.contextMenu", json!({ "x": x, "y": y })).unwrap()["target"].clone();
-    doc.execute("selection.set", json!({ "range": "B2:C4" })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2:C4" })).unwrap();
     assert_eq!(menu(&mut doc, centre(2, 3)), json!("cell"));
     assert_eq!(get(&doc, "selection"), json!("B2:C4"));
     assert_eq!(get(&doc, "lines"), json!({ "rows": 3, "cols": 2, "wholeRows": false, "wholeCols": false }));
@@ -960,11 +960,11 @@ fn a_right_click_selects_what_it_presses_and_names_its_menu() {
     assert_eq!(menu(&mut doc, (HEADER_W + 2.0 * CW + CW / 2.0, HEADER_H / 2.0)), json!("cols"));
     assert_eq!(get(&doc, "selection"), json!("C:C"));
     // The corner: the whole sheet, by right-click and by click.
-    doc.execute("selection.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     assert_eq!(menu(&mut doc, (2.0, 2.0)), json!("all"));
     assert_eq!(get(&doc, "lines")["wholeRows"], json!(true));
     assert_eq!(get(&doc, "lines")["wholeCols"], json!(true));
-    doc.execute("selection.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     click(&mut doc, (2.0, 2.0), false);
     assert_eq!(get(&doc, "lines")["wholeCols"], json!(true));
     // Shift+click on a heading extends to whole columns (rows); a drag along the headings too.
@@ -985,7 +985,7 @@ fn a_right_click_selects_what_it_presses_and_names_its_menu() {
     // Inserting rows while a cell is typed enters it first, into the cell it was typed in.
     click(&mut doc, centre(3, 2), false);
     KitTools::text(&mut doc, "y", 1.0).unwrap();
-    doc.execute("home.insertRows", json!({})).unwrap();
+    doc.execute("row.insert", json!({})).unwrap();
     assert_eq!(doc.execute("cell.get", json!({ "cell": "D4" })).unwrap()["value"], json!("y"));
 }
 
@@ -995,7 +995,7 @@ fn a_right_click_selects_what_it_presses_and_names_its_menu() {
 #[test]
 fn the_highlight_tints_the_selections_rows_and_columns_as_overlays() {
     let mut doc = SheetDocument::create("Focus.xlsx", 0, 0).unwrap();
-    doc.execute("selection.set", json!({ "range": "C6" })).unwrap();
+    doc.execute("select.set", json!({ "range": "C6" })).unwrap();
     let tints = |doc: &mut SheetDocument| {
         doc.state(0.0, 0.0, ToolMods::default(), 1.0)
             .overlays
@@ -1020,7 +1020,7 @@ fn the_highlight_tints_the_selections_rows_and_columns_as_overlays() {
     }
     assert_eq!(doc.render(0.0, 0.0, 1.0, 300, 200).unwrap(), pixels_before, "never drawn into the document's pixels");
     // A range: its rows and columns.
-    doc.execute("selection.set", json!({ "range": "B2:D4" })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2:D4" })).unwrap();
     let range = tints(&mut doc);
     assert!(range.iter().any(|(q, _)| (q[0][1] - (HEADER_H + RH)).abs() < 0.5 && (q[2][1] - (HEADER_H + 4.0 * RH)).abs() < 0.5));
     doc.execute("view.focusCell", json!({ "color": "#3D7FE0" })).unwrap();
@@ -1094,8 +1094,8 @@ fn the_freeze_lines_show_when_zoomed_out() {
 #[test]
 fn the_format_painter_paints_what_is_pressed_and_esc_puts_it_down() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("home.bold", json!({ "range": "A1", "on": true })).unwrap();
-    doc.execute("selection.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("format.bold", json!({ "range": "A1", "on": true })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     doc.execute("edit.formatPainter", json!({})).unwrap();
     assert_eq!(get(&doc, "formatPainter"), json!("once"));
     assert!(get(&doc, "escape").as_bool().unwrap_or(false), "Esc has the painter to put down");
@@ -1112,7 +1112,7 @@ fn the_format_painter_paints_what_is_pressed_and_esc_puts_it_down() {
     assert!(!bold(&doc, "C1"), "FP-C12: C1 only selected");
 
     // Sticky: a drag over a range, then a row heading; Esc ends it.
-    doc.execute("selection.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     doc.execute("edit.formatPainter", json!({ "sticky": true })).unwrap();
     doc.pointer(&event(PointerAction::Down, centre(1, 2).0, centre(1, 2).1, false)).unwrap();
     doc.pointer(&event(PointerAction::Drag, centre(3, 4).0, centre(3, 4).1, false)).unwrap();
@@ -1134,7 +1134,7 @@ fn the_ribbon_shows_the_selected_characters_font() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "A1", "input": "字体样式测试" })).unwrap();
     doc.execute("cell.formatText", json!({ "cell": "A1", "start": 2, "end": 4, "name": "楷体", "size": 18 })).unwrap();
-    doc.execute("selection.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     doc.edit_in_place(CellRef::new(0, 0));
     let font = |doc: &SheetDocument| get(doc, "style")["font"].clone();
     if let Some(edit) = doc.editing.as_mut() {
@@ -1158,7 +1158,7 @@ fn the_ribbon_shows_the_selected_characters_font() {
 fn panes_frozen_in_a_scrolled_view_start_at_its_top_left() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "A11", "input": "top" })).unwrap();
-    doc.execute("selection.set", json!({ "range": "C15" })).unwrap();
+    doc.execute("select.set", json!({ "range": "C15" })).unwrap();
     // The editor says the view is scrolled to row 11 (10 rows of the default height).
     doc.execute("editor.viewport", json!({ "right": 1200, "bottom": 900, "x": 0, "y": 10.0 * RH })).unwrap();
     doc.execute("view.freezeRows", json!({})).unwrap();
@@ -1189,7 +1189,7 @@ fn a_command_click_adds_a_cell_to_the_selection() {
     doc.pointer(&command(PointerAction::Up, centre(5, 3))).unwrap();
     assert_eq!(get(&doc, "selection"), json!("A1,C3,E2:F4"));
     assert_eq!(get(&doc, "active"), json!("E2"));
-    doc.execute("home.italic", json!({})).unwrap();
+    doc.execute("format.italic", json!({})).unwrap();
     let italic = |doc: &SheetDocument, cell: &str| {
         doc.sheet().is_some_and(|(wb, sheet)| CellRef::parse(cell).is_some_and(|c| wb.styles.get(sheet.style_id(c)).font.italic))
     };
@@ -1202,20 +1202,20 @@ fn a_command_click_adds_a_cell_to_the_selection() {
 fn a_command_without_its_values_asks_the_editor_for_its_dialog() {
     let mut doc = SheetDocument::create("Dialogs.xlsx", 0, 0).unwrap();
     assert_eq!(get(&doc, "dialog"), Json::Null);
-    doc.execute("home.formatCells", json!({})).unwrap();
+    doc.execute("format.cells", json!({})).unwrap();
     let asked = get(&doc, "dialog");
-    assert_eq!((asked["name"].clone(), asked["command"].clone(), asked["seq"].clone()), (json!("formatCells"), json!("home.formatCells"), json!(1)));
-    doc.execute("formulas.defineName", json!({})).unwrap();
+    assert_eq!((asked["name"].clone(), asked["command"].clone(), asked["seq"].clone()), (json!("formatCells"), json!("format.cells"), json!(1)));
+    doc.execute("name.define", json!({})).unwrap();
     assert_eq!((get(&doc, "dialog")["name"].clone(), get(&doc, "dialog")["seq"].clone()), (json!("defineName"), json!(2)));
     // An agent's call never opens a dialog.
-    doc.execute_as("home.formatCells", json!({}), &kition_sheet_engine::Origin::agent("agent:test")).unwrap();
+    doc.execute_as("format.cells", json!({}), &kition_sheet_engine::Origin::agent("agent:test")).unwrap();
     assert_eq!(get(&doc, "dialog")["seq"], json!(2));
     // With its values it runs, and asks for nothing.
-    doc.execute("home.formatCells", json!({ "style": { "font": { "bold": true } } })).unwrap();
+    doc.execute("format.cells", json!({ "style": { "font": { "bold": true } } })).unwrap();
     assert_eq!(get(&doc, "dialog")["seq"], json!(2));
     // The active table's options, for the Table Design tab.
     doc.execute("range.setValues", json!({ "range": "A1", "values": [["a", "b"], [1, 2]] })).unwrap();
-    doc.execute("home.formatAsTable", json!({ "range": "A1:B2", "style": "TableStyleLight9" })).unwrap();
+    doc.execute("table.formatAs", json!({ "range": "A1:B2", "style": "TableStyleLight9" })).unwrap();
     let t = get(&doc, "tableInfo");
     assert_eq!((t["style"].clone(), t["header"].clone(), t["bandedRows"].clone()), (json!("TableStyleLight9"), json!(true), json!(true)));
 }
@@ -1226,7 +1226,7 @@ fn a_command_without_its_values_asks_the_editor_for_its_dialog() {
 #[test]
 fn checkbox_cells_toggle_on_their_box_and_refuse_typing() {
     let mut doc = SheetDocument::create("Boxes.xlsx", 0, 0).unwrap();
-    doc.execute("insert.checkbox", json!({ "range": "A1:A2" })).unwrap();
+    doc.execute("checkbox.insert", json!({ "range": "A1:A2" })).unwrap();
     let (cx, cy) = centre(0, 0);
     click(&mut doc, (cx, cy), false);
     assert_eq!(value(&mut doc, "A1")["value"], json!(true), "a press on the box ticks it");
@@ -1247,7 +1247,7 @@ fn checkbox_cells_toggle_on_their_box_and_refuse_typing() {
     assert!(get(&doc, "notice")["seq"].as_u64() > notice["seq"].as_u64(), "F2 says why again");
     doc.execute("editor.formula", json!({ "text": "x" })).unwrap();
     assert_eq!(get(&doc, "editing"), json!(false), "nor the formula bar");
-    assert!(doc.execute("insert.link", json!({ "target": "https://example.com" })).is_err());
+    assert!(doc.execute("link.insert", json!({ "target": "https://example.com" })).is_err());
     // A plain cell: typed as before.
     click(&mut doc, centre(1, 0), false);
     assert_eq!(get(&doc, "checkbox"), json!(false));
@@ -1262,25 +1262,25 @@ fn checkbox_cells_toggle_on_their_box_and_refuse_typing() {
 fn symbols_go_in_at_the_caret_or_after_the_text() {
     let mut doc = SheetDocument::create("Symbols.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "A1", "input": "温度" })).unwrap();
-    doc.execute("insert.symbol", json!({ "char": "℃" })).unwrap();
+    doc.execute("symbol.insert", json!({ "char": "℃" })).unwrap();
     assert_eq!((get(&doc, "editing"), get(&doc, "editText")), (json!(true), json!("温度℃")), "the cell opens with the symbol after its text");
-    doc.execute("insert.symbol", json!({ "char": "±" })).unwrap();
+    doc.execute("symbol.insert", json!({ "char": "±" })).unwrap();
     key(&mut doc, "ArrowLeft", false);
-    doc.execute("insert.symbol", json!({ "char": "≈" })).unwrap();
+    doc.execute("symbol.insert", json!({ "char": "≈" })).unwrap();
     assert_eq!(get(&doc, "editText"), json!("温度℃≈±"), "at the caret");
     key(&mut doc, "Enter", false);
     assert_eq!(value(&mut doc, "A1")["value"], json!("温度℃≈±"));
     // An agent's goes straight into the active cell.
-    doc.execute("selection.set", json!({ "range": "B1" })).unwrap();
-    doc.execute_as("insert.symbol", json!({ "char": "≠" }), &kition_sheet_engine::Origin::agent("agent:test")).unwrap();
+    doc.execute("select.set", json!({ "range": "B1" })).unwrap();
+    doc.execute_as("symbol.insert", json!({ "char": "≠" }), &kition_sheet_engine::Origin::agent("agent:test")).unwrap();
     assert_eq!((get(&doc, "editing"), value(&mut doc, "B1")["value"].clone()), (json!(false), json!("≠")));
     // A date takes the cell's place.
     doc.execute("editor.insertText", json!({ "text": "2026/11/10" })).unwrap();
     assert_eq!(get(&doc, "editText"), json!("2026/11/10"));
     key(&mut doc, "Escape", false);
-    doc.execute("insert.checkbox", json!({ "range": "C1" })).unwrap();
-    doc.execute("selection.set", json!({ "range": "C1" })).unwrap();
-    let answer = doc.execute("insert.symbol", json!({ "char": "±" })).unwrap();
+    doc.execute("checkbox.insert", json!({ "range": "C1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "C1" })).unwrap();
+    let answer = doc.execute("symbol.insert", json!({ "char": "±" })).unwrap();
     assert!(answer["refused"].is_string() && get(&doc, "editing") == json!(false), "{answer}");
     assert!(doc.execute("editor.insertText", json!({ "text": "" })).is_err());
 }
@@ -1298,17 +1298,17 @@ fn font_commands_and_symbols_reach_a_selected_text_box() {
             .to_owned();
     click(&mut doc, (HEADER_W + 360.0, HEADER_H + 80.0), false);
     assert_eq!(get(&doc, "shape"), json!(id));
-    doc.execute("home.bold", json!({})).unwrap();
-    doc.execute("home.fontName", json!({ "name": "楷体" })).unwrap();
+    doc.execute("format.bold", json!({})).unwrap();
+    doc.execute("format.fontName", json!({ "name": "楷体" })).unwrap();
     let runs = |doc: &mut SheetDocument| {
         doc.execute("drawing.describe", json!({ "ids": [id] })).unwrap()["objects"][0]["text"]["paragraphs"][0]["runs"].clone()
     };
     let r = runs(&mut doc);
     assert_eq!((r[0]["bold"].clone(), r[0]["font"].clone()), (json!(true), json!("楷体")), "{r}");
     assert_ne!(value(&mut doc, "A1")["style"]["font"]["bold"], json!(true), "the cells are left alone");
-    doc.execute("home.bold", json!({})).unwrap();
+    doc.execute("format.bold", json!({})).unwrap();
     assert_eq!(runs(&mut doc)[0].get("bold"), None, "a second Bold takes it off");
-    doc.execute("insert.symbol", json!({ "char": "＋" })).unwrap();
+    doc.execute("symbol.insert", json!({ "char": "＋" })).unwrap();
     assert_eq!(get(&doc, "shapeEditing"), json!(true));
     key(&mut doc, "Escape", false);
     let text = doc.execute("drawing.describe", json!({ "ids": [id] })).unwrap()["objects"][0]["text"].clone();
@@ -1344,7 +1344,7 @@ fn text_is_drawn_at_its_point_size() {
     add_font(&bytes);
     let mut doc = SheetDocument::create("Size.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "A1", "input": "国" })).unwrap();
-    doc.execute("home.fontSize", json!({ "range": "A1", "size": 72 })).unwrap();
+    doc.execute("format.fontSize", json!({ "range": "A1", "size": 72 })).unwrap();
     let (w, h) = (300u32, 200u32);
     let px = doc.render(HEADER_W, HEADER_H, 1.0, w, h).unwrap();
     let rows: Vec<u32> = (0..h).filter(|y| (0..w).any(|x| px.get(((y * w + x) * 4) as usize).is_some_and(|v| *v < 100))).collect();
@@ -1358,7 +1358,7 @@ fn text_is_drawn_at_its_point_size() {
 fn the_sheet_exports_as_a_picture() {
     let mut doc = SheetDocument::create("Picture.xlsx", 0, 0).unwrap();
     doc.execute("cell.set", json!({ "cell": "C3", "input": "x" })).unwrap();
-    doc.execute("home.fillColor", json!({ "range": "C3", "color": "#FF0000" })).unwrap();
+    doc.execute("format.fillColor", json!({ "range": "C3", "color": "#FF0000" })).unwrap();
     let answer = doc.execute("file.export", json!({ "format": "png" })).unwrap();
     assert_eq!((answer["extension"].as_str(), answer["mime"].as_str()), (Some("png"), Some("image/png")));
     let png = kition_sheet_engine::io::base64_decode(answer["data"].as_str().unwrap()).unwrap();
@@ -1467,8 +1467,8 @@ fn a_filter_buttons_press_asks_for_its_list() {
     for (cell, input) in [("A1", "名称"), ("B1", "数量"), ("A2", "x"), ("B2", "1")] {
         doc.execute("cell.set", json!({ "cell": cell, "input": input })).unwrap();
     }
-    doc.execute("insert.table", json!({ "range": "A1:B2" })).unwrap();
-    doc.execute("selection.set", json!({ "range": "B2" })).unwrap();
+    doc.execute("table.insert", json!({ "range": "A1:B2" })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2" })).unwrap();
     // B1's button sits at the right of the cell.
     let button = (HEADER_W + 2.0 * CW - 8.0, HEADER_H + RH - 7.0);
     click(&mut doc, button, false);
@@ -1538,7 +1538,7 @@ fn a_new_circular_reference_is_warned_about_once() {
 fn the_cell_being_typed_is_centred_in_a_tall_row() {
     use kition_kit::KitDocument;
     let mut doc = SheetDocument::create("Tall.xlsx", 0, 0).unwrap();
-    doc.execute("home.rowHeight", json!({ "rows": "1:1", "height": 40 })).unwrap();
+    doc.execute("row.setHeight", json!({ "rows": "1:1", "height": 40 })).unwrap();
     click(&mut doc, centre(0, 0), false);
     KitTools::text(&mut doc, "x", 1.0).unwrap();
     let b = doc.edit_box(0.0, 0.0, 1.0).unwrap();
@@ -1547,7 +1547,7 @@ fn the_cell_being_typed_is_centred_in_a_tall_row() {
     assert!((above - below).abs() < 1.0, "centred: {above} above, {below} below");
     assert!(above > 5.0, "the row is taller than the text");
     doc.key("Escape", ToolMods::default(), 1.0).unwrap();
-    doc.execute("home.alignTop", json!({})).unwrap();
+    doc.execute("format.alignTop", json!({})).unwrap();
     click(&mut doc, centre(0, 0), false);
     KitTools::text(&mut doc, "x", 1.0).unwrap();
     let b = doc.edit_box(0.0, 0.0, 1.0).unwrap();
@@ -1587,15 +1587,15 @@ fn affordances() -> SheetDocument {
     doc.execute("range.setValues", json!({ "range": "A1:D5", "values": [["Item", "Q1", "Q2", "Q3"], ["Rent", 12, 14, 9], ["Food", 4, 7, 6], ["Fuel", 8, 3, 5], ["Tax", 2, 6, 11]] }))
         .unwrap();
     doc.execute("data.filter", json!({ "range": "A1:D5" })).unwrap();
-    doc.execute("insert.checkbox", json!({ "range": "F2:F4" })).unwrap();
+    doc.execute("checkbox.insert", json!({ "range": "F2:F4" })).unwrap();
     doc.execute("cell.set", json!({ "cell": "F3", "input": "TRUE" })).unwrap();
-    doc.execute("home.fillColor", json!({ "range": "F4", "color": "#C6EFCE" })).unwrap();
-    doc.execute("review.newNote", json!({ "cell": "B2", "text": "A note" })).unwrap();
-    doc.execute("review.newComment", json!({ "cell": "C2", "text": "A comment", "author": "Example" })).unwrap();
-    doc.execute("home.conditionalFormat", json!({ "range": "D2:D5", "rule": { "type": "dataBar", "color": "#5B9BD5" } })).unwrap();
-    doc.execute("insert.sparkline", json!({ "range": "B2:D2", "location": "E2", "type": "line", "markers": true })).unwrap();
+    doc.execute("format.fillColor", json!({ "range": "F4", "color": "#C6EFCE" })).unwrap();
+    doc.execute("note.add", json!({ "cell": "B2", "text": "A note" })).unwrap();
+    doc.execute("comment.add", json!({ "cell": "C2", "text": "A comment", "author": "Example" })).unwrap();
+    doc.execute("conditionalFormat.apply", json!({ "range": "D2:D5", "rule": { "type": "dataBar", "color": "#5B9BD5" } })).unwrap();
+    doc.execute("sparkline.insert", json!({ "range": "B2:D2", "location": "E2", "type": "line", "markers": true })).unwrap();
     doc.execute("data.group", json!({ "rows": "7:8" })).unwrap();
-    doc.execute("insert.chart", json!({ "range": "A1:B5", "type": "column" })).unwrap();
+    doc.execute("chart.insert", json!({ "range": "A1:B5", "type": "column" })).unwrap();
     let sheet = std::sync::Arc::make_mut(&mut doc.session.doc_mut().unwrap().wb).sheet_mut(0).unwrap();
     // The chart right of everything else, so nothing is under it.
     let anchor = &mut sheet.charts[0].anchor;
@@ -1610,7 +1610,7 @@ fn affordances() -> SheetDocument {
             ..Default::default()
         });
     }
-    doc.execute("selection.set", json!({ "range": "K30" })).unwrap();
+    doc.execute("select.set", json!({ "range": "K30" })).unwrap();
     doc
 }
 

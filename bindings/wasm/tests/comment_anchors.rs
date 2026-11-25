@@ -38,7 +38,7 @@ fn run(doc: &mut SheetDocument, command: &str, params: Value) -> Value {
 /// The anchor of `range` (selected, `active` its first cell).
 fn anchor(doc: &mut SheetDocument, range: &str) -> Value {
     let active = range.split(':').next().unwrap();
-    run(doc, "selection.set", json!({ "range": range, "active": active }));
+    run(doc, "select.set", json!({ "range": range, "active": active }));
     run(doc, "editor.commentAnchor", json!({}))["anchor"].clone()
 }
 
@@ -81,13 +81,13 @@ fn anchors_follow_inserted_rows_and_columns() {
     let mut doc = workbook();
     let cell = anchor(&mut doc, "C3");
     let range = anchor(&mut doc, "B2:C4");
-    run(&mut doc, "home.insertRows", json!({ "rows": "1:2" }));
+    run(&mut doc, "row.insert", json!({ "rows": "1:2" }));
     assert_eq!(places(&mut doc, &[&cell, &range]), vec![Some("Sheet1!C5".to_owned()), Some("Sheet1!B4:C6".to_owned())]);
-    run(&mut doc, "home.insertColumns", json!({ "cols": "B:B" }));
+    run(&mut doc, "column.insert", json!({ "cols": "B:B" }));
     assert_eq!(places(&mut doc, &[&cell, &range]), vec![Some("Sheet1!D5".to_owned()), Some("Sheet1!C4:D6".to_owned())]);
     // Inside the range: it grows; below and right of it: nothing moves.
-    run(&mut doc, "home.insertRows", json!({ "rows": "5:5" }));
-    run(&mut doc, "home.insertColumns", json!({ "cols": "Z:Z" }));
+    run(&mut doc, "row.insert", json!({ "rows": "5:5" }));
+    run(&mut doc, "column.insert", json!({ "cols": "Z:Z" }));
     assert_eq!(places(&mut doc, &[&cell, &range]), vec![Some("Sheet1!D6".to_owned()), Some("Sheet1!C4:D7".to_owned())]);
 }
 
@@ -97,14 +97,14 @@ fn anchors_follow_deleted_rows_and_columns_and_go_with_their_cells() {
     let cell = anchor(&mut doc, "C4");
     let range = anchor(&mut doc, "B2:D5");
     let first_row = anchor(&mut doc, "A2");
-    run(&mut doc, "home.deleteRows", json!({ "rows": "1:1" }));
-    run(&mut doc, "home.deleteColumns", json!({ "cols": "A:A" }));
+    run(&mut doc, "row.delete", json!({ "rows": "1:1" }));
+    run(&mut doc, "column.delete", json!({ "cols": "A:A" }));
     assert_eq!(places(&mut doc, &[&cell, &range, &first_row]), vec![Some("Sheet1!B3".to_owned()), Some("Sheet1!A1:C4".to_owned()), None]);
     // The range's first row deleted: it shrinks to the rows left, as Excel's ranges do.
-    run(&mut doc, "home.deleteRows", json!({ "rows": "1:1" }));
+    run(&mut doc, "row.delete", json!({ "rows": "1:1" }));
     assert_eq!(places(&mut doc, &[&cell, &range]), vec![Some("Sheet1!B2".to_owned()), Some("Sheet1!A1:C3".to_owned())]);
     // The cell's own row deleted: its anchor is gone, as an Excel comment goes with its cell.
-    run(&mut doc, "home.deleteRows", json!({ "rows": "2:2" }));
+    run(&mut doc, "row.delete", json!({ "rows": "2:2" }));
     assert_eq!(places(&mut doc, &[&cell, &range]), vec![None, Some("Sheet1!A1:C2".to_owned())]);
     // Undo brings the row back, and the anchor with it.
     run(&mut doc, "edit.undo", json!({}));
@@ -117,10 +117,10 @@ fn an_empty_cell_below_the_data_moves_with_rows_inserted_above_the_data() {
     let below = anchor(&mut doc, "F40");
     let columns = anchor(&mut doc, "C:D");
     assert_eq!(place(&mut doc, &below).as_deref(), Some("Sheet1!F40"));
-    run(&mut doc, "home.insertRows", json!({ "rows": "2:4" }));
-    run(&mut doc, "home.insertColumns", json!({ "cols": "A:A" }));
+    run(&mut doc, "row.insert", json!({ "rows": "2:4" }));
+    run(&mut doc, "column.insert", json!({ "cols": "A:A" }));
     assert_eq!(places(&mut doc, &[&below, &columns]), vec![Some("Sheet1!G43".to_owned()), Some("Sheet1!D:E".to_owned())]);
-    run(&mut doc, "home.deleteRows", json!({ "rows": "1:1" }));
+    run(&mut doc, "row.delete", json!({ "rows": "1:1" }));
     assert_eq!(place(&mut doc, &below).as_deref(), Some("Sheet1!G42"));
 }
 
@@ -131,7 +131,7 @@ fn anchors_keep_their_sheet_through_renames_moves_and_new_sheets() {
     run(&mut doc, "sheet.rename", json!({ "name": "Budget 2026" }));
     assert_eq!(place(&mut doc, &cell).as_deref(), Some("Budget 2026!B2"));
     assert_eq!(anchor(&mut doc, "B2")["label"], "'Budget 2026'!B2");
-    run(&mut doc, "home.insertSheet", json!({ "name": "Notes", "before": 0 }));
+    run(&mut doc, "sheet.insert", json!({ "name": "Notes", "before": 0 }));
     let answer = run(&mut doc, "editor.commentPlaces", json!({ "anchors": [cell] }));
     let found = &answer["places"][0];
     assert_eq!((found["found"].clone(), found["sheet"].clone(), found["range"].clone()), (json!(true), json!("Budget 2026"), json!("B2")));
@@ -140,7 +140,7 @@ fn anchors_keep_their_sheet_through_renames_moves_and_new_sheets() {
     run(&mut doc, "sheet.move", json!({ "sheet": "Budget 2026", "to": 0 }));
     run(&mut doc, "sheet.rename", json!({ "sheet": "Budget 2026", "name": "Plan" }));
     assert_eq!(place(&mut doc, &cell).as_deref(), Some("Plan!B2"), "moved and renamed again");
-    run(&mut doc, "home.deleteSheet", json!({ "sheet": "Plan" }));
+    run(&mut doc, "sheet.delete", json!({ "sheet": "Plan" }));
     assert_eq!(place(&mut doc, &cell), None, "its sheet deleted");
 }
 
@@ -153,8 +153,8 @@ fn another_replica_finds_the_anchor_after_its_own_edits() {
     let mut theirs = SheetDocument::open_with_replica("Comments.xlsx", &[], &snapshot, &blobs).unwrap();
     assert_eq!(place(&mut theirs, &cell).as_deref(), Some("Sheet1!C3"));
     let since = theirs.version().unwrap();
-    run(&mut theirs, "home.insertRows", json!({ "rows": "1:1" }));
-    run(&mut theirs, "home.insertColumns", json!({ "cols": "A:A" }));
+    run(&mut theirs, "row.insert", json!({ "rows": "1:1" }));
+    run(&mut theirs, "column.insert", json!({ "cols": "A:A" }));
     assert_eq!(place(&mut theirs, &cell).as_deref(), Some("Sheet1!D4"));
     let changes = theirs.export_changes(&since).unwrap();
     mine.import_changes(&changes).unwrap();

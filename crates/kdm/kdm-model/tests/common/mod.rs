@@ -711,7 +711,7 @@ pub fn rename_sheet(wb: &mut Workbook, sheet: usize, name: &str) {
     }
 }
 
-/// Deletes sheet `sheet` (the engine's `home.deleteSheet`): formulas naming it read `#REF!`,
+/// Deletes sheet `sheet` (the engine's `sheet.delete`): formulas naming it read `#REF!`,
 /// names scoped to it go, later scopes shift.
 pub fn delete_sheet(wb: &mut Workbook, sheet: usize) {
     let order: Vec<String> = wb.sheets.iter().map(|s| s.name.clone()).collect();
@@ -752,7 +752,7 @@ pub fn delete_sheet(wb: &mut Workbook, sheet: usize) {
     wb.active_sheet = wb.active_sheet.min(wb.sheets.len().saturating_sub(1));
 }
 
-/// Inserts a new sheet at `at` (the engine's `home.insertSheet`): later scopes shift.
+/// Inserts a new sheet at `at` (the engine's `sheet.insert`): later scopes shift.
 pub fn insert_sheet(wb: &mut Workbook, at: usize, name: &str) {
     let at = at.min(wb.sheets.len());
     wb.sheets.insert(at, Arc::new(Sheet::new(name)));

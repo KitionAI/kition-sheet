@@ -47,7 +47,7 @@ fn a_shared_name_retains_each_callers_metadata_dependencies() {
     for (cell, input) in [("B7", "7"), ("D4", "=CELL(\"width\",Source)"), ("P4", "=SUM(Source)")] {
         doc.execute("cell.set", json!({"cell":cell,"input":input})).unwrap();
     }
-    doc.execute("formulas.defineName", json!({"name":"Source","refersTo":"=Sheet1!B7"})).unwrap();
+    doc.execute("name.define", json!({"name":"Source","refersTo":"=Sheet1!B7"})).unwrap();
     let under = doc.under("cell.set", &json!({"cell":"E1","input":"=D4+P4"})).unwrap().unwrap();
     let width_axes = under.premises.iter().filter(|p| {
         p.id.as_str().is_some_and(|id| id.starts_with("col:"))
@@ -59,7 +59,7 @@ fn a_shared_name_retains_each_callers_metadata_dependencies() {
 #[test]
 fn three_dimensional_sources_hold_tab_order() {
     let mut doc = SheetDocument::create("Book.xlsx", 0, 0).unwrap();
-    doc.execute("home.insertSheet", json!({"name":"Notes","before":1})).unwrap();
+    doc.execute("sheet.insert", json!({"name":"Notes","before":1})).unwrap();
     let under = doc.under("cell.set", &json!({"sheet":"Sheet1","cell":"E1","input":"=SUM(Sheet1:Notes!B2:B9)"})).unwrap().unwrap();
     assert!(has(&under, |id| id == "workbook", "~tabs"), "moving a tab changes a three-dimensional source");
 }

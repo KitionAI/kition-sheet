@@ -37,7 +37,7 @@ pub(crate) fn drawing_parameters(command: &str) -> &'static [&'static str] {
         | "arrange.bringForward"
         | "arrange.sendBackward"
         | "arrange.rotate"
-        | "draw.inkToShape"
+        | "ink.toShape"
         | "chart.shapeOutline" => &["id"],
         "drawing.reconnect" => &["id", "to"],
         "drawing.connect" => &["from", "to"],
@@ -60,7 +60,7 @@ fn types(command: &str) -> &'static [(&'static str, &'static [&'static str])] {
     match command {
         "drawing.connect" => &[("from", SHAPE), ("to", SHAPE)],
         "drawing.reconnect" => &[("id", SHAPE), ("to", SHAPE)],
-        "drawing.text" | "shape.setText" | "arrange.rotate" | "chart.shapeOutline" | "draw.inkToShape" => &[("id", SHAPE)],
+        "drawing.text" | "shape.setText" | "arrange.rotate" | "chart.shapeOutline" | "ink.toShape" => &[("id", SHAPE)],
         "drawing.chart" => &[("ids", CHART), ("id", CHART)],
         "chart.shapeFill" => &[("id", SHAPE), ("chart", CHART)],
         "drawing.group" => &[("ids", SHAPE_GROUP)],
@@ -90,7 +90,7 @@ pub(crate) fn declare(commands: &mut [KitCommand]) {
     for command in commands {
         let schema = command.schema.as_ref();
         let has = |key: &str| schema.is_some_and(|schema| schema.get(key).is_some());
-        let has_sheet = has("sheet") && !matches!(command.id.as_str(), "data.fromTextCsv" | "data.getData" | "home.clearRules");
+        let has_sheet = has("sheet") && !matches!(command.id.as_str(), "data.fromTextCsv" | "data.getData" | "conditionalFormat.clearRules");
         let (objects, places, object_types) = cache.entry(command.id.clone()).or_insert_with(|| {
             let objects: Vec<_> = drawing_parameters(&command.id).iter().copied().filter(|key| has(key) && Some(*key) != command.targets).collect();
             let mut places: Vec<_> = ["sheet", "scope", "table", "pivot", "cell", "range", "rows", "cols"]
@@ -99,51 +99,44 @@ pub(crate) fn declare(commands: &mut [KitCommand]) {
                 .collect();
             places.retain(|key| match command.id.as_str() {
                 "edit.undo" | "edit.redo" => *key != "scope",
-                "insert.pivotTable" => !matches!(*key, "rows" | "cols"),
+                "pivot.insert" => !matches!(*key, "rows" | "cols"),
                 "table.summarizePivot" => !matches!(*key, "rows" | "cols"),
                 "pivot.grandTotals" => !matches!(*key, "rows" | "cols"),
                 _ => true,
             });
             match command.id.as_str() {
                 "edit.paste" | "edit.pasteSpecial" if has("at") => places.push("at"),
-                "home.insertSheet" => places.push("before"),
+                "sheet.insert" => places.push("before"),
                 "sheet.move" => places.push("to"),
                 "edit.moveCells" => places.extend(["from", "to"]),
                 "drawing.erase" => places.extend(["path", "x", "y"]),
-                "formulas.defineName" => places.extend(["name", "refersTo"]),
-                "formulas.deleteName" | "home.cellStyle" | "table.deleteStyle" | "table.setDefaultStyle" => places.push("name"),
-                "home.newCellStyle" => places.extend(["name", "fromCell"]),
+                "name.define" => places.extend(["name", "refersTo"]),
+                "name.delete" | "style.apply" | "table.deleteStyle" | "table.setDefaultStyle" => places.push("name"),
+                "style.add" => places.extend(["name", "fromCell"]),
                 "cell.set" => places.push("name"),
                 "view.freezePanes" | "view.freezeRows" | "view.freezeColumns" | "view.freezeTopRow" | "view.freezeFirstColumn" => places.push("top"),
-                "pageLayout.pageSetup" => places.extend(["printArea", "titleRows", "titleCols", "rowBreaks", "colBreaks"]),
+                "page.pageSetup" => places.extend(["printArea", "titleRows", "titleCols", "rowBreaks", "colBreaks"]),
                 "edit.autoFill" => places.extend(["source", "target"]),
                 "edit.formatPainter" => places.push("apply"),
                 "data.sortAscending" | "data.sortDescending" | "data.filterBy" | "table.totalFunction" => places.push("column"),
                 "data.sort" => places.push("keys"),
                 "data.removeDuplicates" => places.push("columns"),
                 "table.removeDuplicates" => places.push("columns"),
-                "draw.stroke" => places.push("points"),
+                "ink.stroke" => places.push("points"),
                 "drawing.ink" => places.push("strokes"),
                 "drawing.insert" => places.push("frame"),
                 "drawing.reconnect" => places.push("point"),
-                "review.changeSpelling" => places.push("word"),
+                "spelling.change" => places.push("word"),
                 "data.subtotal" => places.extend(["groupBy", "columns"]),
                 "data.textToColumns" => places.push("destination"),
-                "home.formatAsTable" => places.push("style"),
+                "table.formatAs" => places.push("style"),
                 "table.newStyle" => places.push("replace"),
-                "insert.chart"
-                | "insert.recommendedCharts"
-                | "chart.set"
-                | "chart.move"
-                | "insert.picture"
-                | "insert.shape"
-                | "insert.icons"
-                | "insert.textBox"
-                | "object.move" => places.push("at"),
-                "insert.sparkline" => places.push("location"),
-                "insert.link" => places.push("target"),
-                "home.manageRules" => places.extend(["delete", "moveUp", "moveDown"]),
-                "insert.pivotTable" | "insert.recommendedPivotTables" => places.extend(["source", "range", "destination", "location"]),
+                "chart.insert" | "chart.recommended" | "chart.set" | "chart.move" | "image.insert" | "shape.insert" | "icon.insert"
+                | "textBox.insert" | "object.move" => places.push("at"),
+                "sparkline.insert" => places.push("location"),
+                "link.insert" => places.push("target"),
+                "conditionalFormat.manageRules" => places.extend(["delete", "moveUp", "moveDown"]),
+                "pivot.insert" | "pivot.recommended" => places.extend(["source", "range", "destination", "location"]),
                 "table.summarizePivot" => places.extend(["destination", "location"]),
                 "pivot.changeSource" => places.push("source"),
                 "data.goalSeek" => places.extend(["set", "changing"]),

@@ -11,7 +11,7 @@ use serde_json::json;
 fn change_colors_takes_a_list_of_colours() {
     let mut doc = SheetDocument::create("Colors.xlsx", 0, 0).unwrap();
     doc.execute("range.setValues", json!({ "range": "A1", "values": [["Brand", "Share"], ["A", 40], ["B", 30]] })).unwrap();
-    doc.execute("insert.chart", json!({ "range": "A1:B3", "type": "column" })).unwrap();
+    doc.execute("chart.insert", json!({ "range": "A1:B3", "type": "column" })).unwrap();
     doc.execute("chart.changeColors", json!({ "colors": ["#ff0000", "#00ff00"] })).unwrap();
     let described = doc.execute("drawing.describe", json!({})).unwrap();
     assert_eq!(described["objects"][0]["chart"]["series"][0]["color"], json!({ "rgb": "#FF0000" }), "{described}");
@@ -22,9 +22,9 @@ fn chart_schemas_name_what_the_commands_take() {
     let doc = SheetDocument::create("Schemas.xlsx", 0, 0).unwrap();
     let commands = doc.commands();
     let schema = |id: &str| commands.iter().find(|c| c.id == id).and_then(|c| c.schema.clone()).unwrap_or_else(|| panic!("{id}"));
-    let insert = schema("insert.chart");
+    let insert = schema("chart.insert");
     for key in ["seriesTypes", "secondary", "totals"] {
-        assert!(insert.get(key).is_some(), "insert.chart: {key} in {insert}");
+        assert!(insert.get(key).is_some(), "chart.insert: {key} in {insert}");
     }
     assert!(schema("chart.set").get("totals").is_some());
     assert!(schema("chart.changeColors").get("colors").is_some());

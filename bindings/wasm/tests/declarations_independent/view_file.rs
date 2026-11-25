@@ -34,30 +34,30 @@ ROW view.showZeros | params={} | resolves=active sheet | holds=sheet{props.showZ
 ROW view.rightToLeft | params={} | resolves=active sheet | holds=sheet{props.rightToLeft} | reads=part | writes=toggle or explicit on | note=view.rs:222
 ROW view.zoom | params={"percent":150} | resolves=active sheet | holds=none; replaced values: destination ~viewZoom | reads=part,session.dirty | writes=personal zoom and saved baseline if clean | note=view.rs:283; zoom excluded from KDM; same-field decision
 ROW view.zoomToSelection | params={} | resolves=active sheet and selection.current rectangle | holds=selected rows/columns{info.size,info.hidden};sheet{props.defaultRowHeight,props.defaultColWidth};selected row/column address windows; replaced values: destination ~viewZoom | reads=part,selection,session.dirty | writes=personal zoom from span geometry | note=view.rs:298; viewWidth/viewHeight default 1200/700; no cell contents; same-field decision
-ROW pageLayout.orientation | params={"orientation":"landscape"} | resolves=active sheet; sheet/range ignored | holds=sheet{props.print.orientation} | reads=part | writes=orientation only | note=view.rs:310
-ROW pageLayout.size | params={"paper":"A4"} | resolves=active sheet | holds=sheet{props.print.paper} | reads=part | writes=paper only; missing paper defaults A4 | note=view.rs:319
-ROW pageLayout.margins | params={"left":0.5} | resolves=active sheet | holds=sheet{props.print.margins} | reads=part | writes=supplied margins; preset replaces six then supplied keys override | note=view.rs:328; margins share one array register
-ROW pageLayout.printArea | params={"range":"Sheet2!C3:D4"} | resolves=range parsed after stripping sheet prefix; active sheet always | holds=sheet{props.print.print_area};row/column address windows C3:D4 | reads=part | writes=print area on active sheet | note=view.rs:352; target_sheet never called
-ROW pageLayout.printArea | params={} | resolves=active sheet and first selection area | holds=sheet{props.print.print_area};selected address windows | reads=part,selection | writes=print area | note=view.rs:352
-ROW pageLayout.printArea | params={"clear":true} | resolves=active sheet; target_range still parses/defaults before clear branch | holds=sheet{props.print.print_area} | reads=part,selection | writes=clears print area | note=view.rs:352; explicit range avoids selection read even when clearing
-ROW pageLayout.printTitles | params={"rows":"1:2","cols":"A:B"} | resolves=active sheet; rows/cols direct RangeRef parsing, no sheet lookup | holds=sheet{props.print.title_rows,props.print.title_cols};address windows rows 1:2 and columns A:B | reads=part | writes=both title spans; omitted/invalid span becomes None | note=view.rs:362
-ROW pageLayout.scaleToFit | params={"width":2} | resolves=active sheet; omitted partner is zero, not old fit dimension | holds=sheet{props.print.fit_to} | reads=part | writes=fit_to=(2,0) | note=view.rs:374; differs from pageSetup preservation branch
-ROW pageLayout.scaleToFit | params={"scale":90} | resolves=active sheet | holds=sheet{props.print.scale,props.print.fit_to} | reads=part | writes=scale and clears fit_to | note=view.rs:374
-ROW pageLayout.printGridlines | params={} | resolves=active sheet | holds=sheet{props.print.gridlines} | reads=part | writes=toggle or explicit on | note=view.rs:222
-ROW pageLayout.printHeadings | params={} | resolves=active sheet | holds=sheet{props.print.headings} | reads=part | writes=toggle or explicit on | note=view.rs:222
-ROW pageLayout.breaks | params={"cell":"Sheet2!C5"} | resolves=active sheet; ignores cell sheet prefix | holds=sheet{props.print.row_breaks,props.print.col_breaks};row/column address windows C5 | reads=part | writes=insert/remove break at row/column; de-duplicates and sorts | note=view.rs:389; absent insert/remove inserts
-ROW pageLayout.breaks | params={"reset":true} | resolves=active sheet; still reads selection.active before reset | holds=sheet{props.print.row_breaks,props.print.col_breaks} | reads=part,selection | writes=clears both lists | note=view.rs:389
-ROW pageLayout.headerFooter | params={"header":"Title"} | resolves=active sheet | holds=sheet{props.print.header} | reads=part | writes=supplied header/footer only | note=view.rs:417
-ROW pageLayout.theme | params={"name":"Meadow"} | resolves=builtin palette name or twelve literal colors; fonts literals | holds=root{theme} | reads=none | writes=theme name/colors and supplied major/minor fonts | note=view.rs:444; no cell/style read or recalculation/fitting
-ROW pageLayout.pageSetup | params={"sheet":"Sheet2","orientation":"landscape"} | resolves=sheet by name or zero-based index, range/cell prefix fallback, then active | holds=sheet{props.print.orientation} | reads=part | writes=supplied print properties; answer reads all print settings | note=print.rs:1486; name resolution holds sheet name, index holds tab order
-ROW pageLayout.pageSetup | params={"fitWidth":2} | resolves=active sheet | holds=sheet{props.print.fit_to} | reads=part | writes=fit width; omitted height taken from old fit_to or 1 | note=print.rs:1592; unlike scaleToFit
-ROW pageLayout.pageSetup | params={"printArea":"C3:D4","titleRows":"1:2","rowBreaks":[5]} | resolves=active sheet; strips prefix from printArea/title spans; rowBreaks are one-based | holds=sheet{props.print.print_area,props.print.title_rows,props.print.row_breaks};corresponding address windows | reads=part | writes=area/titles/break lists; invalid break entries filtered | note=print.rs:1518-1575
-ROW review.protectSheet | params={"sheet":"Sheet2","password":"p"} | resolves=sheet by name/index or range/cell prefix else active | holds=sheet{props.protection} | reads=part | writes=replaces protection with explicit defaults; no old password check | note=review.rs:26
-ROW review.unprotectSheet | params={"sheet":1,"password":"p"} | resolves=sheet zero-based index; name/prefix also supported | holds=sheet{props.protection} | reads=part | writes=clears protection after old hash password check | note=review.rs:49
-ROW review.protectWorkbook | params={} | resolves=workbook | holds=root{props.protectedStructure} | reads=none | writes=toggle protected_structure | note=review.rs:63; explicit on avoids toggle read
-ROW review.addToDictionary | params={"word":"Kition"} | resolves=session dictionary case-insensitive membership | holds=none | reads=session.prefs.user_dictionary | writes=preference only | note=spelling.rs:159
-ROW review.changeSpelling | params={"cell":"Sheet2!C3","word":"teh","to":"the"} | resolves=cell prefix discarded; reads and writes active sheet C3, ignoring sheet parameter | holds=active C3{input,text,style,array};destination constraints/protection/inherited style;fitted row inputs;translated formula sources if replacement parses formula;C3 address windows | reads=part | writes=cell.set with replaced input, can parse formula or number | note=spelling.rs:167; small local parameter-resolution defect candidate
-ROW review.changeSpelling | params={"word":"teh","to":"the","all":true} | resolves=edit.replace with matchCase=true/all=true and no sheet/range passed; active sheet used range | holds=active used range cell inputs/styles and replacement destinations/constraints/fitted rows;formula sources if parsed | reads=part | writes=all matching active-sheet entries via edit.replace | note=spelling.rs:170; cell parameter ignored on all path
+ROW page.orientation | params={"orientation":"landscape"} | resolves=active sheet; sheet/range ignored | holds=sheet{props.print.orientation} | reads=part | writes=orientation only | note=view.rs:310
+ROW page.size | params={"paper":"A4"} | resolves=active sheet | holds=sheet{props.print.paper} | reads=part | writes=paper only; missing paper defaults A4 | note=view.rs:319
+ROW page.margins | params={"left":0.5} | resolves=active sheet | holds=sheet{props.print.margins} | reads=part | writes=supplied margins; preset replaces six then supplied keys override | note=view.rs:328; margins share one array register
+ROW page.printArea | params={"range":"Sheet2!C3:D4"} | resolves=range parsed after stripping sheet prefix; active sheet always | holds=sheet{props.print.print_area};row/column address windows C3:D4 | reads=part | writes=print area on active sheet | note=view.rs:352; target_sheet never called
+ROW page.printArea | params={} | resolves=active sheet and first selection area | holds=sheet{props.print.print_area};selected address windows | reads=part,selection | writes=print area | note=view.rs:352
+ROW page.printArea | params={"clear":true} | resolves=active sheet; target_range still parses/defaults before clear branch | holds=sheet{props.print.print_area} | reads=part,selection | writes=clears print area | note=view.rs:352; explicit range avoids selection read even when clearing
+ROW page.printTitles | params={"rows":"1:2","cols":"A:B"} | resolves=active sheet; rows/cols direct RangeRef parsing, no sheet lookup | holds=sheet{props.print.title_rows,props.print.title_cols};address windows rows 1:2 and columns A:B | reads=part | writes=both title spans; omitted/invalid span becomes None | note=view.rs:362
+ROW page.scaleToFit | params={"width":2} | resolves=active sheet; omitted partner is zero, not old fit dimension | holds=sheet{props.print.fit_to} | reads=part | writes=fit_to=(2,0) | note=view.rs:374; differs from pageSetup preservation branch
+ROW page.scaleToFit | params={"scale":90} | resolves=active sheet | holds=sheet{props.print.scale,props.print.fit_to} | reads=part | writes=scale and clears fit_to | note=view.rs:374
+ROW page.printGridlines | params={} | resolves=active sheet | holds=sheet{props.print.gridlines} | reads=part | writes=toggle or explicit on | note=view.rs:222
+ROW page.printHeadings | params={} | resolves=active sheet | holds=sheet{props.print.headings} | reads=part | writes=toggle or explicit on | note=view.rs:222
+ROW page.breaks | params={"cell":"Sheet2!C5"} | resolves=active sheet; ignores cell sheet prefix | holds=sheet{props.print.row_breaks,props.print.col_breaks};row/column address windows C5 | reads=part | writes=insert/remove break at row/column; de-duplicates and sorts | note=view.rs:389; absent insert/remove inserts
+ROW page.breaks | params={"reset":true} | resolves=active sheet; still reads selection.active before reset | holds=sheet{props.print.row_breaks,props.print.col_breaks} | reads=part,selection | writes=clears both lists | note=view.rs:389
+ROW page.headerFooter | params={"header":"Title"} | resolves=active sheet | holds=sheet{props.print.header} | reads=part | writes=supplied header/footer only | note=view.rs:417
+ROW theme.set | params={"name":"Meadow"} | resolves=builtin palette name or twelve literal colors; fonts literals | holds=root{theme} | reads=none | writes=theme name/colors and supplied major/minor fonts | note=view.rs:444; no cell/style read or recalculation/fitting
+ROW page.pageSetup | params={"sheet":"Sheet2","orientation":"landscape"} | resolves=sheet by name or zero-based index, range/cell prefix fallback, then active | holds=sheet{props.print.orientation} | reads=part | writes=supplied print properties; answer reads all print settings | note=print.rs:1486; name resolution holds sheet name, index holds tab order
+ROW page.pageSetup | params={"fitWidth":2} | resolves=active sheet | holds=sheet{props.print.fit_to} | reads=part | writes=fit width; omitted height taken from old fit_to or 1 | note=print.rs:1592; unlike scaleToFit
+ROW page.pageSetup | params={"printArea":"C3:D4","titleRows":"1:2","rowBreaks":[5]} | resolves=active sheet; strips prefix from printArea/title spans; rowBreaks are one-based | holds=sheet{props.print.print_area,props.print.title_rows,props.print.row_breaks};corresponding address windows | reads=part | writes=area/titles/break lists; invalid break entries filtered | note=print.rs:1518-1575
+ROW sheet.protect | params={"sheet":"Sheet2","password":"p"} | resolves=sheet by name/index or range/cell prefix else active | holds=sheet{props.protection} | reads=part | writes=replaces protection with explicit defaults; no old password check | note=review.rs:26
+ROW sheet.unprotect | params={"sheet":1,"password":"p"} | resolves=sheet zero-based index; name/prefix also supported | holds=sheet{props.protection} | reads=part | writes=clears protection after old hash password check | note=review.rs:49
+ROW workbook.protect | params={} | resolves=workbook | holds=root{props.protectedStructure} | reads=none | writes=toggle protected_structure | note=review.rs:63; explicit on avoids toggle read
+ROW spelling.addToDictionary | params={"word":"Kition"} | resolves=session dictionary case-insensitive membership | holds=none | reads=session.prefs.user_dictionary | writes=preference only | note=spelling.rs:159
+ROW spelling.change | params={"cell":"Sheet2!C3","word":"teh","to":"the"} | resolves=cell prefix discarded; reads and writes active sheet C3, ignoring sheet parameter | holds=active C3{input,text,style,array};destination constraints/protection/inherited style;fitted row inputs;translated formula sources if replacement parses formula;C3 address windows | reads=part | writes=cell.set with replaced input, can parse formula or number | note=spelling.rs:167; small local parameter-resolution defect candidate
+ROW spelling.change | params={"word":"teh","to":"the","all":true} | resolves=edit.replace with matchCase=true/all=true and no sheet/range passed; active sheet used range | holds=active used range cell inputs/styles and replacement destinations/constraints/fitted rows;formula sources if parsed | reads=part | writes=all matching active-sheet entries via edit.replace | note=spelling.rs:170; cell parameter ignored on all path
 ROW file.exportPdf | params={} | resolves=active/all sheets and range on active sheet; build_pdf reads all render inputs | holds=whole rendered sheets,print settings,styles,theme,formula values,objects,geometry | reads=part,session.path | writes=external PDF or bytes only | note=print.rs:1431
 ROW file.print | params={} | resolves=same as exportPdf; no workbook mutation | holds=whole rendered sheets,print settings,styles,theme,formula values,objects,geometry | reads=part,session.path | writes=PDF bytes and optional external file | note=print.rs:1442
 "##;
@@ -83,10 +83,10 @@ fn stored_view_property_mismatches_only_decrease() {
     let mut doc = kition_sheet_kit::SheetDocument::create("Book.xlsx", 0, 0).expect("fixture");
     let values: Vec<_> = (1..=12).map(|row| serde_json::json!([row, row * 2, row * 3, row * 4])).collect();
     doc.execute("range.setValues", serde_json::json!({"range":"A1","values":values})).expect("cells");
-    doc.execute("home.insertSheet", serde_json::json!({"name":"Sheet2","before":9})).expect("second sheet");
+    doc.execute("sheet.insert", serde_json::json!({"name":"Sheet2","before":9})).expect("second sheet");
     doc.execute("range.setValues", serde_json::json!({"range":"A1","values":values})).expect("second sheet cells");
     doc.execute("sheet.activate", serde_json::json!({"sheet":"Sheet1"})).expect("active sheet");
-    doc.execute("selection.set", serde_json::json!({"range":"C5"})).expect("selection");
+    doc.execute("select.set", serde_json::json!({"range":"C5"})).expect("selection");
     doc.version().expect("materialize observed identities");
     let (mut less, mut more, mut compared) = (BTreeSet::new(), BTreeSet::new(), BTreeSet::new());
     for row in READINGS.lines().filter(|line| line.starts_with("ROW ")) {
@@ -130,7 +130,7 @@ fn stored_view_property_mismatches_only_decrease() {
         }
         // Pinned after reading cmd::edit's shared commit path: replacing sheet
         // protection also reroutes that sheet's connectors.
-        if matches!(command, "review.protectSheet" | "review.unprotectSheet") {
+        if matches!(command, "sheet.protect" | "sheet.unprotect") {
             expected.insert("~editConnectors".into());
         }
         let under = doc.under(command, &params).expect("under").expect("stored write");
@@ -185,22 +185,22 @@ const WRITES: &[&str] = &[
     "view.headings",
     "view.showZeros",
     "view.rightToLeft",
-    "pageLayout.orientation",
-    "pageLayout.size",
-    "pageLayout.margins",
-    "pageLayout.printArea",
-    "pageLayout.printTitles",
-    "pageLayout.scaleToFit",
-    "pageLayout.printGridlines",
-    "pageLayout.printHeadings",
-    "pageLayout.breaks",
-    "pageLayout.headerFooter",
-    "pageLayout.theme",
-    "pageLayout.pageSetup",
-    "review.protectSheet",
-    "review.unprotectSheet",
-    "review.protectWorkbook",
-    "review.changeSpelling",
+    "page.orientation",
+    "page.size",
+    "page.margins",
+    "page.printArea",
+    "page.printTitles",
+    "page.scaleToFit",
+    "page.printGridlines",
+    "page.printHeadings",
+    "page.breaks",
+    "page.headerFooter",
+    "theme.set",
+    "page.pageSetup",
+    "sheet.protect",
+    "sheet.unprotect",
+    "workbook.protect",
+    "spelling.change",
 ];
 
 #[test]
@@ -219,18 +219,18 @@ fn every_view_file_parameter_declaration_matches_reviewed_handler_resolution() {
         let (target, places): (Option<&str>, &[&str]) = match id {
             "view.freezePanes" | "view.freezeRows" | "view.freezeColumns" => (Some("cell"), &["cell", "top"]),
             "view.freezeTopRow" | "view.freezeFirstColumn" => (None, &["top"]),
-            "pageLayout.printArea" => (Some("range"), &["range"]),
-            "pageLayout.breaks" => (Some("cell"), &["cell"]),
+            "page.printArea" => (Some("range"), &["range"]),
+            "page.breaks" => (Some("cell"), &["cell"]),
             // Pinned after review: word is a source-membership predicate on the
             // all-match path, which needs the SDK's place coverage callback.
-            "review.changeSpelling" => (Some("cell"), &["cell", "word"]),
-            "pageLayout.printTitles" => (None, &["cols", "rows"]),
-            "pageLayout.pageSetup" => {
+            "spelling.change" => (Some("cell"), &["cell", "word"]),
+            "page.printTitles" => (None, &["cols", "rows"]),
+            "page.pageSetup" => {
                 // print.rs:1515-1573 interprets these values as coordinates on the
                 // resolved sheet, discarding any prefixes inside the setting values.
                 (Some("range"), &["sheet", "range", "cell", "printArea", "titleRows", "titleCols", "rowBreaks", "colBreaks"])
             }
-            "review.protectSheet" | "review.unprotectSheet" => (None, &["sheet"]),
+            "sheet.protect" | "sheet.unprotect" => (None, &["sheet"]),
             _ => (None, &[]),
         };
         let expected: BTreeSet<_> = places.iter().copied().collect();
@@ -248,7 +248,7 @@ fn every_view_file_parameter_declaration_matches_reviewed_handler_resolution() {
         if !command.objects.is_empty() {
             problems.push(format!("{id} unexpected object-id parameters {:?}", command.objects));
         }
-        let sheet_parameter = matches!(id, "pageLayout.pageSetup" | "review.protectSheet" | "review.unprotectSheet");
+        let sheet_parameter = matches!(id, "page.pageSetup" | "sheet.protect" | "sheet.unprotect");
         let expected_types: &[(&str, &[&str])] = if sheet_parameter { &[("sheet", &["Sheet"])] } else { &[] };
         let actual_types: BTreeSet<_> = command.object_types.iter().map(|(key, types)| (*key, types.to_vec())).collect();
         let wanted_types: BTreeSet<_> = expected_types.iter().map(|(key, types)| (*key, types.to_vec())).collect();
@@ -281,7 +281,7 @@ fn every_view_file_editor_declaration_matches_the_reviewed_handler_union() {
         }
     }
     // spelling::change fixes all=true for replace or supplies cell.set's cell.
-    wanted.insert("review.changeSpelling", BTreeSet::from(["part"]));
+    wanted.insert("spelling.change", BTreeSet::from(["part"]));
     // Pinned after review: io::save_bytes dispatches CSV/TSV/HTML through the
     // active sheet; the original blind XLSX save rows remain above.
     for command in ["file.save", "file.saveAs"] {
@@ -452,14 +452,14 @@ mod footprint {
         let values: Vec<_> = (1..=12).map(|row| json!([row, row * 2, row * 3, row * 4])).collect();
         for index in 0..3 {
             if index != 0 {
-                doc.execute("home.insertSheet", json!({"name":format!("Sheet{}",index+1),"before":9})).expect("sheet");
+                doc.execute("sheet.insert", json!({"name":format!("Sheet{}",index+1),"before":9})).expect("sheet");
             }
             doc.execute("range.setValues", json!({"range":"A1","values":values})).expect("cells");
             doc.execute("cell.set", json!({"cell":"C3","input":"teh"})).expect("spelling source");
         }
         doc.execute("cell.set", json!({"cell":"Z20","input":"unrelated"})).expect("unread sentinel");
         doc.execute("sheet.activate", json!({"sheet":"Sheet1"})).expect("active sheet");
-        doc.execute("selection.set", json!({"range":"C5"})).expect("selection");
+        doc.execute("select.set", json!({"range":"C5"})).expect("selection");
         doc.version().expect("materialized identities");
         doc
     }
@@ -518,7 +518,7 @@ mod footprint {
         match command {
             // Pinned after reading the shared edit tail, separately from the
             // unchanged blind direct-handler rows.
-            "review.protectSheet" | "review.unprotectSheet" => facts.add(sid, ["~editConnectors"], &[]),
+            "sheet.protect" | "sheet.unprotect" => facts.add(sid, ["~editConnectors"], &[]),
             "view.freezePanes" | "view.freezeRows" | "view.freezeColumns" | "view.freezeTopRow" | "view.freezeFirstColumn" => {
                 let (row, col) = match params.get("top").and_then(Value::as_str) {
                     Some("B2") => (1, 1),
@@ -534,7 +534,7 @@ mod footprint {
                     facts.address(model, sid, "cols", 2, 2);
                 }
             }
-            "pageLayout.printArea" if params.get("clear") != Some(&json!(true)) => {
+            "page.printArea" if params.get("clear") != Some(&json!(true)) => {
                 if params.get("range").is_some() {
                     facts.address(model, sid, "rows", 2, 3);
                     facts.address(model, sid, "cols", 2, 3);
@@ -543,21 +543,21 @@ mod footprint {
                     facts.address(model, sid, "cols", 2, 2);
                 }
             }
-            "pageLayout.printTitles" => {
+            "page.printTitles" => {
                 facts.address(model, sid, "rows", 0, 1);
                 facts.address(model, sid, "cols", 0, 1);
             }
-            "pageLayout.breaks" if params.get("reset") != Some(&json!(true)) => {
+            "page.breaks" if params.get("reset") != Some(&json!(true)) => {
                 facts.address(model, sid, "rows", 4, 4);
                 facts.address(model, sid, "cols", 2, 2);
             }
-            "pageLayout.pageSetup" if params.get("printArea").is_some() => {
+            "page.pageSetup" if params.get("printArea").is_some() => {
                 facts.address(model, sid, "rows", 2, 3);
                 facts.address(model, sid, "cols", 2, 3);
                 facts.address(model, sid, "rows", 0, 1);
                 facts.address(model, sid, "rows", 4, 4);
             }
-            "review.changeSpelling" => spelling(&mut facts, model, sid, params.get("all") == Some(&json!(true))),
+            "spelling.change" => spelling(&mut facts, model, sid, params.get("all") == Some(&json!(true))),
             _ => {}
         }
         facts
@@ -607,14 +607,14 @@ mod footprint {
             "view.headings" => &["props.showHeadings"],
             "view.showZeros" => &["props.showZeros"],
             "view.rightToLeft" => &["props.rightToLeft"],
-            "pageLayout.orientation" => &["props.print.orientation"],
-            "pageLayout.size" => &["props.print.paper"],
-            "pageLayout.margins" => &["props.print.margins"],
-            "pageLayout.scaleToFit" => &["props.print.scale", "props.print.fit_to"],
-            "pageLayout.printGridlines" => &["props.print.gridlines"],
-            "pageLayout.printHeadings" => &["props.print.headings"],
-            "review.protectSheet" | "review.unprotectSheet" => &["props.protection"],
-            "pageLayout.headerFooter" => {
+            "page.orientation" => &["props.print.orientation"],
+            "page.size" => &["props.print.paper"],
+            "page.margins" => &["props.print.margins"],
+            "page.scaleToFit" => &["props.print.scale", "props.print.fit_to"],
+            "page.printGridlines" => &["props.print.gridlines"],
+            "page.printHeadings" => &["props.print.headings"],
+            "sheet.protect" | "sheet.unprotect" => &["props.protection"],
+            "page.headerFooter" => {
                 facts.add(
                     sheet_id(command, params),
                     ["header", "footer"].into_iter().filter(|key| params.get(*key).is_some()).map(|key| format!("props.print.{key}")),
@@ -633,7 +633,7 @@ mod footprint {
                 );
                 return facts;
             }
-            "review.protectWorkbook" => {
+            "workbook.protect" => {
                 facts.add("workbook", ["props.protectedStructure"], &[]);
                 return facts;
             }
@@ -691,13 +691,13 @@ mod footprint {
             "file.close",
             "file.new",
             "file.open",
-            "pageLayout.breaks",
-            "pageLayout.pageSetup",
-            "pageLayout.printArea",
-            "pageLayout.printTitles",
-            "pageLayout.scaleToFit",
-            "pageLayout.theme",
-            "review.changeSpelling",
+            "page.breaks",
+            "page.pageSetup",
+            "page.printArea",
+            "page.printTitles",
+            "page.scaleToFit",
+            "theme.set",
+            "spelling.change",
             "view.freezeColumns",
             "view.freezeFirstColumn",
             "view.freezePanes",
@@ -707,7 +707,7 @@ mod footprint {
         ]);
         assert_eq!(
             baseline_less,
-            BTreeSet::from(["review.protectSheet", "review.unprotectSheet"]),
+            BTreeSet::from(["sheet.protect", "sheet.unprotect"]),
             "the shared edit tail also reads connector inputs for sheet protection"
         );
         assert_eq!(baseline_more, baseline_broad, "baseline 51e29b7 premise replay");
@@ -723,8 +723,8 @@ mod footprint {
             "view.freezePanes",
             "view.freezeRows",
             "view.freezeTopRow",
-            "pageLayout.pageSetup",
-            "review.changeSpelling",
+            "page.pageSetup",
+            "spelling.change",
             "file.save",
             "file.saveAs",
         ]);
@@ -732,23 +732,23 @@ mod footprint {
         // entries are metadata omissions, already covered by broad stored holds;
         // their wrong-write cause is the separately unrepresented origin default.
         let freeze = ["view.freezeColumns", "view.freezeFirstColumn", "view.freezePanes", "view.freezeRows", "view.freezeTopRow"];
-        let broad: Vec<_> = baseline_more.iter().copied().filter(|command| *command != "pageLayout.scaleToFit").collect();
+        let broad: Vec<_> = baseline_more.iter().copied().filter(|command| *command != "page.scaleToFit").collect();
         let unheld = [
             "view.freezeColumns",
             "view.freezeFirstColumn",
             "view.freezePanes",
             "view.freezeRows",
             "view.freezeTopRow",
-            "review.protectSheet",
-            "review.unprotectSheet",
+            "sheet.protect",
+            "sheet.unprotect",
         ];
         let classes: [(&str, &[&str], &[&str]); 6] = [
             ("parameter resolved differently from its name", &[], &[]),
-            ("value naming another object", &["pageLayout.pageSetup", "review.changeSpelling"], &[]),
+            ("value naming another object", &["page.pageSetup", "spelling.change"], &[]),
             ("default taken from elsewhere", &freeze, &[]),
-            ("two code paths computing one fact differently", &[], &["pageLayout.scaleToFit"]),
+            ("two code paths computing one fact differently", &[], &["page.scaleToFit"]),
             ("a read that is not held (or an unread fact held)", &unheld, &broad),
-            ("editor state read but not declared", &["review.changeSpelling", "file.save", "file.saveAs"], &["file.new", "file.open"]),
+            ("editor state read but not declared", &["spelling.change", "file.save", "file.saveAs"], &["file.new", "file.open"]),
         ];
         let (mut classified_less, mut classified_more) = (BTreeSet::new(), BTreeSet::new());
         for (class, missing, extra) in classes {

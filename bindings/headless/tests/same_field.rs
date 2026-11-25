@@ -37,7 +37,7 @@ async fn scalar_chart_assignments_hold_every_replaced_field() {
         ("dy", json!(4), json!(8)),
     ] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":if field == "totals" {"waterfall"} else {"column"},"title":"Original"}))]);
+        fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":if field == "totals" {"waterfall"} else {"column"},"title":"Original"}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[("chart.set", json!({"chart":1,field:colleague}))]);
         let before = fixture.bytes();
@@ -54,7 +54,7 @@ async fn scalar_chart_assignments_hold_every_replaced_field() {
             ("yTitle", json!("Outside")),
         ] {
             let fixture = Fixture::new();
-            fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
+            fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
             let basis = fixture.basis().await;
             fixture.colleague(&[("chart.set", json!({"chart":1,field:value}))]);
             let before = fixture.bytes();
@@ -74,13 +74,13 @@ async fn cell_name_style_table_rule_and_view_assignments_hold_the_replaced_value
         ("range.setValues", json!({"range":"B2","values":[[42]]}), "cell.set", json!({"cell":"B2","input":"99"})),
         ("range.fill", json!({"range":"B2:B3","input":"42"}), "cell.set", json!({"cell":"B3","input":"99"})),
         ("edit.clearContents", json!({"range":"B2"}), "cell.set", json!({"cell":"B2","input":"99"})),
-        ("home.bold", json!({"range":"B2","on":false}), "home.bold", json!({"range":"B2","on":true})),
-        ("home.fontSize", json!({"range":"B2","size":14}), "home.fontSize", json!({"range":"B2","size":24})),
-        ("home.fontColor", json!({"range":"B2","color":"#ABCDEF"}), "home.fontColor", json!({"range":"B2","color":"#123456"})),
-        ("home.numberFormat", json!({"range":"B2","code":"0.000"}), "home.numberFormat", json!({"range":"B2","code":"0.0"})),
-        ("formulas.defineName", json!({"name":"Existing","refersTo":"=42"}), "formulas.defineName", json!({"name":"Existing","refersTo":"=99"})),
-        ("formulas.deleteName", json!({"name":"Existing"}), "formulas.defineName", json!({"name":"Existing","refersTo":"=99"})),
-        ("home.newCellStyle", json!({"name":"ExistingStyle","fromCell":"B2"}), "home.newCellStyle", json!({"name":"ExistingStyle","fromCell":"C2"})),
+        ("format.bold", json!({"range":"B2","on":false}), "format.bold", json!({"range":"B2","on":true})),
+        ("format.fontSize", json!({"range":"B2","size":14}), "format.fontSize", json!({"range":"B2","size":24})),
+        ("format.color", json!({"range":"B2","color":"#ABCDEF"}), "format.color", json!({"range":"B2","color":"#123456"})),
+        ("format.numberFormat", json!({"range":"B2","code":"0.000"}), "format.numberFormat", json!({"range":"B2","code":"0.0"})),
+        ("name.define", json!({"name":"Existing","refersTo":"=42"}), "name.define", json!({"name":"Existing","refersTo":"=99"})),
+        ("name.delete", json!({"name":"Existing"}), "name.define", json!({"name":"Existing","refersTo":"=99"})),
+        ("style.add", json!({"name":"ExistingStyle","fromCell":"B2"}), "style.add", json!({"name":"ExistingStyle","fromCell":"C2"})),
         (
             "table.newStyle",
             json!({"name":"ExistingTableStyle","replace":"ExistingTableStyle","elements":{"wholeTable":{"italic":true}}}),
@@ -98,24 +98,24 @@ async fn cell_name_style_table_rule_and_view_assignments_hold_the_replaced_value
             "data.validation",
             json!({"range":"B2","type":"whole","formula1":"2","formula2":"20"}),
         ),
-        ("home.manageRules", json!({"delete":0}), "home.manageRules", json!({"moveDown":0})),
+        ("conditionalFormat.manageRules", json!({"delete":0}), "conditionalFormat.manageRules", json!({"moveDown":0})),
         ("view.gridlines", json!({"on":true}), "view.gridlines", json!({"on":false})),
         ("view.headings", json!({"on":true}), "view.headings", json!({"on":false})),
         ("view.zoom", json!({"percent":110}), "view.zoom", json!({"percent":150})),
-        ("pageLayout.orientation", json!({"orientation":"portrait"}), "pageLayout.orientation", json!({"orientation":"landscape"})),
-        ("pageLayout.headerFooter", json!({"header":"Agent"}), "pageLayout.headerFooter", json!({"header":"Colleague"})),
-        ("pageLayout.scaleToFit", json!({"width":2}), "pageLayout.scaleToFit", json!({"width":3})),
-        ("pageLayout.themeFonts", json!({"major":"Kition Mono"}), "pageLayout.themeFonts", json!({"major":"Kition Serif"})),
+        ("page.orientation", json!({"orientation":"portrait"}), "page.orientation", json!({"orientation":"landscape"})),
+        ("page.headerFooter", json!({"header":"Agent"}), "page.headerFooter", json!({"header":"Colleague"})),
+        ("page.scaleToFit", json!({"width":2}), "page.scaleToFit", json!({"width":3})),
+        ("theme.fonts", json!({"major":"Kition Mono"}), "theme.fonts", json!({"major":"Kition Serif"})),
     ] {
         let fixture = Fixture::new();
         fixture.colleague(&[
-            ("formulas.defineName", json!({"name":"Existing","refersTo":"=1"})),
-            ("home.fontSize", json!({"range":"C2","size":24})),
-            ("home.newCellStyle", json!({"name":"ExistingStyle","fromCell":"B2"})),
+            ("name.define", json!({"name":"Existing","refersTo":"=1"})),
+            ("format.fontSize", json!({"range":"C2","size":24})),
+            ("style.add", json!({"name":"ExistingStyle","fromCell":"B2"})),
             ("table.newStyle", json!({"name":"ExistingTableStyle","elements":{}})),
-            ("insert.table", json!({"range":"A1:C4","name":"Sales","header":true})),
-            ("home.conditionalFormat", json!({"range":"B2","rule":{"type":"blanks"}})),
-            ("home.conditionalFormat", json!({"range":"C3","rule":{"type":"blanks"}})),
+            ("table.insert", json!({"range":"A1:C4","name":"Sales","header":true})),
+            ("conditionalFormat.apply", json!({"range":"B2","rule":{"type":"blanks"}})),
+            ("conditionalFormat.apply", json!({"range":"C3","rule":{"type":"blanks"}})),
         ]);
         let basis = fixture.basis().await;
         fixture.colleague(&[(other_command, other)]);
@@ -158,7 +158,7 @@ async fn object_deletion_holds_the_content_it_removes() {
     let mut failures = Vec::new();
     for command in ["chart.delete", "object.delete", "drawing.delete"] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("insert.chart", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
+        fixture.colleague(&[("chart.insert", json!({"range":"A1:C4","type":"column","title":"Original"}))]);
         let basis = fixture.basis().await;
         fixture.colleague(&[("chart.set", json!({"chart":1,"title":"Colleague"}))]);
         let before = fixture.bytes();
@@ -180,7 +180,7 @@ async fn ink_conversion_holds_the_fill_it_replaces() {
     let mut failures = Vec::new();
     for explicit in [true, false] {
         let fixture = Fixture::new();
-        fixture.colleague(&[("draw.stroke", json!({"points":[[20,20],[60,60]],"color":"#654321"}))]);
+        fixture.colleague(&[("ink.stroke", json!({"points":[[20,20],[60,60]],"color":"#654321"}))]);
         let basis = fixture.basis().await;
         // XLSX ink stores its rounded pen width in fill's red channel on reopen.
         // A color-only fill edit does not survive that format, so change the width.
@@ -194,7 +194,7 @@ async fn ink_conversion_holds_the_fill_it_replaces() {
         );
         let before = fixture.bytes();
         let params = if explicit { json!({"id":1}) } else { json!({}) };
-        let result = fixture.run(basis, "draw.inkToShape", params).await;
+        let result = fixture.run(basis, "ink.toShape", params).await;
         check(&result, &before, &fixture.bytes(), &format!("ink conversion fill/{explicit}"), &mut failures);
         fixture.shutdown().await;
     }
@@ -207,8 +207,8 @@ async fn theme_font_assignment_preserves_the_other_font() {
     for (assigned, retained) in [("major", "minor"), ("minor", "major")] {
         let fixture = Fixture::new();
         let basis = fixture.basis().await;
-        fixture.colleague(&[("pageLayout.themeFonts", json!({retained:"Kition Serif"}))]);
-        fixture.run(basis, "pageLayout.themeFonts", json!({assigned:"Kition Mono"})).await.expect("the other font must stay applicable");
+        fixture.colleague(&[("theme.fonts", json!({retained:"Kition Serif"}))]);
+        fixture.run(basis, "theme.fonts", json!({assigned:"Kition Mono"})).await.expect("the other font must stay applicable");
         let (saved, _) = kition_sheet_engine::io::open_bytes("Book.xlsx", &fixture.bytes()).unwrap();
         assert_eq!(if assigned == "major" { &saved.theme.major_font } else { &saved.theme.minor_font }, "Kition Mono");
         assert_eq!(if retained == "major" { &saved.theme.major_font } else { &saved.theme.minor_font }, "Kition Serif");

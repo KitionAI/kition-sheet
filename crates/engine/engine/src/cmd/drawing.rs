@@ -227,7 +227,7 @@ pub(crate) fn insert(s: &mut Session, p: &Json) -> Result<Json> {
         return Err(EngineError::Other(PROTECTED.into()));
     }
     if p.get("frame").is_none() {
-        // At the active cell, the size `insert.shape` gives.
+        // At the active cell, the size `shape.insert` gives.
         let at = d.selection.active;
         let (w, h) = if o.kind == dm::ObjectKind::TextBox { (144.0, 48.0) } else { (144.0, 96.0) };
         o.frame = Xfrm::new(sheet.col_left(at.col), sheet.row_top(at.row), w, h);
@@ -237,7 +237,7 @@ pub(crate) fn insert(s: &mut Session, p: &Json) -> Result<Json> {
     let mut shape = Shape {
         id,
         kind: if text_box { ShapeKind::TextBox } else { ShapeKind::Rectangle },
-        // A text box is white with a grey pen, a shape the theme's accent, as `insert.shape` makes them.
+        // A text box is white with a grey pen, a shape the theme's accent, as `shape.insert` makes them.
         fill: if text_box { Color::rgb(255, 255, 255) } else { Color::Theme(4, 0) },
         line: if text_box { Color::rgb(0x80, 0x80, 0x80) } else { Color::Theme(4, -250) },
         // A shape's text is white, as in a shape Excel inserts.
@@ -291,7 +291,7 @@ fn insert_chart(s: &mut Session, p: &Json, o: &DrawingObject) -> Result<Json> {
         params["width"] = json!(o.frame.w);
         params["height"] = json!(o.frame.h);
     }
-    let made = s.execute("insert.chart", params)?;
+    let made = s.execute("chart.insert", params)?;
     let id = made.get("chart").and_then(Json::as_u64).ok_or_else(|| bad("drawing.insert", "the new chart was not made"))?.to_string();
     // The members given beyond the type and title, and the place, as `drawing.chart` and
     // `drawing.transform` set them (one undo step with the insert: commands run inside it push none).
@@ -1616,7 +1616,7 @@ mod tests {
         s.execute("edit.undo", json!({})).unwrap();
         assert_eq!(obj(&mut s, &c).frame, before);
         // Rows inserted between a and b push b down, and the connector's end with it.
-        s.execute("home.insertRows", json!({ "rows": "13:16" })).unwrap();
+        s.execute("row.insert", json!({ "rows": "13:16" })).unwrap();
         assert!(glued(&mut s) && obj(&mut s, &c).frame.h > before.h, "{:?} {before:?}", obj(&mut s, &c).frame);
     }
 
@@ -1754,7 +1754,7 @@ mod tests {
     #[test]
     fn insert_art_text_makes_a_drawing_object_with_its_warp() {
         let mut s = session();
-        let id = s.execute("insert.artText", json!({ "text": "Kition", "warp": "textArchUp" })).unwrap()["id"].as_str().unwrap().to_string();
+        let id = s.execute("artText.insert", json!({ "text": "Kition", "warp": "textArchUp" })).unwrap()["id"].as_str().unwrap().to_string();
         let o = obj(&mut s, &id);
         let t = o.text.clone().unwrap();
         assert_eq!(
@@ -1762,7 +1762,7 @@ mod tests {
             (dm::ObjectKind::TextBox, "Kition", Some(36.0), "textArchUp")
         );
         assert_eq!(o.fill, Some(dm::Fill::None));
-        let flat = s.execute("insert.artText", json!({})).unwrap()["id"].as_str().unwrap().to_string();
+        let flat = s.execute("artText.insert", json!({})).unwrap()["id"].as_str().unwrap().to_string();
         assert_eq!(obj(&mut s, &flat).text.unwrap().warp, None);
     }
 
@@ -1771,7 +1771,7 @@ mod tests {
         let mut s = session();
         let id = s.execute("drawing.insert", json!({ "frame": { "x": 70, "y": 45, "w": 50, "h": 20 } })).unwrap()["id"].as_str().unwrap().to_string();
         let before = obj(&mut s, &id).frame;
-        s.execute("home.insertRows", json!({ "rows": "1:2" })).unwrap();
+        s.execute("row.insert", json!({ "rows": "1:2" })).unwrap();
         let after = obj(&mut s, &id).frame;
         assert!(after.y > before.y + 1.0, "inserting rows above moves the shape down: {before:?} → {after:?}");
         assert_eq!(after.x, before.x);

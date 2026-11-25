@@ -7,7 +7,7 @@ intent: >-
   in the workspace, and nothing by an absolute path, `..`, or a `file:` URL; writes no file by path
   (file.save, file.saveAs, file.exportCsv, file.exportHtml, file.exportPdf, file.print; not even a
   bare name into the current folder), while what the host writes still comes back as bytes; and
-  reads no system word list. automate.runScript asks the host's gate
+  reads no system word list. script.run asks the host's gate
   (kition_kit::dispatch::may_run) for every step before any runs, so a refused step fails the
   script and nothing of it runs.
 layer: gate

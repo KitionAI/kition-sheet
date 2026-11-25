@@ -14,7 +14,7 @@ embedded image and its alt text, or export to PDF for a rendered copy.
 The command API accepts the same placement:
 
 ```json
-{"command":"insert.picture","params":{"path":"picture.png","placement":"cell","at":"B2","alt":"Product photo"}}
+{"command":"image.insert","params":{"path":"picture.png","placement":"cell","at":"B2","alt":"Product photo"}}
 ```
 
 This initial feature handles static pictures. Pasting an image from the operating system's

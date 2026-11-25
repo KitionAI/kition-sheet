@@ -93,15 +93,15 @@ fn font_fill_and_border_formatting_survives_save_and_reopen() {
         "range.setValues",
         json!({ "range": "A1", "values": [["Bold", "Italic", "Under", "Strike", "Font", "Size", "Red", "Filled", "Boxed"]] }),
     );
-    exec(&mut doc, "home.bold", json!({ "range": "A1", "on": true }));
-    exec(&mut doc, "home.italic", json!({ "range": "B1", "on": true }));
-    exec(&mut doc, "home.underline", json!({ "range": "C1", "on": true, "style": "double" }));
-    exec(&mut doc, "home.strikethrough", json!({ "range": "D1", "on": true }));
-    exec(&mut doc, "home.fontName", json!({ "range": "E1", "name": "Georgia" }));
-    exec(&mut doc, "home.fontSize", json!({ "range": "F1", "size": 18 }));
-    exec(&mut doc, "home.fontColor", json!({ "range": "G1", "color": "#C00000" }));
-    exec(&mut doc, "home.fillColor", json!({ "range": "H1", "color": "#FFFF00" }));
-    exec(&mut doc, "home.borders", json!({ "range": "I1", "preset": "thickOutside" }));
+    exec(&mut doc, "format.bold", json!({ "range": "A1", "on": true }));
+    exec(&mut doc, "format.italic", json!({ "range": "B1", "on": true }));
+    exec(&mut doc, "format.underline", json!({ "range": "C1", "on": true, "style": "double" }));
+    exec(&mut doc, "format.strikethrough", json!({ "range": "D1", "on": true }));
+    exec(&mut doc, "format.fontName", json!({ "range": "E1", "name": "Georgia" }));
+    exec(&mut doc, "format.fontSize", json!({ "range": "F1", "size": 18 }));
+    exec(&mut doc, "format.color", json!({ "range": "G1", "color": "#C00000" }));
+    exec(&mut doc, "format.fillColor", json!({ "range": "H1", "color": "#FFFF00" }));
+    exec(&mut doc, "format.borders", json!({ "range": "I1", "preset": "thickOutside" }));
     let font = |doc: &mut SheetDocument, at: &str| cell(doc, at)["style"]["font"].clone();
     assert_eq!(font(&mut doc, "A1")["bold"], json!(true));
     assert_eq!(font(&mut doc, "B1")["italic"], json!(true));
@@ -123,12 +123,12 @@ fn alignment_and_merges_survive_save_and_reopen() {
         "range.setValues",
         json!({ "range": "A1", "values": [["Centred title", null, null], ["Right", "Top", "A long text that wraps inside its cell"], ["Indented", "Turned", null]] }),
     );
-    exec(&mut doc, "home.mergeCenter", json!({ "range": "A1:C1" }));
-    exec(&mut doc, "home.alignRight", json!({ "range": "A2" }));
-    exec(&mut doc, "home.alignTop", json!({ "range": "B2" }));
-    exec(&mut doc, "home.wrapText", json!({ "range": "C2", "on": true }));
-    exec(&mut doc, "home.increaseIndent", json!({ "range": "A3" }));
-    exec(&mut doc, "home.orientation", json!({ "range": "B3", "angle": 45 }));
+    exec(&mut doc, "cell.mergeCenter", json!({ "range": "A1:C1" }));
+    exec(&mut doc, "format.alignRight", json!({ "range": "A2" }));
+    exec(&mut doc, "format.alignTop", json!({ "range": "B2" }));
+    exec(&mut doc, "format.wrapText", json!({ "range": "C2", "on": true }));
+    exec(&mut doc, "format.increaseIndent", json!({ "range": "A3" }));
+    exec(&mut doc, "format.orientation", json!({ "range": "B3", "angle": 45 }));
     let align = |doc: &mut SheetDocument, at: &str| cell(doc, at)["style"]["align"].clone();
     assert!(cell(&mut doc, "A1")["merge"].is_string() || cell(&mut doc, "A1")["merge"].is_object(), "{}", cell(&mut doc, "A1"));
     assert_eq!(align(&mut doc, "A2")["h"], json!("Right"));
@@ -143,11 +143,11 @@ fn alignment_and_merges_survive_save_and_reopen() {
 fn number_formats_survive_save_and_reopen() {
     let mut doc = new_workbook();
     exec(&mut doc, "range.setValues", json!({ "range": "A1", "values": [[1234.5, 0.256, 1234567.891, 42.1, 45000]] }));
-    exec(&mut doc, "home.accounting", json!({ "range": "A1", "symbol": "$" }));
-    exec(&mut doc, "home.percent", json!({ "range": "B1" }));
-    exec(&mut doc, "home.comma", json!({ "range": "C1" }));
-    exec(&mut doc, "home.numberFormat", json!({ "range": "D1", "format": "0.000" }));
-    exec(&mut doc, "home.numberFormat", json!({ "range": "E1", "format": "yyyy-mm-dd" }));
+    exec(&mut doc, "format.accounting", json!({ "range": "A1", "symbol": "$" }));
+    exec(&mut doc, "format.percent", json!({ "range": "B1" }));
+    exec(&mut doc, "format.comma", json!({ "range": "C1" }));
+    exec(&mut doc, "format.numberFormat", json!({ "range": "D1", "format": "0.000" }));
+    exec(&mut doc, "format.numberFormat", json!({ "range": "E1", "format": "yyyy-mm-dd" }));
     let text = |doc: &mut SheetDocument, at: &str| cell(doc, at)["text"].clone();
     assert_eq!(text(&mut doc, "B1"), json!("26%"));
     assert_eq!(text(&mut doc, "D1"), json!("42.100"));
@@ -161,11 +161,11 @@ fn number_formats_survive_save_and_reopen() {
 fn row_and_column_changes_survive_save_and_reopen() {
     let mut doc = new_workbook();
     exec(&mut doc, "range.setValues", json!({ "range": "A1", "values": [["a", "b", "c", "d"], [1, 2, 3, 4], [5, 6, 7, 8]] }));
-    exec(&mut doc, "home.columnWidth", json!({ "cols": "A:A", "width": 120 }));
-    exec(&mut doc, "home.rowHeight", json!({ "rows": "1:1", "height": 32 }));
-    exec(&mut doc, "home.insertRows", json!({ "rows": "2:2" }));
-    exec(&mut doc, "home.insertColumns", json!({ "cols": "B:B" }));
-    exec(&mut doc, "home.hideColumns", json!({ "cols": "E:E" }));
+    exec(&mut doc, "column.setWidth", json!({ "cols": "A:A", "width": 120 }));
+    exec(&mut doc, "row.setHeight", json!({ "rows": "1:1", "height": 32 }));
+    exec(&mut doc, "row.insert", json!({ "rows": "2:2" }));
+    exec(&mut doc, "column.insert", json!({ "cols": "B:B" }));
+    exec(&mut doc, "column.hide", json!({ "cols": "E:E" }));
     assert_eq!(cell(&mut doc, "A3")["value"], json!(1.0), "a row was inserted above the first data row");
     assert_eq!(cell(&mut doc, "C1")["value"], json!("b"), "a column was inserted before b");
     assert!(cell(&mut doc, "B2")["value"].is_null());
@@ -176,14 +176,14 @@ fn row_and_column_changes_survive_save_and_reopen() {
 fn sheet_management_survives_save_and_reopen() {
     let mut doc = new_workbook();
     exec(&mut doc, "range.setValues", json!({ "range": "A1", "values": [["first"]] }));
-    exec(&mut doc, "home.insertSheet", json!({ "name": "Data" }));
+    exec(&mut doc, "sheet.insert", json!({ "name": "Data" }));
     exec(&mut doc, "range.setValues", json!({ "range": "Data!A1", "values": [["second"]] }));
-    exec(&mut doc, "home.insertSheet", json!({ "name": "Archive" }));
+    exec(&mut doc, "sheet.insert", json!({ "name": "Archive" }));
     exec(&mut doc, "sheet.rename", json!({ "sheet": 0, "name": "Summary" }));
     exec(&mut doc, "sheet.tabColor", json!({ "sheet": "Data", "color": "#FF0000" }));
     exec(&mut doc, "sheet.move", json!({ "sheet": "Archive", "to": 0 }));
     exec(&mut doc, "sheet.hide", json!({ "sheet": "Archive" }));
-    let inspect = exec(&mut doc, "document.inspect", json!({}));
+    let inspect = exec(&mut doc, "file.inspect", json!({}));
     let sheets: Vec<(Value, Value)> =
         inspect["sheets"].as_array().unwrap().iter().map(|sheet| (sheet["name"].clone(), sheet["visibility"].clone())).collect();
     assert_eq!(sheets.iter().map(|(name, _)| name.clone()).collect::<Vec<_>>(), [json!("Archive"), json!("Summary"), json!("Data")], "{inspect}");
@@ -196,10 +196,10 @@ fn sheet_management_survives_save_and_reopen() {
 fn defined_names_survive_save_and_reopen() {
     let mut doc = new_workbook();
     exec(&mut doc, "range.setValues", json!({ "range": "A1", "values": [[10], [20], [30]] }));
-    exec(&mut doc, "formulas.defineName", json!({ "name": "Amounts", "refersTo": "=Sheet1!$A$1:$A$3" }));
+    exec(&mut doc, "name.define", json!({ "name": "Amounts", "refersTo": "=Sheet1!$A$1:$A$3" }));
     exec(&mut doc, "cell.set", json!({ "cell": "B1", "input": "=SUM(Amounts)" }));
     assert_eq!(cell(&mut doc, "B1")["value"], json!(60.0));
-    let names = exec(&mut doc, "formulas.nameManager", json!({}));
+    let names = exec(&mut doc, "name.manage", json!({}));
     assert!(names.to_string().contains("Amounts"), "{names}");
     assert_survives_save_and_reopen(&mut doc);
 }
@@ -210,7 +210,7 @@ fn frozen_panes_and_gridlines_survive_save_and_reopen() {
     exec(&mut doc, "range.setValues", json!({ "range": "A1", "values": [["Name", "Q1", "Q2"], ["North", 1, 2]] }));
     exec(&mut doc, "view.freezePanes", json!({ "cell": "B2" }));
     exec(&mut doc, "view.gridlines", json!({ "on": false }));
-    let inspect = exec(&mut doc, "document.inspect", json!({}));
+    let inspect = exec(&mut doc, "file.inspect", json!({}));
     assert_eq!(inspect["sheets"][0]["freeze"], json!([1, 1]), "{inspect}");
     assert_survives_save_and_reopen(&mut doc);
 }
