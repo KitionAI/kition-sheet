@@ -31,5 +31,6 @@ serde_json = { workspace = true }
 [dev-dependencies]
 # The conformance fixture writer (examples/checks.rs) saves its previews.
 image = { workspace = true }
-# The Kition platform convergence suite (L6), on the same kition-sdk revision.
+# kition-convergence's performance mode (its kit adapter and counting allocator), on the same
+# kition-sdk revision.
 kition-convergence = { workspace = true }

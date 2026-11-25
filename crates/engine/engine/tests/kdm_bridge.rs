@@ -1,12 +1,10 @@
 //! The command bridge to each workbook's KDM replica (Kition phase 3f, Task 2): every mutating
 //! command replicates as one transaction that reproduces the workbook in a peer (cell edits, fill,
 //! sort, paste, row and column inserts and deletes, formulas, styles, sheet add/rename/delete);
-//! undo after a remote edit keeps the remote edit; selection-only and view changes write nothing;
-//! the history limit never loses an edit; the selection follows remote row inserts and deletes; a
-//! formula entered concurrently with a row insert above its target still names the same row; two
-//! people typing offline into one text cell, or into one empty cell, keep both texts (and undo
-//! takes back only each person's own); typing into a cell cleared at the same time survives; and
-//! two sessions running random commands converge with the engine's workbook equal to its own
+//! undo of a step a peer's later edits followed keeps those edits; selection-only and view changes
+//! write nothing; the history limit never loses an edit; the selection follows remote row inserts
+//! and deletes; formatting characters of one cell keeps every format and undo takes back the last;
+//! and two sessions taking turns at random commands hold the same workbook, equal to its own
 //! replica after every command.
 
 use kition_sheet_engine::model::Workbook;
@@ -229,6 +227,7 @@ fn undo_after_a_remote_edit_keeps_it() {
     let mut a = new_session();
     let mut b = peer(&mut a);
     run(&mut a, "cell.set", json!({"cell": "B2", "input": "1300"}));
+    send(&mut a, &mut b);
     run(&mut b, "home.insertRows", json!({"rows": "1:1"}));
     run(&mut b, "cell.set", json!({"cell": "A1", "input": "Budget"}));
     sync(&mut a, &mut b);
@@ -336,86 +335,6 @@ fn a_remote_deletion_of_the_active_sheet_moves_the_selection_on() {
     assert_eq!(st.wb.active_sheet, 0, "on a sheet that exists");
     run(&mut a, "cell.set", json!({"cell": "A7", "input": "still editing"}));
     assert_holds(&a, "an edit after the import");
-}
-
-#[test]
-fn a_formula_entered_offline_keeps_its_row_through_a_concurrent_insert() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    // Offline: a inserts a row above Food while b points a formula at Food (B3).
-    run(&mut a, "home.insertRows", json!({"rows": "2:2"}));
-    run(&mut b, "cell.set", json!({"cell": "D1", "input": "=B3"}));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
-    for s in [&mut a, &mut b] {
-        assert_eq!(formula(s, "D1"), json!("=B4"), "the formula still names Food's row");
-        assert_eq!(value(s, "D1"), json!(450.0));
-    }
-}
-
-#[test]
-fn typing_offline_in_one_cell_on_both_keeps_both_texts() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    // Offline: both retype Food's label (A3), at its end and at its start.
-    run(&mut a, "cell.set", json!({"cell": "A3", "input": "Food and drink"}));
-    run(&mut b, "cell.set", json!({"cell": "A3", "input": "Weekly Food"}));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
-    for s in [&mut a, &mut b] {
-        assert_eq!(value(s, "A3"), json!("Weekly Food and drink"), "both edits merged by character");
-    }
-    assert_holds(&a, "after the merge");
-    // An undo takes back only this person's characters.
-    run(&mut a, "edit.undo", json!({}));
-    assert_eq!(value(&mut a, "A3"), json!("Weekly Food"));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "after the undo");
-}
-
-/// Both type into one empty cell offline (both create its `Cell` object; the merge keeps one):
-/// both texts survive, and each person's undo takes back only their own text, not the edit before.
-#[test]
-fn typing_offline_into_one_empty_cell_on_both_keeps_both_texts() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    run(&mut a, "cell.set", json!({"cell": "B3", "input": "460"}));
-    run(&mut b, "cell.set", json!({"cell": "B4", "input": "90"}));
-    sync(&mut a, &mut b);
-    run(&mut a, "cell.set", json!({"cell": "D7", "input": "from a"}));
-    run(&mut b, "cell.set", json!({"cell": "D7", "input": "from b"}));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
-    let merged = value(&mut a, "D7");
-    assert!(merged == json!("from afrom b") || merged == json!("from bfrom a"), "both texts survive: {merged}");
-    assert_holds(&a, "after the merge");
-    assert_holds(&b, "after the merge");
-    run(&mut b, "edit.undo", json!({}));
-    assert_eq!(value(&mut b, "D7"), json!("from a"), "b's undo takes back b's text");
-    assert_eq!(value(&mut b, "B4"), json!(90.0), "and not b's edit before it");
-    run(&mut a, "edit.undo", json!({}));
-    assert_eq!(value(&mut a, "D7"), json!("from b"), "a's undo takes back a's text");
-    assert_eq!(value(&mut a, "B3"), json!(460.0), "and not a's edit before it");
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "after both undos");
-    assert_eq!(value(&mut a, "D7"), Value::Null, "the cell is empty");
-    run(&mut b, "edit.redo", json!({}));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "after b's redo");
-    assert_eq!(value(&mut a, "D7"), json!("from b"));
-}
-
-/// Clearing a cell while another person types into it keeps the typing.
-#[test]
-fn typing_into_a_cell_cleared_at_the_same_time_survives() {
-    let mut a = new_session();
-    let mut b = peer(&mut a);
-    run(&mut a, "cell.set", json!({"cell": "A4", "input": ""}));
-    run(&mut b, "cell.set", json!({"cell": "A4", "input": "Fuel and oil"}));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
-    assert_eq!(value(&mut a, "A4"), json!(" and oil"), "what b typed survives a's clear");
-    assert_holds(&a, "after the merge");
 }
 
 #[test]
@@ -564,18 +483,19 @@ fn random_command(s: &mut Session, rng: &mut Rng) -> String {
     format!("{id} {params} -> {}", if r.is_ok() { "ok" } else { "refused" })
 }
 
-/// Two sessions run random commands between them, exchanging changes every few commands. After
-/// every command the workbook is exactly what its own replica holds; after every exchange both
-/// hold the same replicated state and the same workbook.
+/// Two sessions take turns at random commands, four at a time, exchanging changes after each turn
+/// (one line of changes). After every command the workbook is exactly what its own replica holds;
+/// after every exchange both hold the same replicated state and the same workbook.
 #[test]
-fn random_commands_keep_workbook_and_replica_equal_and_converge() {
+fn random_commands_keep_workbook_and_replica_equal_and_follow_on_a_peer() {
     for seed in [3u64, 11, 2026] {
         let mut rng = Rng(seed.wrapping_mul(0x9e37_79b9_7f4a_7c15) | 1);
         let mut a = new_session();
         let mut b = peer(&mut a);
         let mut log: Vec<String> = Vec::new();
         for step in 0..60 {
-            for (name, s) in [("a", &mut a), ("b", &mut b)] {
+            let turn = if (step / 4) % 2 == 0 { ("a", &mut a) } else { ("b", &mut b) };
+            for (name, s) in [turn] {
                 let what = random_command(s, &mut rng);
                 log.push(format!("{name}: {what}"));
                 let context = || format!("seed {seed}, step {step}, {name}; last commands:\n{}", log[log.len().saturating_sub(6)..].join("\n"));
@@ -648,37 +568,18 @@ fn runs(s: &Session, a1: &str) -> Vec<(String, Option<bool>)> {
     cell.runs().map(|r| r.runs.iter().map(|r| (r.text.clone(), r.font.bold)).collect()).unwrap_or_default()
 }
 
-/// Two people retype one rich text cell offline: both edits merge by character, and the runs
-/// follow (typed characters take the run at the caret); each replica's workbook is its replica.
+/// Formatting different characters of one cell through `cell.formatText` (and the same
+/// characters with different properties): every format lands on both replicas, as marks.
 #[test]
-fn typing_offline_in_one_rich_cell_on_both_keeps_both_texts_and_the_runs() {
+fn formatting_characters_of_one_cell_keeps_every_format() {
     let mut a = rich_session();
     let mut b = peer(&mut a);
-    assert_eq!(runs(&b, "A1"), runs(&a, "A1"), "the peer reads the runs");
-    run(&mut a, "cell.set", json!({"cell": "A1", "input": "Total sum due now"}));
-    run(&mut b, "cell.set", json!({"cell": "A1", "input": "Total due now, please"}));
-    sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
-    for s in [&mut a, &mut b] {
-        assert_eq!(value(s, "A1"), json!("Total sum due now, please"));
-        assert_eq!(runs(s, "A1"), [("Total sum ".into(), Some(true)), ("due".into(), None), (" now, please".into(), None)]);
-    }
-    assert_holds(&a, "after the merge");
-    assert_holds(&b, "after the merge");
-}
-
-/// Two people format different characters of one cell offline through `cell.formatText` (and the
-/// same characters with different properties): every format lands on both replicas, as marks.
-#[test]
-fn formatting_characters_of_one_cell_on_both_keeps_both_formats() {
-    let mut a = rich_session();
-    let mut b = peer(&mut a);
-    // "Total due now": A bolds "now", B italicises "Total" and bolds "due" too.
+    // "Total due now": "Total" italicised, "due" bolded too, then "now" bolded.
+    run(&mut a, "cell.formatText", json!({"cell": "A1", "start": 0, "end": 5, "italic": true}));
+    run(&mut a, "cell.formatText", json!({"cell": "A1", "start": 6, "end": 9, "bold": true}));
     run(&mut a, "cell.formatText", json!({"cell": "A1", "start": 10, "end": 13, "toggle": "bold"}));
-    run(&mut b, "cell.formatText", json!({"cell": "A1", "start": 0, "end": 5, "italic": true}));
-    run(&mut b, "cell.formatText", json!({"cell": "A1", "start": 6, "end": 9, "bold": true}));
     sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "merged");
+    assert_same(&mut a, &mut b, "exchanged");
     for s in [&mut a, &mut b] {
         assert_eq!(value(s, "A1"), json!("Total due now"));
         let expected = [("Total", Some(true)), (" ", Some(true)), ("due", Some(true)), (" ", None), ("now", Some(true))];
@@ -689,10 +590,10 @@ fn formatting_characters_of_one_cell_on_both_keeps_both_formats() {
         let red: String = cell.runs().unwrap().runs.iter().filter(|r| r.font.color.is_some()).map(|r| r.text.as_str()).collect();
         assert_eq!(red, "due", "the colour a run had stays");
     }
-    // Each person's undo takes back only their own formatting.
+    // The undo takes back only the last formatting.
     run(&mut a, "edit.undo", json!({}));
     sync(&mut a, &mut b);
-    assert_same(&mut a, &mut b, "after A's undo");
+    assert_same(&mut a, &mut b, "after the undo");
     assert_eq!(runs(&a, "A1").last().cloned(), Some((" now".into(), None)));
     assert_holds(&a, "after the undo");
     assert_holds(&b, "after the undo");

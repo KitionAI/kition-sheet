@@ -1,8 +1,8 @@
 // A workbook changed outside Kition while it was closed (Kit UI protocol UI-R1, data model 7.1):
 // node tests/reopen-changed.mjs [chromium|webkit]. Case sheet.platform.file-changed-outside/merge-into-replica.
 //
-// The editor declares `replicaMergesFile` (src/App.tsx), so it opens the changed file with the
-// replica the host stored at its last save, and the engine records what the file changed as one
+// The host hands over the replica it stored at its last save whatever the file's stamp, so the
+// editor opens the changed file with it, and the engine records what the file changed as one
 // `import` change (`open_with_replica`): the outside change shows, the replica keeps its id and
 // goes on from the stored version, and the sheets' and lines' object ids stay. Undo steps are the
 // session's, not the replica's, so they are not looked for after a reopen.
@@ -77,7 +77,7 @@ function kept(before, after) {
 }
 
 try {
-  await page.goto(`${origin}/dev.html?modes=classic&replica=1&replica-merges-file=1`)
+  await page.goto(`${origin}/dev.html?modes=classic&replica=1`)
   const opened = () => page.waitForFunction(() => document.getElementById('status')?.textContent?.includes(' open in '), null, { timeout: 60000 })
   await opened()
   const kit = page.frameLocator('#kit')

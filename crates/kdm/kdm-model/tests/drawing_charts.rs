@@ -1,6 +1,6 @@
-//! Charts through the replica, as `Chart` objects: concurrent changes to different charts of a
-//! sheet, and to different members of one chart, all survive (`KitDrawing` DR14), a row insert
-//! that moves a chart's ranges among them.
+//! Charts through the replica, as `Chart` objects: changes to different charts of a sheet, and to
+//! different members of one chart, made one after the other, all reach a peer (`KitDrawing` DR14),
+//! a row insert that moves a chart's ranges among them.
 
 mod common;
 
@@ -43,7 +43,7 @@ fn assert_converged(a: &Session, b: &Session) {
 }
 
 #[test]
-fn concurrent_changes_to_two_charts_and_to_one_charts_members_all_stay() {
+fn changes_to_two_charts_and_to_one_charts_members_all_stay() {
     let blobs = SharedBlobs::default();
     let mut wb = Workbook::new();
     if let Some(s) = wb.sheet_mut(0) {
@@ -59,7 +59,7 @@ fn concurrent_changes_to_two_charts_and_to_one_charts_members_all_stay() {
         }
         vec![]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         if let Some(s) = wb.sheet_mut(0) {
             s.charts[0].legend = LegendPos::Top;
             s.charts[0].data_labels = true;
@@ -104,7 +104,7 @@ fn a_trendline_a_secondary_series_and_a_retitle_all_stay() {
         }
         vec![]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         if let Some(s) = wb.sheet_mut(0) {
             s.charts[0].title = Some("From B".into());
         }
@@ -131,7 +131,7 @@ fn a_row_insert_moving_a_charts_ranges_and_a_retitle_both_stay() {
     }
     let mut a = first(&wb, &blobs);
     let mut b = peer(&a, 2, &blobs);
-    // B retitles the chart while A inserts two rows above its data.
+    // Two rows inserted above the chart's data, then the chart retitled.
     edit(&mut a, &blobs, |wb| {
         let edit = insert_rows(wb, 0, 0, 2);
         // As the engine's row insert does: the chart's ranges move with their rows.
@@ -143,7 +143,7 @@ fn a_row_insert_moving_a_charts_ranges_and_a_retitle_both_stay() {
         }
         vec![edit]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         if let Some(s) = wb.sheet_mut(0) {
             s.charts[0].title = Some("Moved".into());
         }

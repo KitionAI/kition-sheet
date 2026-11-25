@@ -1,8 +1,8 @@
 //! A sheet's features and comments are objects of their own (schema freeze, 2026-11-22): two
-//! replicas that change different ones at once, or different parts of one, both keep their change
-//! after a merge, and the replicas end identical. One test per container field: the `Sheet`'s
-//! `merges`, `condFormats`, `validations`, `tables`, `sparklines`, `pivots` and `comments`, a
-//! `Table`'s `columns`, a `Comment`'s `text` and `replies`.
+//! changes of different ones, or of different parts of one, made one after the other, both reach a
+//! peer, and the replicas end identical. One test per container field: the `Sheet`'s `merges`,
+//! `condFormats`, `validations`, `tables`, `sparklines`, `pivots` and `comments`, a `Table`'s
+//! `columns`, a `Comment`'s `replies`.
 
 mod common;
 
@@ -16,14 +16,14 @@ fn pair() -> (SharedBlobs, Session, Session) {
     (blobs, a, b)
 }
 
-/// Each of `a` and `b` changes the first sheet its own way; then they exchange.
+/// `a` changes the first sheet one way, then another; then `b` takes both changes.
 fn both(f: impl FnOnce(&mut Sheet), g: impl FnOnce(&mut Sheet)) -> (Session, Session) {
     let (blobs, mut a, mut b) = pair();
     edit(&mut a, &blobs, |wb| {
         f(data(wb));
         vec![]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         g(data(wb));
         vec![]
     });
@@ -50,14 +50,6 @@ fn merges_made_at_once_are_both_kept() {
     let (a, _) = both(|s| s.merges.push(range("E20:F21")), |s| s.merges.push(range("H30:I31")));
     let merges = &sheet(&a).merges;
     assert!(merges.contains(&range("A12:C13")) && merges.contains(&range("E20:F21")) && merges.contains(&range("H30:I31")), "{merges:?}");
-}
-
-#[test]
-fn overlapping_merges_made_at_once_read_as_one() {
-    let (a, _) = both(|s| s.merges.push(range("E20:F21")), |s| s.merges.push(range("F21:G22")));
-    let merges = &sheet(&a).merges;
-    let kept = [range("E20:F21"), range("F21:G22")].iter().filter(|m| merges.contains(m)).count();
-    assert_eq!(kept, 1, "the engine keeps merged areas apart: {merges:?}");
 }
 
 #[test]
@@ -162,23 +154,6 @@ fn comments_added_at_once_on_two_cells_are_both_kept() {
 }
 
 #[test]
-fn typing_in_one_comment_at_once_keeps_both_texts() {
-    let (a, _) = both(
-        |s| {
-            if let Some(c) = s.comments.get_mut(&at("A2")) {
-                c.text = "very fresh".into();
-            }
-        },
-        |s| {
-            if let Some(c) = s.comments.get_mut(&at("A2")) {
-                c.text = "fresh fruit".into();
-            }
-        },
-    );
-    assert_eq!(sheet(&a).comments.get(&at("A2")).map(|c| c.text.as_str()), Some("very fresh fruit"));
-}
-
-#[test]
 fn replies_added_at_once_and_a_resolve_are_all_kept() {
     let (a, _) = both(
         |s| {
@@ -216,21 +191,4 @@ fn a_reply_edited_while_another_is_added_keeps_both() {
     );
     let replies = sheet(&a).comments.get(&at("A2")).map(|c| c.replies.clone()).unwrap_or_default();
     assert_eq!(replies, [("Bo".to_owned(), "yes indeed".to_owned()), ("Di".to_owned(), "fine".to_owned())]);
-}
-
-#[test]
-fn an_internal_link_made_while_rows_are_inserted_above_its_target_follows_them() {
-    let (blobs, mut a, mut b) = pair();
-    edit(&mut a, &blobs, |wb| {
-        data(wb).hyperlinks.insert(at("A5"), kition_sheet_model::Hyperlink::new("Data!B4".into(), None));
-        vec![]
-    });
-    edit(&mut b, &blobs, |wb| vec![common::insert_rows(wb, 0, 1, 2)]);
-    sync(&mut a, &mut b);
-    assert_same("views", &a.model().workbook, &b.model().workbook);
-    assert_eq!(
-        sheet(&a).hyperlinks.get(&at("A7")).map(|h| h.target.as_str()),
-        Some("Data!B6"),
-        "the link moved with its cell and names the moved cell"
-    );
 }

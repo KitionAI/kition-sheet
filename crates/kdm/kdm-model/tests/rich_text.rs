@@ -1,9 +1,8 @@
 //! Rich text cells through the KDM (plan K5): a cell's runs are marks on its `text` field, one key
-//! per run property. A rich cell reads back with every property; two people formatting different
-//! runs of one cell both keep theirs; typing into a rich cell merges by character and typed
-//! characters take the run at the caret; replacing the text with plain text unmarks it; and a
-//! 0.4.x peer, whose schema lacks the newer mark keys (`family`, `charset`, `scheme`, `extra`),
-//! reads the cell with the marks it knows and its typing leaves the others in place.
+//! per run property. A rich cell reads back with every property; two formattings of one run, one
+//! after the other, both reach a peer; replacing the text with plain text unmarks it; and a 0.4.x
+//! replica, whose schema lacks the newer mark keys (`family`, `charset`, `scheme`, `extra`), reads
+//! the cell with the marks it knows and its typing leaves the others in place.
 
 mod common;
 
@@ -13,7 +12,7 @@ use common::{Session, SharedBlobs, assert_replica_clean, assert_same, assert_wor
 use kition_kit::kdm::{ActorId, ObjectId, Origin, Replica, Schema};
 use kition_kit::session::{KitModel, TextRun as Marked};
 use kition_sheet_core::Value;
-use kition_sheet_model::{Cell, RichText, RunColor, RunFont, StyleId, TextRun, Workbook};
+use kition_sheet_model::{Cell, RichText, RunFont, StyleId, TextRun, Workbook};
 use serde_json::json;
 
 fn base() -> Workbook {
@@ -60,14 +59,6 @@ fn restyle(wb: &mut Workbook, a1: &str, f: impl FnOnce(&mut Vec<TextRun>)) {
     c.rich = RichText::new(runs).map(Arc::new);
 }
 
-/// Types `text` over `a1` as the engine's `cell.set` does: the runs follow the edit.
-fn type_text(wb: &mut Workbook, a1: &str, text: &str) {
-    let sheet = wb.sheet_mut(0).unwrap_or_else(|| panic!("sheet"));
-    let c = sheet.cells.get_mut(at(a1)).unwrap_or_else(|| panic!("cell {a1}"));
-    c.rich = c.runs().and_then(|r| r.retext(text)).map(Arc::new);
-    c.value = Value::text(text);
-}
-
 /// Splits run `k` at character `at`, so the part after can be formatted on its own.
 fn split(runs: &mut Vec<TextRun>, k: usize, at: usize) {
     let run = runs.remove(k);
@@ -109,44 +100,13 @@ fn object_of(s: &Session, a1: &str) -> ObjectId {
 }
 
 #[test]
-fn two_people_formatting_different_runs_of_one_cell_both_apply() {
-    let (blobs, mut a, mut b) = pair();
-    // A makes "Total" bold (the first run, which said not bold); B colours "now" blue.
-    edit(&mut a, &blobs, |wb| {
-        restyle(wb, "A1", |runs| {
-            split(runs, 0, 5);
-            runs[0].font.bold = Some(true);
-        });
-        vec![]
-    });
-    let blue = RunColor { rgb: Some("FF0000FF".into()), ..RunColor::default() };
-    edit(&mut b, &blobs, |wb| {
-        restyle(wb, "A1", |runs| {
-            split(runs, 2, 1);
-            runs[3].font.color = Some(blue.clone());
-        });
-        vec![]
-    });
-    sync(&mut a, &mut b);
-    assert_converged(&a, &b);
-    let got = runs(&a, "A1");
-    assert_eq!(got.iter().map(|r| r.text.as_str()).collect::<Vec<_>>(), ["Total", " ", "due", " ", "now"]);
-    let first = rich_runs().runs[0].font.clone();
-    assert_eq!(font(&got, 0), RunFont { bold: Some(true), ..first.clone() }, "A's bold");
-    assert_eq!(font(&got, 1), first, "the rest of the first run as it was");
-    assert_eq!(font(&got, 2), rich_runs().runs[1].font, "B left the middle run alone");
-    assert_eq!(font(&got, 4), RunFont { color: Some(blue), ..RunFont::default() }, "B's colour");
-    assert_eq!(cell(&a, "A1").value, Value::text("Total due now"));
-}
-
-#[test]
-fn two_people_formatting_one_run_differently_keep_both_properties() {
+fn formatting_one_run_twice_keeps_both_properties() {
     let (blobs, mut a, mut b) = pair();
     edit(&mut a, &blobs, |wb| {
         restyle(wb, "A1", |runs| runs[1].font.italic = Some(true));
         vec![]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         restyle(wb, "A1", |runs| runs[1].font.strike = Some(true));
         vec![]
     });
@@ -154,54 +114,6 @@ fn two_people_formatting_one_run_differently_keep_both_properties() {
     assert_converged(&a, &b);
     let got = runs(&a, "A1");
     assert_eq!(font(&got, 1), RunFont { italic: Some(true), strike: Some(true), ..rich_runs().runs[1].font.clone() });
-}
-
-#[test]
-fn typing_into_a_rich_cell_merges_by_character_and_takes_the_run_at_the_caret() {
-    let (blobs, mut a, mut b) = pair();
-    // A types after "due" (the red run's end); B types at the end of the plain run.
-    edit(&mut a, &blobs, |wb| {
-        type_text(wb, "A1", "Total due!! now");
-        vec![]
-    });
-    edit(&mut b, &blobs, |wb| {
-        type_text(wb, "A1", "Total due now, please");
-        vec![]
-    });
-    sync(&mut a, &mut b);
-    assert_converged(&a, &b);
-    assert_eq!(cell(&a, "A1").value, Value::text("Total due!! now, please"), "both typed");
-    let got = runs(&a, "A1");
-    let expected = rich_runs();
-    assert_eq!(
-        got,
-        vec![
-            TextRun::new("Total ", expected.runs[0].font.clone()),
-            TextRun::new("due!!", expected.runs[1].font.clone()),
-            TextRun::new(" now, please", RunFont::default()),
-        ]
-    );
-}
-
-#[test]
-fn typing_at_the_same_place_of_a_rich_cell_keeps_both() {
-    let (blobs, mut a, mut b) = pair();
-    edit(&mut a, &blobs, |wb| {
-        type_text(wb, "A1", "Total amount due now");
-        vec![]
-    });
-    edit(&mut b, &blobs, |wb| {
-        type_text(wb, "A1", "Total sum due now");
-        vec![]
-    });
-    sync(&mut a, &mut b);
-    assert_converged(&a, &b);
-    let text = cell(&a, "A1").value.display();
-    assert!(text == "Total amount sum due now" || text == "Total sum amount due now", "{text}");
-    // Both insertions follow "Total ": the first run's font.
-    let got = runs(&a, "A1");
-    assert!(got[0].text.ends_with("sum ") || got[0].text.ends_with("amount "), "{got:?}");
-    assert_eq!(font(&got, 0), rich_runs().runs[0].font);
 }
 
 #[test]

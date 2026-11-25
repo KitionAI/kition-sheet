@@ -141,6 +141,15 @@ impl SheetSession {
     /// nothing replicated changed or `origin` is a `system`/`import` one (never an undo step). On
     /// failure nothing is written and the view is unchanged.
     pub fn record(&mut self, origin: &Origin, after: &Workbook, edits: &[StructuralEdit]) -> Result<u32> {
+        self.record_marked(origin, after, edits, &mut |_| {})
+    }
+
+    /// [`SheetSession::record`], calling `mark` as each of its phases ends: `write` (the diff of
+    /// the view against `after` written), `positions` (the lines' and cells' addresses projected),
+    /// `commit` (the transaction applied), and `view` (the view adopted, the blobs updated). The
+    /// performance tests time them (`tests/perf_scale.rs`); the engine records through `record`.
+    #[doc(hidden)]
+    pub fn record_marked(&mut self, origin: &Origin, after: &Workbook, edits: &[StructuralEdit], mark: &mut dyn FnMut(&'static str)) -> Result<u32> {
         let person = !matches!(origin.kind, OriginKind::System | OriginKind::Import);
         let mut ids = self.model.ids().clone();
         let mut before = self.replica.version();
@@ -153,13 +162,16 @@ impl SheetSession {
         let mut ahead = Vec::new();
         let result = self.replica.transact(origin, |tx| {
             let (_, created) = write_changes_logged(tx, &model.workbook, after, edits, &mut ids, blobs)?;
+            mark("write");
             if person && !created.is_empty() {
                 ahead = created;
                 return Err(KdmError::Engine("objects to create ahead".into()));
             }
             crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids)?;
+            mark("positions");
             Ok(())
         });
+        mark("commit");
         let mut changed = self.replica.take_changed();
         let result = match result {
             Err(_) if !ahead.is_empty() => {
@@ -207,6 +219,7 @@ impl SheetSession {
             self.index.push_step(moved);
         }
         self.index.collect_garbage(&mut self.blobs);
+        mark("view");
         Ok(u32::from(undoable))
     }
 

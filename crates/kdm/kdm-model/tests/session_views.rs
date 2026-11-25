@@ -1,14 +1,14 @@
-//! Seeded random multi-session convergence: ~200 random edits (cell values, formulas within and
-//! across sheets, typing in text cells by character, styles, row and column inserts and deletes, sheet adds, renames and deletes,
-//! merges, defined names, row heights) on two or three sessions with random exchanges. After a
-//! final exchange every replica has the same state hash and the same (id-blind) view, the views
-//! keep the engine's invariants, the replicas hold nothing dangling, and a fresh read equals the
-//! view. The engine bridge's `SheetSession`s, whose views follow a change of only cells by
-//! reading just those (rule P1), equal a fresh read after every import, undo and redo.
+//! The engine bridge's `SheetSession`s, whose views follow a change of only cells by reading just
+//! those (rule P1), equal a fresh read after every record, undo, redo and import: ~300 seeded
+//! random edits (cell values, formulas within and across sheets, typing in text cells by
+//! character, styles, row and column inserts and deletes, sheet renames and deletes, merges,
+//! defined names, row heights) on one session, with its changes sent on one line to two others
+//! now and then. At the end every replica has the same state hash and the same (id-blind) view,
+//! and the replicas hold nothing dangling.
 
 mod common;
 
-use common::{Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, edit, first, lines, peer, put, rich, sync_all};
+use common::{assert_replica_clean, assert_same, lines, put, rich};
 use kdm_model::{SheetSession, StructuralEdit};
 use kition_kit::kdm::{Origin, Version};
 use kition_kit::session::MemoryBlobs;
@@ -48,10 +48,6 @@ fn reference(wb: &Workbook, rng: &mut Rng) -> String {
     } else {
         cell
     }
-}
-
-fn random_edit(wb: &mut Workbook, rng: &mut Rng) -> Vec<StructuralEdit> {
-    edit_of(wb, rng, None)
 }
 
 /// Values, formulas, clearing and typing: edits of only cells.
@@ -188,63 +184,6 @@ fn edit_of(wb: &mut Workbook, rng: &mut Rng, kinds: Option<&[usize]>) -> Vec<Str
     vec![]
 }
 
-fn run(seed: u64, sessions: usize, ops: usize) {
-    let blobs = SharedBlobs::default();
-    let a = first(&rich(), &blobs);
-    let mut all: Vec<Session> = vec![a];
-    for k in 1..sessions {
-        let next = peer(&all[0], 2 + k as u64, &blobs);
-        all.push(next);
-    }
-    let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);
-    for _ in 0..ops {
-        let s = rng.below(all.len());
-        let mut step = Rng(rng.next() | 1);
-        edit(&mut all[s], &blobs, |wb| random_edit(wb, &mut step));
-        if rng.chance(25) {
-            let (i, j) = (rng.below(all.len()), rng.below(all.len()));
-            if i != j {
-                let bytes = all[i].export_changes(&all[j].version()).unwrap_or_else(|e| panic!("export: {e}"));
-                all[j].import_changes(&bytes).unwrap_or_else(|e| panic!("seed {seed}: import: {e}"));
-            }
-        }
-    }
-    sync_all(&mut all);
-    let hash = all[0].state_hash().unwrap_or_else(|e| panic!("hash: {e}"));
-    for (k, s) in all.iter().enumerate() {
-        assert_eq!(s.state_hash().unwrap_or_else(|e| panic!("hash: {e}")), hash, "seed {seed}: session {k} has another state");
-        assert_same(&format!("seed {seed}: session {k}"), &all[0].model().workbook, &s.model().workbook);
-        assert_workbook_valid(&s.model().workbook);
-        assert_replica_clean(s.replica());
-    }
-    let wb = &all[0].model().workbook;
-    eprintln!(
-        "seed {seed}: {} sheets, {} cells, {} names, {} merges, {} styles",
-        wb.sheets.len(),
-        wb.sheets.iter().map(|s| s.cells.len()).sum::<usize>(),
-        wb.names.len(),
-        wb.sheets.iter().map(|s| s.merges.len()).sum::<usize>(),
-        wb.styles.len()
-    );
-    // A fresh read of the converged replica is the view.
-    let fresh = kdm_model::read_document(all[0].replica(), &blobs).unwrap_or_else(|e| panic!("read: {e}")).0;
-    assert_same(&format!("seed {seed}: fresh read"), wb, &fresh);
-}
-
-#[test]
-fn two_sessions_converge() {
-    for seed in 1..=4 {
-        run(seed, 2, 200);
-    }
-}
-
-#[test]
-fn three_sessions_converge() {
-    for seed in 11..=14 {
-        run(seed, 3, 200);
-    }
-}
-
 /// The `SheetSession` a peer opens from `of`'s snapshot.
 fn sheet_peer(of: &SheetSession) -> SheetSession {
     let blobs = MemoryBlobs(of.blobs_since(&Version::empty()).into_iter().collect());
@@ -264,11 +203,11 @@ fn assert_view_is_read(what: &str, s: &SheetSession) {
 }
 
 /// Mostly typing, values, formulas and clearing (changes of only cells), with the occasional
-/// other edit (a full read), and undo and redo. `appending`: the sheets' lines end where the data
-/// does, so edits make new lines below and right of it (created ahead, in `system` transactions,
-/// so an undo never deletes a line or cell another session made at the same time); otherwise
-/// every sheet's lines reach past where the edits go (row 30, column H, and a few line deletes).
-/// Sessions typing into one new cell at once keep both texts (`SheetSession::import_changes`).
+/// other edit (a full read), and undo and redo, all on the first session; now and then its
+/// changes go to one of the two others, which only follow (one line of changes). `appending`: the
+/// sheets' lines end where the data does, so edits make new lines below and right of it;
+/// otherwise every sheet's lines reach past where the edits go (row 30, column H, and a few line
+/// deletes).
 fn run_sessions(seed: u64, ops: usize, appending: bool) {
     let mut base = rich();
     if !appending {
@@ -282,56 +221,34 @@ fn run_sessions(seed: u64, ops: usize, appending: bool) {
     let origin = Origin::person("user:test");
     let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);
     for op in 0..ops {
-        let s = rng.below(all.len());
         match rng.below(10) {
             0 => {
-                all[s].undo().unwrap_or_else(|e| panic!("seed {seed}: undo: {e}"));
-                assert_view_is_read(&format!("seed {seed} op {op}: undo"), &all[s]);
+                all[0].undo().unwrap_or_else(|e| panic!("seed {seed}: undo: {e}"));
+                assert_view_is_read(&format!("seed {seed} op {op}: undo"), &all[0]);
             }
             1 => {
-                all[s].redo().unwrap_or_else(|e| panic!("seed {seed}: redo: {e}"));
-                assert_view_is_read(&format!("seed {seed} op {op}: redo"), &all[s]);
+                all[0].redo().unwrap_or_else(|e| panic!("seed {seed}: redo: {e}"));
+                assert_view_is_read(&format!("seed {seed} op {op}: redo"), &all[0]);
             }
             2 | 3 => {
-                let j = (s + 1 + rng.below(all.len() - 1)) % all.len();
-                let (from, to) = if s < j {
-                    let (a, b) = all.split_at_mut(j);
-                    (&a[s], &mut b[0])
-                } else {
-                    let (a, b) = all.split_at_mut(s);
-                    (&b[0], &mut a[j])
-                };
-                sheet_send(from, to);
-                assert_view_is_read(&format!("seed {seed} op {op}: import"), to);
+                let j = 1 + rng.below(all.len() - 1);
+                let (a, b) = all.split_at_mut(j);
+                sheet_send(&a[0], &mut b[0]);
+                assert_view_is_read(&format!("seed {seed} op {op}: import"), &b[0]);
             }
             _ => {
                 let mut step = Rng(rng.next() | 1);
-                let mut wb = all[s].workbook().clone();
+                let mut wb = all[0].workbook().clone();
                 let kinds = if rng.chance(85) { &CELL_EDITS[..] } else { &OTHER_EDITS[..] };
                 let edits = edit_of(&mut wb, &mut step, Some(kinds));
-                all[s].record(&origin, &wb, &edits).unwrap_or_else(|e| panic!("seed {seed}: record: {e}"));
-                assert_view_is_read(&format!("seed {seed} op {op}: record"), &all[s]);
+                all[0].record(&origin, &wb, &edits).unwrap_or_else(|e| panic!("seed {seed}: record: {e}"));
+                assert_view_is_read(&format!("seed {seed} op {op}: record"), &all[0]);
             }
         }
     }
-    for _ in 0..8 {
-        for i in 0..all.len() {
-            for j in 0..all.len() {
-                if i != j {
-                    let (from, to) = if i < j {
-                        let (a, b) = all.split_at_mut(j);
-                        (&a[i], &mut b[0])
-                    } else {
-                        let (a, b) = all.split_at_mut(i);
-                        (&b[0], &mut a[j])
-                    };
-                    sheet_send(from, to);
-                }
-            }
-        }
-        if all.windows(2).all(|w| w[0].version() == w[1].version()) {
-            break;
-        }
+    for j in 1..all.len() {
+        let (a, b) = all.split_at_mut(j);
+        sheet_send(&a[0], &mut b[0]);
     }
     let hash = all[0].state_hash().unwrap_or_else(|e| panic!("hash: {e}"));
     for (k, s) in all.iter().enumerate() {

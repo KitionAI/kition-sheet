@@ -1,4 +1,5 @@
-//! `SheetKit`: the convergence suite's adapter for `SheetDocument` (see `tests/convergence.rs`).
+//! `SheetKit`: the `kition-convergence` adapter for `SheetDocument`, which its performance mode
+//! drives (`tests/perf.rs`).
 
 #![allow(dead_code)]
 
@@ -71,7 +72,13 @@ fn sheets(doc: &SheetDocument) -> usize {
 
 /// `(64-char hex sha256, u64 LE length, bytes) * N`, as `blobs` and `add_blobs` move them.
 fn encode_blobs(blobs: &Blobs) -> Vec<u8> {
-    kition_convergence::wasm::encode_blobs(blobs)
+    let mut out = Vec::new();
+    for (hash, bytes) in blobs {
+        out.extend_from_slice(hash.as_bytes());
+        out.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+        out.extend_from_slice(bytes);
+    }
+    out
 }
 
 fn decode_blobs(bytes: &[u8]) -> Result<MemoryBlobs, String> {

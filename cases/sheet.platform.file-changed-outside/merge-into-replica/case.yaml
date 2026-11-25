@@ -3,7 +3,7 @@ id: sheet.platform.file-changed-outside/merge-into-replica
 feature: sheet.platform.file-changed-outside
 intent: >-
   A workbook changed by another program while it was closed opens with the replica the host
-  stored at its last save (replicaMergesFile, Kit UI protocol UI-R1): the outside change shows,
+  stored at its last save (Kit UI protocol UI-R1): the outside change shows,
   the edits of the last save stay, the replica keeps its id and records the file as one import
   after the stored version, and the sheets' and rows' object ids survive. When the other program
   kept xl/kition/identities.json the file's ids and the replica's agree; when it dropped the part

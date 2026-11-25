@@ -411,10 +411,10 @@ mod tests {
 
     /// `a` saves with its replica; `b` opens with it, so both start from the same replica
     /// identity. `a` edits further (a row insert, a picture in a cell);
-    /// `b.importChanges(a.exportChanges(b.version()))` converges `b` to the same replicated state
-    /// as `a`, through the public SDK surface alone.
+    /// `b.importChanges(a.exportChanges(b.version()))` brings `b` to the same replicated state as
+    /// `a`, through the public SDK surface alone.
     #[test]
-    fn two_documents_converge_through_export_and_import_changes() {
+    fn a_document_follows_another_through_export_and_import_changes() {
         let mut a = SheetDocument::open("Budget.xlsx", &fixture()).unwrap();
         extra_edit(&mut a);
         let bytes = a.save(None).unwrap();
@@ -438,7 +438,7 @@ mod tests {
         assert_eq!(
             a.render(0.0, 0.0, 1.0, a.width(), a.height()).unwrap(),
             b.render(0.0, 0.0, 1.0, b.width(), b.height()).unwrap(),
-            "converged replicas render the same workbook"
+            "both replicas render the same workbook"
         );
     }
 

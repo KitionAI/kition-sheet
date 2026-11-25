@@ -1,7 +1,7 @@
 format: 1
 id: regressions/issue-c8-sheet-pin-fact-holder
 feature: sheet.agent.independent-reading
-intent: Undo and concurrent delivery preserve the private fact holder, and fact enumeration preserves logical row order.
+intent: Fact enumeration preserves logical row order.
 layer: gate
 dimension: collab
 source:
@@ -10,10 +10,6 @@ source:
   license: Apache-2.0
 input: []
 steps:
-  - cargo-test:
-      package: kition-sheet-kit
-      test: convergence
-      filter: converges
   - cargo-test:
       package: kition-sheet-kit
       test: declarations_independent

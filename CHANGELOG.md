@@ -3,6 +3,10 @@
 Changes to Kition Sheet, newest first. A version is the kit package version in `kit.json`;
 each package is published with a `package-v<version>` tag.
 
+## Unreleased
+
+- The engine runs on kition-sdk's plain document model (no CRDT): Kition Desktop is for one person, so workbooks are no longer merged from concurrent edits; replicas take each other's changes in order. Loro is no longer bundled or linked. An unchanged workbook saves to the same bytes, and the file opened again keeps its sheets', rows', columns' and cells' object ids.
+
 ## 0.1.4
 
 - The same kit as 0.1.3, built on kition-sdk 6672663 (the replica's undo passes over an undo group whose changes came to nothing): the 0.1.3 package was built on kition-sdk 6b4d471.

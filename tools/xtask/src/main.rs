@@ -153,6 +153,19 @@ fn cmd_wasm() -> Result<(), String> {
 fn cmd_ci() -> Result<(), String> {
     type Step = (&'static str, Box<dyn Fn() -> Result<(), String>>);
     let steps: Vec<Step> = vec![
+        // TEMPORARY (plain model perf, 2026-11-25): the release timings of tests/perf_scale.rs,
+        // one size per process. Removed once the numbers are taken.
+        (
+            "perf (temporary)",
+            Box::new(|| {
+                for size in ["cells_10k", "cells_100k", "cells_1m"] {
+                    let mut c = cargo();
+                    c.args(["test", "--release", "-p", "kdm-model", "--test", "perf_scale", "--", "--ignored", "--nocapture", "--exact", size]);
+                    run(c, &format!("cargo test --release -p kdm-model --test perf_scale -- --ignored --exact {size}"))?;
+                }
+                Ok(())
+            }),
+        ),
         (
             "fmt",
             Box::new(|| {

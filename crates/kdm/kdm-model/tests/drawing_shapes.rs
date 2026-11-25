@@ -1,7 +1,7 @@
 //! Drawing shapes through the replica, as `Shape` objects: groups, preset and
 //! custom geometry, rotation and mirroring, transparency, gradients, pens, kept text bodies and
-//! style references, and one-cell anchors reach a peer; concurrent changes to different shapes,
-//! and to one shape's text, frame and each of its other members, all survive (`KitDrawing 1.0`
+//! style references, and one-cell anchors reach a peer; later changes to different shapes, and to
+//! one shape's text body, frame and each of its other members, all reach it too (`KitDrawing 1.0`
 //! DR14).
 
 mod common;
@@ -73,7 +73,7 @@ fn assert_converged(a: &Session, b: &Session) {
 }
 
 #[test]
-fn a_shapes_groups_geometry_transparency_and_text_body_reach_the_peer_and_concurrent_changes_converge() {
+fn a_shapes_groups_geometry_transparency_and_text_body_reach_the_peer_and_later_changes_follow() {
     let blobs = SharedBlobs::default();
     let mut a = first(&Workbook::new(), &blobs);
     let mut b = peer(&a, 2, &blobs);
@@ -87,7 +87,7 @@ fn a_shapes_groups_geometry_transparency_and_text_body_reach_the_peer_and_concur
     assert_converged(&a, &b);
     assert_eq!(b.model().workbook.sheet(0).map(|s| s.shapes.clone()), Some(shapes()));
 
-    // Both change the new fields at once: the replicas agree on one outcome.
+    // Two edits of the new fields, one after the other.
     edit(&mut a, &blobs, |wb| {
         if let Some(s) = wb.sheet_mut(0) {
             s.shapes[0].fill_alpha = Some(10_000);
@@ -95,7 +95,7 @@ fn a_shapes_groups_geometry_transparency_and_text_body_reach_the_peer_and_concur
         }
         vec![]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         if let Some(s) = wb.sheet_mut(0) {
             s.shapes[2].gradient = None;
             s.shapes[0].outline.width = Some(28_575);
@@ -108,49 +108,14 @@ fn a_shapes_groups_geometry_transparency_and_text_body_reach_the_peer_and_concur
     assert_eq!(after.len(), 3);
     // Changes to different shapes both stay, and so do changes to two members of one shape
     // (each its own entry of the shape's `look`).
-    assert_eq!(after[1].groups, vec![1], "A's change of shape 11 stays");
-    assert!(after[2].gradient.is_none(), "B's change of shape 12 stays");
+    assert_eq!(after[1].groups, vec![1], "the change of shape 11 stays");
+    assert!(after[2].gradient.is_none(), "the change of shape 12 stays");
     assert_eq!((after[0].fill_alpha, after[0].outline.width), (Some(10_000), Some(28_575)), "{:?}", after[0]);
 
-    // Undo on each side converges too.
+    // An undo reaches the peer too.
     a.undo().unwrap_or_else(|e| panic!("undo: {e}"));
     sync(&mut a, &mut b);
     assert_converged(&a, &b);
-}
-
-#[test]
-fn concurrent_text_frame_and_formatting_of_one_shape_all_stay() {
-    let blobs = SharedBlobs::default();
-    let mut wb = Workbook::new();
-    if let Some(s) = wb.sheet_mut(0) {
-        s.shapes = shapes();
-    }
-    let mut a = first(&wb, &blobs);
-    let mut b = peer(&a, 2, &blobs);
-    edit(&mut a, &blobs, |wb| {
-        if let Some(s) = wb.sheet_mut(0) {
-            s.shapes[0].text = "Title, typed by A".into();
-            s.shapes[1].anchor.dx = 40.0;
-        }
-        vec![]
-    });
-    edit(&mut b, &blobs, |wb| {
-        if let Some(s) = wb.sheet_mut(0) {
-            s.shapes[0].fill = Color::Rgb(0x00FF00);
-            s.shapes[0].text = "My Title".into();
-            s.shapes[1].line = Color::Rgb(0xFF0000);
-        }
-        vec![]
-    });
-    sync(&mut a, &mut b);
-    assert_converged(&a, &b);
-    let after = a.model().workbook.sheet(0).map(|s| s.shapes.clone()).unwrap_or_default();
-    // Text against formatting, and a move against an outline: both sides of each.
-    assert_eq!(after[0].fill, Color::Rgb(0x00FF00));
-    assert_eq!(after[1].anchor.dx, 40.0);
-    assert_eq!(after[1].line, Color::Rgb(0xFF0000));
-    // Both people's typing in one shape's text stays, character by character.
-    assert!(after[0].text.contains("typed by A") && after[0].text.starts_with("My"), "{}", after[0].text);
 }
 
 #[test]
@@ -171,7 +136,7 @@ fn an_art_text_warp_a_connector_end_and_a_move_all_stay() {
         }
         vec![]
     });
-    edit(&mut b, &blobs, |wb| {
+    edit(&mut a, &blobs, |wb| {
         if let Some(s) = wb.sheet_mut(0) {
             s.shapes[0].anchor.dx = 55.0;
             s.shapes[0].fill = Color::Rgb(0x112233);
@@ -182,35 +147,8 @@ fn an_art_text_warp_a_connector_end_and_a_move_all_stay() {
     sync(&mut a, &mut b);
     assert_converged(&a, &b);
     let after = b.model().workbook.sheet(0).map(|s| s.shapes.clone()).unwrap_or_default();
-    // A's warp (in the text body) against B's move and fill of that shape; A's glued end
-    // against B's pen on the connector: each member is its own entry, so all stay.
+    // The warp (in the text body), then a move and fill of that shape; the glued end, then a pen
+    // on the connector: each member is its own entry, so all stay.
     assert_eq!((after[0].text_body.as_deref(), after[0].anchor.dx, after[0].fill), (Some(warped), 55.0, Color::Rgb(0x112233)));
     assert_eq!((after[1].connection.as_ref().and_then(|c| c.start).map(|e| e.id), after[1].line), (Some(12), Color::Rgb(0x00AA00)));
-}
-
-#[test]
-fn deleting_a_shape_against_an_edit_deletes_it() {
-    let blobs = SharedBlobs::default();
-    let mut wb = Workbook::new();
-    if let Some(s) = wb.sheet_mut(0) {
-        s.shapes = shapes();
-    }
-    let mut a = first(&wb, &blobs);
-    let mut b = peer(&a, 2, &blobs);
-    edit(&mut a, &blobs, |wb| {
-        if let Some(s) = wb.sheet_mut(0) {
-            s.shapes.remove(1);
-        }
-        vec![]
-    });
-    edit(&mut b, &blobs, |wb| {
-        if let Some(s) = wb.sheet_mut(0) {
-            s.shapes[1].fill = Color::Rgb(0x123456);
-        }
-        vec![]
-    });
-    sync(&mut a, &mut b);
-    assert_converged(&a, &b);
-    let ids: Vec<u32> = a.model().workbook.sheet(0).map(|s| s.shapes.iter().map(|x| x.id).collect()).unwrap_or_default();
-    assert_eq!(ids, vec![10, 12]);
 }
