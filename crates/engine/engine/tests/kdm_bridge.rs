@@ -494,8 +494,8 @@ fn random_commands_keep_workbook_and_replica_equal_and_follow_on_a_peer() {
         let mut b = peer(&mut a);
         let mut log: Vec<String> = Vec::new();
         for step in 0..60 {
-            let turn = if (step / 4) % 2 == 0 { ("a", &mut a) } else { ("b", &mut b) };
-            for (name, s) in [turn] {
+            {
+                let (name, s) = if (step / 4) % 2 == 0 { ("a", &mut a) } else { ("b", &mut b) };
                 let what = random_command(s, &mut rng);
                 log.push(format!("{name}: {what}"));
                 let context = || format!("seed {seed}, step {step}, {name}; last commands:\n{}", log[log.len().saturating_sub(6)..].join("\n"));
