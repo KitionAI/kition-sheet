@@ -188,11 +188,28 @@ impl SheetDocument {
     /// An agent's reply (JSON text) with every object id it holds as a value or a key named as
     /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica
     /// or when the schema declares no tool ids. The workbook keeps its own ids.
+    ///
+    /// The editor asks this for every agent reply (each `ai/inspect`), and the tool ids take a walk
+    /// of every object to read: a reply that names no object of the replica (the usual one) is
+    /// answered as it is without them, and the ids read once serve every reply until the next
+    /// change.
     pub fn model_reply(&self, value: &str) -> Result<String, String> {
         let value: Value = serde_json::from_str(value).map_err(|error| format!("the reply is not JSON: {error}"))?;
         let Some(kdm) = self.session.kdm() else { return Ok(value.to_string()) };
-        let ids = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica());
-        Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string())
+        let replica = kdm.replica();
+        if !names_an_object(&value, &|text| replica.exists(&kition_kit::kdm::ObjectId::from_string(text))) {
+            return Ok(value.to_string());
+        }
+        let version = replica.version().encode();
+        let mut cache = self.tool_ids.borrow_mut();
+        if cache.as_ref().is_none_or(|(at, _)| *at != version) {
+            *cache = Some((version, kition_kit::kdm::tool_ids::ToolIds::of_replica(replica)));
+        }
+        let shown = match cache.as_ref() {
+            Some((_, ids)) if ids.is_active() => ids.show_json(&value),
+            _ => value,
+        };
+        Ok(shown.to_string())
     }
 
     /// What changed since the version `since` (empty bytes: since the replica began), a receipt as
@@ -226,6 +243,17 @@ impl SheetDocument {
     /// full [`SheetDocument::snapshot`]). Hosts watch this.
     pub fn kdm_resets(&self) -> u32 {
         u32::try_from(self.session.kdm_resets()).unwrap_or(u32::MAX)
+    }
+}
+
+/// Whether `value` holds, as a string or a key anywhere in it, a text `exists` takes for an
+/// object of the replica.
+fn names_an_object(value: &Value, exists: &dyn Fn(&str) -> bool) -> bool {
+    match value {
+        Value::String(text) => exists(text),
+        Value::Array(items) => items.iter().any(|item| names_an_object(item, exists)),
+        Value::Object(map) => map.iter().any(|(key, item)| exists(key) || names_an_object(item, exists)),
+        _ => false,
     }
 }
 
@@ -592,6 +620,20 @@ mod tests {
             serde_json::from_str(&doc.model_reply(&json!({ "target": sheet, "note": format!("about {sheet}") }).to_string()).unwrap()).unwrap();
         assert!(shown["target"].as_str().is_some_and(|id| id.starts_with("sheet:")), "{shown}");
         assert_eq!(shown["note"], json!(format!("about {sheet}")), "text that holds an id stays");
+        let plain = json!({ "summary": "Budget", "cells": ["A1", "B2"], "sheet": 1 });
+        assert_eq!(serde_json::from_str::<Value>(&doc.model_reply(&plain.to_string()).unwrap()).unwrap(), plain, "a reply naming no object stays");
+        // The ids read once are read again after a change: a sheet made since is named too.
+        doc.execute("home.insertSheet", json!({ "name": "Second" })).unwrap();
+        let state = doc.replicated_state().unwrap();
+        let second = state["objects"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(id, object)| object["$type"] == "Sheet" && **id != sheet)
+            .map(|(id, _)| id.clone())
+            .unwrap_or_else(|| panic!("the second sheet: {state}"));
+        let shown: Value = serde_json::from_str(&doc.model_reply(&json!({ "target": second }).to_string()).unwrap()).unwrap();
+        assert!(shown["target"].as_str().is_some_and(|id| id.starts_with("sheet:")), "{shown}");
         assert!(doc.model_reply("not json").is_err());
     }
 

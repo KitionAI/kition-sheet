@@ -8,7 +8,7 @@
 //! replica after every command.
 
 use kition_sheet_engine::model::Workbook;
-use kition_sheet_engine::{MemoryBlobs, Origin, Session, Version};
+use kition_sheet_engine::{MemoryBlobs, Origin, Session, UndoScope, Version};
 use serde_json::{Value, json};
 
 /// A session with a small budget: labels in A, costs in B, a total in B5, a doubled cost in C2.
@@ -335,6 +335,35 @@ fn a_remote_deletion_of_the_active_sheet_moves_the_selection_on() {
     assert_eq!(st.wb.active_sheet, 0, "on a sheet that exists");
     run(&mut a, "cell.set", json!({"cell": "A7", "input": "still editing"}));
     assert_holds(&a, "an edit after the import");
+}
+
+/// A person's undo whose last step's sheet an agent deleted since: the replica passes that step
+/// over and takes back the one below in the same call (`UndoOutcome`), so the history takes both
+/// of its steps back together and the replica's undo steps and the history's stay in line; the
+/// redo brings the step below back. Before, the history kept a step the replica had already taken
+/// back, and every later undo took back the step below the one it named.
+#[test]
+fn an_undo_that_passes_over_a_step_takes_the_one_below_with_it() {
+    let mut s = new_session();
+    run(&mut s, "home.insertSheet", json!({"name": "Gone"}));
+    run(&mut s, "sheet.activate", json!({"sheet": 0}));
+    run(&mut s, "cell.set", json!({"cell": "B2", "input": "1300"}));
+    run(&mut s, "sheet.rename", json!({"sheet": 1, "name": "Renamed"}));
+    s.execute_as("home.deleteSheet", json!({"sheet": "Renamed"}), &Origin::agent("test")).unwrap();
+    run(&mut s, "sheet.activate", json!({"sheet": 0}));
+    let person = |s: &Session| s.active().unwrap().undo.iter().filter(|e| e.scope == UndoScope::Person).count();
+    let (entries, (undo, redo)) = (person(&s), s.kdm().unwrap().steps());
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(value(&mut s, "B2"), json!(1200.0), "the step below the rename is taken back");
+    assert_eq!(person(&s), entries - 2, "both history steps are taken back together");
+    assert_eq!(s.kdm().unwrap().steps(), (undo - 2, redo + 1), "the replica's steps, as the index counts them");
+    assert_eq!(s.kdm_resets(), 0);
+    assert_eq!(wb(&s).sheets.len(), 1, "the deleted sheet does not come back");
+    assert_holds(&s, "after the undo");
+    run(&mut s, "edit.redo", json!({}));
+    assert_eq!(value(&mut s, "B2"), json!(1300.0), "the redo brings the step below back");
+    assert_eq!(s.kdm_resets(), 0);
+    assert_holds(&s, "after the redo");
 }
 
 #[test]

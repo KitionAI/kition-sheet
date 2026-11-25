@@ -753,15 +753,15 @@ fn step_once(d: &mut crate::DocState, redo: bool, scope: crate::UndoScope) -> Op
         // keep theirs.
         let steps = from.get(i)?.steps;
         let before = d.wb.clone();
-        if !d.replay_kdm(steps, !redo, scope) {
-            return None;
-        }
+        let (made, beyond) = d.replay_kdm(steps, !redo, scope)?;
         let e = if redo { d.redo.remove(i) } else { d.undo.remove(i) };
-        let cur = crate::HistoryEntry { label: e.label.clone(), wb: before, selection: d.selection.clone(), steps: e.steps, scope };
+        let cur = crate::HistoryEntry { label: e.label.clone(), wb: before, selection: d.selection.clone(), steps: made, scope };
         if redo {
-            d.undo.push(cur)
+            d.undo.push(cur);
+            crate::kdm_bridge::absorb(&mut d.redo, scope, beyond);
         } else {
-            d.redo.push(cur)
+            d.redo.push(cur);
+            crate::kdm_bridge::absorb(&mut d.undo, scope, beyond);
         }
         d.trim_kdm();
         return Some(e.label);

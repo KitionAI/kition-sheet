@@ -14,7 +14,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
-use kition_kit::kdm::{ActorId, DocId, KdmError, ObjectId, Origin, OriginKind, Replica, Tx, UndoScope, Version};
+use kition_kit::kdm::{ActorId, DocId, KdmError, ObjectId, Origin, OriginKind, Replica, Tx, UndoOutcome, UndoScope, Version};
 use kition_kit::session::{BlobSource, Damage, KitModel, MemoryBlobs};
 use kition_sheet_model::{StructuralEdit, Workbook};
 use serde_json::{Value, json};
@@ -269,48 +269,52 @@ impl SheetSession {
     /// Undoes this replica's last step of the person (never an import or a repair), repairs the
     /// result and patches the view. Answers whether there was one, and the damage.
     ///
-    /// A step with nothing left to revert is taken with no change, answering `true`: the
-    /// replica's undo skips a step whose writes all went with an object a merge dropped (one a
-    /// 0.4.3 or older peer created under the same id at the same time), reverting the step below it
-    /// instead, if any, or nothing.
+    /// A step with nothing left to revert (its objects gone since) is passed over by the replica,
+    /// which goes on to the step below in the same call ([`UndoOutcome`]); a call that finds only
+    /// such steps changes nothing and still answers `true`.
     pub fn undo(&mut self) -> Result<(bool, Damage)> {
-        self.undo_in(UndoScope::Person)
+        let had = self.index.undo_steps() > 0;
+        self.undo_in(UndoScope::Person).map(|(_, damage)| (had, damage))
     }
 
     /// [`SheetSession::undo`] in `scope` (KitModel M12a): the person's and the agents' steps on
-    /// this replica are separate histories.
-    pub fn undo_in(&mut self, scope: UndoScope) -> Result<(bool, Damage)> {
-        if self.index.undo_steps() == 0 {
-            return Ok((false, Damage::None));
-        }
-        let done = self.replica.can_undo_in(scope) && self.replica.undo_in(scope).map_err(kit_err)?.is_done();
-        let (damage, moved) = self.settle();
-        if done {
-            self.log_added(moved.added.iter().cloned());
-        }
-        self.index.undone(moved);
-        self.index.collect_garbage(&mut self.blobs);
-        Ok((true, damage?))
+    /// this replica are separate histories. Answers which steps the replica took off its stack
+    /// ([`UndoOutcome`]: those it passed over and the one it took back, all of them now one redo
+    /// step) and the damage; nothing when this session has no step to undo.
+    pub fn undo_in(&mut self, scope: UndoScope) -> Result<(UndoOutcome, Damage)> {
+        self.step_in(scope, true)
     }
 
-    /// Like [`SheetSession::undo`]: a step with nothing left to redo is taken with no change.
+    /// Like [`SheetSession::undo`].
     pub fn redo(&mut self) -> Result<(bool, Damage)> {
-        self.redo_in(UndoScope::Person)
+        let had = self.index.redo_steps() > 0;
+        self.redo_in(UndoScope::Person).map(|(_, damage)| (had, damage))
     }
 
-    /// [`SheetSession::redo`] in `scope`, like [`SheetSession::undo_in`].
-    pub fn redo_in(&mut self, scope: UndoScope) -> Result<(bool, Damage)> {
-        if self.index.redo_steps() == 0 {
-            return Ok((false, Damage::None));
+    /// [`SheetSession::redo`] in `scope`, answering like [`SheetSession::undo_in`].
+    pub fn redo_in(&mut self, scope: UndoScope) -> Result<(UndoOutcome, Damage)> {
+        self.step_in(scope, false)
+    }
+
+    fn step_in(&mut self, scope: UndoScope, undo: bool) -> Result<(UndoOutcome, Damage)> {
+        let (steps, can) = if undo {
+            (self.index.undo_steps(), self.replica.can_undo_in(scope))
+        } else {
+            (self.index.redo_steps(), self.replica.can_redo_in(scope))
+        };
+        if steps == 0 || !can {
+            return Ok((UndoOutcome::default(), Damage::None));
         }
-        let done = self.replica.can_redo_in(scope) && self.replica.redo_in(scope).map_err(kit_err)?.is_done();
+        let outcome = if undo { self.replica.undo_in(scope) } else { self.replica.redo_in(scope) }.map_err(kit_err)?;
         let (damage, moved) = self.settle();
-        if done {
+        if outcome.is_done() {
             self.log_added(moved.added.iter().cloned());
         }
-        self.index.redone(moved);
+        // The steps the call took off the replica's stack leave the index's too; with one taken
+        // back they become the one step on the other stack.
+        self.index.stepped(undo, outcome.steps(), outcome.is_done(), moved);
         self.index.collect_garbage(&mut self.blobs);
-        Ok((true, damage?))
+        Ok((outcome, damage?))
     }
 
     /// Whether there is an undo step to take: one this session recorded, not trimmed by

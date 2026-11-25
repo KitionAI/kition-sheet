@@ -173,14 +173,27 @@ impl BlobIndex {
         self.redo.clear();
     }
 
-    pub fn undone(&mut self, moved: Moved) {
-        self.undo.pop_back();
-        self.redo.push(moved.all());
-    }
-
-    pub fn redone(&mut self, moved: Moved) {
-        self.redo.pop();
-        self.undo.push_back(moved.all());
+    /// An undo (`undo`) or a redo took `taken` steps off the replica's stack: the steps it passed
+    /// over (their objects gone since) and, when `done`, the one it took back. They leave this
+    /// stack too; with one taken back, they become the one next step on the other stack, keeping
+    /// what any of them can bring back and what the call moved.
+    pub fn stepped(&mut self, undo: bool, taken: usize, done: bool, moved: Moved) {
+        let mut kept = moved.all();
+        for _ in 0..taken {
+            let step = if undo { self.undo.pop_back() } else { self.redo.pop() };
+            match step {
+                Some(blobs) => kept.extend(blobs),
+                None => break,
+            }
+        }
+        if !done {
+            return;
+        }
+        if undo {
+            self.redo.push(kept);
+        } else {
+            self.undo.push_back(kept);
+        }
     }
 
     pub fn undo_steps(&self) -> usize {

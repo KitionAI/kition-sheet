@@ -211,14 +211,28 @@ impl DocState {
     /// After undo or redo set the workbook to the step's own snapshot: steps the replica too
     /// (`steps` times) and takes its view (with every collaborator's edit since) instead, on the
     /// snapshot's active sheet. Without a replica the snapshot stays.
+    ///
+    /// The replica passes over a step whose objects are gone since (say an agent deleted the sheet
+    /// a person's step edited) and goes on to the one below in the same call (`UndoOutcome`): so
+    /// the calls may take back fewer of this step's replica steps than they took off the stack, or
+    /// reach below it into the scope's next history steps. The history step, now on the other
+    /// stack, counts the replica steps the calls left there, and the history steps below whose
+    /// replica steps went with it leave their stack ([`absorb`]). A replica with nothing left to
+    /// take stays as it is; only a replica that refuses is left.
     pub(crate) fn step_kdm(&mut self, steps: u32, undo: bool, scope: UndoScope) {
         if steps > 0
             && let Some(kdm) = self.link.kdm.as_mut()
-            && !(0..steps).all(|_| matches!(if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) }, Ok((true, _))))
         {
-            log::warn!("the workbook replica refused an undo or redo");
-            self.detach_kdm();
-            return;
+            let Some((made, beyond)) = take_steps(kdm, steps, undo, scope) else {
+                log::warn!("the workbook replica refused an undo or redo");
+                self.detach_kdm();
+                return;
+            };
+            let (from, to) = if undo { (&mut self.undo, &mut self.redo) } else { (&mut self.redo, &mut self.undo) };
+            if let Some(e) = to.iter_mut().rev().find(|e| e.scope == scope) {
+                e.steps = made;
+            }
+            absorb(from, scope, beyond);
         }
         if let Some(kdm) = self.link.kdm.as_mut() {
             let mut wb = kdm.workbook().clone();
@@ -241,19 +255,22 @@ impl DocState {
 
     /// A step under the other scope's later ones: the replica undoes (or redoes) the step's
     /// `steps` transactions of `scope` and the workbook becomes its view, with the other scope's
-    /// later edits and every collaborator's. `false`, changing nothing, when the replica does not
-    /// hold them. The caller moves the step to the other stack, then trims ([`DocState::trim_kdm`]).
-    pub(crate) fn replay_kdm(&mut self, steps: u32, undo: bool, scope: UndoScope) -> bool {
-        let Some(kdm) = self.link.kdm.as_mut() else { return false };
+    /// later edits and every collaborator's. `None`, changing nothing, when the replica does not
+    /// hold them; else the replica steps the calls left on the other stack, and how many they
+    /// took off beyond this step's (passed over, [`DocState::step_kdm`]), for the caller, which
+    /// moves the step to the other stack, gives the steps beyond to [`absorb`], then trims
+    /// ([`DocState::trim_kdm`]).
+    pub(crate) fn replay_kdm(&mut self, steps: u32, undo: bool, scope: UndoScope) -> Option<(u32, usize)> {
+        let kdm = self.link.kdm.as_mut()?;
         let (available, can) = if undo { (kdm.steps().0, kdm.can_undo_in(scope)) } else { (kdm.steps().1, kdm.can_redo_in(scope)) };
         if steps == 0 || !can || usize::try_from(steps).unwrap_or(usize::MAX) > available {
-            return false;
+            return None;
         }
-        if !(0..steps).all(|_| matches!(if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) }, Ok((true, _)))) {
+        let Some(taken) = take_steps(kdm, steps, undo, scope) else {
             log::warn!("the workbook replica refused an undo or redo");
             self.detach_kdm();
-            return false;
-        }
+            return None;
+        };
         let mut wb = kdm.workbook().clone();
         let active = self.wb.active().and_then(|sheet| wb.sheet_index(&sheet.name));
         if let Some(i) = active
@@ -268,7 +285,7 @@ impl DocState {
         self.wb = Arc::new(wb);
         self.link.synced = self.wb.clone();
         self.link.mark = self.link.pushed;
-        true
+        Some(taken)
     }
 
     /// Where the selection is, by object (the replica's view is the workbook as of the last sync).
@@ -312,6 +329,45 @@ impl DocState {
         self.link.synced = self.wb.clone();
         self.calc.rebuild(&self.wb);
         self.revision += 1;
+    }
+}
+
+/// Undoes (or redoes) `steps` replica steps of `scope`: calls the replica until the steps it took
+/// off its stack (passed over or taken back, `UndoOutcome`) reach `steps`, or it has none left.
+/// Answers how many it took back and how many it took off beyond `steps`; `None` when it refused.
+fn take_steps(kdm: &mut SheetSession, steps: u32, undo: bool, scope: UndoScope) -> Option<(u32, usize)> {
+    let want = steps as usize;
+    let (mut consumed, mut made) = (0usize, 0u32);
+    while consumed < want {
+        let outcome = match if undo { kdm.undo_in(scope) } else { kdm.redo_in(scope) } {
+            Ok((outcome, _)) => outcome,
+            Err(_) => return None,
+        };
+        if outcome.steps() == 0 {
+            break;
+        }
+        consumed += outcome.steps();
+        made += u32::from(outcome.is_done());
+    }
+    Some((made, consumed.saturating_sub(want)))
+}
+
+/// Replica steps of `scope` taken off beyond a history step's own (the replica passed over its
+/// step and went on below): the history steps of `scope` below, from the top, whose replica steps
+/// went with it leave `stack`, and one only partly taken keeps the rest.
+pub(crate) fn absorb(stack: &mut Vec<HistoryEntry>, scope: UndoScope, mut beyond: usize) {
+    while beyond > 0 {
+        let Some(i) = stack.iter().rposition(|e| e.scope == scope && e.steps > 0) else { break };
+        let Some(below) = stack.get(i).map(|e| e.steps as usize) else { break };
+        if below <= beyond {
+            stack.remove(i);
+            beyond -= below;
+        } else {
+            if let Some(e) = stack.get_mut(i) {
+                e.steps -= u32::try_from(beyond).unwrap_or(0);
+            }
+            beyond = 0;
+        }
     }
 }
 
