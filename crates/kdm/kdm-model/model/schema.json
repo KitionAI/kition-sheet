@@ -135,8 +135,7 @@
         "array": { "kind": "string", "optional": true },
         "picture": { "kind": "json", "optional": true },
         "by": { "kind": "string", "optional": true, "readOnly": true },
-        "key": { "kind": "string", "optional": true, "readOnly": true },
-        "raced": { "kind": "json", "optional": true, "readOnly": true, "sample": false }
+        "key": { "kind": "string", "optional": true, "readOnly": true }
       }
     },
     "Row": {

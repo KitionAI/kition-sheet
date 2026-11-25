@@ -121,7 +121,8 @@ try {
     // later (the runner typed `1,2)` and Enter into nothing before it did).
     await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
     step('FX-C6 单击 SUM：=SUM(，仍在编辑', (await editText()) === '=SUM(' && (await details()).editing === true, JSON.stringify(await editText()))
-    // TEMPORARY (plain model round 5): where the keys go when FX-C6 loses its typing.
+    // Where the keys went, printed only when FX-C6 fails (2 of about 8 CI rounds lost the typing,
+    // cause not found yet): the element each key reached and when, and the editor before and after.
     await kit.locator('body').evaluate((body) => {
       const doc = body.ownerDocument
       doc.defaultView.__keys = []
@@ -135,7 +136,7 @@ try {
     if ((await cellOf('A10')).value !== 3) {
       const keys = await kit.locator('body').evaluate((body) => body.ownerDocument.defaultView.__keys)
       await page.waitForTimeout(2000)
-      console.log('TMP-FX-C6', JSON.stringify({ ms: Date.now() - typedAt, typedDetails, keys, after: await details(), focused: await h.sinkFocused(), a10: await cellOf('A10') }))
+      console.log('FX-C6 keys', JSON.stringify({ ms: Date.now() - typedAt, typedDetails, keys, after: await details(), focused: await h.sinkFocused(), a10: await cellOf('A10') }))
     }
     step('FX-C6 回车后值为 3', (await cellOf('A10')).value === 3, JSON.stringify(await input('A10')))
   })

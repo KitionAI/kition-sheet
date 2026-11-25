@@ -389,3 +389,28 @@ fn a_tables_calculated_column_follows_sheet_rename_copy_and_delete() {
     run(&mut s, "home.deleteSheet", json!({"sheet": "价格"}));
     assert!(sheet(&s, "Sheet1").tables[0].columns[1].formula.as_deref().unwrap().contains("#REF!"));
 }
+
+/// The place a link in the workbook goes to (`Sheet1!B4`, or behind a `#`) follows the rows inserted
+/// or deleted above it, from its own sheet and from another, as the link's cell moves with its
+/// row; a link to the web stays as it is.
+#[test]
+fn internal_links_follow_rows_inserted_and_deleted_above_their_target() {
+    let mut s = workbook(&["Sheet1", "Sheet2"]);
+    run(&mut s, "insert.link", json!({"sheet": "Sheet1", "cell": "A5", "target": "Sheet1!B4"}));
+    run(&mut s, "insert.link", json!({"sheet": "Sheet1", "cell": "C1", "target": "https://example.com"}));
+    run(&mut s, "insert.link", json!({"sheet": "Sheet2", "cell": "A1", "target": "#Sheet1!B4:C5"}));
+    let link =
+        |s: &Session, sheet_name: &str, cell: &str| sheet(s, sheet_name).hyperlinks.get(&CellRef::parse(cell).unwrap()).map(|h| h.target.clone());
+    run(&mut s, "home.insertRows", json!({"sheet": "Sheet1", "rows": "2:3"}));
+    assert_eq!(link(&s, "Sheet1", "A5"), None, "the link moved with its cell");
+    assert_eq!(link(&s, "Sheet1", "A7").as_deref(), Some("Sheet1!B6"));
+    assert_eq!(link(&s, "Sheet1", "C1").as_deref(), Some("https://example.com"));
+    assert_eq!(link(&s, "Sheet2", "A1").as_deref(), Some("#Sheet1!B6:C7"));
+    run(&mut s, "home.deleteRows", json!({"sheet": "Sheet1", "rows": "1"}));
+    assert_eq!(link(&s, "Sheet1", "A6").as_deref(), Some("Sheet1!B5"));
+    assert_eq!(link(&s, "Sheet2", "A1").as_deref(), Some("#Sheet1!B5:C6"));
+    run(&mut s, "edit.undo", json!({}));
+    run(&mut s, "edit.undo", json!({}));
+    assert_eq!(link(&s, "Sheet1", "A5").as_deref(), Some("Sheet1!B4"), "undone, the link goes where it went");
+    assert_eq!(link(&s, "Sheet2", "A1").as_deref(), Some("#Sheet1!B4:C5"));
+}

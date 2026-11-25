@@ -268,3 +268,39 @@ fn an_image_whose_row_moves_or_goes_reads_where_the_view_has_it() {
     }
     assert_eq!(b.workbook().sheets[0].images[0].anchor.cell, CellRef::new(14, 13));
 }
+
+/// A draft (an agent's replica of the workbook) that typed into a new cell the person typed into
+/// meanwhile names another `Cell` object for the cell's entry (each session creates its own
+/// object ahead): the merge is refused (data model 6.6, rule D4) and changes nothing, so one cell's
+/// entry never has two objects to choose between.
+#[test]
+fn a_draft_typing_into_a_new_cell_the_person_typed_into_is_refused() {
+    use kition_kit::kdm::MergeAt;
+    let mut a = SheetSession::create(&base()).unwrap();
+    let at = a.version();
+    let mut d = peer(&a);
+    let (wb, e) = edited(&d, |wb| {
+        put(wb, 0, "B3", "the draft's");
+        vec![]
+    });
+    d.record(&Origin::agent("user:agent"), &wb, &e).unwrap();
+    let (wb, e) = edited(&a, |wb| {
+        put(wb, 0, "B3", "mine");
+        vec![]
+    });
+    a.record(&Origin::person("user:a"), &wb, &e).unwrap();
+    let changes = d.export_changes(&at).unwrap();
+    let ids = &a.model().ids().sheets[0];
+    let key = format!("{}:{}", ids.rows[2].as_str(), ids.cols[1].as_str());
+    let conflicts = a.replica().merge_conflicts(&changes).unwrap();
+    assert!(
+        conflicts
+            .iter()
+            .any(|c| c.rule == "D4" && c.object == ids.object && c.field.as_deref() == Some("cells") && c.at == Some(MergeAt::Key(key.clone()))),
+        "the cell's entry collides: {conflicts:?}"
+    );
+    let version = a.version();
+    assert!(a.merge_changes(&changes, &Origin::person("user:a")).is_err(), "the merge is refused");
+    assert_eq!(a.version(), version, "and changes nothing");
+    assert_eq!(input(a.workbook(), 0, "B3"), "mine");
+}

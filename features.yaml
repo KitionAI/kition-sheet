@@ -18,10 +18,11 @@ features:
     priority: P0
     status: partial
     gap: Every registered write and retained handler-reading path has a bidirectional fact comparison with decreasing excess-hold limits; conservative excess holds still require review.
-    paths: [bindings/wasm/tests/declarations_independent.rs, bindings/wasm/tests/declarations_independent]
+    paths: [bindings/wasm/tests/declarations_independent.rs, bindings/wasm/tests/declarations_independent, bindings/wasm/tests/fact_holder.rs]
     cases:
       - regressions/issue-c8-sheet-pin-shape-target
       - regressions/issue-c8-sheet-pin-fact-holder
+      - regressions/issue-c8-sheet-pin-fact-holder-undo
       - regressions/issue-c8-sheet-pin-painter
       - regressions/issue-c8-sheet-pin-reread
       - regressions/issue-c8-sheet-pin-raw-formula
@@ -571,7 +572,7 @@ features:
     paths: [bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/kdm_bridge.rs, crates/kdm/kdm-model/src/session.rs, web/package.json]
     target: "Kit UI protocol section 7 (replica/restore); engine contract members mergeChanges, compareChanges, restoreState, changesSince, modelReply, modelDescribe, modelBatch"
     gap: Engine tests merge a draft, compare it first, restore a version, answer a receipt, name reply ids and serve the object model, and test:contract checks the built engine has every member; no case drives a draft or a restore in the editor yet.
-    cases: [regressions/issue-undo-passed-over-history]
+    cases: [regressions/issue-undo-passed-over-history, regressions/issue-agent-draft-person-undo]
     since: "2026-11-25"
   - id: sheet.editor.workbook-files
     title: "Workbook files as in WPS: open xlsx, xlsm, templates, Excel 97-2003 .xls, .xlsb, ODS, CSV (UTF-8 or GBK) and web pages named .xls, sized as WPS sizes columns and rows; refuse empty, damaged and non-spreadsheet files saying what they are; File › Export as PDF (Chinese text embedded, A4), picture, Excel workbook, CSV of what cells show and web page; Save as Template (.xltx); a read-only preview; copy and paste between workbooks with formats; form controls kept on save"

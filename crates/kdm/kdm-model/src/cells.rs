@@ -16,20 +16,14 @@
 //! - `style`, `array` and `picture` registers;
 //! - `by`, a register only a `Cell` created ahead of a person's write has: the creating
 //!   session's token, which is also the end of the object's id ([`ahead_id`]: the cell's derived
-//!   id, `-`, the token). Two sessions typing into one empty cell at once so create two objects,
-//!   and the map entry names one of them (the *kept* one);
-//! - `key`, also only on a `Cell` created ahead: its key in the map, so a peer reading the new
-//!   cell finds its place without reading the whole map (rule P1), and a session finds the other
-//!   object of such a race (its key's entry names another object);
-//! - `raced`, only on a `Cell` created ahead that kept its entry in such a race: the other
-//!   objects, by id. The cell's text is its own text and then theirs, in that order, every
-//!   replica reading the same; a write diffs each object's part on its own, so typing in any of
-//!   them merges by character and each person's undo reverts their own typing. Its other
-//!   registers are the kept object's (an input that is not text, a formula or a number, is a
-//!   whole value: the other's is not read). Sessions record `raced` (`SheetSession`) as they see
-//!   the race, after an import and when opening a replica merged elsewhere, with the other's
-//!   style when the kept one has none. Cells written in bulk (an import, a paste into a full write) have no `by`,
-//!   `key` or `raced`: on a large workbook it would be most of the snapshot again.
+//!   id, `-`, the token);
+//! - `key`, also only on a `Cell` created ahead: its key in the map, so a reader of the new cell
+//!   finds its place without reading the whole map (rule P1). Cells written in bulk (an import, a
+//!   paste into a full write) have no `by` or `key`: on a large workbook it would be most of the
+//!   snapshot again.
+//!
+//! One cell's entry names one object. A draft that types into a new cell the person typed into
+//! too sets the cell's entry to another object: the merge refuses it (data model 6.6, rule D4).
 //!
 //! **Clearing** a cell empties its `Cell` (its text deleted by character, its registers unset)
 //! and keeps the object and its entry ([`clear`]): what another person types into the cell at
@@ -42,7 +36,7 @@
 use std::collections::HashMap;
 
 use kition_kit::kdm::{ObjectId, Replica, Tx};
-use kition_kit::session::{TextRun, diff_text, sha256_hex};
+use kition_kit::session::{TextRun, sha256_hex};
 use kition_sheet_core::Value as CellValue;
 use kition_sheet_model::Cell;
 use serde_json::{Map, Value, json};
@@ -63,9 +57,6 @@ pub(crate) struct Stored {
     pub style: Option<String>,
     pub array: Option<String>,
     pub picture: Option<Value>,
-    /// The `Cell` objects whose texts make up `text`, each with its own (the kept object first,
-    /// then the ones `raced` names); empty when only one object holds the text.
-    pub parts: Vec<(ObjectId, String)>,
     /// `text` as runs with their marks, when any run has one (empty: plain text).
     pub runs: Vec<TextRun>,
 }
@@ -175,25 +166,10 @@ pub(crate) fn cell_id(sheet: &ObjectId, key: &str) -> ObjectId {
     ObjectId::from_string(String::from_utf8_lossy(&id).into_owned())
 }
 
-/// The register of a `Cell` created ahead naming the other objects of a race (see the module docs).
-pub(crate) const RACED: &str = "raced";
-
 /// The id of a `Cell` created ahead of a person's write by the session whose token is `by`: the
-/// cell's derived id ([`cell_id`]), `-`, the token. Sessions creating one cell at once make
-/// distinct objects, and keep both texts (see the module docs).
-/// Whether the `Cell` object `id` holds nothing: no text and no other content.
-pub(crate) fn is_empty_object(replica: &Replica, id: &ObjectId) -> bool {
-    let unset = |field: &str| replica.get(id, field).map_or(true, |v| v.is_null());
-    replica.text(id, TEXT).map_or(true, |text| text.is_empty()) && unset("input") && unset("picture") && unset("array")
-}
-
+/// cell's derived id ([`cell_id`]), `-`, the token.
 pub(crate) fn ahead_id(derived: &ObjectId, by: &str) -> ObjectId {
     ObjectId::from_string(format!("{}-{by}", derived.as_str()))
-}
-
-/// Whether `id` is a `Cell` created ahead ([`ahead_id`]), the only cells that can hold `raced`.
-pub(crate) fn is_ahead(id: &str) -> bool {
-    id.len() > 19 && id.starts_with('c') && id.as_bytes().get(18) == Some(&b'-')
 }
 
 /// The `Cell` object a map value names, if it is one and exists.
@@ -203,10 +179,15 @@ pub(crate) fn object_of(tx: &Tx<'_>, value: &Value) -> Option<ObjectId> {
 }
 
 /// Creates the `Cell` object of `key` in `sheet`'s `cells` map, holding `stored`, and names it in
-/// the map. Answers its id, and whether it is the derived one ([`cell_id`]: another replica may
-/// create the same object).
-pub(crate) fn create(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str, stored: &Stored) -> KdmResult<(ObjectId, bool)> {
-    let fields = stored.registers();
+/// the map. `address`: its tool address (`<sheet id>!A1`), written with its `label`, when the
+/// writer knows it (else positions are projected later). Answers its id, and whether it is the
+/// derived one ([`cell_id`]: another replica may create the same object).
+pub(crate) fn create(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str, stored: &Stored, address: Option<String>) -> KdmResult<(ObjectId, bool)> {
+    let mut fields = stored.registers();
+    if let Some(address) = address {
+        fields.insert("label".to_owned(), json!(format!("sheet:{address}")));
+        fields.insert("address".to_owned(), Value::String(address));
+    }
     let (id, derived) = match tx.create_with_id(CELL, &cell_id(sheet, key), fields.clone()) {
         Ok(id) => (id, true),
         // That id was used before (the cell was cleared): any id will do.
@@ -239,69 +220,12 @@ pub(crate) fn clear(tx: &mut Tx<'_>, sheet: &ObjectId, key: &str) -> KdmResult<b
             wrote = true;
         }
     }
-    for part in std::iter::once(id.clone()).chain(raced_of(tx, &id)) {
-        let len = tx.text_len(&part, TEXT)?;
-        if len > 0 {
-            tx.text_delete(&part, TEXT, 0, len)?;
-            wrote = true;
-        }
+    let len = tx.text_len(&id, TEXT)?;
+    if len > 0 {
+        tx.text_delete(&id, TEXT, 0, len)?;
+        wrote = true;
     }
     Ok(wrote)
-}
-
-/// For a `Cell` created ahead (`id`) whose key's entry names another live `Cell` (it lost a race
-/// on one new cell, see the module docs): the sheet (by its place in `sheets`) and that object.
-pub(crate) fn holder_of(replica: &Replica, sheets: &[ObjectId], id: &ObjectId) -> Option<(usize, ObjectId)> {
-    if !is_ahead(id.as_str()) {
-        return None;
-    }
-    let key = replica.get(id, "key").ok()?.as_str()?.to_owned();
-    let derived = id.as_str().get(..18)?;
-    let k = sheets.iter().position(|sheet| cell_id(sheet, &key).as_str() == derived)?;
-    let named = ObjectId::from_string(replica.map_get(sheets.get(k)?, "cells", &key).ok()?.as_str()?);
-    (named != *id && replica.object_type(&named).ok().as_deref() == Some(CELL)).then_some((k, named))
-}
-
-/// A cell's new text `new` split over the objects whose texts `olds` made up its old one (see the
-/// module docs): kept characters stay in their object's part, inserted ones join the part of the
-/// character before them (the first part at the start).
-pub(crate) fn split_parts(olds: &[String], new: &str) -> Vec<String> {
-    let old: String = olds.concat();
-    let mut owner_old: Vec<usize> = Vec::with_capacity(old.chars().count());
-    for (k, part) in olds.iter().enumerate() {
-        owner_old.extend(std::iter::repeat_n(k, part.chars().count()));
-    }
-    let mut owner_new: Vec<usize> = Vec::with_capacity(new.chars().count());
-    let mut at = 0;
-    for edit in diff_text(&old, new) {
-        owner_new.extend(owner_old.get(at..edit.index).unwrap_or(&[]).iter().copied());
-        let last = owner_new.last().copied().unwrap_or(0);
-        owner_new.extend(std::iter::repeat_n(last, edit.insert.chars().count()));
-        at = edit.index + edit.delete;
-    }
-    owner_new.extend(owner_old.get(at..).unwrap_or(&[]).iter().copied());
-    let mut out = vec![String::new(); olds.len().max(1)];
-    for (ch, k) in new.chars().zip(owner_new) {
-        if let Some(part) = out.get_mut(k) {
-            part.push(ch);
-        }
-    }
-    out
-}
-
-/// The live `Cell` objects `id`'s `raced` names (none unless `id` is a cell created ahead).
-pub(crate) fn raced_of(tx: &Tx<'_>, id: &ObjectId) -> Vec<ObjectId> {
-    if !is_ahead(id.as_str()) {
-        return Vec::new();
-    }
-    let v = tx.get(id, RACED).unwrap_or(Value::Null);
-    v.as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .map(ObjectId::from_string)
-        .filter(|o| o != id && tx.object_type(o).ok().as_deref() == Some(CELL))
-        .collect()
 }
 
 /// Removes `key` from `sheet`'s `cells` map, and deletes the `Cell` object it named. Answers
@@ -330,41 +254,7 @@ pub(crate) fn read_entry(replica: &Replica, v: &Value) -> Option<(ObjectId, Stor
     let input = string("input");
     let array = if input.as_deref().is_some_and(|i| i.starts_with('=')) { string("array") } else { None };
     let (text, runs) = text_runs(replica, &id);
-    let mut stored = Stored {
-        input,
-        text,
-        style: string("style"),
-        array,
-        picture: replica.get(&id, "picture").ok().filter(|p| !p.is_null()),
-        parts: Vec::new(),
-        runs,
-    };
-    // A cell created ahead may hold the texts of the other objects of a race (see the module docs).
-    if is_ahead(id.as_str())
-        && let Some(others) = replica.get(&id, RACED).ok().as_ref().and_then(Value::as_array)
-    {
-        let mut parts = vec![(id.clone(), stored.text.clone())];
-        for other in others.iter().filter_map(Value::as_str).map(ObjectId::from_string) {
-            if other == id || parts.iter().any(|(o, _)| *o == other) || replica.object_type(&other).ok().as_deref() != Some(CELL) {
-                continue;
-            }
-            let (text, runs) = text_runs(replica, &other);
-            if !runs.is_empty() || !stored.runs.is_empty() {
-                if stored.runs.is_empty() {
-                    stored.runs.push(TextRun::new(stored.text.clone()));
-                }
-                if runs.is_empty() {
-                    stored.runs.push(TextRun::new(text.clone()));
-                }
-                stored.runs.extend(runs);
-            }
-            stored.text.push_str(&text);
-            parts.push((other, text));
-        }
-        if parts.len() > 1 {
-            stored.parts = parts;
-        }
-    }
+    let stored = Stored { input, text, style: string("style"), array, picture: replica.get(&id, "picture").ok().filter(|p| !p.is_null()), runs };
     Some((id, stored))
 }
 

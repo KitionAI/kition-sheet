@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-agent-draft-person-undo
+feature: sheet.collab.drafts
+intent: >-
+  A draft an agent made, merged by the person (the host merges with the agent's origin), is one
+  undo step of the person (KitModel M12a). The replica records it in the person's history; the
+  engine's history recorded it as the agent's, so the person's Undo skipped it and the two
+  histories disagreed. Now the engine's history holds it as the person's step, the replica agrees,
+  and the person's Undo gives back the exact state before the merge.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: bindings/wasm/src/collab.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: an_agents_draft_merges_as_the_persons_undo_step
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-25"
+timeout_s: 120

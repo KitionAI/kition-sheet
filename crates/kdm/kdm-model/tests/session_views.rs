@@ -261,9 +261,9 @@ fn run_sessions(seed: u64, ops: usize, appending: bool) {
 
 #[test]
 fn sheet_session_views_equal_a_fresh_read() {
-    // 49, 52, 67, 212: an undo restoring a cell entry a peer re-keyed, a cleared cell in a deleted
-    // row, and undoing the step that made lines or a name (read again in full). 351: an entry a
-    // merge kept whose object an undo deleted, in a sheet the view had no cell index for.
+    // 49, 52, 67, 212, 351: seeds that once found a defect of the view under two-way merging,
+    // kept as more seeds of the one-line run (a cleared cell in a deleted row, undoing the step
+    // that made lines or a name: read again in full).
     for seed in (21..=40).chain([49, 52, 67, 212, 351]) {
         run_sessions(seed, 300, false);
     }
@@ -271,8 +271,8 @@ fn sheet_session_views_equal_a_fresh_read() {
 
 #[test]
 fn sheet_session_views_equal_a_fresh_read_typing_past_the_data() {
-    // 34, 40: an image whose anchor row a delete cut through. 224: a sheet deleted while a peer
-    // typed in it (the repair after the merge).
+    // 34, 40: an image whose anchor row a delete cut through. 224: a seed that once found a defect
+    // of the repair under two-way merging, kept as one more seed of the one-line run.
     for seed in (31..=50).chain([224]) {
         run_sessions(seed, 300, true);
     }

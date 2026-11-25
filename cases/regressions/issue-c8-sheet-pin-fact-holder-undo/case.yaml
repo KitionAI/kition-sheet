@@ -1,0 +1,26 @@
+format: 1
+id: regressions/issue-c8-sheet-pin-fact-holder-undo
+feature: sheet.agent.independent-reading
+intent: >-
+  Undo and redo of every edit keep the private fact holder (the workbook's AxisFacts object), and
+  a replica following the workbook on one line of changes holds the same state after each step.
+  The coverage the case issue-c8-sheet-pin-fact-holder had from the convergence suite, which went
+  with concurrent merging.
+layer: gate
+dimension: collab
+source:
+  kind: synthetic
+  from: C8-sheet-pin
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      test: fact_holder
+      filter: undo_redo_and_a_follower_keep_the_private_fact_holder
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-25"
+timeout_s: 120

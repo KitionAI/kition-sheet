@@ -189,40 +189,16 @@ impl SheetDocument {
     /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica
     /// or when the schema declares no tool ids. The workbook keeps its own ids.
     ///
-    /// The editor asks this for every agent reply (each `ai/inspect`): the tool ids are read for
-    /// the objects the reply names alone (each one's type and tool id field), not for the whole
-    /// workbook, whose hundreds of thousands of cells would take a walk of every object each time.
-    /// Only a reply naming an object without a tool id of its own (one named by where it is held)
-    /// reads the whole workbook's.
+    /// The editor asks this for every agent reply (each `ai/inspect`, `document/check` and
+    /// `ai/run`): the tool ids are read for the objects the reply names alone
+    /// (`ToolIds::show_reply`, through `Replica::tool_ids_of`), not for the whole workbook, whose
+    /// hundreds of thousands of cells would take a walk of every object each time. Only a reply
+    /// naming an object the SDK cannot name on its own (one named by where it is held) takes the
+    /// whole workbook's, read once per version.
     pub fn model_reply(&self, value: &str) -> Result<String, String> {
         let value: Value = serde_json::from_str(value).map_err(|error| format!("the reply is not JSON: {error}"))?;
         let Some(kdm) = self.session.kdm() else { return Ok(value.to_string()) };
-        let replica = kdm.replica();
-        let schema = replica.schema();
-        let mut texts = std::collections::BTreeSet::new();
-        texts_of(&value, &mut texts);
-        let mut objects = serde_json::Map::new();
-        for text in texts {
-            let id = kition_kit::kdm::ObjectId::from_string(text.as_str());
-            let Ok(ty) = replica.object_type(&id) else { continue };
-            let mut object = serde_json::Map::new();
-            let own =
-                schema.types.get(&ty).and_then(|def| def.tool_id.as_ref()).map(|tool| (tool, replica.get(&id, &tool.field).unwrap_or(Value::Null)));
-            let Some((tool, field)) = own.filter(|(_, field)| !field.is_null()) else {
-                // Named by where it is held, not by a field of its own (a merged area, a line of
-                // a table): those names take the whole workbook's ids.
-                let ids = kition_kit::kdm::tool_ids::ToolIds::of_replica(replica);
-                return Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string());
-            };
-            object.insert(tool.field.clone(), field);
-            object.insert("$type".into(), Value::String(ty));
-            objects.insert(text, Value::Object(object));
-        }
-        if objects.is_empty() {
-            return Ok(value.to_string());
-        }
-        let ids = kition_kit::kdm::tool_ids::ToolIds::of_state(schema, &json!({ "objects": objects }));
-        Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string())
+        Ok(kition_kit::kdm::tool_ids::ToolIds::show_reply(kdm.replica(), &value).to_string())
     }
 
     /// What changed since the version `since` (empty bytes: since the replica began), a receipt as
@@ -256,28 +232,6 @@ impl SheetDocument {
     /// full [`SheetDocument::snapshot`]). Hosts watch this.
     pub fn kdm_resets(&self) -> u32 {
         u32::try_from(self.session.kdm_resets()).unwrap_or(u32::MAX)
-    }
-}
-
-/// Every string and key `value` holds, and each `:`-separated segment of them (a map key made of
-/// object ids, `<row id>:<column id>`): the texts that may name an object.
-fn texts_of(value: &Value, out: &mut std::collections::BTreeSet<String>) {
-    fn add(text: &str, out: &mut std::collections::BTreeSet<String>) {
-        out.insert(text.to_owned());
-        if text.contains(':') {
-            out.extend(text.split(':').filter(|part| !part.is_empty()).map(str::to_owned));
-        }
-    }
-    match value {
-        Value::String(text) => add(text, out),
-        Value::Array(items) => items.iter().for_each(|item| texts_of(item, out)),
-        Value::Object(map) => {
-            for (key, item) in map {
-                add(key, out);
-                texts_of(item, out);
-            }
-        }
-        _ => {}
     }
 }
 
@@ -570,19 +524,43 @@ mod tests {
         cell(doc, a1)["value"].clone()
     }
 
+    /// The replicated objects and the engine's own workbook (id-blind), to compare whole states.
+    fn whole(doc: &mut SheetDocument) -> (Value, Value) {
+        let objects = doc.replicated_state().unwrap()["objects"].clone();
+        let wb = doc
+            .session
+            .active()
+            .map(|state| serde_json::to_value(kdm_model::normalize(&state.wb)).unwrap())
+            .unwrap_or_else(|| panic!("an active workbook"));
+        (objects, wb)
+    }
+
+    /// The names the workbook defines, sorted.
+    fn names(doc: &mut SheetDocument) -> Vec<String> {
+        let listed = doc.execute("formulas.nameManager", json!({})).unwrap();
+        let mut names: Vec<String> = listed.as_array().into_iter().flatten().filter_map(|n| n["name"].as_str().map(str::to_owned)).collect();
+        names.sort();
+        names
+    }
+
     /// A draft (a replica forked from the workbook's) merges in as one step of the person's Undo:
     /// the comparison beforehand names what the merge does and changes nothing, the engine's
-    /// workbook follows the merge, an edit made here meanwhile stays, and a refused merge changes
-    /// nothing.
+    /// workbook follows the merge, an edit made here meanwhile stays (a name defined on each side:
+    /// both are in the workbook's list of names), Undo gives back the exact state before (the
+    /// replica's objects and the engine's workbook) and Redo the merged one, and a refused merge
+    /// changes nothing.
     #[test]
     fn a_draft_merges_in_as_one_undo_step_and_the_workbook_follows() {
         let mut doc = SheetDocument::open("Budget.xlsx", &fixture()).unwrap();
         let base = doc.version().unwrap();
         let mut draft = SheetDocument::open_with_replica("Budget.xlsx", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
         draft.execute("cell.set", json!({ "cell": "B3", "input": "500" })).unwrap();
+        draft.execute("formulas.defineName", json!({ "name": "Rate", "refersTo": "=Sheet1!$B$3" })).unwrap();
         let changes = draft.export_changes(&base).unwrap();
         doc.execute("cell.set", json!({ "cell": "A2", "input": "Rent and bills" })).unwrap();
+        doc.execute("formulas.defineName", json!({ "name": "Tax", "refersTo": "=Sheet1!$B$2" })).unwrap();
         let version = doc.version().unwrap();
+        let before = whole(&mut doc);
         let preview = doc.compare_changes(&changes).unwrap();
         assert_eq!(doc.version().unwrap(), version, "comparing changes nothing");
         let origin = Origin::person("person:local");
@@ -592,16 +570,48 @@ mod tests {
         assert_eq!(value(&mut doc, "B3"), json!(500.0), "the engine's workbook follows the merge");
         assert_eq!(value(&mut doc, "B4"), json!(1700.0), "and is recalculated");
         assert_eq!(value(&mut doc, "A2"), json!("Rent and bills"), "the edit made here stays");
+        assert_eq!(names(&mut doc), ["Rate", "Tax"], "both sides' names are in the list");
+        let merged = whole(&mut doc);
         assert!(doc.undo().unwrap().0);
         assert_eq!(value(&mut doc, "B3"), json!(450.0), "one undo takes the whole draft back");
         assert_eq!(value(&mut doc, "A2"), json!("Rent and bills"), "and only the draft");
+        assert!(whole(&mut doc) == before, "the undo gives back the exact state before the merge");
+        assert_eq!(names(&mut doc), ["Tax"]);
+        assert!(doc.redo().unwrap().0);
+        assert!(whole(&mut doc) == merged, "the redo gives back the exact merged state");
         let at = doc.version().unwrap();
         assert!(doc.merge_changes(b"not changes", &origin).is_err());
         assert_eq!(doc.version().unwrap(), at, "a refused merge changes nothing");
     }
 
+    /// KitModel M12a: a draft an agent made is one undo step of the person who accepts it (the
+    /// host merges with the agent's origin): the person's Undo takes it back, the agent's history
+    /// holds nothing, and the replica's histories say the same.
+    #[test]
+    fn an_agents_draft_merges_as_the_persons_undo_step() {
+        use kition_kit::kdm::UndoScope;
+        let mut doc = SheetDocument::open("Budget.xlsx", &fixture()).unwrap();
+        let base = doc.version().unwrap();
+        let mut draft = SheetDocument::open_with_replica("Budget.xlsx", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+        draft.execute("cell.set", json!({ "cell": "C2", "input": "=B2*12" })).unwrap();
+        let changes = draft.export_changes(&base).unwrap();
+        let before = whole(&mut doc);
+        let agent = Origin::agent("user:agent");
+        doc.merge_changes(&changes, &agent).unwrap();
+        assert_eq!(value(&mut doc, "C2"), json!(14400.0));
+        let scopes =
+            |doc: &SheetDocument| doc.session.active().map(|state| state.undo.iter().map(|u| u.scope).collect::<Vec<_>>()).unwrap_or_default();
+        assert_eq!(scopes(&doc), [UndoScope::Person], "the engine's history holds the merge as the person's step");
+        let replica = doc.session.kdm().unwrap().replica();
+        assert!(replica.can_undo_in(UndoScope::Person) && !replica.can_undo_in(UndoScope::Agent), "the replica's history agrees");
+        assert!(doc.undo().unwrap().0, "the person's Undo takes the draft back");
+        assert!(whole(&mut doc) == before, "exactly");
+    }
+
     /// An earlier state (a checkpoint's snapshot) is written over the workbook by object id as one
-    /// undo step: the replica holds that state again, with the same ids, and Undo takes it back.
+    /// undo step: the replica holds that state again, with the same ids; Undo gives back the exact
+    /// state before the restore (the replica's objects and the engine's workbook), and Redo the
+    /// restored one.
     #[test]
     fn a_restored_state_keeps_the_ids_and_undoes_as_one_step() {
         use kition_kit::kdm::{ActorId, Replica};
@@ -609,6 +619,8 @@ mod tests {
         doc.version().unwrap();
         let checkpoint = doc.snapshot().unwrap();
         doc.execute("cell.set", json!({ "cell": "B2", "input": "1300" })).unwrap();
+        doc.execute("formulas.defineName", json!({ "name": "Tax", "refersTo": "=Sheet1!$B$2" })).unwrap();
+        let before = whole(&mut doc);
         let origin = Origin::person("person:local");
         let damage = doc.restore_state(&checkpoint, &origin).unwrap();
         assert_ne!(damage, Damage::None);
@@ -618,11 +630,16 @@ mod tests {
             .state_json()
             .unwrap();
         assert_eq!(doc.replicated_state().unwrap()["objects"], then["objects"], "the checkpoint's objects, under their ids");
+        assert!(names(&mut doc).is_empty(), "the name defined since goes");
+        let restored = whole(&mut doc);
         let at = doc.version().unwrap();
         assert_eq!(doc.restore_state(&checkpoint, &origin).unwrap(), Damage::None, "the same state again changes nothing");
         assert_eq!(doc.version().unwrap(), at);
         assert!(doc.undo().unwrap().0);
         assert_eq!(value(&mut doc, "B2"), json!(1300.0), "one undo takes the restore back");
+        assert!(whole(&mut doc) == before, "the undo gives back the exact state before the restore");
+        assert!(doc.redo().unwrap().0);
+        assert!(whole(&mut doc) == restored, "the redo gives back the exact restored state");
         let mut other = SheetDocument::open("Budget.xlsx", &fixture()).unwrap();
         let other = other.snapshot().unwrap();
         assert!(doc.restore_state(&other, &origin).is_err(), "another document's state is refused");
@@ -665,6 +682,31 @@ mod tests {
         let shown: Value = serde_json::from_str(&doc.model_reply(&json!({ "target": second }).to_string()).unwrap()).unwrap();
         assert!(shown["target"].as_str().is_some_and(|id| id.starts_with("sheet:")), "{shown}");
         assert!(doc.model_reply("not json").is_err());
+    }
+
+    /// A reply naming one cell of a workbook of thousands names it as the whole workbook's tool ids
+    /// do, as a value and in a key, and a reply naming no object comes back as it is (the editor
+    /// sends every `ai/inspect`, `document/check` and `ai/run` reply through `modelReply`).
+    #[test]
+    fn a_reply_naming_one_cell_of_many_names_it_as_the_whole_workbook_does() {
+        let mut doc = SheetDocument::create("Many.xlsx", 0, 0).unwrap();
+        let rows: Vec<Vec<Value>> = (0..400).map(|r| (0..10).map(|c| json!(r * 10 + c)).collect()).collect();
+        doc.execute("range.setValues", json!({ "range": "A1:J400", "values": rows })).unwrap();
+        let state = doc.replicated_state().unwrap();
+        let cells: Vec<String> =
+            state["objects"].as_object().unwrap().iter().filter(|(_, object)| object["$type"] == "Cell").map(|(id, _)| id.clone()).collect();
+        assert_eq!(cells.len(), 4000, "one object per cell");
+        let kdm = doc.session.kdm().unwrap();
+        let every = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica());
+        for id in [&cells[0], &cells[1999], &cells[3999]] {
+            let reply = json!({ "cell": id, "values": { id.clone(): 1 }, "note": format!("about {id}") });
+            let shown: Value = serde_json::from_str(&doc.model_reply(&reply.to_string()).unwrap()).unwrap();
+            assert_eq!(shown, every.show_json(&reply), "the whole workbook's tool ids");
+            assert!(shown["cell"].as_str().is_some_and(|text| text.starts_with("cell:")), "{shown}");
+            assert_eq!(shown["note"], json!(format!("about {id}")), "text that holds an id stays");
+        }
+        let plain = json!({ "summary": "Many", "cells": ["A1", "J400"], "count": 4000 });
+        assert_eq!(serde_json::from_str::<Value>(&doc.model_reply(&plain.to_string()).unwrap()).unwrap(), plain, "a reply naming no object stays");
     }
 
     /// A receipt names what changed since a version; a version the log does not hold says so

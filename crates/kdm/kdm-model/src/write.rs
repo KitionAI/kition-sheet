@@ -120,8 +120,7 @@ pub(crate) fn create_ahead(tx: &mut Tx<'_>, created: &[Created], by: &str) -> Kd
                 lines.push((sheet.clone(), *axis, id.clone()));
             }
             Created::Cell { sheet, key, id } => {
-                // This session's own object (`cells::ahead_id`): another session typing into the
-                // cell at once makes another, and both texts stay.
+                // This session's own object (`cells::ahead_id`).
                 let id = &cells::ahead_id(id, by);
                 let line_ok = |token: &str| token.starts_with('#') || tx.exists(&ObjectId::from_string(token));
                 let resolvable =
@@ -667,47 +666,16 @@ impl<'w, 'tx> Writer<'w, 'tx> {
     /// map's value for `key`; `view_old` the text (and runs) the view's cell before this write
     /// wrote (`None`: unknown). An existing `Cell` keeps its object: its registers are set where
     /// they differ and its text is diffed by character (`kition_kit::session::write_text`, or
-    /// `write_rich_text` with the runs' marks when either side has runs), so concurrent typing and
-    /// formatting in the cell merge. Where several objects hold the cell's text (a race on one
-    /// new cell, see `cells`), the parts' characters are written and the marks they hold stay.
+    /// `write_rich_text` with the runs' marks when either side has runs).
     fn put_cell(&mut self, j: usize, object: &ObjectId, key: &str, current: &Value, stored: &Stored, view_old: Option<ViewText>) -> KdmResult<()> {
         let Some(id) = cells::object_of(self.tx, current) else {
-            return self.create_cell(object, key, stored);
+            return self.create_cell(object, key, stored, None);
         };
         let text_of = |v: &Option<String>| v.clone().map_or(Value::Null, Value::String);
         self.set(&id, "input", text_of(&stored.input))?;
         self.set(&id, "style", text_of(&stored.style))?;
         self.set(&id, "array", text_of(&stored.array))?;
         self.set(&id, "picture", stored.picture.clone().unwrap_or(Value::Null))?;
-        // Several objects' texts make up the cell's (a race on one new cell, see `cells`): each
-        // object's part is written on its own.
-        if let Some(parts) = self.sheets.get(j).and_then(|s| s.parts.get(&id)).cloned() {
-            let olds: Vec<String> = parts.iter().map(|(_, text)| text.clone()).collect();
-            let news = cells::split_parts(&olds, &stored.text);
-            let mut written = Vec::with_capacity(parts.len());
-            for ((object, old), new) in parts.into_iter().zip(news) {
-                if self.tx.exists(&object) {
-                    let len = self.tx.text_len(&object, cells::TEXT)?;
-                    if old.chars().count() == len {
-                        if old != new {
-                            write_text(self.tx, &object, cells::TEXT, &old, &new).map_err(crate::kdm_err)?;
-                            self.wrote = true;
-                        }
-                    } else {
-                        // Not known (it should be): the part is replaced.
-                        self.tx.text_delete(&object, cells::TEXT, 0, len)?;
-                        self.tx.text_insert(&object, cells::TEXT, 0, &new)?;
-                        self.wrote = true;
-                    }
-                }
-                written.push((object, new));
-            }
-            if let Some(sheet) = self.sheets.get_mut(j) {
-                sheet.texts.remove(&id);
-                sheet.parts.insert(id, written);
-            }
-            return Ok(());
-        }
         // The field's current text: what the reader saw differ from the view (its marks not
         // known: taken as none), or the view's.
         let odd = self.sheets.get_mut(j).and_then(|s| s.texts.remove(&id));
@@ -756,9 +724,10 @@ impl<'w, 'tx> Writer<'w, 'tx> {
         }
     }
 
-    /// Creates a cell's `Cell` object (see [`cells::create`]), logging a derived id.
-    fn create_cell(&mut self, sheet: &ObjectId, key: &str, stored: &Stored) -> KdmResult<()> {
-        let (id, derived) = cells::create(self.tx, sheet, key, stored)?;
+    /// Creates a cell's `Cell` object (see [`cells::create`]) with its `address` when known,
+    /// logging a derived id.
+    fn create_cell(&mut self, sheet: &ObjectId, key: &str, stored: &Stored, address: Option<String>) -> KdmResult<()> {
+        let (id, derived) = cells::create(self.tx, sheet, key, stored, address)?;
         if derived {
             self.created.push(Created::Cell { sheet: sheet.clone(), key: key.to_owned(), id });
         }
@@ -768,7 +737,9 @@ impl<'w, 'tx> Writer<'w, 'tx> {
 
     /// Writes a sheet's `cells` map. `full`: `entries` are every cell the sheet holds, and the
     /// rest go; otherwise `entries` are the positions that changed (`None`: no cell any more).
-    /// `fresh`: the map is new (empty). `was`: the sheet and its objects before this write.
+    /// `fresh`: the map is new (empty). `was`: the sheet and its objects before this write. A
+    /// cell a full write creates is created with its address on sheet `sheet_id` (an import
+    /// writes a million cells: setting them afterwards doubled its operations).
     fn write_cells(
         &mut self,
         j: usize,
@@ -776,13 +747,14 @@ impl<'w, 'tx> Writer<'w, 'tx> {
         fresh: bool,
         entries: Vec<(CellRef, Option<Stored>)>,
         was: Option<(&Sheet, &SheetIds)>,
+        sheet_id: u32,
     ) -> KdmResult<()> {
         let Some(object) = self.sheets.get(j).map(|s| s.object.clone()) else { return Ok(()) };
         if full {
-            let mut new: HashMap<String, Stored> = HashMap::with_capacity(entries.len());
+            let mut new: HashMap<String, (CellRef, Stored)> = HashMap::with_capacity(entries.len());
             for (c, v) in entries {
                 if let Some(v) = v {
-                    new.insert(self.key_of(j, c, true)?, v);
+                    new.insert(self.key_of(j, c, true)?, (c, v));
                 }
             }
             if !fresh {
@@ -790,7 +762,7 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                 let mut live: Option<LiveTokens> = None;
                 for (key, current) in self.tx.map_entries(&object, "cells")? {
                     match new.remove(&key) {
-                        Some(stored) => {
+                        Some((_, stored)) => {
                             let view_old =
                                 before.as_ref().and_then(|(sheet, lines)| lines.position(&key).map(|c| cells::view_text(sheet.cells.get(c))));
                             self.put_cell(j, &object, &key, &current, &stored, view_old)?;
@@ -808,10 +780,10 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                     }
                 }
             }
-            let mut rest: Vec<(String, Stored)> = new.into_iter().collect();
+            let mut rest: Vec<(String, (CellRef, Stored))> = new.into_iter().collect();
             rest.sort_by(|a, b| a.0.cmp(&b.0));
-            for (key, stored) in rest {
-                self.create_cell(&object, &key, &stored)?;
+            for (key, (c, stored)) in rest {
+                self.create_cell(&object, &key, &stored, Some(format!("{sheet_id}!{c}")))?;
             }
             return Ok(());
         }
@@ -1251,8 +1223,12 @@ impl<'w, 'tx> Writer<'w, 'tx> {
             entries.push((*c, self.cell_stored(j, after, *c)?));
         }
         let was_cells = was.map(|(b, sid)| (b.as_ref(), sid));
-        self.write_cells(j, full, fresh && (!self.restoring || after.identities.cells.is_empty()), entries, was_cells)?;
-        let addressed: Vec<_> = if full || before.is_some_and(|b| b.name != after.name) {
+        let fresh_cells = fresh && (!self.restoring || after.identities.cells.is_empty());
+        self.write_cells(j, full, fresh_cells, entries, was_cells, sheet_id)?;
+        // A full write into a new map created every cell with its address.
+        let addressed: Vec<_> = if full && fresh_cells {
+            Vec::new()
+        } else if full || before.is_some_and(|b| b.name != after.name) {
             let lines = self.sheets.get(j).map(BeforeLines::new);
             self.tx
                 .map_entries(&object, "cells")?

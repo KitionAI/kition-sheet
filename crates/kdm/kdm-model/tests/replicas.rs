@@ -1,11 +1,17 @@
 //! Two replicas through `KitSession<SheetModel>`, one following the other's changes: an undone
 //! row delete brings the row back on both, and what a workbook keeps of its fonts, theme, palette,
-//! window, styles, links, extensions and outline reaches the peer.
+//! window, styles, links, extensions and outline reaches the peer. A draft merged in (data model
+//! 6.6) while the person edited is repaired after the merge (`validate`): an edit the draft made in
+//! a row the person deleted is dropped, a name the draft scoped to a sheet the person deleted
+//! becomes a workbook name, and a workbook whose sheets the two deleted between them gets one.
 
 mod common;
 
-use common::{Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, delete_rows, edit, first, input, peer, put, sync};
-use kition_sheet_model::Workbook;
+use common::{
+    Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, delete_rows, draft, edit, first, input, merge, peer, put, sync,
+};
+use kition_sheet_core::Value;
+use kition_sheet_model::{DefinedName, Workbook};
 
 /// A small sheet `Data` (A1:B6: labels and numbers), and `Other`.
 fn base() -> Workbook {
@@ -37,6 +43,76 @@ fn assert_converged(a: &Session, b: &Session) {
 
 fn data(s: &Session, a1: &str) -> String {
     input(&s.model().workbook, 0, a1)
+}
+
+#[test]
+fn an_edit_a_draft_made_in_a_row_deleted_meanwhile_is_dropped() {
+    let (blobs, mut a, mut b) = pair();
+    let (mut d, base) = draft(&a, 7, &blobs);
+    edit(&mut d, &blobs, |wb| {
+        put(wb, 0, "C3", "lost");
+        put(wb, 0, "C4", "kept");
+        vec![]
+    });
+    edit(&mut a, &blobs, |wb| vec![delete_rows(wb, 0, 2, 1)]);
+    merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    let wb = &a.model().workbook;
+    assert!(!wb.sheets[0].cells.iter().any(|(_, c)| c.value == Value::Text("lost".into())), "the edit in the deleted row is gone");
+    assert_eq!(data(&a, "C3"), "kept", "the edit below moved up with its row");
+    assert_eq!(data(&a, "A3"), "row 4");
+    let (read, _) = kdm_model::read_document(a.replica(), &blobs).unwrap_or_else(|e| panic!("read: {e}"));
+    assert_same("a fresh read", &a.model().workbook, &read);
+}
+
+#[test]
+fn a_name_a_draft_scoped_to_a_sheet_deleted_meanwhile_becomes_a_workbook_name() {
+    let (blobs, mut a, mut b) = pair();
+    let (mut d, base) = draft(&a, 7, &blobs);
+    edit(&mut d, &blobs, |wb| {
+        wb.names.push(DefinedName { name: "Rate".into(), scope: Some(1), formula: "Data!$B$2".into(), comment: String::new(), hidden: false });
+        vec![]
+    });
+    edit(&mut a, &blobs, |wb| {
+        common::delete_sheet(wb, 1);
+        vec![]
+    });
+    merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    let wb = &a.model().workbook;
+    assert_eq!(wb.sheets.len(), 1);
+    let rate = wb.names.iter().find(|n| n.name == "Rate").unwrap_or_else(|| panic!("the name survives"));
+    assert_eq!(rate.scope, None);
+    assert_eq!(rate.formula, "Data!$B$2");
+}
+
+#[test]
+fn a_draft_and_the_person_deleting_every_sheet_between_them_leaves_one() {
+    let (blobs, mut a, mut b) = pair();
+    let (mut d, base) = draft(&a, 7, &blobs);
+    edit(&mut d, &blobs, |wb| {
+        common::delete_sheet(wb, 0);
+        vec![]
+    });
+    edit(&mut a, &blobs, |wb| {
+        common::delete_sheet(wb, 1);
+        vec![]
+    });
+    merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    assert_eq!(a.model().workbook.sheets.len(), 1);
+    assert_eq!(a.model().workbook.sheets[0].name, "Sheet1", "the sheet the repair made");
+    // And the view edits on from there.
+    edit(&mut a, &blobs, |wb| {
+        put(wb, 0, "A1", "again");
+        vec![]
+    });
+    sync(&mut a, &mut b);
+    assert_converged(&a, &b);
+    assert_eq!(data(&b, "A1"), "again");
 }
 
 #[test]

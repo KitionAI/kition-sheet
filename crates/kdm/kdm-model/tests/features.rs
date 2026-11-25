@@ -2,11 +2,14 @@
 //! changes of different ones, or of different parts of one, made one after the other, both reach a
 //! peer, and the replicas end identical. One test per container field: the `Sheet`'s `merges`,
 //! `condFormats`, `validations`, `tables`, `sparklines`, `pivots` and `comments`, a `Table`'s
-//! `columns`, a `Comment`'s `replies`.
+//! `columns`, a `Comment`'s `replies`. A draft merged in (data model 6.6) can still make two
+//! merged areas overlap, and make a link while rows go in above its target.
 
 mod common;
 
-use common::{Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, at, edit, first, peer, range, rich, sync};
+use common::{
+    Session, SharedBlobs, assert_replica_clean, assert_same, assert_workbook_valid, at, draft, edit, first, merge, peer, range, rich, sync,
+};
 use kition_sheet_model::{CfRule, Comment, CondFormat, PivotTable, Sheet, Sparkline, Table, TableColumn, Validation, ValidationKind, Workbook};
 
 fn pair() -> (SharedBlobs, Session, Session) {
@@ -191,4 +194,58 @@ fn a_reply_edited_while_another_is_added_keeps_both() {
     );
     let replies = sheet(&a).comments.get(&at("A2")).map(|c| c.replies.clone()).unwrap_or_default();
     assert_eq!(replies, [("Bo".to_owned(), "yes indeed".to_owned()), ("Di".to_owned(), "fine".to_owned())]);
+}
+
+/// A draft merges cells while the person merged cells overlapping them: both `Merge` objects are
+/// in the sheet's list (the document's first, D6), and the reader keeps the document's alone (the
+/// engine keeps merged areas apart). A reopened snapshot and the saved file read the same.
+#[test]
+fn overlapping_merges_made_in_a_draft_and_meanwhile_read_as_the_documents() {
+    let (blobs, mut a, _) = pair();
+    let before = sheet(&a).merges.clone();
+    let (mut d, base) = draft(&a, 7, &blobs);
+    edit(&mut d, &blobs, |wb| {
+        data(wb).merges.push(range("E20:F21"));
+        vec![]
+    });
+    edit(&mut a, &blobs, |wb| {
+        data(wb).merges.push(range("F21:G22"));
+        vec![]
+    });
+    merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
+    let mut expected = before.clone();
+    expected.push(range("F21:G22"));
+    assert_eq!(sheet(&a).merges, expected, "the document's merged area stays, the draft's overlapping one is not read");
+    let (read, _) = kdm_model::read_document(a.replica(), &blobs).unwrap_or_else(|e| panic!("read: {e}"));
+    assert_same("a fresh read", &a.model().workbook, &read);
+    assert_replica_clean(a.replica());
+    let reopened = peer(&a, 8, &blobs);
+    assert_eq!(sheet(&reopened).merges, expected, "a reopened snapshot reads the same");
+    let saved = a.export("Book.xlsx").unwrap_or_else(|e| panic!("export: {e}"));
+    let opened = Session::import("Book.xlsx", &saved, Box::new(blobs.clone()), common::actor(9)).unwrap_or_else(|e| panic!("import: {e}"));
+    assert_eq!(sheet(&opened).merges, expected, "the saved file holds the same merged areas");
+}
+
+/// A link to a place in the workbook made in a draft while the person inserted rows above its
+/// cell and its target: merged, the link moved with its cell and names the moved target (the
+/// replica holds the target by row and column objects).
+#[test]
+fn an_internal_link_made_in_a_draft_while_rows_are_inserted_above_its_target_follows_them() {
+    let (blobs, mut a, _) = pair();
+    let (mut d, base) = draft(&a, 7, &blobs);
+    edit(&mut d, &blobs, |wb| {
+        data(wb).hyperlinks.insert(at("A5"), kition_sheet_model::Hyperlink::new("Data!B4".into(), None));
+        vec![]
+    });
+    edit(&mut a, &blobs, |wb| vec![common::insert_rows(wb, 0, 1, 2)]);
+    merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
+    assert_eq!(sheet(&a).hyperlinks.get(&at("A5")).map(|h| h.target.as_str()), None);
+    assert_eq!(
+        sheet(&a).hyperlinks.get(&at("A7")).map(|h| h.target.as_str()),
+        Some("Data!B6"),
+        "the link moved with its cell and names the moved cell"
+    );
+    let (read, _) = kdm_model::read_document(a.replica(), &blobs).unwrap_or_else(|e| panic!("read: {e}"));
+    assert_same("a fresh read", &a.model().workbook, &read);
+    assert_replica_clean(a.replica());
 }

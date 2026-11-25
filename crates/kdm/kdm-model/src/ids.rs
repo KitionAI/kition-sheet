@@ -85,9 +85,6 @@ pub struct SheetIds {
     /// The `Cell` objects whose `text` differs from what their view's cell writes, with the text
     /// they hold (see `cells`; usually none): the writer diffs a cell's new text against it.
     pub texts: HashMap<ObjectId, String>,
-    /// The `Cell` objects whose cell's text is made up of several objects' (a race on one new
-    /// cell, see `cells`), with each part's object and text, the cell's own object first.
-    pub parts: HashMap<ObjectId, Vec<(ObjectId, String)>>,
 }
 
 impl SheetIds {

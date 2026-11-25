@@ -599,19 +599,20 @@ impl Session {
     }
 
     /// Takes a draft's changes (made on a replica forked from this one, `mergeChanges`) into the
-    /// active workbook as one undo step of `origin`'s scope, as a command's edit is: local edits
-    /// not written yet are written first, the workbook (recalculated) and its selection follow the
-    /// replica, and one Undo takes the whole draft back. Add the draft's blobs first
-    /// ([`Session::add_blobs`]). A refused merge changes nothing.
+    /// active workbook as one undo step of the person who accepts it, even when `origin` is an
+    /// agent's (KitModel M12a: the replica records it in the person's history too), as a command's
+    /// edit is: local edits not written yet are written first, the workbook (recalculated) and its
+    /// selection follow the replica, and one Undo takes the whole draft back. Add the draft's blobs
+    /// first ([`Session::add_blobs`]). A refused merge changes nothing.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage> {
-        self.take_in(origin, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
+        self.take_in(UndoScope::Person, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
     }
 
     /// Writes the state a snapshot holds (a checkpoint of this workbook, `replica/restore`) over
     /// the active workbook by object id, as one undo step of `origin`'s scope, taken in as a
     /// merged draft is ([`Session::merge_changes`]). Nothing changes when the states are equal.
     pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage> {
-        self.take_in(origin, "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
+        self.take_in(UndoScope::of(origin.kind).unwrap_or(UndoScope::Person), "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
     }
 
     /// One transaction `write` makes on the active workbook's replica, taken into the workbook as
@@ -619,7 +620,7 @@ impl Session {
     /// steps the replica's) when the transaction is one.
     fn take_in(
         &mut self,
-        origin: &Origin,
+        scope: UndoScope,
         label: &str,
         write: impl FnOnce(&mut SheetSession) -> kdm_model::kition_kit::session::Result<(u32, Damage)>,
     ) -> Result<Damage> {
@@ -641,7 +642,6 @@ impl Session {
         }
         let steps = result.as_ref().map_or(0, |(steps, _)| *steps);
         if follow && steps > 0 {
-            let scope = UndoScope::of(origin.kind).unwrap_or(UndoScope::Person);
             st.push_undo(HistoryEntry { label: label.to_owned(), wb: before, selection, steps, scope });
             // The step is written already: the bridge has nothing of it left to record.
             st.link.mark = st.link.pushed;

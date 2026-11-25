@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use kdm_model::{Ids, SheetModel, StructuralEdit, normalize, write_changes, write_document};
-use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, Replica};
+use kition_kit::kdm::{ActorId, DocId, ObjectId, Origin, Replica, Version};
 use kition_kit::session::{BlobRef, BlobSink, BlobSource, KitError, KitModel, KitSession, sha256_hex};
 use kition_sheet_core::{CellRef, RangeRef, Value};
 use kition_sheet_formula::adjust::{Axis, Edit, adjust};
@@ -372,6 +372,20 @@ pub fn edit(session: &mut Session, blobs: &SharedBlobs, f: impl FnOnce(&mut Work
         .record(&person("test"), |tx| write_changes(tx, &before, &after, &edits, &mut ids, &mut sink).map(|_| ()).map_err(KitError::from))
         .unwrap_or_else(|error| panic!("record: {error}"));
     session.model_mut().adopt(after, ids);
+}
+
+/// A draft of `of` (`KitSession::fork`, an agent's replica of actor `value`) and the version it
+/// was made at.
+pub fn draft(of: &Session, value: u64, blobs: &SharedBlobs) -> (Session, Version) {
+    let at = of.version();
+    (of.fork(actor(value), Box::new(blobs.clone())).unwrap_or_else(|error| panic!("fork: {error}")), at)
+}
+
+/// Takes what `draft` changed since `at` into `into` as the person's one step (data model 6.6);
+/// a refused merge answers its message.
+pub fn merge(into: &mut Session, draft: &Session, at: &Version) -> Result<(), String> {
+    let changes = draft.export_changes(at).unwrap_or_else(|error| panic!("export: {error}"));
+    into.merge_changes(&changes, &person("test")).map(|_| ()).map_err(|error| error.to_string())
 }
 
 pub fn send(from: &Session, to: &mut Session) {

@@ -32,16 +32,9 @@ pub fn read_document(replica: &Replica, blobs: &dyn BlobSource) -> KdmResult<(Wo
 
 /// Reads the whole workbook, giving each sheet `known` remembers its per-person state back.
 pub fn read_document_known(replica: &Replica, blobs: &dyn BlobSource, known: &Known) -> KdmResult<(Workbook, Ids)> {
-    let (mut wb, ids, _) = Reader::read(replica, blobs)?;
+    let (mut wb, ids) = Reader::read(replica, blobs)?;
     known.restore(&mut wb, &ids);
     Ok((wb, ids))
-}
-
-/// Reads the whole workbook as [`read_document`] does, and answers whether a sheet's `cells` entry
-/// names a `Cell` created ahead (`cells::is_ahead`). Only such an entry can be the kept side of a
-/// race on one new cell (`cells`), so a replica without one holds no race to record.
-pub(crate) fn read_document_races(replica: &Replica, blobs: &dyn BlobSource) -> KdmResult<(Workbook, Ids, bool)> {
-    Reader::read(replica, blobs)
 }
 
 /// A sheet's rows or columns as `replica` holds them, deleted ones included.
@@ -71,8 +64,6 @@ struct ReadCell {
     picture: Option<Arc<CellPicture>>,
     object: Option<ObjectId>,
     odd_text: Option<String>,
-    /// The objects whose texts make up the cell's (`cells::Stored::parts`), when more than one.
-    parts: Vec<(ObjectId, String)>,
 }
 
 struct Reader<'r> {
@@ -82,8 +73,6 @@ struct Reader<'r> {
     by_object: HashMap<String, usize>,
     styles: HashMap<String, StyleId>,
     pictures: HashMap<String, Arc<CellPicture>>,
-    /// Whether a `cells` entry read names a `Cell` created ahead ([`read_document_races`]).
-    named_ahead: bool,
 }
 
 impl Decode for Reader<'_> {
@@ -129,7 +118,7 @@ pub(crate) fn unique_name(name: &str, used: &HashSet<String>) -> String {
 }
 
 impl<'r> Reader<'r> {
-    fn read(replica: &'r Replica, blobs: &'r dyn BlobSource) -> KdmResult<(Workbook, Ids, bool)> {
+    fn read(replica: &'r Replica, blobs: &'r dyn BlobSource) -> KdmResult<(Workbook, Ids)> {
         let root = root_id();
         if !replica.exists(&root) {
             return Err(KdmError::NotFound(root.to_string()));
@@ -201,11 +190,11 @@ impl<'r> Reader<'r> {
 
         wb.apply_name_call_case();
         dedupe_local_ids(&mut wb);
-        Ok((wb, ids, r.named_ahead))
+        Ok((wb, ids))
     }
 
     fn new(replica: &'r Replica, blobs: &'r dyn BlobSource) -> Self {
-        Reader { replica, blobs, sheets: Vec::new(), by_object: HashMap::new(), styles: HashMap::new(), pictures: HashMap::new(), named_ahead: false }
+        Reader { replica, blobs, sheets: Vec::new(), by_object: HashMap::new(), styles: HashMap::new(), pictures: HashMap::new() }
     }
 
     /// The sheets and their lines, read first: every token resolves against them.
@@ -409,14 +398,14 @@ impl<'r> Reader<'r> {
             (None, CellValue::Text(t)) => t,
             _ => "",
         };
-        let odd_text = (object.is_some() && stored.parts.is_empty() && stored.text != written).then(|| stored.text.clone());
+        let odd_text = (object.is_some() && stored.text != written).then(|| stored.text.clone());
         let picture = stored.picture.as_ref().map(|p| self.picture(p)).transpose()?.flatten();
         // A text's runs (marks this version reads), when they spell it.
         let rich = match (&formula, &value) {
             (None, CellValue::Text(t)) if !stored.runs.is_empty() => crate::marks::rich_of(&stored.runs).filter(|r| r.spells(t)).map(Arc::new),
             _ => None,
         };
-        Ok(Some(ReadCell { cell: Cell { value, formula, style, rich }, picture, object, odd_text, parts: stored.parts }))
+        Ok(Some(ReadCell { cell: Cell { value, formula, style, rich }, picture, object, odd_text }))
     }
 
     fn sheet(&mut self, k: usize) -> KdmResult<(Sheet, SheetIds)> {
@@ -455,17 +444,9 @@ impl<'r> Reader<'r> {
 
         // Cells.
         let mut texts = OddTexts::new();
-        let mut parts = HashMap::new();
         for (key, v) in replica.map_entries(&object, "cells")? {
-            // Any entry, shown or not (one of a deleted line), may be the kept side of a race.
-            self.named_ahead |= v.as_str().is_some_and(cells::is_ahead);
             let Some(at) = self.position(k, &key) else { continue };
             let Some(read) = self.cell(k, &v)? else { continue };
-            if let Some(id) = &read.object
-                && !read.parts.is_empty()
-            {
-                parts.insert(id.clone(), read.parts);
-            }
             if let (Some(id), Some(text)) = (read.object, read.odd_text) {
                 texts.insert(id, text);
             }
@@ -527,7 +508,7 @@ impl<'r> Reader<'r> {
             Some(s) => (s.rows.live.clone(), s.cols.live.clone()),
             None => (Vec::new(), Vec::new()),
         };
-        Ok((sheet, SheetIds { object, rows: rows.into(), cols: cols.into(), images, shapes, charts, features, texts, parts }))
+        Ok((sheet, SheetIds { object, rows: rows.into(), cols: cols.into(), images, shapes, charts, features, texts }))
     }
 }
 
@@ -622,9 +603,6 @@ pub(crate) fn reread_cells(
     // ([`delta_places`]), otherwise every entry against the view.
     let mut whole: Vec<usize> = sheets.iter().copied().collect();
     whole.sort_unstable();
-    // The cells showing a changed object's text as the other object of a race (see `cells`).
-    let sheet_objects: Vec<ObjectId> = r.sheets.iter().map(|s| s.object.clone()).collect();
-    let holders: HashSet<ObjectId> = objects.iter().filter_map(|o| cells::holder_of(replica, &sheet_objects, o).map(|(_, held)| held)).collect();
     let delta = delta_places(replica, &r, index, &whole, objects)?;
     for &k in &whole {
         let object = r.sheets[k].object.clone();
@@ -656,7 +634,6 @@ pub(crate) fn reread_cells(
                             patch.clear.push(at);
                         }
                         ids.sheets[k].texts.remove(id);
-                        ids.sheets[k].parts.remove(id);
                     }
                 }
             }
@@ -677,10 +654,8 @@ pub(crate) fn reread_cells(
             if let Some(id) = changed {
                 found.insert(id);
             }
-            let holds = named.as_ref().is_some_and(|id| holders.contains(id));
-            // An entry naming no object, a changed object (or one showing a changed object's text), or
-            // a place the view has no cell at.
-            let read = named.is_none() || changed.is_some() || holds || (!view.cells.has(at) && !view.cell_pictures.contains_key(&at));
+            // An entry naming no object, a changed object, or a place the view has no cell at.
+            let read = named.is_none() || changed.is_some() || (!view.cells.has(at) && !view.cell_pictures.contains_key(&at));
             if let Some(id) = named {
                 places.insert(id, at);
             }
@@ -693,7 +668,7 @@ pub(crate) fn reread_cells(
         }
         patch.clear.extend(view.cells.iter().map(|(at, _)| at).filter(|at| !present.contains(at)));
         patch.clear.extend(view.cell_pictures.keys().filter(|at| !present.contains(*at)).copied());
-        if !ids.sheets[k].texts.is_empty() || !ids.sheets[k].parts.is_empty() {
+        if !ids.sheets[k].texts.is_empty() {
             patch.named = Some(places.keys().cloned().collect());
         }
         index[k] = Some(places);
@@ -701,13 +676,7 @@ pub(crate) fn reread_cells(
     }
 
     // Changed objects of the other sheets, where the index places them.
-    // One no entry names but created ahead (the other object of a race on one new cell, see
-    // `cells`) is shown by the cell its key's entry names: that one is read again.
-    let mut rest: Vec<ObjectId> = objects
-        .iter()
-        .filter(|o| !found.contains(o))
-        .map(|o| cells::holder_of(replica, &sheet_objects, o).map_or_else(|| o.clone(), |(_, held)| held))
-        .collect();
+    let mut rest: Vec<ObjectId> = objects.iter().filter(|o| !found.contains(o)).cloned().collect();
     rest.sort_unstable();
     rest.dedup();
     for k in (0..wb.sheets.len()).filter(|k| !sheets.contains(k)) {
@@ -770,15 +739,9 @@ pub(crate) fn reread_cells(
         }
         if let Some(named) = patch.named {
             sid.texts.retain(|id, _| named.contains(id));
-            sid.parts.retain(|id, _| named.contains(id));
         }
         for (at, read) in patch.set {
             if let Some(id) = read.object {
-                if read.parts.is_empty() {
-                    sid.parts.remove(&id);
-                } else {
-                    sid.parts.insert(id.clone(), read.parts);
-                }
                 match read.odd_text {
                     Some(text) => sid.texts.insert(id, text),
                     None => sid.texts.remove(&id),
@@ -817,20 +780,12 @@ fn delta_places(
         return Ok(None);
     }
     let mut out = HashMap::new();
-    let sheets: Vec<ObjectId> = r.sheets.iter().map(|s| s.object.clone()).collect();
     let mut ids: Vec<&ObjectId> = objects.iter().collect();
     ids.sort_unstable();
     for id in ids {
         let known = whole.iter().find_map(|&k| index.get(k)?.as_ref()?.get(id).map(|at| (k, *at)));
         let live = replica.object_type(id).is_ok_and(|ty| ty == cells::CELL);
         if let Some((k, at)) = known {
-            // One created ahead whose entry another object took (a race on one new cell, see
-            // `cells`) leaves its place to that object, which shows its text.
-            if live && let Some((_, held)) = cells::holder_of(replica, &sheets, id) {
-                out.insert(id.clone(), (k, None));
-                out.entry(held).or_insert((k, Some(at)));
-                continue;
-            }
             out.insert(id.clone(), (k, live.then_some(at)));
             continue;
         }
@@ -857,20 +812,9 @@ fn delta_places(
                 break;
             }
         }
-        // Not named: another object took its entry (a race on one new cell, see `cells`), whose
-        // cell shows this one's text too: that cell is read again. Otherwise (another sheet's
-        // index is not built) the maps are read.
+        // Not named in these sheets (another sheet's index is not built): the maps are read.
         if !placed {
-            let holder = cells::holder_of(replica, &sheets, id).and_then(|(k, named)| {
-                let at = index.get(k)?.as_ref()?.get(&named).copied()?;
-                whole.contains(&k).then_some((named, k, at))
-            });
-            match holder {
-                Some((named, k, at)) => {
-                    out.insert(named, (k, Some(at)));
-                }
-                None => return Ok(None),
-            }
+            return Ok(None);
         }
     }
     Ok(Some(out))
@@ -949,35 +893,6 @@ fn dedupe_local_ids(wb: &mut Workbook) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Opening checks a replica for unrecorded races only when an entry names a `Cell` created
-    /// ahead: a workbook written in bulk has none; a person's typing into a new cell makes one.
-    #[test]
-    fn the_read_tells_whether_an_entry_names_a_cell_created_ahead() {
-        use kition_kit::kdm::Origin;
-        let text = |t: &str| Cell { value: CellValue::Text(Arc::from(t)), ..Cell::default() };
-        let mut wb = Workbook::new();
-        for r in 0..20 {
-            if let Some(sheet) = wb.sheet_mut(0) {
-                sheet.set_cell(CellRef::new(r, 0), text("bulk"));
-            }
-        }
-        let mut session = crate::SheetSession::create(&wb).unwrap_or_else(|e| panic!("create: {e}"));
-        let races = |s: &crate::SheetSession| read_document_races(s.replica(), s.blobs()).unwrap_or_else(|e| panic!("read: {e}")).2;
-        assert!(!races(&session), "a workbook written in bulk names no cell created ahead");
-        let mut typed = session.workbook().clone();
-        if let Some(sheet) = typed.sheet_mut(0) {
-            sheet.set_cell(CellRef::new(0, 0), text("edited"));
-        }
-        session.record(&Origin::person("user:a"), &typed, &[]).unwrap_or_else(|e| panic!("record: {e}"));
-        assert!(!races(&session), "typing into an existing cell creates no object");
-        let mut typed = session.workbook().clone();
-        if let Some(sheet) = typed.sheet_mut(0) {
-            sheet.set_cell(CellRef::new(3, 4), text("new"));
-        }
-        session.record(&Origin::person("user:a"), &typed, &[]).unwrap_or_else(|e| panic!("record: {e}"));
-        assert!(races(&session), "a person's new cell is created ahead");
-    }
 
     #[test]
     fn sheet_names_are_made_unique() {

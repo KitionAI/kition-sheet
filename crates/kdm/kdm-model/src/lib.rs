@@ -352,18 +352,6 @@ impl std::fmt::Debug for SheetModel {
     }
 }
 
-impl SheetModel {
-    /// [`KitModel::load`], also answering whether the replica may hold races on one new cell no
-    /// session recorded yet (`read::read_document_races`).
-    pub(crate) fn load_races(replica: &Replica, blobs: &dyn BlobSource) -> Result<(Self, bool)> {
-        let (mut workbook, ids, named_ahead) = read::read_document_races(replica, blobs).map_err(kit_err)?;
-        recalc(&mut workbook);
-        let mut model = Self::from_parts(workbook, ids);
-        model.note_shapes(replica, None);
-        Ok((model, named_ahead))
-    }
-}
-
 impl KitModel for SheetModel {
     fn schema() -> Arc<Schema> {
         #[allow(clippy::expect_used)]
@@ -371,7 +359,11 @@ impl KitModel for SheetModel {
     }
 
     fn load(replica: &Replica, blobs: &dyn BlobSource) -> Result<Self> {
-        Self::load_races(replica, blobs).map(|(model, _)| model)
+        let (mut workbook, ids) = read_document(replica, blobs).map_err(kit_err)?;
+        recalc(&mut workbook);
+        let mut model = Self::from_parts(workbook, ids);
+        model.note_shapes(replica, None);
+        Ok(model)
     }
 
     /// Reads again only the cells that changed when nothing else did (rule P1); otherwise reloads
