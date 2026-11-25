@@ -29,33 +29,50 @@ Commands by namespace (the part of the id before the first dot):
 
 | Namespace | Commands | Change the document | Open to the agent | Examples |
 | --- | ---: | ---: | ---: | --- |
+| `accessibility` | 1 | 0 | 1 | `accessibility.check` |
+| `addIn` | 1 | 0 | 1 | `addIn.manage` |
 | `app` | 1 | 0 | 1 | `app.commands` |
 | `arrange` | 6 | 5 | 6 | `arrange.bringForward`, `arrange.sendBackward`, `arrange.selectionPane` |
-| `automate` | 5 | 3 | 5 | `script.record`, `script.new`, `script.list` |
-| `cell` | 4 | 3 | 4 | `cell.set`, `cell.formatText`, `cell.get` |
-| `chart` | 12 | 12 | 12 | `chart.set`, `chart.switchRowColumn`, `chart.delete` |
-| `command.runLine` | 1 | 1 | 1 | `command.runLine` |
+| `artText` | 1 | 1 | 1 | `artText.insert` |
+| `cell` | 11 | 10 | 11 | `cell.set`, `cell.formatText`, `cell.get` |
+| `chart` | 14 | 14 | 14 | `chart.set`, `chart.switchRowColumn`, `chart.delete` |
+| `checkbox` | 1 | 1 | 1 | `checkbox.insert` |
+| `column` | 7 | 7 | 7 | `column.setWidth`, `column.autofitWidth`, `column.setDefaultWidth` |
+| `command` | 1 | 1 | 1 | `command.runLine` |
+| `comment` | 4 | 4 | 4 | `comment.add`, `comment.reply`, `comment.resolve` |
+| `conditionalFormat` | 3 | 3 | 3 | `conditionalFormat.apply`, `conditionalFormat.clearRules`, `conditionalFormat.manageRules` |
 | `data` | 32 | 28 | 32 | `data.sortAscending`, `data.sortDescending`, `data.sort` |
-| `document` | 1 | 0 | 1 | `file.inspect` |
-| `draw` | 10 | 2 | 10 | `ink.pen`, `ink.pencil`, `ink.highlighter` |
 | `drawing` | 14 | 13 | 14 | `drawing.ink`, `drawing.erase`, `drawing.describe` |
 | `edit` | 26 | 18 | 26 | `edit.selectAll`, `edit.goTo`, `edit.goToSpecial` |
-| `file` | 12 | 6 | 12 | `file.new`, `file.open`, `file.save` |
-| `formulas` | 27 | 8 | 27 | `formula.autoSum`, `formula.insertFunction`, `formula.functions` |
+| `file` | 13 | 6 | 13 | `file.new`, `file.open`, `file.save` |
+| `format` | 34 | 34 | 34 | `format.bold`, `format.italic`, `format.underline` |
+| `formula` | 23 | 6 | 23 | `formula.autoSum`, `formula.insertFunction`, `formula.functions` |
 | `history` | 1 | 0 | 1 | `history.list` |
-| `home` | 63 | 62 | 63 | `format.bold`, `format.italic`, `format.underline` |
-| `insert` | 14 | 14 | 14 | `table.insert`, `chart.insert`, `chart.recommended` |
+| `icon` | 1 | 1 | 1 | `icon.insert` |
+| `image` | 1 | 1 | 1 | `image.insert` |
+| `ink` | 10 | 2 | 10 | `ink.pen`, `ink.pencil`, `ink.highlighter` |
+| `link` | 1 | 1 | 1 | `link.insert` |
+| `name` | 4 | 3 | 4 | `name.define`, `name.delete`, `name.manage` |
+| `note` | 2 | 2 | 2 | `note.add`, `note.show` |
 | `object` | 3 | 3 | 3 | `object.delete`, `object.move`, `object.setAnchorMode` |
-| `pageLayout` | 16 | 16 | 16 | `page.orientation`, `page.size`, `page.margins` |
-| `pivot` | 19 | 16 | 19 | `pivot.fields`, `pivot.fieldList`, `pivot.list` |
+| `page` | 12 | 12 | 12 | `page.orientation`, `page.size`, `page.margins` |
+| `pivot` | 21 | 18 | 21 | `pivot.fields`, `pivot.fieldList`, `pivot.list` |
 | `range` | 2 | 2 | 2 | `range.setValues`, `range.fill` |
-| `review` | 15 | 10 | 15 | `note.add`, `comment.add`, `comment.reply` |
-| `selection` | 7 | 0 | 7 | `select.set`, `select.move`, `select.next` |
-| `shape` | 1 | 1 | 1 | `shape.setText` |
-| `sheet` | 9 | 5 | 9 | `sheet.rename`, `sheet.move`, `sheet.tabColor` |
-| `table` | 13 | 13 | 13 | `table.totalRow`, `table.bandedRows`, `table.bandedColumns` |
+| `row` | 6 | 6 | 6 | `row.setHeight`, `row.autofitHeight`, `row.hide` |
+| `script` | 5 | 4 | 5 | `script.record`, `script.new`, `script.list` |
+| `select` | 7 | 0 | 7 | `select.set`, `select.move`, `select.next` |
+| `shape` | 2 | 2 | 2 | `shape.setText`, `shape.insert` |
+| `sheet` | 13 | 9 | 13 | `sheet.rename`, `sheet.move`, `sheet.tabColor` |
+| `sparkline` | 1 | 1 | 1 | `sparkline.insert` |
+| `spelling` | 4 | 1 | 4 | `spelling.check`, `spelling.addToDictionary`, `spelling.change` |
+| `style` | 2 | 2 | 2 | `style.apply`, `style.add` |
+| `symbol` | 1 | 1 | 1 | `symbol.insert` |
+| `table` | 15 | 15 | 15 | `table.totalRow`, `table.bandedRows`, `table.bandedColumns` |
+| `textBox` | 1 | 1 | 1 | `textBox.insert` |
+| `theme` | 4 | 4 | 4 | `theme.set`, `theme.colors`, `theme.fonts` |
 | `view` | 22 | 9 | 22 | `view.freezePanes`, `view.freezeTopRow`, `view.freezeFirstColumn` |
 | `window` | 1 | 0 | 1 | `window.activate` |
+| `workbook` | 2 | 1 | 2 | `workbook.protect`, `workbook.statistics` |
 
 ### The workbook
 

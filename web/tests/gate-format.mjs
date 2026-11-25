@@ -1014,7 +1014,7 @@ try {
     ])
     const before = await exec('file.inspect')
     await goTo('A1:F1')
-    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-format.${id}`).click()
     await settle(250)
     const after = await exec('file.inspect')
     const fonts = await Promise.all(['A1', 'B1', 'C1', 'D1', 'E1', 'F1'].map(fontOf))
@@ -1150,12 +1150,12 @@ try {
     ]
     for (const [id, ref, key, test, ids, keyIds] of toggles) {
       await click(ref)
-      await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+      await kit.getByTestId(`sheet-cmd-format.${id}`).click()
       await settle(200)
-      const on = test(await fontOf(ref)) && (await pressed(`sheet-cmd-home.${id}`))
-      await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+      const on = test(await fontOf(ref)) && (await pressed(`sheet-cmd-format.${id}`))
+      await kit.getByTestId(`sheet-cmd-format.${id}`).click()
       await settle(200)
-      const off = !test(await fontOf(ref)) && !(await pressed(`sheet-cmd-home.${id}`))
+      const off = !test(await fontOf(ref)) && !(await pressed(`sheet-cmd-format.${id}`))
       step(`${ids} 点击 ${id}：内容应用、按钮选中；再次点击取消、按钮未激活`, on && off && (await cellOf(ref)).value != null)
       await sink()
       await page.keyboard.press(`${mod}+${key}`)
@@ -1166,7 +1166,7 @@ try {
       await settle(250)
       step(`${keyIds} 快捷键 ${mod}+${key.toUpperCase()} 应用与取消，与点击结果一致`, byKey && !test(await fontOf(ref)))
     }
-    const tips = await Promise.all(['bold', 'italic', 'underline', 'strikethrough'].map((id) => kit.getByTestId(`sheet-cmd-home.${id}`).getAttribute('title')))
+    const tips = await Promise.all(['bold', 'italic', 'underline', 'strikethrough'].map((id) => kit.getByTestId(`sheet-cmd-format.${id}`).getAttribute('title')))
     step('FONT-C100/C174 tooltip 显示名称与快捷键：加粗 B、倾斜 I、下划线 U、删除线 5', /加粗.*B/.test(tips[0]) && /倾斜.*I/.test(tips[1]) && /下划线.*U/.test(tips[2]) && /删除线.*5/.test(tips[3]), tips.join(' | '))
     const plain = await fontOf('A1')
     step('FONT-C113/C157/C173 取消后其余样式不受影响', plain.name === 'Calibri' && plain.size === 11)
@@ -1183,11 +1183,11 @@ try {
     ]
     for (const [id, ref, test, cid] of cases) {
       await click(ref)
-      await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+      await kit.getByTestId(`sheet-cmd-format.${id}`).click()
       await sink()
       await type('输入')
       await click(ref)
-      step(`${cid} 空白单元格预置 ${id}，输入即生效，按钮选中`, test(await fontOf(ref)) && (await cellOf(ref)).value === '输入' && (await pressed(`sheet-cmd-home.${id}`)))
+      step(`${cid} 空白单元格预置 ${id}，输入即生效，按钮选中`, test(await fontOf(ref)) && (await cellOf(ref)).value === '输入' && (await pressed(`sheet-cmd-format.${id}`)))
     }
   })
 
@@ -1220,7 +1220,7 @@ try {
   await section('FONT-C105/C135/C151/C167 拖选区域', async () => {
     await fresh()
     await dragCells('B2', 'D4')
-    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-format.${id}`).click()
     await settle(200)
     await click('C3')
     const f = await fontOf('C3')
@@ -1303,7 +1303,7 @@ try {
     await fresh()
     await ai([{ command: 'cell.set', params: { cell: 'A1', input: 'abc' } }])
     await click('A1')
-    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-format.${id}`).click()
     await fontColorMenu()
     await kit.getByTestId('sheet-font-color-hex').fill('#FF0000')
     await kit.getByTestId('sheet-font-color-hex-ok').click()

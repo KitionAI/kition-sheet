@@ -883,7 +883,7 @@ fn record(s: &mut Session, p: &Json) -> Result<Json> {
     if bool_param(p, "stop").unwrap_or(false) || s.recording.is_some() {
         let Some(start) = s.recording.take() else { return Ok(json!({"recording": false})) };
         let cmds: Vec<Json> =
-            s.journal.iter().skip(start).filter(|(id, _)| !id.starts_with("automate.")).map(|(id, p)| json!({"command": id, "params": p})).collect();
+            s.journal.iter().skip(start).filter(|(id, _)| !id.starts_with("script.")).map(|(id, p)| json!({"command": id, "params": p})).collect();
         let name = str_param(p, "name").map(str::to_string).unwrap_or_else(|| format!("Script {}", start));
         s.execute("script.new", json!({"name": name, "commands": cmds}))?;
         return Ok(json!({"recording": false, "saved": name, "steps": cmds.len()}));
@@ -921,7 +921,7 @@ fn run_script(s: &mut Session, p: &Json) -> Result<Json> {
         .iter()
         .take(100_000)
         .map(|st| (st["command"].as_str().unwrap_or(""), st.get("params").cloned().unwrap_or_else(|| json!({}))))
-        .filter(|(id, _)| !id.starts_with("automate."))
+        .filter(|(id, _)| !id.starts_with("script."))
         .collect();
     // A script is the workbook's data, and a workbook may come from anyone: every step passes
     // the host's gate for whom the call runs (KHP A28, A29, section 10.6), the same check a

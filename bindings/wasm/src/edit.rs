@@ -218,7 +218,7 @@ pub fn format_params(command: &str, params: &Json) -> Option<Json> {
             (None, None) => serde_json::json!({ "toggle": "underline" }),
         },
         "format.superscript" | "format.subscript" => {
-            let name = command.trim_start_matches("home.");
+            let name = command.trim_start_matches("format.");
             match on {
                 Some(v) => serde_json::json!({ "vertAlign": if v { name } else { "baseline" } }),
                 None => serde_json::json!({ "toggle": name }),

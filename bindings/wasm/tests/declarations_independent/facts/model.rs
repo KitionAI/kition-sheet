@@ -332,7 +332,7 @@ impl Context {
         // KitDocument::execute switches an agent's named target before the
         // engine call, restoring the editor afterwards (lib.rs:2376).
         if command.starts_with("view.")
-            || command.starts_with("selection.")
+            || command.starts_with("select.")
             || matches!(
                 command,
                 "chart.move"

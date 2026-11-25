@@ -213,7 +213,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
         }
         _ => {}
     }
-    if row.command.starts_with("pivot.") || row.command == "data.refreshAll" {
+    if row.command.starts_with("pivot.") && !matches!(row.command, "pivot.insert" | "pivot.recommended") || row.command == "data.refreshAll" {
         let pivot = run(
             &mut doc,
             "pivot.insert",
@@ -273,7 +273,7 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
             run(&mut doc, "conditionalFormat.apply", json!({"range":range,"rule":{"type":"blanks"}}));
         }
     }
-    if row.command.starts_with("review.") && row.command.contains("Comment") || row.command == "note.show" {
+    if row.command.starts_with("comment.") || row.command == "note.show" {
         run(&mut doc, "comment.add", json!({"cell":"B2","text":"original"}));
         run(&mut doc, "comment.add", json!({"cell":"B3","text":"original"}));
         run(&mut doc, "comment.add", json!({"cell":"Sheet2!B2","text":"original"}));
@@ -283,7 +283,10 @@ pub(super) fn fixture(row: &Reading) -> (SheetDocument, Value) {
             || row.command.starts_with("arrange.")
             || row.command.starts_with("drawing.")
             || row.command == "ink.toShape")
-        || row.family == "data_insert" && (row.command.starts_with("chart.") || row.command.starts_with("object.") || row.command == "shape.setText");
+        || row.family == "data_insert"
+            && (row.command.starts_with("chart.") && !matches!(row.command, "chart.insert" | "chart.recommended")
+                || row.command.starts_with("object.")
+                || row.command == "shape.setText");
     if object_path {
         let ink = run(&mut doc, "ink.stroke", json!({"points":[[10,10],[80,40]],"color":"#123456","width":2}))["shape"].clone();
         let first = run(&mut doc, "textBox.insert", json!({"at":"H1","text":"old"}))["shape"].clone();

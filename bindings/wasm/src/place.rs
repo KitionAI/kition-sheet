@@ -871,7 +871,7 @@ impl SheetDocument {
 
         if fixed_axes {
             let rows = matches!(command, "row.setHeight" | "row.hide" | "row.show");
-            let unhide = command.starts_with("home.unhide");
+            let unhide = matches!(command, "row.show" | "column.show");
             let spans = kition_sheet_engine::cmd::format::line_targets(&self.session, &params, rows).map_err(crate::engine_error)?;
             let spans: Vec<_> = spans
                 .into_iter()
@@ -961,7 +961,7 @@ impl SheetDocument {
 
         let is_lines = matches!(command, "row.insert" | "column.insert" | "row.delete" | "column.delete");
         if is_lines {
-            let cols = command.ends_with("Columns");
+            let cols = command.starts_with("column.");
             let field = if cols { "cols" } else { "rows" };
             let ranges: Vec<_> = params
                 .get(field)
@@ -972,7 +972,7 @@ impl SheetDocument {
                 .unwrap_or_else(|| state.selection.ranges.clone());
             for range in ranges {
                 let (first, last) = if cols { (range.start.col, range.end.col) } else { (range.start.row, range.end.row) };
-                let insert = command.starts_with("home.insert");
+                let insert = command.ends_with(".insert");
                 let after = params.get(if cols { "right" } else { "below" }).and_then(Value::as_bool).unwrap_or(false);
                 let at = if insert && after { last.saturating_add(1) } else { first } as usize;
                 let count = params
@@ -1585,6 +1585,8 @@ impl SheetDocument {
         }
         // By name, index or A1, the sheet itself must still exist. Per-field holds prevent an
         // unrelated change elsewhere on the sheet from turning it into a whole-sheet hold.
+        // Inserting, deleting, protecting and unprotecting a sheet hold what they need above.
+        let on_sheet = command.starts_with("sheet.") && !matches!(command, "sheet.insert" | "sheet.delete" | "sheet.protect" | "sheet.unprotect");
         if has_cells
             || filter
             || name_edit
@@ -1596,10 +1598,10 @@ impl SheetDocument {
             || !drawing_params.is_empty()
             || properties.is_some()
             || params.get("sheet").is_some()
-            || command.starts_with("sheet.")
+            || on_sheet
         {
             under.premises.push(premise(sid.clone(), sheet_fields));
-            if params.get("sheet").is_some() || command.starts_with("sheet.") {
+            if params.get("sheet").is_some() || on_sheet {
                 under.objects.push(json!(sid));
             }
         }

@@ -991,9 +991,9 @@ try {
     const before = JSON.stringify((await cellOf('B1')).picture)
     await select('B1')
     await kit.getByTestId('ribbon-tab-home').click()
-    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-home.${id}`).click()
+    for (const id of ['bold', 'italic', 'underline', 'strikethrough']) await kit.getByTestId(`sheet-cmd-format.${id}`).click()
     await settle(250)
-    const pressed = async (id) => (await kit.getByTestId(`sheet-cmd-home.${id}`).getAttribute('aria-pressed')) === 'true'
+    const pressed = async (id) => (await kit.getByTestId(`sheet-cmd-format.${id}`).getAttribute('aria-pressed')) === 'true'
     step('FONT-C107/C137/C153/C169 设置成功：图片单元格的 B、I、U、S 按钮为选中态', (await pressed('bold')) && (await pressed('italic')) && (await pressed('underline')) && (await pressed('strikethrough')))
     step('FONT-C107/C137/C153/C169 图片无变化', JSON.stringify((await cellOf('B1')).picture) === before && before !== 'null')
     await page.keyboard.press('Delete')

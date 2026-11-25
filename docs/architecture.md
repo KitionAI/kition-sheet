@@ -1,6 +1,6 @@
 # Architecture
 
-> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-17 · **Target:** Microsoft Excel (Microsoft 365)
+> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-25 · **Target:** Microsoft Excel (Microsoft 365)
 
 How Kition Sheet is built today. Rules for contributors are in [`AGENTS.md`](../AGENTS.md).
 
@@ -32,8 +32,9 @@ Layering is enforced by `cargo xtask layers`. Line counts are Rust lines includi
 1. **Every action is a command.** The kit's editor (`web/`) and the headless kit executable
    (`bindings/headless`) both call `Session::execute(id, params)` through `KitTools`. Commands are
    `CommandSpec { id, label, menu, shortcut, params, enabled, run, journal, undoable }`; ids
-   follow Excel's ribbon (`format.bold`, `chart.insert`, `data.sortAscending`) plus primitives
-   (`cell.set`, `select.set`, `range.setValues`). `Session::execute` catches escaped panics and
+   name the object a command acts on and then the action (`format.bold`, `chart.insert`,
+   `row.delete`, `cell.set`, `select.set`), never a ribbon tab; where the ribbon shows a command
+   is its `menu` path. `Session::execute` catches escaped panics and
    restores the workbook (never-crash guard).
 2. **Edits** change the model through copy-on-write bands; undo keeps the previous snapshot.
 3. **Recalc** marks dependents of changed cells dirty through the dependency graph (with range

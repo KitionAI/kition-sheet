@@ -9,7 +9,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
     let command = row.command;
     let si = cx.sheet(params);
     let sid = cx.sid(si);
-    if command.starts_with("chart.") {
+    if command.starts_with("chart.") && !matches!(command, "chart.insert" | "chart.recommended") {
         super::objects::chart(&mut out, command, params, cx);
         return out;
     }
@@ -20,7 +20,7 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
     if row.holds == "none" || row.holds == "none beyond addressing" {
         return out;
     }
-    if command.starts_with("table.") {
+    if command.starts_with("table.") && !matches!(command, "table.insert" | "table.formatAs") {
         table(&mut out, command, params, cx);
         return out;
     }

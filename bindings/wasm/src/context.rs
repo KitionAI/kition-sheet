@@ -42,7 +42,7 @@ pub(crate) struct Snapshot {
 
 /// Commands whose work is moving the editor: they keep their effect for an agent too.
 pub(crate) fn moves_the_editor(command: &str) -> bool {
-    command.starts_with("selection.") && command != "select.stats"
+    command.starts_with("select.") && command != "select.stats"
         || command.starts_with("view.")
         || matches!(
             command,

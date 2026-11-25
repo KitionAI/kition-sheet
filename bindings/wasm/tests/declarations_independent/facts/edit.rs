@@ -67,7 +67,9 @@ pub(super) fn expected(row: &Reading, params: &Value, cx: &Context) -> Facts {
         "edit.paste" | "edit.pasteSpecial" => paste(&mut out, command, params, cx, si),
         "edit.autoFill" | "edit.fillSeries" | "edit.smartFill" | "edit.replace" | "edit.formatPainter" | "edit.moveCells" | "cell.insert"
         | "cell.delete" => complex(&mut out, command, params, cx, si),
-        _ if command.starts_with("home.") || command == "cell.formatText" => style(&mut out, command, params, cx, si),
+        _ if command.starts_with("format.") || matches!(command, "cell.lock" | "style.apply" | "cell.formatText") => {
+            style(&mut out, command, params, cx, si)
+        }
         _ => panic!("unprojected edit path {command} {params}"),
     }
     // Keep the independently recorded span visible in debugging, even on an
@@ -326,11 +328,11 @@ fn fill(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize)
 }
 
 fn lines(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize) {
-    let rows = command.ends_with("Rows") || command.ends_with("RowHeight") || command == "row.setHeight";
+    let rows = command.starts_with("row.");
     let field = if rows { "rows" } else { "cols" };
     let range = params.get(field).and_then(Value::as_str).and_then(area).unwrap_or(cx.selected);
     let (mut first, mut last) = if rows { (range.start.row, range.end.row) } else { (range.start.col, range.end.col) };
-    if command.starts_with("home.unhide") && first == last {
+    if matches!(command, "row.show" | "column.show") && first == last {
         first = first.saturating_sub(1);
         last += 1;
     }
@@ -347,15 +349,15 @@ fn lines(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize
         };
         out.add(&id, fields.iter().copied());
     }
-    if command.starts_with("home.autofit") {
+    if matches!(command, "row.autofitHeight" | "column.autofitWidth") {
         out.add("workbook", ["props.defaultStyle", "props.dateSystem"]);
         out.add(&cx.sid(si), ["props.protection"]);
     }
-    cx.shared(out, si, None, command.contains("hide"));
+    cx.shared(out, si, None, matches!(command, "row.hide" | "column.hide" | "row.show" | "column.show"));
 }
 
 fn structure(out: &mut Facts, command: &str, params: &Value, cx: &Context, si: usize) {
-    let rows = command.ends_with("Rows");
+    let rows = command.starts_with("row.");
     let field = if rows { "rows" } else { "cols" };
     let range = params.get(field).or_else(|| params.get("range")).and_then(Value::as_str).and_then(area).unwrap_or(cx.selected);
     let (first, last) = if rows { (range.start.row, range.end.row) } else { (range.start.col, range.end.col) };

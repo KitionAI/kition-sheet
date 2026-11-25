@@ -265,7 +265,7 @@ pub const EDITOR_STATE: &[&str] = &[
 
 /// `file` commands that only produce bytes or files from the workbook, leaving it as it is.
 const FILE_OUTPUTS: &[&str] =
-    &["file.export", "file.saveBytes", "file.exportCsv", "file.exportHtml", "file.exportPdf", "file.print", "file.printPreview"];
+    &["file.export", "file.saveBytes", "file.exportCsv", "file.exportHtml", "file.exportPdf", "file.print", "file.printPreview", "file.inspect"];
 
 /// Commands that leave the active sheet or change the workbook's sheets (the sheet tabs').
 const SHEET_TAB_COMMANDS: &[&str] = &[

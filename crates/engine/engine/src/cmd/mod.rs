@@ -1,5 +1,6 @@
-//! The command registry. Ids follow Excel's ribbon (`format.bold`, `chart.insert`,
-//! `data.sortAscending`) plus primitive editing commands (`cell.set`, `select.set`).
+//! The command registry. An id names the object a command acts on and then the action
+//! (`format.bold`, `chart.insert`, `row.delete`, `cell.set`, `select.set`), never a ribbon tab:
+//! where the ribbon shows a command is its `menu` path.
 
 pub mod chart_spec;
 pub mod data;

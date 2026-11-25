@@ -865,7 +865,7 @@ async fn fixed_axis_properties_hold_their_fields_and_address_windows() {
                     (if rows { "row.insert" } else { "column.insert" }, if rows { json!({"rows":"Data!2"}) } else { json!({"cols":"Data!A"}) })
                 }
                 "neighbour" => (size, if rows { json!({"rows":"Data!6","height":25}) } else { json!({"cols":"Data!A","width":85}) }),
-                _ if command.starts_with("home.hide") => (command, write.clone()),
+                _ if matches!(command, "row.hide" | "column.hide") => (command, write.clone()),
                 _ => (size, target),
             };
             f.colleague(&[other]);
