@@ -1704,3 +1704,30 @@ fn the_affordances_and_objects_follow_the_dark_scheme() {
     doc.execute("editor.scheme", json!({ "scheme": "light" })).unwrap();
     assert_eq!(doc.render(0.0, 0.0, 1.0, w, h).unwrap(), light);
 }
+
+/// The engine members a host reaches while a person types into a cell (each `ai/inspect` reply
+/// through `modelReply`, receipts, the object model, a draft's comparison) read the workbook as
+/// it is: none writes or drops the formula being typed, which Enter then enters whole.
+#[test]
+fn the_engine_members_leave_a_cell_being_typed_alone() {
+    let mut doc = SheetDocument::open("Budget.xlsx", &fixture()).unwrap();
+    let since = doc.version().unwrap();
+    let mut draft = SheetDocument::open_with_replica("Budget.xlsx", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+    draft.execute("cell.set", json!({ "cell": "D1", "input": "draft" })).unwrap();
+    let changes = draft.export_changes(&since).unwrap();
+    click(&mut doc, centre(2, 1), false);
+    KitTools::text(&mut doc, "=SUM(1,", 1.0).unwrap();
+    assert_eq!(get(&doc, "editing"), true);
+    let inspected = doc.inspect().unwrap();
+    doc.model_reply(&json!({ "details": inspected }).to_string()).unwrap();
+    doc.changes_since(&since);
+    doc.model_describe().unwrap();
+    doc.model_batch(&json!({ "ops": [] })).unwrap();
+    doc.compare_changes(&changes).unwrap();
+    doc.version().unwrap();
+    assert_eq!(get(&doc, "editing"), true, "still typing");
+    KitTools::text(&mut doc, "2)", 1.0).unwrap();
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    let cell = doc.execute("cell.get", json!({ "cell": "C2" })).unwrap();
+    assert_eq!((cell["input"].clone(), cell["value"].clone()), (json!("=SUM(1,2)"), json!(3.0)), "{cell}");
+}
