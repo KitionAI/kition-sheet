@@ -140,16 +140,17 @@ try {
     step('FX-C6 回车后值为 3', (await cellOf('A10')).value === 3, JSON.stringify(await input('A10')))
   })
 
-  // TEMPORARY (plain model round 5): FX-C6 eight more times, logging what happens (no step).
+  // TEMPORARY (plain model round 5): FX-C5's steps then FX-C6's, twelve more times in cells the
+  // grid shows (E11:H13), logging each (no step).
   await section('TMP FX-C6 repeated', async () => {
-    for (let k = 0; k < 8; k += 1) {
-      const row = 30 + k
-      await clickCell(0, row)
-      await page.keyboard.type('=su')
-      await hints().waitFor()
-      await hints().locator('li[data-name="SUM"]').click()
-      await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
-      const before = { edit: await editText(), focused: await h.sinkFocused() }
+    for (let k = 0; k < 12; k += 1) {
+      const col = 4 + (k % 4)
+      const row = 10 + Math.floor(k / 4)
+      const ref = `${'EFGH'[k % 4]}${row + 1}`
+      const log = async (what, extra = {}) => {
+        const keys = await kit.locator('body').evaluate((body) => body.ownerDocument.defaultView.__keys ?? [])
+        console.log('TMP-FX-C6-REPEAT', JSON.stringify({ k, ref, what, details: await details(), focused: await h.sinkFocused(), keys, ...extra }))
+      }
       await kit.locator('body').evaluate((body) => {
         const doc = body.ownerDocument
         doc.defaultView.__keys = []
@@ -158,13 +159,31 @@ try {
           doc.addEventListener('keydown', (e) => doc.defaultView.__keys.push([e.key, doc.activeElement?.getAttribute('data-testid') ?? doc.activeElement?.tagName, performance.now() | 0]), true)
         }
       })
+      // FX-C5's steps, as the gate runs them before FX-C6.
+      await clickCell(col, row)
+      await page.keyboard.type('=vlo')
+      if (!(await hints().waitFor({ timeout: 5000 }).then(() => true, () => false))) { await log('no list after =vlo'); await page.keyboard.press('Escape'); continue }
+      await page.keyboard.press('Tab')
+      await until(async () => (await editText()) === '=VLOOKUP(')
+      await page.keyboard.type('1,')
+      await page.keyboard.press('Escape')
+      // FX-C6's.
+      await clickCell(col, row)
+      await page.keyboard.type('=su')
+      if (!(await hints().waitFor({ timeout: 5000 }).then(() => true, () => false))) { await log('no list after =su'); await page.keyboard.press('Escape'); continue }
+      await hints().locator('li[data-name="SUM"]').click()
+      await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
+      const before = { edit: await editText(), focused: await h.sinkFocused() }
       await page.keyboard.type('1,2)')
       const typed = await details()
       await page.keyboard.press('Enter')
-      await until(async () => (await cellOf(`A${row + 1}`)).value === 3)
-      const value = (await cellOf(`A${row + 1}`)).value
-      const keys = await kit.locator('body').evaluate((body) => body.ownerDocument.defaultView.__keys)
-      console.log('TMP-FX-C6-REPEAT', JSON.stringify({ k, value, before, typedEdit: typed.editText, typedEditing: typed.editing, active: typed.active, keys }))
+      await until(async () => (await cellOf(ref)).value === 3)
+      const value = (await cellOf(ref)).value
+      if (value === 3) console.log('TMP-FX-C6-REPEAT', JSON.stringify({ k, ref, ok: true }))
+      else {
+        await page.waitForTimeout(2000)
+        await log('lost', { before, typedEdit: typed.editText, typedEditing: typed.editing, typedActive: typed.active, later: (await cellOf(ref)).value })
+      }
     }
   })
 
