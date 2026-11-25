@@ -315,7 +315,7 @@ impl Context {
         for (si, axes) in ids.sheets.iter().enumerate() {
             let sid = format!("sheet:{}", wb.sheets[si].sheet_id);
             for (field, objects) in
-                [("rows", &axes.rows), ("cols", &axes.cols), ("images", &axes.images), ("shapes", &axes.shapes), ("charts", &axes.charts)]
+                [("rows", &*axes.rows), ("cols", &*axes.cols), ("images", &axes.images), ("shapes", &axes.shapes), ("charts", &axes.charts)]
             {
                 for id in objects {
                     ownership.insert(names.show(id), (sid.clone(), field.into()));
