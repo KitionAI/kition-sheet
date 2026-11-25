@@ -806,6 +806,35 @@ fn a_function_taken_from_the_list_is_entered_with_its_arguments() {
     assert_eq!(get(&doc, "active"), json!("A11"));
 }
 
+/// FX-C6 (the editor routes keys by the last tool answer it has, which may be older than the
+/// latest call): every tool answer from the click on the cell to Enter, the function list's click
+/// (`editor.acceptFunction`, which answers no tool response) and the `ai/inspect` calls between the
+/// keys included, says the engine takes typing (`wantsText`), so no answer the editor holds can
+/// send a typed key elsewhere; and the inspect calls leave the cell being typed alone.
+#[test]
+fn every_tool_answer_from_the_function_list_to_enter_takes_typing() {
+    let mut doc = SheetDocument::create("Accept.xlsx", 0, 0).unwrap();
+    let mut answers = vec![click(&mut doc, centre(0, 9), false)];
+    for ch in ["=", "s", "u"] {
+        answers.push(KitTools::text(&mut doc, ch, 1.0).unwrap());
+        doc.inspect().unwrap();
+    }
+    answers.push(KitTools::state(&mut doc, centre(0, 9).0, centre(0, 9).1, ToolMods::default(), 1.0));
+    doc.execute("editor.acceptFunction", json!({ "name": "SUM" })).unwrap();
+    doc.inspect().unwrap();
+    answers.push(KitTools::state(&mut doc, centre(0, 9).0, centre(0, 9).1, ToolMods::default(), 1.0));
+    for ch in ["1", ",", "2", ")"] {
+        doc.inspect().unwrap();
+        answers.push(KitTools::text(&mut doc, ch, 1.0).unwrap());
+        answers.push(KitTools::state(&mut doc, centre(0, 9).0, centre(0, 9).1, ToolMods::default(), 1.0));
+    }
+    assert_eq!(get(&doc, "editText"), json!("=SUM(1,2)"));
+    answers.push(doc.key("Enter", ToolMods::default(), 1.0).unwrap());
+    let refused: Vec<usize> = answers.iter().enumerate().filter(|(_, a)| !a.wants_text).map(|(i, _)| i).collect();
+    assert!(refused.is_empty(), "answers {refused:?} of {} say the engine does not take typing", answers.len());
+    assert_eq!(formula_of(&mut doc, "A10"), "=SUM(1,2)");
+}
+
 /// The formula bar (M3, as WPS): what is typed there is the cell being typed, so the cell shows it
 /// (BAR-C13), pointing at cells inserts their references at the bar's caret, ✓ enters it and stays
 /// (BAR-C12), Enter moves down, ✕ and Escape drop it.
