@@ -121,10 +121,51 @@ try {
     // later (the runner typed `1,2)` and Enter into nothing before it did).
     await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
     step('FX-C6 单击 SUM：=SUM(，仍在编辑', (await editText()) === '=SUM(' && (await details()).editing === true, JSON.stringify(await editText()))
+    // TEMPORARY (plain model round 5): where the keys go when FX-C6 loses its typing.
+    await kit.locator('body').evaluate((body) => {
+      const doc = body.ownerDocument
+      doc.defaultView.__keys = []
+      doc.addEventListener('keydown', (e) => doc.defaultView.__keys.push([e.key, doc.activeElement?.getAttribute('data-testid') ?? doc.activeElement?.tagName, performance.now() | 0]), true)
+    })
+    const typedAt = Date.now()
     await page.keyboard.type('1,2)')
+    const typedDetails = await details()
     await page.keyboard.press('Enter')
     await until(async () => (await cellOf('A10')).value === 3)
+    if ((await cellOf('A10')).value !== 3) {
+      const keys = await kit.locator('body').evaluate((body) => body.ownerDocument.defaultView.__keys)
+      await page.waitForTimeout(2000)
+      console.log('TMP-FX-C6', JSON.stringify({ ms: Date.now() - typedAt, typedDetails, keys, after: await details(), focused: await h.sinkFocused(), a10: await cellOf('A10') }))
+    }
     step('FX-C6 回车后值为 3', (await cellOf('A10')).value === 3, JSON.stringify(await input('A10')))
+  })
+
+  // TEMPORARY (plain model round 5): FX-C6 eight more times, logging what happens (no step).
+  await section('TMP FX-C6 repeated', async () => {
+    for (let k = 0; k < 8; k += 1) {
+      const row = 30 + k
+      await clickCell(0, row)
+      await page.keyboard.type('=su')
+      await hints().waitFor()
+      await hints().locator('li[data-name="SUM"]').click()
+      await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
+      const before = { edit: await editText(), focused: await h.sinkFocused() }
+      await kit.locator('body').evaluate((body) => {
+        const doc = body.ownerDocument
+        doc.defaultView.__keys = []
+        if (!doc.defaultView.__listening) {
+          doc.defaultView.__listening = true
+          doc.addEventListener('keydown', (e) => doc.defaultView.__keys.push([e.key, doc.activeElement?.getAttribute('data-testid') ?? doc.activeElement?.tagName, performance.now() | 0]), true)
+        }
+      })
+      await page.keyboard.type('1,2)')
+      const typed = await details()
+      await page.keyboard.press('Enter')
+      await until(async () => (await cellOf(`A${row + 1}`)).value === 3)
+      const value = (await cellOf(`A${row + 1}`)).value
+      const keys = await kit.locator('body').evaluate((body) => body.ownerDocument.defaultView.__keys)
+      console.log('TMP-FX-C6-REPEAT', JSON.stringify({ k, value, before, typedEdit: typed.editText, typedEditing: typed.editing, active: typed.active, keys }))
+    }
   })
 
   await section('FX-C7 编辑栏 F4 与函数列表', async () => {
