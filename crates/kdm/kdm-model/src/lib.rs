@@ -73,7 +73,7 @@ pub use anchors::{comment_anchor, find_comment_anchor};
 pub use compare::normalize;
 pub use constraints::constraint_fields;
 pub use feature_ids::{cell_style_name_key, table_style_uid};
-pub use ids::{FeatureIds, Ids, Known, SheetIds};
+pub use ids::{FeatureIds, Ids, Known, LineIds, SheetIds};
 pub use kition_sheet_model::StructuralEdit;
 pub use read::{read_document, read_document_known};
 pub use session::SheetSession;

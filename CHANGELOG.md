@@ -6,6 +6,8 @@ each package is published with a `package-v<version>` tag.
 ## Unreleased
 
 - The engine runs on kition-sdk's plain document model (no CRDT): Kition Desktop is for one person, so workbooks are no longer merged from concurrent edits; replicas take each other's changes in order. Loro is no longer bundled or linked. An unchanged workbook saves to the same bytes, and the file opened again keeps its sheets', rows', columns' and cells' object ids.
+- The engine merges drafts (`mergeChanges`, `compareChanges`) and restores earlier versions (`restoreState`, the Kit UI protocol's `replica/restore`) itself, each as one undo step, and answers receipts (`changesSince`), agent replies in tool ids (`modelReply`) and the object model (`modelDescribe`, `modelBatch`) in the editor too (engine contract K3a).
+- Editing one cell costs about the same however long the workbook is: the bridge no longer copies every row's and column's id, nor reads every line's position again, for each edit.
 
 ## 0.1.4
 

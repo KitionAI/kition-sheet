@@ -13,17 +13,24 @@ use crate::{KdmResult, root_id};
 /// Tool addresses are a projection of content and axis order. Keep them out of the incremental
 /// content diff, and commit their consequences in the session's same transaction.
 /// `before` is the view the write started from, with its objects: a sheet whose lines and id are
-/// as they were has every address right already.
+/// as they were has every address right already. `positioned`: lists of lines whose `index`
+/// fields the replica holds right (the session's, from its last write), which are not read again,
+/// so typing into one cell reads none of the sheet's lines (rule P1).
 pub(crate) fn project_positions(
     tx: &mut Tx<'_>,
     before: (&kition_sheet_model::Workbook, &crate::Ids),
     workbook: &kition_sheet_model::Workbook,
     ids: &crate::Ids,
+    positioned: &[(ObjectId, [crate::LineIds; 2])],
 ) -> KdmResult<()> {
     let (was, was_ids) = before;
     for (sheet, ids) in workbook.sheets.iter().zip(&ids.sheets) {
         let mut moved = false;
+        let known = positioned.iter().find(|(object, _)| *object == ids.object).map(|(_, lines)| lines);
         for axis in Axis::BOTH {
+            if known.and_then(|lines| lines.get(axis.slot())).is_some_and(|lines| lines.same(ids.axis_lines(axis))) {
+                continue;
+            }
             for (index, object) in ids.axis(axis).iter().enumerate() {
                 if tx.get(object, "index")? != json!(index) {
                     tx.set(object, "index", json!(index))?;

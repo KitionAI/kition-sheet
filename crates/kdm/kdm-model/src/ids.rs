@@ -8,19 +8,69 @@
 //! [`crate::read_document_known`] gives them back to the sheets they belonged to.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use kition_kit::kdm::ObjectId;
 use kition_sheet_core::CellRef;
 use kition_sheet_model::Workbook;
+
+/// A sheet's live line objects, by index: shared, so the view's ids are copied in constant time
+/// for every write ([`crate::SheetSession::record`]) and only a write that adds, moves or drops a
+/// line copies the list (on its first change: `DerefMut` makes it its own).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LineIds(Arc<Vec<ObjectId>>);
+
+impl LineIds {
+    /// Whether `self` and `other` are the same list, not merely equal: neither was changed since
+    /// one was copied from the other.
+    pub(crate) fn same(&self, other: &LineIds) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl std::ops::Deref for LineIds {
+    type Target = Vec<ObjectId>;
+
+    fn deref(&self) -> &Vec<ObjectId> {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for LineIds {
+    fn deref_mut(&mut self) -> &mut Vec<ObjectId> {
+        Arc::make_mut(&mut self.0)
+    }
+}
+
+impl From<Vec<ObjectId>> for LineIds {
+    fn from(lines: Vec<ObjectId>) -> Self {
+        LineIds(Arc::new(lines))
+    }
+}
+
+impl FromIterator<ObjectId> for LineIds {
+    fn from_iter<I: IntoIterator<Item = ObjectId>>(iter: I) -> Self {
+        LineIds(Arc::new(iter.into_iter().collect()))
+    }
+}
+
+impl<'a> IntoIterator for &'a LineIds {
+    type Item = &'a ObjectId;
+    type IntoIter = std::slice::Iter<'a, ObjectId>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
 
 /// One sheet's objects.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SheetIds {
     pub object: ObjectId,
     /// The live `Row` objects, by row index (the rows below the list's end have none yet).
-    pub rows: Vec<ObjectId>,
+    pub rows: LineIds,
     /// The live `Col` objects, by column index.
-    pub cols: Vec<ObjectId>,
+    pub cols: LineIds,
     /// The `Image` objects, parallel to the sheet's `images`.
     pub images: Vec<ObjectId>,
     /// The `Shape` objects, parallel to the sheet's `shapes` (empty while a replica older than
@@ -58,6 +108,11 @@ impl SheetIds {
     }
 
     pub(crate) fn axis(&self, axis: crate::lines::Axis) -> &[ObjectId] {
+        self.axis_lines(axis)
+    }
+
+    /// The row or column objects as the shared list ([`LineIds::same`]).
+    pub(crate) fn axis_lines(&self, axis: crate::lines::Axis) -> &LineIds {
         match axis {
             crate::lines::Axis::Rows => &self.rows,
             crate::lines::Axis::Cols => &self.cols,

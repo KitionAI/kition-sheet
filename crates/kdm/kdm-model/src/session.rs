@@ -22,7 +22,7 @@ use serde_json::{Value, json};
 use crate::blob_gc::{BlobIndex, Moved};
 use crate::cells;
 use crate::write::{Created, create_ahead, write_changes_logged};
-use crate::{Ids, Result, SheetModel, kit_err, normalize, read_document, write_changes, write_document};
+use crate::{Ids, LineIds, Result, SheetModel, kit_err, normalize, read_document, write_changes, write_document};
 
 /// One open workbook as a KDM replica and the engine's view of it. See the module docs.
 pub struct SheetSession {
@@ -49,6 +49,11 @@ pub struct SheetSession {
     /// Whether the view could not follow the replica's last change (a picture whose blob has not
     /// arrived yet): the next import, undo, redo, or [`SheetSession::retry_view`] reads it whole.
     stale: bool,
+    /// Each sheet's lines as this session's last write left them, whose `index` fields the
+    /// replica holds right: a write that keeps them ([`LineIds::same`]) reads none of them again
+    /// (`settle::project_positions`). A change from elsewhere (an import, an undo, a redo, a
+    /// repair) that may move lines forgets them.
+    positioned: Vec<(ObjectId, [LineIds; 2])>,
 }
 
 /// A session's token for `by`: its actor, unique to the replica.
@@ -86,7 +91,18 @@ impl SheetSession {
         model.note_shapes(&replica, None);
         let index = BlobIndex::build(&replica, &|id| may_hold_pictures(&model, true, id));
         let token = token_of(&replica);
-        Ok(Self { replica, model, blobs, index, blob_log: Vec::new(), token, mine: HashSet::new(), ahead: BTreeMap::new(), stale: false })
+        Ok(Self {
+            replica,
+            model,
+            blobs,
+            index,
+            blob_log: Vec::new(),
+            token,
+            mine: HashSet::new(),
+            ahead: BTreeMap::new(),
+            stale: false,
+            positioned: Vec::new(),
+        })
     }
 
     /// Opens a snapshot (or a full change export) of another replica as a new replica of a fresh
@@ -97,8 +113,18 @@ impl SheetSession {
         let (model, named_ahead) = SheetModel::load_races(&replica, &blobs)?;
         let index = BlobIndex::build(&replica, &|id| may_hold_pictures(&model, true, id));
         let token = token_of(&replica);
-        let mut session =
-            Self { replica, model, blobs, index, blob_log: Vec::new(), token, mine: HashSet::new(), ahead: BTreeMap::new(), stale: false };
+        let mut session = Self {
+            replica,
+            model,
+            blobs,
+            index,
+            blob_log: Vec::new(),
+            token,
+            mine: HashSet::new(),
+            ahead: BTreeMap::new(),
+            stale: false,
+            positioned: Vec::new(),
+        };
         // Best effort: a replica merged elsewhere may hold races no session recorded yet. The kept
         // side of one is always a `Cell` created ahead that an entry names (`record_races` records
         // no other), so the scan of every `Cell` runs only when the read met such an entry: a
@@ -153,7 +179,7 @@ impl SheetSession {
         let person = !matches!(origin.kind, OriginKind::System | OriginKind::Import);
         let mut ids = self.model.ids().clone();
         let mut before = self.replica.version();
-        let (model, blobs) = (&self.model, &mut self.blobs);
+        let (model, blobs, positioned) = (&self.model, &mut self.blobs, &self.positioned);
         // A person's write that would create objects another replica may create too (padding
         // lines, `Cell` objects: derived ids) is not committed: those objects are made first, empty,
         // in a `system` transaction (not an undo step), and the write runs again on top of them.
@@ -167,7 +193,7 @@ impl SheetSession {
                 ahead = created;
                 return Err(KdmError::Engine("objects to create ahead".into()));
             }
-            crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids)?;
+            crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids, positioned)?;
             mark("positions");
             Ok(())
         });
@@ -196,10 +222,10 @@ impl SheetSession {
                 self.model.adopt_written(&self.replica, view, ahead_ids, &changed);
                 before = self.replica.version();
                 ids = self.model.ids().clone();
-                let (model, blobs) = (&self.model, &mut self.blobs);
+                let (model, blobs, positioned) = (&self.model, &mut self.blobs, &self.positioned);
                 let result = self.replica.transact(origin, |tx| {
                     write_changes(tx, &model.workbook, after, edits, &mut ids, blobs)?;
-                    crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids)
+                    crate::settle::project_positions(tx, (&model.workbook, model.ids()), after, &ids, positioned)
                 });
                 changed.extend(self.replica.take_changed());
                 result
@@ -210,6 +236,8 @@ impl SheetSession {
             self.index.collect_garbage(&mut self.blobs);
             return Err(kit_err(error));
         }
+        // The transaction projected every line of the view it leaves.
+        self.positioned = ids.sheets.iter().map(|s| (s.object.clone(), [s.rows.clone(), s.cols.clone()])).collect();
         self.model.adopt_written(&self.replica, after.clone(), ids, &changed);
         let moved = self.index.update(&self.replica, &changed);
         let wrote = self.replica.version() != before;
@@ -255,7 +283,7 @@ impl SheetSession {
         if self.index.undo_steps() == 0 {
             return Ok((false, Damage::None));
         }
-        let done = self.replica.can_undo_in(scope) && self.replica.undo_in(scope).map_err(kit_err)?;
+        let done = self.replica.can_undo_in(scope) && self.replica.undo_in(scope).map_err(kit_err)?.is_done();
         let (damage, moved) = self.settle();
         if done {
             self.log_added(moved.added.iter().cloned());
@@ -275,7 +303,7 @@ impl SheetSession {
         if self.index.redo_steps() == 0 {
             return Ok((false, Damage::None));
         }
-        let done = self.replica.can_redo_in(scope) && self.replica.redo_in(scope).map_err(kit_err)?;
+        let done = self.replica.can_redo_in(scope) && self.replica.redo_in(scope).map_err(kit_err)?.is_done();
         let (damage, moved) = self.settle();
         if done {
             self.log_added(moved.added.iter().cloned());
@@ -336,6 +364,58 @@ impl SheetSession {
         self.index.imported();
         self.index.collect_garbage(&mut self.blobs);
         damage
+    }
+
+    /// Takes a draft's changes (made on a fork of this replica) in as one transaction of `origin`
+    /// (`Replica::merge_changes`): one undo step unless `origin` is a `system` or `import` one.
+    /// Repairs the result and patches the view as an import does; add the draft's blobs first
+    /// ([`SheetSession::add_blobs`]). Answers the undo steps it made (1 or 0) and the damage. A
+    /// refused merge changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(u32, Damage)> {
+        let before = self.replica.version();
+        self.replica.merge_changes(bytes, origin).map_err(kit_err)?;
+        self.took_in(before, origin)
+    }
+
+    /// Writes the state `snapshot` holds (a snapshot or content of this workbook, as a host's
+    /// checkpoint keeps it) over the replica as one transaction of `origin`, keyed by object id
+    /// (`kition_kit::session::write_state`), so every object the two share keeps its id: one undo
+    /// step unless `origin` is a `system` or `import` one. Nothing changes when the states are
+    /// equal. Refuses another document's snapshot. Add the blobs it references first.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<(u32, Damage)> {
+        let schema = SheetModel::schema();
+        let loaded = Replica::load(Arc::clone(&schema), snapshot, ActorId::random()).map_err(kit_err)?;
+        if loaded.doc_id() != self.replica.doc_id() {
+            return Err(kit_err(KdmError::WrongDocument { expected: self.replica.doc_id().to_string(), found: loaded.doc_id().to_string() }));
+        }
+        let (now, then) = (kition_kit::session::state(&self.replica)?, kition_kit::session::state(&loaded)?);
+        if now == then {
+            return Ok((0, Damage::None));
+        }
+        let before = self.replica.version();
+        let result = self.replica.transact(origin, |tx| kition_kit::session::write_state(tx, &schema, &now, &then).map_err(crate::kdm_err));
+        if let Err(error) = result {
+            self.replica.take_changed();
+            return Err(kit_err(error));
+        }
+        self.took_in(before, origin)
+    }
+
+    /// After a merge or a restore wrote one transaction of `origin` since `before`: repairs and
+    /// patches the view as an import does, and counts the transaction as an undo step. A failed
+    /// repair or view load is the error, as an import's is: the transaction stays
+    /// ([`SheetSession::view_loaded`] tells whether the view followed).
+    fn took_in(&mut self, before: Version, origin: &Origin) -> Result<(u32, Damage)> {
+        let wrote = self.replica.version() != before;
+        let (damage, moved) = self.settle();
+        self.log_added(moved.added.iter().cloned());
+        let undoable = wrote && !matches!(origin.kind, OriginKind::System | OriginKind::Import);
+        if undoable {
+            self.index.push_step(moved);
+        }
+        self.index.imported();
+        self.index.collect_garbage(&mut self.blobs);
+        damage.map(|damage| (u32::from(undoable), damage))
     }
 
     /// Records the races on one new cell `changed` shows (`None`: every `Cell` created ahead, when
@@ -555,6 +635,7 @@ impl SheetSession {
         // The view's parts of cells made up of several objects (before this change).
         let shown: Vec<ObjectId> = self.model.ids().sheets.iter().flat_map(|s| s.parts.values().flatten().map(|(o, _)| o.clone())).collect();
         let mut changed = self.replica.take_changed();
+        self.forget_positions(&changed);
         let repaired = if changed.is_empty() {
             Ok(())
         } else {
@@ -572,7 +653,9 @@ impl SheetSession {
                 (result, None) => result.map_err(kit_err),
             }
         };
-        changed.extend(self.replica.take_changed());
+        let repairs = self.replica.take_changed();
+        self.forget_positions(&repairs);
+        changed.extend(repairs);
         // A stale view (one change could not be applied) is read whole; patching it would miss
         // that change.
         let refreshed = if self.stale {
@@ -589,6 +672,15 @@ impl SheetSession {
             failed => failed,
         };
         (damage, moved)
+    }
+
+    /// Forgets the lines known positioned unless `changed` holds only existing `Cell` objects (a
+    /// change of cells, which moves no line).
+    fn forget_positions(&mut self, changed: &BTreeSet<ObjectId>) {
+        let replica = &self.replica;
+        if !changed.iter().all(|id| replica.object_type(id).is_ok_and(|ty| ty == cells::CELL)) {
+            self.positioned.clear();
+        }
     }
 
     fn refresh(&mut self, changed: &BTreeSet<ObjectId>) -> Result<Damage> {

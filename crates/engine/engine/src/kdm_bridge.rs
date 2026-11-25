@@ -279,8 +279,8 @@ impl DocState {
         Some(Place {
             sheets: ids.sheets.iter().map(|s| s.object.clone()).collect(),
             active,
-            rows: sheet.map(|s| s.rows.clone()).unwrap_or_default(),
-            cols: sheet.map(|s| s.cols.clone()).unwrap_or_default(),
+            rows: sheet.map(|s| s.rows.to_vec()).unwrap_or_default(),
+            cols: sheet.map(|s| s.cols.to_vec()).unwrap_or_default(),
         })
     }
 
@@ -540,6 +540,58 @@ impl Session {
         }
         st.trim_kdm();
         result.map_err(kdm_error)
+    }
+
+    /// Takes a draft's changes (made on a replica forked from this one, `mergeChanges`) into the
+    /// active workbook as one undo step of `origin`'s scope, as a command's edit is: local edits
+    /// not written yet are written first, the workbook (recalculated) and its selection follow the
+    /// replica, and one Undo takes the whole draft back. Add the draft's blobs first
+    /// ([`Session::add_blobs`]). A refused merge changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Damage> {
+        self.take_in(origin, "Merge Draft", |kdm| kdm.merge_changes(bytes, origin))
+    }
+
+    /// Writes the state a snapshot holds (a checkpoint of this workbook, `replica/restore`) over
+    /// the active workbook by object id, as one undo step of `origin`'s scope, taken in as a
+    /// merged draft is ([`Session::merge_changes`]). Nothing changes when the states are equal.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<Damage> {
+        self.take_in(origin, "Restore Version", |kdm| kdm.restore_state(snapshot, origin))
+    }
+
+    /// One transaction `write` makes on the active workbook's replica, taken into the workbook as
+    /// a command's step: the workbook follows the replica, and the history gets the step (its undo
+    /// steps the replica's) when the transaction is one.
+    fn take_in(
+        &mut self,
+        origin: &Origin,
+        label: &str,
+        write: impl FnOnce(&mut SheetSession) -> kdm_model::kition_kit::session::Result<(u32, Damage)>,
+    ) -> Result<Damage> {
+        let now = self.origin();
+        let st = self.doc_mut()?;
+        st.sync_kdm(&now, false);
+        st.ensure_kdm(&now).ok_or_else(no_replica)?;
+        let place = st.place();
+        let (before, selection) = (st.wb.clone(), st.selection.clone());
+        let kdm = st.link.kdm.as_mut().ok_or_else(no_replica)?;
+        let version = kdm.version();
+        let result = write(kdm);
+        let changed = kdm.version() != version;
+        let follow = changed && (result.is_ok() || kdm.view_loaded());
+        if follow {
+            st.follow_kdm(place);
+        } else if changed {
+            st.detach_kdm();
+        }
+        let steps = result.as_ref().map_or(0, |(steps, _)| *steps);
+        if follow && steps > 0 {
+            let scope = UndoScope::of(origin.kind).unwrap_or(UndoScope::Person);
+            st.push_undo(HistoryEntry { label: label.to_owned(), wb: before, selection, steps, scope });
+            // The step is written already: the bridge has nothing of it left to record.
+            st.link.mark = st.link.pushed;
+        }
+        st.trim_kdm();
+        result.map(|(_, damage)| damage).map_err(kdm_error)
     }
 
     /// A title no open untitled workbook has (`BookN`).

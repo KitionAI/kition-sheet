@@ -524,8 +524,12 @@ impl<'w, 'tx> Writer<'w, 'tx> {
                 let object = self.sheets.get(j).map(|ids| ids.object.clone()).ok_or_else(|| crate::kdm_err("missing feature owner"))?;
                 self.wrote |= crate::feature_ids::sheet(self.tx, &object, sheet)?;
             }
+            // A new line's index (lines this write left as the view had them have theirs).
             for axis in Axis::BOTH {
-                let lines = self.sheets.get(j).map(|s| s.axis(axis).to_vec()).unwrap_or_default();
+                let Some(lines) = self.sheets.get(j).map(|s| s.axis_lines(axis).clone()) else { continue };
+                if was.is_some_and(|(_, sid)| sid.axis_lines(axis).same(&lines)) {
+                    continue;
+                }
                 for (index, id) in lines.iter().enumerate() {
                     if self.tx.get(id, "index")?.is_null() {
                         self.set(id, "index", json!(index))?;

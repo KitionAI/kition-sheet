@@ -527,7 +527,7 @@ impl<'r> Reader<'r> {
             Some(s) => (s.rows.live.clone(), s.cols.live.clone()),
             None => (Vec::new(), Vec::new()),
         };
-        Ok((sheet, SheetIds { object, rows, cols, images, shapes, charts, features, texts, parts }))
+        Ok((sheet, SheetIds { object, rows: rows.into(), cols: cols.into(), images, shapes, charts, features, texts, parts }))
     }
 }
 

@@ -563,6 +563,15 @@ features:
     paths: [web/src/App.tsx, web/tests/reopen-changed.mjs, crates/engine/engine/src/kdm_bridge.rs, bindings/wasm/src/collab.rs, crates/formats/xlsx/src/identities.rs]
     cases: [sheet.platform.file-changed-outside/merge-into-replica]
     since: "2026-11-24"
+  - id: sheet.collab.drafts
+    title: "Drafts merge in and earlier versions restore as one undo step; the engine answers receipts, agent replies in tool ids and the object model (engine contract K3a)"
+    dimension: [collab, data-safety]
+    priority: P1
+    status: partial
+    paths: [bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/kdm_bridge.rs, crates/kdm/kdm-model/src/session.rs, web/package.json]
+    target: "Kit UI protocol section 7 (replica/restore); engine contract members mergeChanges, compareChanges, restoreState, changesSince, modelReply, modelDescribe, modelBatch"
+    gap: Engine tests merge a draft, compare it first, restore a version, answer a receipt, name reply ids and serve the object model, and test:contract checks the built engine has every member; no case drives a draft or a restore in the editor yet.
+    since: "2026-11-25"
   - id: sheet.editor.workbook-files
     title: "Workbook files as in WPS: open xlsx, xlsm, templates, Excel 97-2003 .xls, .xlsb, ODS, CSV (UTF-8 or GBK) and web pages named .xls, sized as WPS sizes columns and rows; refuse empty, damaged and non-spreadsheet files saying what they are; File › Export as PDF (Chinese text embedded, A4), picture, Excel workbook, CSV of what cells show and web page; Save as Template (.xltx); a read-only preview; copy and paste between workbooks with formats; form controls kept on save"
     dimension: [function, conversion, fidelity]
@@ -744,7 +753,8 @@ features:
     priority: P1
     status: partial
     commands: [file.new, file.open, file.save, file.saveAs, file.saveBytes, file.close, file.properties, window.activate]
-    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/files.rs, crates/engine/engine/examples/perf.rs, crates/engine/engine/src/cmd/drawing.rs]
+    paths: [crates/engine/engine/src/cmd/file.rs, bindings/wasm/src/files.rs, crates/engine/engine/examples/perf.rs, crates/engine/engine/src/cmd/drawing.rs, crates/kdm/kdm-model/tests/perf_scale.rs]
+    cases: [regressions/issue-sheet-edit-cost]
     target: "Excel for Mac 16.113.4"
     gap: Save and open round trips are tested at the XLSX format level and for single values through the engine; no case reopens a whole workbook through the commands.
     since: "2026-11-17"

@@ -3533,6 +3533,61 @@ pub mod web {
         pub fn doc_id(&self) -> Option<String> {
             self.0.doc_id()
         }
+
+        /// A draft's changes taken in as one undo step, recorded with `origin` (`[kind, principal,
+        /// label]`): `{"damage", "summary"}`. A refusal fails with the KDM's message.
+        #[wasm_bindgen(js_name = mergeChanges)]
+        pub fn merge_changes(&mut self, changes: &[u8], origin: &str) -> Result<String, JsError> {
+            let origin = origin_of(origin)?;
+            self.0.merge_changes(changes, &origin).map(|answer| answer.to_string()).map_err(error)
+        }
+
+        /// What merging a draft's changes would change now, as `StateDiff` JSON; changes nothing.
+        #[wasm_bindgen(js_name = compareChanges)]
+        pub fn compare_changes(&self, changes: &[u8]) -> Result<String, JsError> {
+            self.0.compare_changes(changes).map(|answer| answer.to_string()).map_err(error)
+        }
+
+        /// Writes the state a snapshot holds over the workbook as one change of `origin`; answers
+        /// the damage JSON.
+        #[wasm_bindgen(js_name = restoreState)]
+        pub fn restore_state(&mut self, snapshot: &[u8], origin: &str) -> Result<String, JsError> {
+            let origin = origin_of(origin)?;
+            self.0.restore_state(snapshot, &origin).map(|damage| serde_json::to_string(&damage).unwrap_or_else(|_| "null".to_owned())).map_err(error)
+        }
+
+        /// An agent's reply (JSON text) with its object ids named as the tool interface names them.
+        #[wasm_bindgen(js_name = modelReply)]
+        pub fn model_reply(&self, value: &str) -> Result<String, JsError> {
+            self.0.model_reply(value).map_err(error)
+        }
+
+        /// What changed since the version `since` (a receipt): `{"changes": StateDiff}`, or
+        /// `{"changes": null, "unavailable"}` when the replica's log does not hold it.
+        #[wasm_bindgen(js_name = changesSince)]
+        pub fn changes_since(&self, since: &[u8]) -> String {
+            self.0.changes_since(since).to_string()
+        }
+
+        /// `model/describe` as JSON text.
+        #[wasm_bindgen(js_name = modelDescribe)]
+        pub fn model_describe(&mut self) -> Result<String, JsError> {
+            self.0.model_describe().map(|answer| answer.to_string()).map_err(error)
+        }
+
+        /// `model/batch`: the request and the answer as JSON text; a failure's message is the
+        /// error's JSON (`{"code", "index", "message"}`).
+        #[wasm_bindgen(js_name = modelBatch)]
+        pub fn model_batch(&mut self, request: &str) -> Result<String, JsError> {
+            let request: serde_json::Value = serde_json::from_str(request)
+                .map_err(|e| error(json!({ "code": "invalid-op", "index": null, "message": format!("the batch is not JSON: {e}") }).to_string()))?;
+            self.0.model_batch(&request).map(|answer| answer.to_string()).map_err(error)
+        }
+    }
+
+    /// An origin in the KDM's commit form, the JSON array `[kind, principal, label]`.
+    fn origin_of(origin: &str) -> Result<kition_sheet_engine::Origin, JsError> {
+        kition_sheet_engine::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))
     }
 }
 

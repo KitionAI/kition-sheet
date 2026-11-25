@@ -6,7 +6,9 @@
 //! snapshot's and the content's bytes, opening each, one cell edited (the median of 5, split into
 //! the diff written, the positions projected, the bare commit and the view adopted), the size of
 //! that change, its import by another replica (the median of 5), the `.xlsx` the kit writes, and
-//! the process's peak resident memory (Linux; `n/a` elsewhere). Native only (the clock).
+//! the process's peak resident memory (Linux; `n/a` elsewhere); at a million cells the edit must
+//! stay under 50 ms. One test runs in every (debug) CI build: an edit costs about the same in a
+//! sheet a hundred times longer. Native only (the clock).
 
 // The clock is read off wasm only: these tests never run there.
 #![allow(clippy::disallowed_methods)]
@@ -67,7 +69,8 @@ struct Phases {
     total: Vec<Duration>,
 }
 
-fn measure(name: &str, rows: u32) {
+/// Prints the line for `rows` rows of 50 numbers; answers the median edit of one cell.
+fn measure(name: &str, rows: u32) -> Duration {
     let origin = Origin::person("user:perf");
     let wb = numbers(rows);
     let t = Instant::now();
@@ -119,6 +122,7 @@ fn measure(name: &str, rows: u32) {
         imports.push(imported);
     }
     sizes.sort_unstable();
+    let edit = median(phases.total.clone());
     let xlsx = kdm_model::encode("Book.xlsx", s.workbook()).unwrap_or_else(|e| panic!("xlsx: {e}"));
     let line = format!(
         "PERF {name}: import {} | snapshot {} | content {} | open snapshot {} | open content {} | edit one cell {} (write_changes {}, positions {}, commit {}, view {}) | change {} bytes | peer import {} | xlsx {} KB | peak memory {}\n",
@@ -127,7 +131,7 @@ fn measure(name: &str, rows: u32) {
         mb(content.len()),
         ms(open),
         ms(open_content),
-        ms(median(phases.total)),
+        ms(edit),
         ms(median(phases.write)),
         ms(median(phases.positions)),
         ms(median(phases.commit)),
@@ -139,6 +143,7 @@ fn measure(name: &str, rows: u32) {
     );
     use std::io::Write;
     let _ = std::io::stderr().write_all(line.as_bytes());
+    edit
 }
 
 #[test]
@@ -156,5 +161,42 @@ fn cells_100k() {
 #[test]
 #[ignore = "timings: run in release with --ignored, one size per process"]
 fn cells_1m() {
-    measure("1,000,000 cells (20,000 rows x 50 columns)", 20_000);
+    let edit = measure("1,000,000 cells (20,000 rows x 50 columns)", 20_000);
+    // Rule P1: one cell typed into a sheet of a million cells reads no other cell and no line.
+    assert!(edit < Duration::from_millis(50), "one cell's edit took {} at a million cells", ms(edit));
+}
+
+/// The median time of one existing cell's record (of 11) in a sheet of `rows` rows of one number.
+fn edit_time(rows: u32) -> Duration {
+    let mut wb = Workbook::new();
+    let sheet = wb.sheet_mut(0).unwrap_or_else(|| panic!("sheet"));
+    for r in 0..rows {
+        sheet.set_cell(CellRef::new(r, 0), Cell::value(Value::Number(f64::from(r))));
+    }
+    let mut s = SheetSession::create(&wb).unwrap_or_else(|e| panic!("create: {e}"));
+    let origin = Origin::person("user:perf");
+    let mut times = Vec::new();
+    for k in 0..12u32 {
+        let mut next = s.workbook().clone();
+        put(&mut next, 0, &format!("A{}", rows / 2 + k), &format!("{}", 0.5 + f64::from(k)));
+        let t = Instant::now();
+        s.record(&origin, &next, &[]).unwrap_or_else(|e| panic!("record: {e}"));
+        // The first record after opening checks every line's position once.
+        if k > 0 {
+            times.push(t.elapsed());
+        }
+    }
+    median(times)
+}
+
+/// Rule P1, in the debug build CI runs: editing one cell costs about the same in a sheet of
+/// 50,000 rows as in one of 500 (the write neither diffs the whole view nor reads every row's
+/// position; before the plain model's re-pin each edit read all of them, a hundred times more
+/// here).
+#[test]
+fn one_cells_edit_costs_the_same_in_a_hundred_times_longer_sheet() {
+    let short = edit_time(500);
+    let long = edit_time(50_000);
+    eprintln!("one cell's edit: {} at 500 rows, {} at 50,000 rows", ms(short), ms(long));
+    assert!(long < short * 4 + Duration::from_millis(3), "one cell's edit took {} at 50,000 rows, {} at 500", ms(long), ms(short));
 }
