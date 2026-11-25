@@ -189,27 +189,40 @@ impl SheetDocument {
     /// the tool interface names it (its tool id, KitObjectModel OM9); unchanged without a replica
     /// or when the schema declares no tool ids. The workbook keeps its own ids.
     ///
-    /// The editor asks this for every agent reply (each `ai/inspect`), and the tool ids take a walk
-    /// of every object to read: a reply that names no object of the replica (the usual one) is
-    /// answered as it is without them, and the ids read once serve every reply until the next
-    /// change.
+    /// The editor asks this for every agent reply (each `ai/inspect`): the tool ids are read for
+    /// the objects the reply names alone (each one's type and tool id field), not for the whole
+    /// workbook, whose hundreds of thousands of cells would take a walk of every object each time.
+    /// Only a reply naming an object without a tool id of its own (one named by where it is held)
+    /// reads the whole workbook's.
     pub fn model_reply(&self, value: &str) -> Result<String, String> {
         let value: Value = serde_json::from_str(value).map_err(|error| format!("the reply is not JSON: {error}"))?;
         let Some(kdm) = self.session.kdm() else { return Ok(value.to_string()) };
         let replica = kdm.replica();
-        if !names_an_object(&value, &|text| replica.exists(&kition_kit::kdm::ObjectId::from_string(text))) {
+        let schema = replica.schema();
+        let mut texts = std::collections::BTreeSet::new();
+        texts_of(&value, &mut texts);
+        let mut objects = serde_json::Map::new();
+        for text in texts {
+            let id = kition_kit::kdm::ObjectId::from_string(text.as_str());
+            let Ok(ty) = replica.object_type(&id) else { continue };
+            let mut object = serde_json::Map::new();
+            let own =
+                schema.types.get(&ty).and_then(|def| def.tool_id.as_ref()).map(|tool| (tool, replica.get(&id, &tool.field).unwrap_or(Value::Null)));
+            let Some((tool, field)) = own.filter(|(_, field)| !field.is_null()) else {
+                // Named by where it is held, not by a field of its own (a merged area, a line of
+                // a table): those names take the whole workbook's ids.
+                let ids = kition_kit::kdm::tool_ids::ToolIds::of_replica(replica);
+                return Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string());
+            };
+            object.insert(tool.field.clone(), field);
+            object.insert("$type".into(), Value::String(ty));
+            objects.insert(text, Value::Object(object));
+        }
+        if objects.is_empty() {
             return Ok(value.to_string());
         }
-        let version = replica.version().encode();
-        let mut cache = self.tool_ids.borrow_mut();
-        if cache.as_ref().is_none_or(|(at, _)| *at != version) {
-            *cache = Some((version, kition_kit::kdm::tool_ids::ToolIds::of_replica(replica)));
-        }
-        let shown = match cache.as_ref() {
-            Some((_, ids)) if ids.is_active() => ids.show_json(&value),
-            _ => value,
-        };
-        Ok(shown.to_string())
+        let ids = kition_kit::kdm::tool_ids::ToolIds::of_state(schema, &json!({ "objects": objects }));
+        Ok(if ids.is_active() { ids.show_json(&value) } else { value }.to_string())
     }
 
     /// What changed since the version `since` (empty bytes: since the replica began), a receipt as
@@ -246,14 +259,25 @@ impl SheetDocument {
     }
 }
 
-/// Whether `value` holds, as a string or a key anywhere in it, a text `exists` takes for an
-/// object of the replica.
-fn names_an_object(value: &Value, exists: &dyn Fn(&str) -> bool) -> bool {
+/// Every string and key `value` holds, and each `:`-separated segment of them (a map key made of
+/// object ids, `<row id>:<column id>`): the texts that may name an object.
+fn texts_of(value: &Value, out: &mut std::collections::BTreeSet<String>) {
+    fn add(text: &str, out: &mut std::collections::BTreeSet<String>) {
+        out.insert(text.to_owned());
+        if text.contains(':') {
+            out.extend(text.split(':').filter(|part| !part.is_empty()).map(str::to_owned));
+        }
+    }
     match value {
-        Value::String(text) => exists(text),
-        Value::Array(items) => items.iter().any(|item| names_an_object(item, exists)),
-        Value::Object(map) => map.iter().any(|(key, item)| exists(key) || names_an_object(item, exists)),
-        _ => false,
+        Value::String(text) => add(text, out),
+        Value::Array(items) => items.iter().for_each(|item| texts_of(item, out)),
+        Value::Object(map) => {
+            for (key, item) in map {
+                add(key, out);
+                texts_of(item, out);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -620,9 +644,15 @@ mod tests {
             serde_json::from_str(&doc.model_reply(&json!({ "target": sheet, "note": format!("about {sheet}") }).to_string()).unwrap()).unwrap();
         assert!(shown["target"].as_str().is_some_and(|id| id.starts_with("sheet:")), "{shown}");
         assert_eq!(shown["note"], json!(format!("about {sheet}")), "text that holds an id stays");
+        // Naming each object alone gives the tool id the whole workbook's ids give it.
+        let every: Vec<String> = state["objects"].as_object().unwrap().keys().cloned().collect();
+        let reply = json!({ "objects": every });
+        let alone: Value = serde_json::from_str(&doc.model_reply(&reply.to_string()).unwrap()).unwrap();
+        let kdm = doc.session.kdm().unwrap();
+        assert_eq!(alone, kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica()).show_json(&reply), "the same tool ids");
         let plain = json!({ "summary": "Budget", "cells": ["A1", "B2"], "sheet": 1 });
         assert_eq!(serde_json::from_str::<Value>(&doc.model_reply(&plain.to_string()).unwrap()).unwrap(), plain, "a reply naming no object stays");
-        // The ids read once are read again after a change: a sheet made since is named too.
+        // A sheet made since is named too.
         doc.execute("home.insertSheet", json!({ "name": "Second" })).unwrap();
         let state = doc.replicated_state().unwrap();
         let second = state["objects"]

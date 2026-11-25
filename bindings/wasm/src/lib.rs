@@ -172,9 +172,6 @@ pub struct SheetDocument {
     hint_pick: usize,
     /// How many times View › Zoom set the zoom: the editor zooms the view to it each time.
     zoom_asked: u64,
-    /// The replica's tool ids as of the version they were read at (`modelReply`): reading them
-    /// walks every object, so a reply between two changes reads them once.
-    tool_ids: std::cell::RefCell<Option<(Vec<u8>, kition_kit::kdm::tool_ids::ToolIds)>>,
     /// The last dialog a command asked the editor to open (menu-style invocations without the
     /// values they need: Format Cells, Sort…): how many were asked, its name, its values, and the
     /// command that asked.
@@ -552,7 +549,6 @@ impl SheetDocument {
             edit_home: None,
             hint_pick: 0,
             zoom_asked: 0,
-            tool_ids: Default::default(),
             dialog_asked: (0, None),
             freeze_preview: None,
             painting: false,
