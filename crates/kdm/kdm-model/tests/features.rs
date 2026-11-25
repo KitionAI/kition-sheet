@@ -198,23 +198,25 @@ fn a_reply_edited_while_another_is_added_keeps_both() {
 
 /// A draft merges cells while the person merged cells overlapping them: both `Merge` objects are
 /// in the sheet's list (the document's first, D6), and the reader keeps the document's alone (the
-/// engine keeps merged areas apart). A reopened snapshot and the saved file read the same.
+/// engine keeps merged areas apart). A reopened snapshot and the saved file read the same. (Both
+/// areas lie on lines the sheet has: two sides that each pad the sheet with the same new line
+/// collide, rule D8.)
 #[test]
 fn overlapping_merges_made_in_a_draft_and_meanwhile_read_as_the_documents() {
     let (blobs, mut a, _) = pair();
     let before = sheet(&a).merges.clone();
     let (mut d, base) = draft(&a, 7, &blobs);
     edit(&mut d, &blobs, |wb| {
-        data(wb).merges.push(range("E20:F21"));
+        data(wb).merges.push(range("B2:C3"));
         vec![]
     });
     edit(&mut a, &blobs, |wb| {
-        data(wb).merges.push(range("F21:G22"));
+        data(wb).merges.push(range("C3:D4"));
         vec![]
     });
     merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
     let mut expected = before.clone();
-    expected.push(range("F21:G22"));
+    expected.push(range("C3:D4"));
     assert_eq!(sheet(&a).merges, expected, "the document's merged area stays, the draft's overlapping one is not read");
     let (read, _) = kdm_model::read_document(a.replica(), &blobs).unwrap_or_else(|e| panic!("read: {e}"));
     assert_same("a fresh read", &a.model().workbook, &read);
@@ -239,7 +241,11 @@ fn an_internal_link_made_in_a_draft_while_rows_are_inserted_above_its_target_fol
     });
     edit(&mut a, &blobs, |wb| vec![common::insert_rows(wb, 0, 1, 2)]);
     merge(&mut a, &d, &base).unwrap_or_else(|error| panic!("merge: {error}"));
-    assert_eq!(sheet(&a).hyperlinks.get(&at("A5")).map(|h| h.target.as_str()), None);
+    assert_eq!(
+        sheet(&a).hyperlinks.get(&at("A5")).map(|h| h.target.as_str()),
+        Some("https://example.com"),
+        "the person's link from A3 moved down too"
+    );
     assert_eq!(
         sheet(&a).hyperlinks.get(&at("A7")).map(|h| h.target.as_str()),
         Some("Data!B6"),
