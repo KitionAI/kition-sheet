@@ -26,7 +26,7 @@
     "test:gate-sheet-ui": "node tests/gate-sheet-ui.mjs chromium && node tests/gate-sheet-ui.mjs webkit",
     "test:gate-sheet-menu": "node tests/gate-sheet-menu.mjs chromium && node tests/gate-sheet-menu.mjs webkit",
     "test:gate-formula-input": "node tests/gate-formula-input.mjs chromium && node tests/gate-formula-input.mjs webkit",
-    "test:gate-formula-input-repeat": "node tests/gate-formula-input-repeat.mjs chromium && node tests/gate-formula-input-repeat.mjs webkit",
+    "test:gate-formula-input-repeat": "node tests/gate-formula-input-repeat.mjs chromium; c=$?; node tests/gate-formula-input-repeat.mjs webkit && exit $c",
     "test:gate-formula-bar": "node tests/gate-formula-bar.mjs chromium && node tests/gate-formula-bar.mjs webkit",
     "test:gate-rows-cols": "node tests/gate-rows-cols.mjs chromium && node tests/gate-rows-cols.mjs webkit",
     "test:gate-view": "node tests/gate-view.mjs chromium && node tests/gate-view.mjs webkit",

@@ -18,6 +18,19 @@ const centre = async (col, row) => {
 }
 const editText = async () => (await details()).editText ?? null
 const hints = () => kit.getByTestId('sheet-cell-hints')
+/**
+ * Records every key and pointer press the editor's frame sees from now on (the key or event, the
+ * element it reached, the focused element, when), once per page load, for FX-C6's diagnostic.
+ */
+const watchPresses = () =>
+  kit.locator('body').evaluate((body) => {
+    const doc = body.ownerDocument
+    if (doc.defaultView.__keys) return
+    const log = (doc.defaultView.__keys = [])
+    const where = () => doc.activeElement?.getAttribute('data-testid') ?? doc.activeElement?.tagName
+    doc.addEventListener('keydown', (e) => log.push([e.key, where(), performance.now() | 0]), true)
+    for (const type of ['pointerdown', 'pointerup']) doc.addEventListener(type, (e) => log.push([type, e.target?.getAttribute?.('data-testid') ?? e.target?.tagName, where(), performance.now() | 0]), true)
+  })
 const input = async (ref) => {
   const cell = await cellOf(ref)
   return cell.formula ?? cell.input ?? ''
@@ -97,6 +110,9 @@ try {
     await clickCell(0, 8)
     await page.keyboard.type('=vlo')
     await hints().waitFor()
+    // The list shows from the first letter: read it once it follows all of `=vlo` (Chromium on a
+    // runner read the `=v` list, VALUE first, a moment before; as FX-C7 does).
+    await until(async () => (await editText()) === '=vlo' && (await hints().locator('li').first().getAttribute('data-name')) === 'VLOOKUP')
     const first = await hints().locator('li').first().getAttribute('data-name')
     step('FX-C5 输入 =vlo 弹出函数列表，首项 VLOOKUP', first === 'VLOOKUP', first)
     await page.keyboard.press('Tab')
@@ -109,11 +125,19 @@ try {
     await until(async () => ((await call.locator('b').textContent()) ?? 'lookup_value') !== 'lookup_value')
     const bold = await call.locator('b').textContent()
     step('FX-C5 逗号后加粗第 2 个参数', bold != null && bold.length > 0 && !bold.startsWith('lookup'), bold)
+    await watchPresses()
     await page.keyboard.press('Escape')
   })
 
   await section('FX-C6 单击列表项插入函数', async () => {
+    // The editor after the click on A10, and the presses since FX-C5's Escape: printed
+    // only when FX-C6 fails (2 of 20 CI rounds typed into A9, the cell FX-C5 left with Escape, as
+    // if the click on A10 had not been taken).
+    await watchPresses()
+    const pick = (shown) => ({ active: shown.active, editing: shown.editing, editText: shown.editText, editCell: shown.editCell, pointing: shown.pointing, escape: shown.escape })
     await clickCell(0, 9)
+    const afterClick = pick(await details())
+    const clickedAt = await kit.locator('body').evaluate(() => performance.now() | 0)
     await page.keyboard.type('=su')
     await hints().waitFor()
     await hints().locator('li[data-name="SUM"]').click()
@@ -121,13 +145,6 @@ try {
     // later (the runner typed `1,2)` and Enter into nothing before it did).
     await until(async () => (await editText()) === '=SUM(' && (await h.sinkFocused()))
     step('FX-C6 单击 SUM：=SUM(，仍在编辑', (await editText()) === '=SUM(' && (await details()).editing === true, JSON.stringify(await editText()))
-    // Where the keys went, printed only when FX-C6 fails (2 of about 8 CI rounds lost the typing,
-    // cause not found yet): the element each key reached and when, and the editor before and after.
-    await kit.locator('body').evaluate((body) => {
-      const doc = body.ownerDocument
-      doc.defaultView.__keys = []
-      doc.addEventListener('keydown', (e) => doc.defaultView.__keys.push([e.key, doc.activeElement?.getAttribute('data-testid') ?? doc.activeElement?.tagName, performance.now() | 0]), true)
-    })
     const typedAt = Date.now()
     await page.keyboard.type('1,2)')
     const typedDetails = await details()
@@ -136,7 +153,7 @@ try {
     if ((await cellOf('A10')).value !== 3) {
       const keys = await kit.locator('body').evaluate((body) => body.ownerDocument.defaultView.__keys)
       await page.waitForTimeout(2000)
-      console.log('FX-C6 keys', JSON.stringify({ ms: Date.now() - typedAt, typedDetails, keys, after: await details(), focused: await h.sinkFocused(), a10: await cellOf('A10') }))
+      console.log('FX-C6 keys', JSON.stringify({ ms: Date.now() - typedAt, afterClick, clickedAt, typedDetails: pick(typedDetails), keys, after: pick(await details()), focused: await h.sinkFocused(), a9: await input('A9'), a10: await input('A10') }))
     }
     step('FX-C6 回车后值为 3', (await cellOf('A10')).value === 3, JSON.stringify(await input('A10')))
     step('FX-C6 A10 为 =SUM(1,2)', (await input('A10')) === '=SUM(1,2)', JSON.stringify(await input('A10')))
