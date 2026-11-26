@@ -693,7 +693,7 @@ mod tests {
     }
 
     /// A reply naming one cell of a workbook of thousands names it as the whole workbook's tool ids
-    /// do, as a value and in a key, and a reply naming no object comes back as it is (the editor
+    /// do, under `target` and under a member ending in `Id`, and a reply naming no object comes back as it is (the editor
     /// sends every `ai/inspect`, `document/check` and `ai/run` reply through `modelReply`).
     #[test]
     fn a_reply_naming_one_cell_of_many_names_it_as_the_whole_workbook_does() {
@@ -707,11 +707,15 @@ mod tests {
         let kdm = doc.session.kdm().unwrap();
         let every = kition_kit::kdm::tool_ids::ToolIds::of_replica(kdm.replica());
         for id in [&cells[0], &cells[1999], &cells[3999]] {
-            let reply = json!({ "cell": id, "values": { id.clone(): 1 }, "note": format!("about {id}") });
+            // A cell's id is the kit's own (not a UUID): a reply names it under `target` or a
+            // member ending in `Id` (kition-sdk 68dd08b); elsewhere it is text.
+            let reply = json!({ "target": id, "cells": [{ "cellId": id }], "note": format!("about {id}"), "cell": id });
             let shown: Value = serde_json::from_str(&doc.model_reply(&reply.to_string()).unwrap()).unwrap();
-            assert_eq!(shown, every.show_json(&reply), "the whole workbook's tool ids");
-            assert!(shown["cell"].as_str().is_some_and(|text| text.starts_with("cell:")), "{shown}");
+            assert_eq!(shown, every.show_reply_json(&reply), "the whole workbook's tool ids");
+            assert!(shown["target"].as_str().is_some_and(|text| text.starts_with("cell:")), "{shown}");
+            assert!(shown["cells"][0]["cellId"].as_str().is_some_and(|text| text.starts_with("cell:")), "{shown}");
             assert_eq!(shown["note"], json!(format!("about {id}")), "text that holds an id stays");
+            assert_eq!(shown["cell"], json!(id), "a chosen id under another member stays");
         }
         let plain = json!({ "summary": "Many", "cells": ["A1", "J400"], "count": 4000 });
         assert_eq!(serde_json::from_str::<Value>(&doc.model_reply(&plain.to_string()).unwrap()).unwrap(), plain, "a reply naming no object stays");
