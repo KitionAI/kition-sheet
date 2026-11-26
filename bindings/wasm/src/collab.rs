@@ -156,16 +156,22 @@ impl SheetDocument {
         kdm.replica().state_json().map_err(engine_error)
     }
 
-    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of
-    /// `origin`'s scope (`mergeChanges`, as `kition-sdk`'s `export_kit_session!` answers it): the
+    /// Takes a draft's changes (from a replica forked from this one) in as one undo step of the
+    /// person (`mergeChanges`, as `kition-sdk`'s `export_kit_session!` answers it): the
     /// engine's workbook follows, and one Undo takes the whole draft back. Add the draft's blobs
-    /// first. Answers `{"damage", "summary"}`, `summary` the `StateDiff` of the replicated state
-    /// before and after. A refused merge changes nothing and fails with the KDM's message.
+    /// first. Answers `{"damage", "summary", "scope"}`, `summary` the `StateDiff` of the replicated
+    /// state before and after, `scope` the undo scope the replica recorded the step in (`"person"`,
+    /// also for an agent's draft; `null` for none). A refused merge changes nothing and fails with
+    /// the KDM's message.
     pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<Value, String> {
         let before = self.replicated_state()?;
-        let damage = self.session.merge_changes(bytes, origin).map_err(engine_error)?;
+        let (scope, damage) = self.session.merge_changes(bytes, origin).map_err(engine_error)?;
         let after = self.replicated_state()?;
-        Ok(json!({ "damage": damage, "summary": kition_kit::kdm::diff::diff_states(&before, &after).to_json() }))
+        Ok(json!({
+            "damage": damage,
+            "summary": kition_kit::kdm::diff::diff_states(&before, &after).to_json(),
+            "scope": scope.map(kition_kit::kdm::UndoScope::as_str),
+        }))
     }
 
     /// What merging a draft's changes would change in the workbook now, as `StateDiff` JSON;
@@ -566,6 +572,7 @@ mod tests {
         let origin = Origin::person("person:local");
         let answer = doc.merge_changes(&changes, &origin).unwrap();
         assert_eq!(answer["summary"], preview, "the comparison named what the merge did: {answer}");
+        assert_eq!(answer["scope"], json!("person"), "{answer}");
         assert_ne!(answer["damage"], json!({ "kind": "none" }), "{answer}");
         assert_eq!(value(&mut doc, "B3"), json!(500.0), "the engine's workbook follows the merge");
         assert_eq!(value(&mut doc, "B4"), json!(1700.0), "and is recalculated");
@@ -597,7 +604,8 @@ mod tests {
         let changes = draft.export_changes(&base).unwrap();
         let before = whole(&mut doc);
         let agent = Origin::agent("user:agent");
-        doc.merge_changes(&changes, &agent).unwrap();
+        let answer = doc.merge_changes(&changes, &agent).unwrap();
+        assert_eq!(answer["scope"], json!("person"), "the replica answers the person's scope: {answer}");
         assert_eq!(value(&mut doc, "C2"), json!(14400.0));
         let scopes =
             |doc: &SheetDocument| doc.session.active().map(|state| state.undo.iter().map(|u| u.scope).collect::<Vec<_>>()).unwrap_or_default();

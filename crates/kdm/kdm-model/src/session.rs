@@ -317,22 +317,28 @@ impl SheetSession {
     }
 
     /// Takes a draft's changes (made on a fork of this replica) in as one transaction of `origin`
-    /// (`Replica::merge_changes`): one undo step unless `origin` is a `system` or `import` one.
-    /// Repairs the result and patches the view as an import does; add the draft's blobs first
-    /// ([`SheetSession::add_blobs`]). Answers the undo steps it made (1 or 0) and the damage. A
-    /// refused merge changes nothing.
-    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(u32, Damage)> {
+    /// (`Replica::merge_changes_repaired`), the repair of the merged state (`validate`) in the same
+    /// change and undo step, so one undo gives back the exact state before. Patches the view as an
+    /// import does; add the draft's blobs first ([`SheetSession::add_blobs`]). Answers the undo
+    /// scope the replica recorded the step in (the person's, even for an agent's draft; `None`: no
+    /// step) and the damage. A refused merge, or one whose repair fails, changes nothing.
+    pub fn merge_changes(&mut self, bytes: &[u8], origin: &Origin) -> Result<(Option<UndoScope>, Damage)> {
         let before = self.replica.version();
-        self.replica.merge_changes(bytes, origin).map_err(kit_err)?;
-        self.took_in(before, origin)
+        let (replica, model) = (&mut self.replica, &self.model);
+        let merged = replica
+            .merge_changes_repaired(bytes, origin, |tx, changed| crate::validate::validate_known(tx, changed, Some(model.ids())).map(drop))
+            .map_err(kit_err)?;
+        self.took_in(before, merged.scope)
     }
 
     /// Writes the state `snapshot` holds (a snapshot or content of this workbook, as a host's
     /// checkpoint keeps it) over the replica as one transaction of `origin`, keyed by object id
-    /// (`kition_kit::session::write_state`), so every object the two share keeps its id: one undo
-    /// step unless `origin` is a `system` or `import` one. Nothing changes when the states are
-    /// equal. Refuses another document's snapshot. Add the blobs it references first.
-    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<(u32, Damage)> {
+    /// (`kition_kit::session::write_state`), so every object the two share keeps its id, with the
+    /// repair of the restored state (`validate`) in the same change: one undo step of `origin`'s
+    /// scope unless `origin` is a `system` or `import` one. Nothing changes when the states are
+    /// equal. Refuses another document's snapshot. Add the blobs it references first. Answers the
+    /// undo scope of the step (`None`: no step) and the damage.
+    pub fn restore_state(&mut self, snapshot: &[u8], origin: &Origin) -> Result<(Option<UndoScope>, Damage)> {
         let schema = SheetModel::schema();
         let loaded = Replica::load(Arc::clone(&schema), snapshot, ActorId::random()).map_err(kit_err)?;
         if loaded.doc_id() != self.replica.doc_id() {
@@ -340,32 +346,40 @@ impl SheetSession {
         }
         let (now, then) = (kition_kit::session::state(&self.replica)?, kition_kit::session::state(&loaded)?);
         if now == then {
-            return Ok((0, Damage::None));
+            return Ok((None, Damage::None));
         }
+        let changed: BTreeSet<ObjectId> =
+            now.keys().chain(then.keys()).filter(|id| now.get(*id) != then.get(*id)).map(ObjectId::from_string).collect();
         let before = self.replica.version();
-        let result = self.replica.transact(origin, |tx| kition_kit::session::write_state(tx, &schema, &now, &then).map_err(crate::kdm_err));
+        let (replica, model) = (&mut self.replica, &self.model);
+        let result = replica.transact(origin, |tx| {
+            kition_kit::session::write_state(tx, &schema, &now, &then).map_err(crate::kdm_err)?;
+            crate::validate::validate_known(tx, &changed, Some(model.ids())).map(drop)
+        });
         if let Err(error) = result {
             self.replica.take_changed();
             return Err(kit_err(error));
         }
-        self.took_in(before, origin)
+        let scope = UndoScope::of(origin.kind);
+        self.took_in(before, scope)
     }
 
-    /// After a merge or a restore wrote one transaction of `origin` since `before`: repairs and
-    /// patches the view as an import does, and counts the transaction as an undo step. A failed
-    /// repair or view load is the error, as an import's is: the transaction stays
-    /// ([`SheetSession::view_loaded`] tells whether the view followed).
-    fn took_in(&mut self, before: Version, origin: &Origin) -> Result<(u32, Damage)> {
+    /// After a merge or a restore wrote one change since `before`, recorded in the undo scope
+    /// `scope` (`None`: no step): patches the view as an import does (its repair has nothing left
+    /// to write) and counts the change as an undo step. A failed view load is the error, as an
+    /// import's is: the change stays ([`SheetSession::view_loaded`] tells whether the view
+    /// followed).
+    fn took_in(&mut self, before: Version, scope: Option<UndoScope>) -> Result<(Option<UndoScope>, Damage)> {
         let wrote = self.replica.version() != before;
         let (damage, moved) = self.settle();
         self.log_added(moved.added.iter().cloned());
-        let undoable = wrote && !matches!(origin.kind, OriginKind::System | OriginKind::Import);
-        if undoable {
+        let scope = scope.filter(|_| wrote);
+        if scope.is_some() {
             self.index.push_step(moved);
         }
         self.index.imported();
         self.index.collect_garbage(&mut self.blobs);
-        damage.map(|damage| (u32::from(undoable), damage))
+        damage.map(|damage| (scope, damage))
     }
 
     /// Whether the view matches the replica as it is now (its own read succeeds).
