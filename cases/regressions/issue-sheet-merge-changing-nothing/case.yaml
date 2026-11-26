@@ -1,0 +1,33 @@
+format: 1
+id: regressions/issue-sheet-merge-changing-nothing
+feature: sheet.collab.drafts
+intent: >-
+  A draft whose merge the repair cancels completely (an agent typed into a row the person deleted
+  meanwhile, so the repair drops its cell) recorded an undo step that changed nothing, so the
+  person's next Undo passed over it. Now such a merge records nothing (kition-sdk
+  regressions/issue-merge-changing-nothing): it answers no scope and an empty summary, the state
+  hash, the version, the replica's undo depth, the engine's history with its labels and the
+  selection stay, and the next Undo takes back the person's row delete to the exact state before
+  it. The view's repair after a merge or a restore joins its undo step instead of a change of its
+  own.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/session.rs, bindings/wasm/src/collab.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kdm-model
+      test: session
+      filter: a_draft_the_repair_cancels_records_nothing
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_draft_the_repair_cancels_records_nothing
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 120

@@ -615,6 +615,47 @@ mod tests {
         assert!(whole(&mut doc) == before, "exactly");
     }
 
+    /// A draft whose merge the repair cancels completely records nothing (kition-sdk
+    /// regressions/issue-merge-changing-nothing): the agent's draft typed into row 4 while the
+    /// person deleted it (their named step, Delete Sheet Rows), so the repair drops the draft's
+    /// cell. The merge answers no scope and an empty summary; the state hash, the version, the
+    /// replica's undo depth, the engine's history (its steps and labels) and the selection stay;
+    /// the next Undo is the person's row delete and gives back the exact state before it
+    /// (regressions/issue-sheet-merge-changing-nothing).
+    #[test]
+    fn a_draft_the_repair_cancels_records_nothing() {
+        use kition_kit::kdm::UndoScope;
+        let mut doc = SheetDocument::open("Budget.xlsx", &fixture()).unwrap();
+        let base = doc.version().unwrap();
+        let mut draft = SheetDocument::open_with_replica("Budget.xlsx", &[], &doc.snapshot().unwrap(), &doc.blobs().unwrap()).unwrap();
+        draft.execute("cell.set", json!({ "cell": "A4", "input": "the draft's" })).unwrap();
+        let changes = draft.export_changes(&base).unwrap();
+        let start = whole(&mut doc);
+        doc.execute("row.delete", json!({ "rows": "4:4" })).unwrap();
+        let history = |doc: &SheetDocument| {
+            doc.session
+                .active()
+                .map(|state| {
+                    (state.undo.iter().map(|u| (u.label.clone(), u.steps, u.scope)).collect::<Vec<_>>(), state.redo.len(), state.selection.clone())
+                })
+                .unwrap_or_else(|| panic!("an active workbook"))
+        };
+        let recorded = history(&doc);
+        assert_eq!(recorded.0.last().map(|u| u.0.as_str()), Some("Delete Sheet Rows"), "{:?}", recorded.0);
+        let (hash, version) = (doc.session.state_hash().unwrap(), doc.version().unwrap());
+        let depth = doc.session.kdm().unwrap().replica().undo_depth(UndoScope::Person);
+        let answer = doc.merge_changes(&changes, &Origin::agent("user:agent")).unwrap();
+        assert_eq!(answer["scope"], Value::Null, "the merge recorded no step: {answer}");
+        assert_eq!(answer["summary"], kition_kit::kdm::diff::StateDiff::default().to_json(), "and changed nothing: {answer}");
+        assert_eq!(doc.session.state_hash().unwrap(), hash, "the state is as it was");
+        assert_eq!(doc.version().unwrap(), version, "no change was logged");
+        assert_eq!(doc.session.kdm().unwrap().replica().undo_depth(UndoScope::Person), depth, "the replica's undo depth stays");
+        assert_eq!(history(&doc), recorded, "the engine's history, its labels and the selection stay");
+        assert_ne!(value(&mut doc, "A4"), json!("the draft's"), "the draft's cell is not there");
+        assert!(doc.undo().unwrap().0, "the next Undo is the person's row delete");
+        assert!(whole(&mut doc) == start, "and gives back the exact state before it");
+    }
+
     /// An earlier state (a checkpoint's snapshot) is written over the workbook by object id as one
     /// undo step: the replica holds that state again, with the same ids; Undo gives back the exact
     /// state before the restore (the replica's objects and the engine's workbook), and Redo the

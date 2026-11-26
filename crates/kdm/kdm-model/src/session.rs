@@ -373,28 +373,34 @@ impl SheetSession {
             now.keys().chain(then.keys()).filter(|id| now.get(*id) != then.get(*id)).map(ObjectId::from_string).collect();
         let before = self.replica.version();
         let (replica, model) = (&mut self.replica, &self.model);
-        let result = replica.transact(origin, |tx| {
+        // A restore whose repair takes back all it writes records nothing (no change, no step).
+        let result = replica.transact_unless_unchanged(origin, |tx| {
             kition_kit::session::write_state(tx, &schema, &now, &then).map_err(crate::kdm_err)?;
             crate::validate::validate_known(tx, &changed, Some(model.ids())).map(drop)
         });
-        if let Err(error) = result {
-            self.replica.take_changed();
-            return Err(kit_err(error));
-        }
-        let scope = UndoScope::of(origin.kind);
+        let wrote = match result {
+            Ok(((), wrote)) => wrote,
+            Err(error) => {
+                self.replica.take_changed();
+                return Err(kit_err(error));
+            }
+        };
+        let scope = UndoScope::of(origin.kind).filter(|_| wrote);
         self.took_in(before, scope)
     }
 
     /// After a merge or a restore wrote one change since `before`, recorded in the undo scope
-    /// `scope` (`None`: no step): patches the view as an import does (its repair has nothing left
-    /// to write) and counts the change as an undo step. A failed view load is the error, as an
-    /// import's is: the change stays ([`SheetSession::view_loaded`] tells whether the view
-    /// followed).
+    /// `scope` (`None`: no step): patches the view as an import does and counts the change as an
+    /// undo step. The view's repair has nothing left to write (the merge's or restore's own ran
+    /// in its change); should it write, it joins the merge's undo step
+    /// (`Replica::transact_in_step`), so one undo still gives back the exact state before. A
+    /// failed view load is the error, as an import's is: the change stays
+    /// ([`SheetSession::view_loaded`] tells whether the view followed).
     fn took_in(&mut self, before: Version, scope: Option<UndoScope>) -> Result<(Option<UndoScope>, Damage)> {
         let wrote = self.replica.version() != before;
-        let (damage, moved) = self.settle();
-        self.log_added(moved.added.iter().cloned());
         let scope = scope.filter(|_| wrote);
+        let (damage, moved, scope) = self.settle_in(scope);
+        self.log_added(moved.added.iter().cloned());
         if scope.is_some() {
             self.index.push_step(moved);
         }
@@ -515,20 +521,35 @@ impl SheetSession {
     /// answers which blobs moved (the index is updated either way, reading every changed sheet's
     /// cells when the view could not follow).
     fn settle(&mut self) -> (Result<Damage>, Moved) {
+        let (damage, moved, _) = self.settle_in(None);
+        (damage, moved)
+    }
+
+    /// [`SheetSession::settle`], its repair joining the top undo step of `step` (the merge or
+    /// restore just recorded there, `Replica::transact_in_step`) instead of a `system` transaction
+    /// of its own; answers the scope the step is in after it (`None`: no step, or the repair took
+    /// back all the step did and the replica dropped it).
+    fn settle_in(&mut self, step: Option<UndoScope>) -> (Result<Damage>, Moved, Option<UndoScope>) {
         let mut changed = self.replica.take_changed();
         self.forget_positions(&changed);
+        let mut scope = step;
         let repaired = if changed.is_empty() {
             Ok(())
         } else {
             let mut kit_error = None;
             let view = self.model.ids();
-            let result = self.replica.transact(&Origin::system("repair"), |tx: &mut Tx<'_>| {
+            let origin = Origin::system("repair");
+            let repair = |tx: &mut Tx<'_>| {
                 crate::validate::validate_known(tx, &changed, Some(view)).map(|_| ()).map_err(kit_err).map_err(|error| {
                     let message = error.to_string();
                     kit_error = Some(error);
                     KdmError::Engine(message)
                 })
-            });
+            };
+            let result = match step {
+                Some(step) => self.replica.transact_in_step(step, &origin, repair).map(|((), joined)| scope = joined),
+                None => self.replica.transact(&origin, repair),
+            };
             match (result, kit_error) {
                 (_, Some(error)) => Err(error),
                 (result, None) => result.map_err(kit_err),
@@ -547,7 +568,7 @@ impl SheetSession {
         };
         self.stale = refreshed.is_err();
         let moved = self.index.update(&self.replica, &changed);
-        (refreshed.and_then(|damage| repaired.map(|()| damage)), moved)
+        (refreshed.and_then(|damage| repaired.map(|()| damage)), moved, scope)
     }
 
     /// Forgets the lines known positioned unless `changed` holds only existing `Cell` objects (a

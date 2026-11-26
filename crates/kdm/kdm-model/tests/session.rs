@@ -404,3 +404,38 @@ fn a_drafts_preview_is_the_repaired_merge() {
     assert_eq!(a.replica().state_json().unwrap()["objects"], preview["objects"], "the preview is the state accepting gives");
     assert!(!a.workbook().sheets[0].cells.iter().any(|(_, c)| c.value == kition_sheet_core::Value::Text("the draft's".into())));
 }
+
+/// A draft whose merge the repair cancels completely records nothing (kition-sdk
+/// regressions/issue-merge-changing-nothing): the draft typed into row 3 while the person deleted
+/// it (their named step), so the repair removes the draft's cell and the merge leaves the replica
+/// exactly as it was. It answers no undo scope; the state hash, the version, the person's undo
+/// depth and the reachable steps stay; and the next Undo takes back the person's row delete, to
+/// the exact state before it (regressions/issue-sheet-merge-changing-nothing).
+#[test]
+fn a_draft_the_repair_cancels_records_nothing() {
+    use kition_kit::kdm::UndoScope;
+    let mut a = SheetSession::create(&base()).unwrap();
+    let at = a.version();
+    let mut d = peer(&a);
+    let (wb, e) = edited(&d, |wb| {
+        put(wb, 0, "B3", "the draft's");
+        vec![]
+    });
+    d.record(&Origin::agent("user:agent"), &wb, &e).unwrap();
+    let start = a.state_hash().unwrap();
+    let (wb, e) = edited(&a, |wb| vec![common::delete_rows(wb, 0, 2, 1)]);
+    assert_eq!(a.record(&Origin::person("user:a"), &wb, &e).unwrap(), 1, "the person's row delete is one step");
+    let changes = d.export_changes(&at).unwrap();
+    let (hash, version, depth, steps) = (a.state_hash().unwrap(), a.version(), a.replica().undo_depth(UndoScope::Person), a.steps());
+    let (scope, damage) = a.merge_changes(&changes, &Origin::agent("user:agent")).unwrap();
+    assert_eq!(scope, None, "the merge recorded no step");
+    assert_eq!(damage, kition_kit::session::Damage::None);
+    assert_eq!(a.state_hash().unwrap(), hash, "the state is as it was");
+    assert_eq!(a.version(), version, "no change was logged");
+    assert_eq!(a.replica().undo_depth(UndoScope::Person), depth, "the person's undo depth stays");
+    assert_eq!(a.steps(), steps, "the reachable steps stay");
+    assert!(!a.workbook().sheets[0].cells.iter().any(|(_, c)| c.value == kition_sheet_core::Value::Text("the draft's".into())));
+    assert!(a.undo().unwrap().0);
+    assert_eq!(a.state_hash().unwrap(), start, "the next undo takes back the person's row delete exactly");
+    assert_eq!(input(a.workbook(), 0, "A3"), "30");
+}
