@@ -421,7 +421,7 @@ fn blind_paths_have_distinct_invocations_and_report_unreached_samples() {
             invoked.insert(row.command);
         }
     }
-    assert_eq!(writes.len(), 261, "binding-only commandLine is separate from the blind engine rows");
+    assert_eq!(writes.len(), 261, "binding-only command.runLine is separate from the blind engine rows");
     eprintln!("PATH_INVOCATIONS family => [raw, nonwrite, successful write invocation]: {counts:?}");
     eprintln!("PATH_COMMANDS successfully invoked {}/{}, absent={:?}", invoked.len(), writes.len(), writes.difference(&invoked).collect::<Vec<_>>());
     eprintln!("PATH_UNREACHED_KEYS {failures:#?}");

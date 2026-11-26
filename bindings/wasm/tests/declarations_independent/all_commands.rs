@@ -304,7 +304,7 @@ chart.set|part
 chart.shapeFill|part
 chart.shapeOutline|part
 chart.switchRowColumn|part
-commandLine|selection,part
+command.runLine|selection,part
 data.advancedFilter|selection,part
 data.clearFilter|selection,part
 data.consolidate|selection,part

@@ -15,7 +15,7 @@ const EDITOR: &[Evidence] = &[
         commands: "command.runLine",
         states: "part,selection,mode",
         file: "binding",
-        anchors: &["if command == \"commandLine\""],
+        anchors: &["if command == \"command.runLine\""],
         reason: "binding entry chooses current part/cell and clears editing mode",
     },
     Evidence {

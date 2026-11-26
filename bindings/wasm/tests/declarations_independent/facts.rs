@@ -82,7 +82,7 @@ fn binding(params: &serde_json::Value, cx: &model::Context) -> model::Facts {
     if let Some(input) = params.get("text").and_then(serde_json::Value::as_str).filter(|input| input.starts_with('=')) {
         cx.expression(&mut out, cx.active, &kition_sheet_engine::formula::parse(input).unwrap(), 0);
     }
-    // commandLine -> step(1,0) -> select.move: the first visible row after
+    // command.runLine -> step(1,0) -> select.move: the first visible row after
     // the source merge, plus the destination merge, determines the new cell.
     let sheet = &cx.wb.sheets[cx.active];
     let source = sheet.merge_at(cx.active_cell).map_or(cx.active_cell, |range| range.end);
