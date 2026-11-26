@@ -1,0 +1,30 @@
+format: 1
+id: sheet.collab.drafts/editor
+feature: sheet.collab.drafts
+intent: >-
+  A draft and a restored version in the editor, on the sample workbook through the development
+  host with replica and checkpoints: the person types into G1; the agent's draft sets B2; the
+  comparison lists it and leaves the workbook and its version as they were; the person types into
+  A1 meanwhile; the draft merges: B2 999 with F2's total recalculated, G1 and A1 kept, as the
+  formula bar shows them. One Undo with the editor's button takes back B2 only; Redo brings it
+  back. A labelled checkpoint of the saved workbook, a later edit of G1, the checkpoint restored
+  through the host: G1 shows the checkpoint's text; one Undo brings the later edit back.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: web/tests/drafts.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/drafts.mjs, chromium]
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/drafts.mjs, webkit]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium, webkit]
+timeout_s: 300
+since: "2026-11-26"

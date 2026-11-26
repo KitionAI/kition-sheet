@@ -387,8 +387,9 @@ features:
       - web/src/sheet.ts
       - web/src/app.css
       - web/tests/gate-formula-input.mjs
+      - web/tests/gate-formula-input-repeat.mjs
     target: "WPS Office for Mac 7.5.1"
-    cases: [sheet.editor.formula-input/gate-formula-input, sheet.editor.formula-input/cell-editor]
+    cases: [sheet.editor.formula-input/gate-formula-input, sheet.editor.formula-input/cell-editor, sheet.editor.formula-input/fx-c6-repeat]
     since: "2026-11-17"
   - id: sheet.editor.formula-bar
     title: "The formula bar as in WPS: View › Show › 显示编辑栏 (kept for next time), Name Box, ✕ ✓ fx (Insert Function), typing there is typing in the cell (pointing, other sheets, Enter/Tab/Esc, Alt+Enter), expand"
@@ -569,10 +570,10 @@ features:
     dimension: [collab, data-safety]
     priority: P1
     status: partial
-    paths: [bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/kdm_bridge.rs, crates/kdm/kdm-model/src/session.rs, web/package.json]
+    paths: [bindings/wasm/src/collab.rs, bindings/wasm/src/lib.rs, crates/engine/engine/src/kdm_bridge.rs, crates/kdm/kdm-model/src/session.rs, web/package.json, web/tests/drafts.mjs]
     target: "Kit UI protocol section 7 (replica/restore); engine contract members mergeChanges, compareChanges, restoreState, changesSince, modelReply, modelDescribe, modelBatch"
-    gap: Engine tests merge a draft, compare it first, restore a version, answer a receipt, name reply ids and serve the object model, and test:contract checks the built engine has every member; no case drives a draft or a restore in the editor yet.
-    cases: [regressions/issue-undo-passed-over-history, regressions/issue-agent-draft-person-undo, regressions/issue-sheet-same-new-rows, regressions/issue-draft-preview-repaired, regressions/issue-sheet-merge-changing-nothing]
+    gap: Engine tests merge a draft, compare it first, restore a version, answer a receipt, name reply ids and serve the object model, and test:contract checks the built engine has every member; test:drafts drives a merged draft, its Undo and Redo, and a restore in the editor. No case yet drives a refused (colliding) draft or a reload keeping checkpoints in the editor.
+    cases: [sheet.collab.drafts/editor, regressions/issue-undo-passed-over-history, regressions/issue-agent-draft-person-undo, regressions/issue-sheet-same-new-rows, regressions/issue-draft-preview-repaired, regressions/issue-sheet-merge-changing-nothing]
     since: "2026-11-25"
   - id: sheet.editor.workbook-files
     title: "Workbook files as in WPS: open xlsx, xlsm, templates, Excel 97-2003 .xls, .xlsb, ODS, CSV (UTF-8 or GBK) and web pages named .xls, sized as WPS sizes columns and rows; refuse empty, damaged and non-spreadsheet files saying what they are; File › Export as PDF (Chinese text embedded, A4), picture, Excel workbook, CSV of what cells show and web page; Save as Template (.xltx); a read-only preview; copy and paste between workbooks with formats; form controls kept on save"

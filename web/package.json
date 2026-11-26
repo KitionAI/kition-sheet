@@ -26,6 +26,7 @@
     "test:gate-sheet-ui": "node tests/gate-sheet-ui.mjs chromium && node tests/gate-sheet-ui.mjs webkit",
     "test:gate-sheet-menu": "node tests/gate-sheet-menu.mjs chromium && node tests/gate-sheet-menu.mjs webkit",
     "test:gate-formula-input": "node tests/gate-formula-input.mjs chromium && node tests/gate-formula-input.mjs webkit",
+    "test:gate-formula-input-repeat": "node tests/gate-formula-input-repeat.mjs chromium && node tests/gate-formula-input-repeat.mjs webkit",
     "test:gate-formula-bar": "node tests/gate-formula-bar.mjs chromium && node tests/gate-formula-bar.mjs webkit",
     "test:gate-rows-cols": "node tests/gate-rows-cols.mjs chromium && node tests/gate-rows-cols.mjs webkit",
     "test:gate-view": "node tests/gate-view.mjs chromium && node tests/gate-view.mjs webkit",
@@ -35,6 +36,7 @@
     "test:gate-file": "node tests/gate-file.mjs chromium && node tests/gate-file.mjs webkit",
     "test:gate-cleanup": "node tests/gate-cleanup.mjs chromium && node tests/gate-cleanup.mjs webkit",
     "test:reopen-changed": "node tests/reopen-changed.mjs chromium && node tests/reopen-changed.mjs webkit",
+    "test:drafts": "node tests/drafts.mjs chromium && node tests/drafts.mjs webkit",
     "test:contract": "node ../../kition-sdk/tools/check-manifest.mjs ../kit.json --module public/engine"
   },
   "dependencies": {

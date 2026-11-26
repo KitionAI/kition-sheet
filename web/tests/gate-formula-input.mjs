@@ -139,6 +139,7 @@ try {
       console.log('FX-C6 keys', JSON.stringify({ ms: Date.now() - typedAt, typedDetails, keys, after: await details(), focused: await h.sinkFocused(), a10: await cellOf('A10') }))
     }
     step('FX-C6 回车后值为 3', (await cellOf('A10')).value === 3, JSON.stringify(await input('A10')))
+    step('FX-C6 A10 为 =SUM(1,2)', (await input('A10')) === '=SUM(1,2)', JSON.stringify(await input('A10')))
   })
 
   await section('FX-C7 编辑栏 F4 与函数列表', async () => {

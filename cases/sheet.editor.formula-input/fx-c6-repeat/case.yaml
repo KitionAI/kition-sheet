@@ -1,0 +1,26 @@
+format: 1
+id: sheet.editor.formula-input/fx-c6-repeat
+feature: sheet.editor.formula-input
+intent: >-
+  FX-C6 of the formula-input gate twenty times, each in a new process and a fresh page load after
+  the gate's own lead-up FX-C1 to FX-C5: SUM clicked in the cell's function list, `1,2)` typed and
+  Enter leave A10 holding =SUM(1,2) with the value 3 every time (seen empty twice in CI, never
+  reproduced by hand; a failing round prints where each key went). `pnpm
+  test:gate-formula-input-repeat` runs WebKit as well.
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/gate-formula-input-repeat.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/gate-formula-input-repeat.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 1200
+since: "2026-11-26"
