@@ -646,7 +646,9 @@ mod tests {
         let depth = doc.session.kdm().unwrap().replica().undo_depth(UndoScope::Person);
         let answer = doc.merge_changes(&changes, &Origin::agent("user:agent")).unwrap();
         assert_eq!(answer["scope"], Value::Null, "the merge recorded no step: {answer}");
-        assert_eq!(answer["summary"], kition_kit::kdm::diff::StateDiff::default().to_json(), "and changed nothing: {answer}");
+        for part in ["changed", "created", "deleted", "moved", "texts"] {
+            assert_eq!(answer["summary"][part], json!([]), "and changed nothing: {answer}");
+        }
         assert_eq!(doc.session.state_hash().unwrap(), hash, "the state is as it was");
         assert_eq!(doc.version().unwrap(), version, "no change was logged");
         assert_eq!(doc.session.kdm().unwrap().replica().undo_depth(UndoScope::Person), depth, "the replica's undo depth stays");
