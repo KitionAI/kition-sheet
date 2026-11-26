@@ -199,8 +199,8 @@ fn a_reply_edited_while_another_is_added_keeps_both() {
 /// A draft merges cells while the person merged cells overlapping them: both `Merge` objects are
 /// in the sheet's list (the document's first, D6), and the reader keeps the document's alone (the
 /// engine keeps merged areas apart). A reopened snapshot and the saved file read the same. (Both
-/// areas lie on lines the sheet has: two sides that each pad the sheet with the same new line
-/// collide, rule D8.)
+/// areas lie on lines the sheet has; two sides padding the sheet with the same new line are the
+/// same change, rules D6 and D8, see `session.rs`.)
 #[test]
 fn overlapping_merges_made_in_a_draft_and_meanwhile_read_as_the_documents() {
     let (blobs, mut a, _) = pair();

@@ -1,0 +1,25 @@
+format: 1
+id: regressions/issue-draft-preview-repaired
+feature: sheet.collab.drafts
+intent: >-
+  A draft's preview (compareChanges) merged the draft on a copy without the merge's repair, so a
+  draft that typed into a row deleted meanwhile previewed a cell that accepting the draft drops.
+  Now the preview runs the repair on its copy: its merged state is the state after the merge.
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/session.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kdm-model
+      test: session
+      filter: a_drafts_preview_is_the_repaired_merge
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 120

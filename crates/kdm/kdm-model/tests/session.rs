@@ -304,3 +304,103 @@ fn a_draft_typing_into_a_new_cell_the_person_typed_into_is_refused() {
     assert_eq!(a.version(), version, "and changes nothing");
     assert_eq!(input(a.workbook(), 0, "B3"), "mine");
 }
+
+/// A draft and the person both typing below the sheet's last row (4) pad the sheet with the same
+/// rows (ids derived from the sheet and the row's place, holding only `key`): one creation on
+/// both sides with the same type and fields at one place of the list is the same change (data
+/// model 6.6, D6 and D8), so the draft typing in row 7 merges while the person typed in row 9:
+/// both cells are there, and one Undo takes back the draft's alone, to the exact state before
+/// the merge (regressions/issue-sheet-same-new-rows in kition-sdk).
+#[test]
+fn a_draft_and_the_person_typing_below_the_last_row_merge() {
+    let mut a = SheetSession::create(&base()).unwrap();
+    let at = a.version();
+    let mut d = peer(&a);
+    let (wb, e) = edited(&d, |wb| {
+        put(wb, 0, "B7", "the draft's");
+        vec![]
+    });
+    d.record(&Origin::agent("user:agent"), &wb, &e).unwrap();
+    let (wb, e) = edited(&a, |wb| {
+        put(wb, 0, "B9", "mine");
+        vec![]
+    });
+    a.record(&Origin::person("user:a"), &wb, &e).unwrap();
+    let changes = d.export_changes(&at).unwrap();
+    let conflicts = a.replica().merge_conflicts(&changes).unwrap();
+    assert!(conflicts.is_empty(), "the same padding rows do not collide: {conflicts:?}");
+    let before = a.state_hash().unwrap();
+    a.merge_changes(&changes, &Origin::person("user:a")).unwrap();
+    assert_eq!(input(a.workbook(), 0, "B7"), "the draft's");
+    assert_eq!(input(a.workbook(), 0, "B9"), "mine");
+    let fresh = kdm_model::read_document(a.replica(), a.blobs()).unwrap().0;
+    assert_same("a fresh read", a.workbook(), &fresh);
+    let merged = a.state_hash().unwrap();
+    assert!(a.undo().unwrap().0);
+    assert_eq!(input(a.workbook(), 0, "B7"), "", "one undo takes the draft's cell back");
+    assert_eq!(input(a.workbook(), 0, "B9"), "mine", "and leaves the person's");
+    assert_eq!(a.state_hash().unwrap(), before, "the exact state before the merge");
+    assert!(a.redo().unwrap().0);
+    assert_eq!(a.state_hash().unwrap(), merged, "the redo gives back the merged state");
+}
+
+/// Both typing into the same new cell below the last row still collide: the padding rows are the
+/// same change, but each side names its own `Cell` object for the cell's entry (D4), so the merge
+/// is refused and changes nothing.
+#[test]
+fn a_draft_typing_into_the_same_new_cell_below_the_last_row_is_refused() {
+    let mut a = SheetSession::create(&base()).unwrap();
+    let at = a.version();
+    let mut d = peer(&a);
+    let (wb, e) = edited(&d, |wb| {
+        put(wb, 0, "B7", "the draft's");
+        vec![]
+    });
+    d.record(&Origin::agent("user:agent"), &wb, &e).unwrap();
+    let (wb, e) = edited(&a, |wb| {
+        put(wb, 0, "B7", "mine");
+        vec![]
+    });
+    a.record(&Origin::person("user:a"), &wb, &e).unwrap();
+    let changes = d.export_changes(&at).unwrap();
+    let ids = &a.model().ids().sheets[0];
+    let key = format!("{}:{}", ids.rows[6].as_str(), ids.cols[1].as_str());
+    let conflicts = a.replica().merge_conflicts(&changes).unwrap();
+    assert!(
+        conflicts.iter().any(|c| c.rule == "D4" && c.object == ids.object && c.field.as_deref() == Some("cells")),
+        "the cell's entry ({key}) collides: {conflicts:?}"
+    );
+    let version = a.version();
+    assert!(a.merge_changes(&changes, &Origin::person("user:a")).is_err(), "the merge is refused");
+    assert_eq!(a.version(), version, "and changes nothing");
+    assert_eq!(input(a.workbook(), 0, "B7"), "mine");
+}
+
+/// A draft's preview runs the merge's repair on its copy (`SheetSession::compare_changes`,
+/// `merged_state`): the draft typed into row 3 while the person deleted it, so the repair removes
+/// the draft's cell, and the preview's merged state is the state after merging, not the state
+/// the merge alone writes (kition-sdk regressions/issue-draft-preview-repaired).
+#[test]
+fn a_drafts_preview_is_the_repaired_merge() {
+    let mut a = SheetSession::create(&base()).unwrap();
+    let at = a.version();
+    let mut d = peer(&a);
+    let (wb, e) = edited(&d, |wb| {
+        put(wb, 0, "B3", "the draft's");
+        vec![]
+    });
+    d.record(&Origin::agent("user:agent"), &wb, &e).unwrap();
+    let (wb, e) = edited(&a, |wb| vec![common::delete_rows(wb, 0, 2, 1)]);
+    a.record(&Origin::person("user:a"), &wb, &e).unwrap();
+    let changes = d.export_changes(&at).unwrap();
+    let version = a.version();
+    let preview = a.merged_state(&changes).unwrap();
+    let unrepaired = a.replica().merged_state(&changes).unwrap();
+    assert_ne!(preview["objects"], unrepaired["objects"], "the repair changes this merge");
+    let compared = a.compare_changes(&changes).unwrap().to_json().to_string();
+    assert!(!compared.contains("the draft's"), "the comparison does not show the dropped cell: {compared}");
+    assert_eq!(a.version(), version, "previewing changes nothing");
+    a.merge_changes(&changes, &Origin::person("user:a")).unwrap();
+    assert_eq!(a.replica().state_json().unwrap()["objects"], preview["objects"], "the preview is the state accepting gives");
+    assert!(!a.workbook().sheets[0].cells.iter().any(|(_, c)| c.value == kition_sheet_core::Value::Text("the draft's".into())));
+}

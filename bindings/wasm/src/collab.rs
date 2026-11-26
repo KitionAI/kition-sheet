@@ -174,13 +174,12 @@ impl SheetDocument {
         }))
     }
 
-    /// What merging a draft's changes would change in the workbook now, as `StateDiff` JSON;
-    /// nothing changes. Refuses what [`SheetDocument::merge_changes`] refuses.
+    /// What merging a draft's changes would change in the workbook now, as `StateDiff` JSON, the
+    /// merge's repair included (`SheetSession::compare_changes`), so the preview is what accepting
+    /// the draft gives; nothing changes. Refuses what [`SheetDocument::merge_changes`] refuses.
     pub fn compare_changes(&self, bytes: &[u8]) -> Result<Value, String> {
         let kdm = self.session.kdm().ok_or("the workbook has no replica, so no draft of it")?;
-        let before = kdm.replica().state_json().map_err(engine_error)?;
-        let after = kdm.replica().merged_state(bytes).map_err(engine_error)?;
-        Ok(kition_kit::kdm::diff::diff_states(&before, &after).to_json())
+        Ok(kdm.compare_changes(bytes).map_err(engine_error)?.to_json())
     }
 
     /// Writes the state a snapshot holds (a checkpoint of this workbook, the Kit UI protocol's

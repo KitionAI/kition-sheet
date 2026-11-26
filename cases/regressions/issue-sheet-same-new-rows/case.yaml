@@ -1,0 +1,28 @@
+format: 1
+id: regressions/issue-sheet-same-new-rows
+feature: sheet.collab.drafts
+intent: >-
+  A draft and the person both typing below the sheet's last row pad the sheet with the same rows
+  (ids derived from the sheet and the row's place, holding only key). The merge was refused as
+  "both created it" (D8). Now one creation with the same type and fields at one place is the same
+  change: a draft typing in row 7 merges while the person typed in row 9, both cells are there, and
+  one Undo takes back the draft's alone, to the exact state before the merge. Typing into the same
+  new cell on both sides still collides (D4).
+layer: gate
+dimension: data-safety
+source:
+  kind: synthetic
+  from: crates/kdm/kdm-model/tests/session.rs
+  license: Apache-2.0
+input: []
+steps:
+  - cargo-test:
+      package: kdm-model
+      test: session
+      filter: below_the_last_row
+expected:
+  - actual: out:exit
+    compare: exit
+    value: 0
+since: "2026-11-26"
+timeout_s: 120

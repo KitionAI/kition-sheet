@@ -331,6 +331,27 @@ impl SheetSession {
         self.took_in(before, merged.scope)
     }
 
+    /// What merging a draft's changes would change in the replica now, as a `StateDiff`, with the
+    /// repair [`SheetSession::merge_changes`] runs (`validate`) on the copy
+    /// (`Replica::compare_changes_repaired`), so a draft's preview is what accepting it gives (a
+    /// cell the draft typed into a row deleted here meanwhile is not in it). Nothing changes.
+    /// Refuses what the merge refuses.
+    pub fn compare_changes(&self, bytes: &[u8]) -> Result<kition_kit::kdm::diff::StateDiff> {
+        let model = &self.model;
+        self.replica
+            .compare_changes_repaired(bytes, |tx, changed| crate::validate::validate_known(tx, changed, Some(model.ids())).map(drop))
+            .map_err(kit_err)
+    }
+
+    /// The replicated state merging a draft's changes would give, the repair included
+    /// (`Replica::merged_state_repaired`, see [`SheetSession::compare_changes`]); nothing changes.
+    pub fn merged_state(&self, bytes: &[u8]) -> Result<serde_json::Value> {
+        let model = &self.model;
+        self.replica
+            .merged_state_repaired(bytes, |tx, changed| crate::validate::validate_known(tx, changed, Some(model.ids())).map(drop))
+            .map_err(kit_err)
+    }
+
     /// Writes the state `snapshot` holds (a snapshot or content of this workbook, as a host's
     /// checkpoint keeps it) over the replica as one transaction of `origin`, keyed by object id
     /// (`kition_kit::session::write_state`), so every object the two share keeps its id, with the
