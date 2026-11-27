@@ -2,10 +2,10 @@ format: 1
 id: sheet.platform.document-identity/no-replica
 feature: sheet.platform.document-identity
 intent: >-
-  Through the real kition-sheet process: the kit serves document.identity, and an .xlsx (a saved
+  Through the real kition-sheet process: the kit serves file.identity, and an .xlsx (a saved
   workbook, a byte copy of it, an empty file) carries no document id, because the file is written
   from the workbook and embeds no replica (its identities part holds object ids only);
-  document.fork writes the same bytes with no id, leaves the source as it was, and never replaces
+  file.fork writes the same bytes with no id, leaves the source as it was, and never replaces
   an existing file (file_conflict).
 layer: gate
 source:

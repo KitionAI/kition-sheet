@@ -2,7 +2,7 @@
 //! (`kition-sheet-kit`), served headless over the Kit Protocol by `kition-headless`, as the kit's
 //! `kit.json` declares it, with the object model
 //! (`model.describe`, `model.batch`) over the document's change exchange, and the identity a file
-//! carries (`document.identity`, `document.fork`): an `.xlsx` is written from the workbook and
+//! carries (`file.identity`, `file.fork`): an `.xlsx` is written from the workbook and
 //! embeds no replica (its `xl/kition/identities.json` part holds object ids, not a document id or
 //! history), so it carries none.
 

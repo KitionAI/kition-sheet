@@ -1,4 +1,4 @@
-//! `document.identity` and `document.fork` (Kit Process Protocol section 5.6, KitModel M7a)
+//! `file.identity` and `file.fork` (Kit Process Protocol section 5.6, KitModel M7a)
 //! through the real `kition-sheet` process: an `.xlsx` is written from the workbook and embeds no
 //! replica. Its `xl/kition/identities.json` part keeps object ids for the next open, but no
 //! document id and no history, so the file carries no document id and opening it makes a new
@@ -45,7 +45,7 @@ async fn a_workbook_file_embeds_no_replica_so_it_carries_no_identity_and_forks_u
     let bytes = workbook();
     std::fs::write(dir.join("Budget.xlsx"), &bytes).unwrap();
     let kit = launch(&dir).await;
-    assert!(kit.serves("document.identity"), "{}", kit.capabilities());
+    assert!(kit.serves("file.identity"), "{}", kit.capabilities());
 
     // A workbook, a byte copy of it and an empty file (made for the kit before it saved one)
     // carry no identity: the file holds the workbook, not its replica.
