@@ -420,7 +420,7 @@ impl SheetDocument {
             }
             return self.insert_text(&text, params.get("append").and_then(Json::as_bool) == Some(true));
         }
-        let person = kition_kit::dispatch::role() != Some(kition_kit::dispatch::Role::Agent);
+        let person = self.session.undo_scope() == kition_sheet_engine::UndoScope::Person;
         // A person's paste of the copy that ended pastes nothing (WPS: Cmd+V does nothing after
         // Escape, Enter's paste or a cut pasted once).
         if person && command == "edit.paste" && self.paste_ended(&params) {
@@ -2553,7 +2553,7 @@ impl KitDocument for SheetDocument {
         let before = drawn::Drawn::before(self);
         let result = self.execute_step(command, params);
         // The person's copy (Cmd+C, Cmd+X, the menus): the grid marks it (`copying`).
-        let person = kition_kit::dispatch::role() != Some(kition_kit::dispatch::Role::Agent);
+        let person = self.session.undo_scope() == kition_sheet_engine::UndoScope::Person;
         if result.is_ok() && matches!(command, "edit.copy" | "edit.cut") && person {
             self.copy_marked();
         }

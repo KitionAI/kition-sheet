@@ -2398,9 +2398,14 @@ fn clipboard_marks_an_agents_clear_leaves_the_system_text_pasting() {
     doc.execute("select.set", json!({ "range": "A1" })).unwrap();
     doc.execute("edit.copy", json!({})).unwrap();
     let text = doc.session.clipboard.as_ref().unwrap().text.clone();
-    // As an agent's clear leaves it: the clipboard empty, the person's mark not ended by them.
-    doc.session.clipboard = None;
+    // An agent empties the clipboard: the person's copy is not ended by them.
+    let agent = kition_sheet_engine::Origin::agent("agent:test");
+    doc.execute_as("edit.clearClipboard", json!({}), &agent).unwrap();
+    assert!(doc.session.clipboard.is_none());
     doc.execute("select.set", json!({ "range": "D4" })).unwrap();
     doc.execute("edit.paste", json!({ "text": text })).unwrap();
     assert_eq!(value(&mut doc, "D4")["value"], json!("q"), "the system clipboard's text pastes");
+    // An agent's copy is not marked: the person's Enter moves.
+    doc.execute_as("edit.copy", json!({ "range": "D4" }), &agent).unwrap();
+    assert_eq!(get(&doc, "copied"), Json::Null);
 }
