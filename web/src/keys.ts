@@ -87,15 +87,17 @@ export const KEYS: KeyRow[] = [
   // zoom keys: the status bar's percentage gives 100% (walkthrough A8, H4).
   { keys: ['Cmd+0'], editing: true, act: (c) => (c.state.editing ? undefined : c.run('column.hide', {})) },
   { keys: ['Cmd+Shift+0'], editing: true, act: (c) => (c.state.editing ? undefined : c.run('column.show', {})) },
-  // Cmd+Shift+= (Ctrl+Shift+=) inserts and Cmd+- (Ctrl+-) deletes the selected rows, or the
-  // selected columns when whole columns are selected (WPS W-I5, W-I6). With only cells selected
-  // they act on the cells' rows until stage 7 asks first (W-I8).
-  { keys: ['Cmd+Shift+=', 'Ctrl+Shift+='], when: notEverything, act: (c) => lines(c, true) },
-  { keys: ['Cmd+-', 'Ctrl+-'], when: notEverything, act: (c) => lines(c, false) },
-  { keys: ['Cmd+Shift+=', 'Cmd+-'], editing: true, act: nothing },
+  // With whole rows or columns selected, Cmd+Shift+= inserts and Cmd+- deletes them (WPS W-I5,
+  // W-I6). With only cells selected WPS asks what to insert or delete (W-I8, plan stage 7); until
+  // then they zoom 10 points as before, never deleting a row unasked. Ctrl+Shift+= and Ctrl+- act
+  // on the selection's rows (or whole columns) as they did.
+  { keys: ['Cmd+Shift+=', 'Cmd+-'], when: (c) => (c.state.lines.wholeRows || c.state.lines.wholeCols) && notEverything(c), act: (c, event) => lines(c, event.shiftKey) },
+  { keys: ['Ctrl+Shift+='], when: notEverything, act: (c) => lines(c, true) },
+  { keys: ['Ctrl+-'], when: notEverything, act: (c) => lines(c, false) },
   // Cmd+= zooms in 10 points, as the status bar's + does (web/tests/gate-sheet-ui.mjs UI-C22 and
-  // UI-C62 zoom with it).
-  { keys: ['Cmd+='], editing: true, act: (c) => c.zoomStep(1) },
+  // UI-C62 zoom with it), and Cmd+- (cells selected) out.
+  { keys: ['Cmd+=', 'Cmd+Shift+='], editing: true, act: (c) => c.zoomStep(1) },
+  { keys: ['Cmd+-'], editing: true, act: (c) => c.zoomStep(-1) },
   // Find, Replace and Go To open their dialogs (WPS W-O1; Cmd+H is the system's Hide).
   { keys: ['Cmd+F'], act: (c) => c.ask('edit.find') },
   { keys: ['Ctrl+H'], act: (c) => c.ask('edit.replace') },

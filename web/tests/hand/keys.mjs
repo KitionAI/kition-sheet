@@ -96,9 +96,10 @@ const list = [
     assert.deepEqual((await sheetOf(e)).hiddenColumns, [], 'Cmd+Shift+0 shows it again')
     assert.equal(await e.zoom(), zoom, 'the zoom still stays')
   }],
+  // The sample's chart lies over H3:L18: these cells are clear of it.
   ['insert-delete-rows', async (e) => {
-    await e.agent([{ command: 'cell.set', params: { cell: 'H8', input: 'row eight' } }])
-    await e.click('H8')
+    await e.agent([{ command: 'cell.set', params: { cell: 'T8', input: 'row eight' } }])
+    await e.click('T8')
     // The row's heading: a whole row.
     const at = await e.cellPoint('A8')
     const box = await e.surface()
@@ -106,12 +107,23 @@ const list = [
     await e.page.mouse.click(box.x + (pins.left / 2) * view.zoom, at.y)
     await e.until(async () => (await e.details()).selection === '8:8')
     await press(e, 'ControlOrMeta+Shift+Equal', 400)
-    await e.until(async () => (await e.value('H9')) === 'row eight')
-    assert.equal(await e.value('H9'), 'row eight', 'Cmd+Shift+= inserts a row above the selected row')
+    await e.until(async () => (await e.value('T9')) === 'row eight')
+    assert.equal(await e.value('T9'), 'row eight', 'Cmd+Shift+= inserts a row above the selected row')
     await press(e, 'ControlOrMeta+Minus', 400)
-    await e.until(async () => (await e.value('H8')) === 'row eight')
-    assert.equal(await e.value('H8'), 'row eight', 'Cmd+- deletes the selected row')
+    await e.until(async () => (await e.value('T8')) === 'row eight')
+    assert.equal(await e.value('T8'), 'row eight', 'Cmd+- deletes the selected row')
     assert.equal(await e.zoom(), 100, 'neither zooms')
+    // With only a cell selected Cmd+- deletes nothing (WPS asks first, plan stage 7): it zooms out.
+    await e.click('T12')
+    await e.click('T8')
+    await e.until(async () => (await e.details()).selection === 'T8')
+    await e.wait(200)
+    await press(e, 'Meta+Minus', 400)
+    assert.equal(await e.value('T8'), 'row eight', 'Cmd+- on a cell deletes no row')
+    assert.equal(await e.zoom(), 90, 'it zooms out 10 points')
+    await press(e, 'Meta+Shift+Equal', 400)
+    assert.equal(await e.value('T9'), null, 'Cmd+Shift+= on a cell inserts no row')
+    assert.equal(await e.zoom(), 100, 'it zooms in 10 points')
   }],
   ['filter-key', async (e) => {
     await e.click('A2')

@@ -64,7 +64,7 @@ Sources: the kit's editor (`web/src`, its gate cases in `web/tests`),
 |---|---|---|
 | Shortcuts bound to commands | 200+ documented shortcuts per platform | 59 command shortcuts in the engine's command specs, plus the editor's own grid and formula-bar keys (`web/src/App.tsx`, `web/src/FormulaBar.tsx`) |
 | Ctrl+arrow, Ctrl+Shift+arrow, Ctrl+Home/End, Page Up/Down, Alt+Page | yes | Web editor: Ctrl+arrow and Ctrl+Shift+arrow; Page Up/Down a screenful with the view (Shift extends, Alt/Option across, web/tests/hand/keys.mjs); Ctrl+Page Up/Down (Cmd on a Mac too) switch sheets; Home, End, Ctrl+Home and Ctrl+End missing (plan stage 0B) |
-| Ctrl+1, Ctrl+; and Ctrl+Shift+; , Ctrl+D/R, Ctrl+E, Ctrl+T, Ctrl+K, Ctrl+Shift+L | yes | most done; web editor, as WPS: Cmd+Shift+L the filter, Cmd+Shift+Z redo beside Cmd+Y, Cmd+0 / Cmd+Shift+0 hide and show columns, Cmd+Shift+= / Cmd+- insert and delete rows or columns, Cmd+F, Ctrl+H, Ctrl+G open Find, Replace, Go To (their parameter forms for now); the editor's keys are a table (`web/src/keys.ts`); audit pending |
+| Ctrl+1, Ctrl+; and Ctrl+Shift+; , Ctrl+D/R, Ctrl+E, Ctrl+T, Ctrl+K, Ctrl+Shift+L | yes | most done; web editor, as WPS: Cmd+Shift+L the filter, Cmd+Shift+Z redo beside Cmd+Y, Cmd+0 / Cmd+Shift+0 hide and show columns, Cmd+Shift+= / Cmd+- insert and delete selected whole rows or columns, Cmd+F, Ctrl+H, Ctrl+G open Find, Replace, Go To (their parameter forms for now); the editor's keys are a table (`web/src/keys.ts`); audit pending |
 | F2, F4, F5, F9 family, Shift+F3, F11 | yes | most; F11 chart sheet missing (no chart sheets) |
 | Mac-specific (Cmd variants, Fn keys) | yes | Cmd mapping done |
 
