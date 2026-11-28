@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-r5-text-keys-while-editing
+feature: sheet.editor.cell-editor-keys
+intent: "While a cell is typed, Cmd+A selects its text (not the sheet) and Cmd+C copies the selected text (not the cell); typing then replaces the text (Cmd+A, Cmd+C, Cmd+X and Cmd+V ran the cell commands while typing; walkthrough R5, stage 3's report)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cell-editor.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cell-editor.mjs, chromium, r5-select-all-and-copy]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

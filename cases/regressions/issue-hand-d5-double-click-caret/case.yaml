@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-d5-double-click-caret
+feature: sheet.editor.cell-editor-keys
+intent: "A double-click on a cell puts the caret where the cell was pressed, and typing goes in there, as WPS does (the caret went to the end of the text; walkthrough D5, WPS W-C5)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cell-editor.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cell-editor.mjs, chromium, d5-double-click-caret]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

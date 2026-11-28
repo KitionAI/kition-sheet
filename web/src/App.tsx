@@ -61,6 +61,7 @@ import { steppedCanvas, stepZoom, zoomKeepingCorner } from './zoom'
 import { ZoomControl, type ZoomActions } from './ZoomControl'
 import { useSheetWheel } from './useSheetWheel'
 import { edgeScrolling } from './edgeScroll'
+import { bothDecorations, useCaret } from './caret'
 
 const TABS: Array<[string, string]> = [
   ['file', 'File'],
@@ -174,6 +175,9 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   // the text input sits at the caret, else at the active cell's bottom-left, where typing starts.
   useCompositions((command, params) => editor.run(command, params))
   const active = state?.activeRect
+  // The caret of the cell being typed blinks over the rendered grid (caret.ts, walkthrough D16).
+  const caret = useCaret(state?.editing ? state.caretRect : null, state?.caretColor)
+  const gridDecoration = useMemo(() => bothDecorations(comments.decorate, caret.decorate), [comments.decorate, caret.decorate])
   useInputAtCaret(state?.caretRect ?? (active ? [active[0], active[1], active[0] + 1, active[3]] : null), views, doc?.pinned ?? null)
   const gridId = useId()
   // The overlays follow what the engine draws them from: the cell being typed, the highlight of the
@@ -205,6 +209,19 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       await navigator.clipboard.writeText(await text)
     }
   }
+  // The selected text of the cell being typed (Cmd+C, Cmd+X while typing): plain text, written
+  // while the key press is still the person's.
+  const copyText = async (cut: boolean) => {
+    const text = editor.run('editor.editText', { action: cut ? 'cut' : 'copy' }).then((raw) => (raw ? ((JSON.parse(raw) as { text?: string }).text ?? '') : ''))
+    // With no text selected the clipboard keeps what it held (the write is refused).
+    const blob = text.then((plain) => (plain ? new Blob([plain], { type: 'text/plain' }) : Promise.reject(new Error('no text selected'))))
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })])
+    } catch {
+      const plain = await text
+      if (plain) await navigator.clipboard.writeText(plain).catch(() => undefined)
+    }
+  }
   const readClipboard = async (): Promise<{ text: string; html: string }> => {
     try {
       const items = await navigator.clipboard.read()
@@ -233,22 +250,29 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   const pasteSpecial = () => {
     if (!pasteSpecialOff) openPasteSpecial()
   }
-  const latest = useRef({ editing: false, paste })
-  latest.current = { editing: state?.editing === true, paste }
+  const pasteText = (text: string) => editor.run('editor.editText', { action: 'paste', text })
+  const latest = useRef({ editing: false, paste, pasteText })
+  latest.current = { editing: state?.editing === true, paste, pasteText }
 
   // Cmd/Ctrl+V where typing goes (the text sink) is left to the browser, whose paste event
   // carries the clipboard's HTML and text without asking for permission; the editor's shortcuts
-  // do not see the key (they would prevent that event). Typing in a cell, the sink takes it.
+  // do not see the key (they would prevent that event). Typing in a cell, its text goes in at the caret.
   useEffect(() => {
     const inSink = (target: EventTarget | null) => target instanceof HTMLTextAreaElement && target.classList.contains('kui-text-sink')
     const onKey = (event: globalThis.KeyboardEvent) => {
       const command = event.metaKey || event.ctrlKey
-      // ⌃⌘V is Paste Special's (keys.ts), not a paste.
-      if (command && !(event.metaKey && event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'v' && inSink(event.target) && !latest.current.editing) event.stopPropagation()
+      // ⌃⌘V is Paste Special's (keys.ts), not a paste. Typing in a cell, the paste is the text's.
+      if (command && !(event.metaKey && event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'v' && inSink(event.target)) event.stopPropagation()
     }
     const onPaste = (event: ClipboardEvent) => {
-      if (!inSink(event.target) || latest.current.editing || !event.clipboardData) return
+      if (!inSink(event.target) || !event.clipboardData) return
       event.preventDefault()
+      // Typing in a cell: the clipboard's text goes in at the caret (plan stage 5).
+      if (latest.current.editing) {
+        const text = event.clipboardData.getData('text/plain')
+        if (text) void latest.current.pasteText(text)
+        return
+      }
       const from = { text: event.clipboardData.getData('text/plain'), html: event.clipboardData.getData('text/html') }
       latest.current.paste(from).catch((error: unknown) => toast('error', t('commandFailed'), error instanceof Error ? error.message : String(error)))
     }
@@ -615,6 +639,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     ? {
         state,
         run: (command, params = {}) => void editor.run(command, params),
+        runWhenEnabled: (command) => void editor.runWhenEnabled(command),
         answer: async (command, params = {}) => {
           const raw = await editor.run(command, params)
           return raw ? (JSON.parse(raw) as Record<string, unknown>) : null
@@ -622,6 +647,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         openFind,
         openPasteSpecial: pasteSpecial,
         clipboard: (action) => void clipboard(action),
+        copyText: (cut) => void copyText(cut),
         page,
         zoomStep,
         openFormatCells,
@@ -631,6 +657,17 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => pressKey(event, keyContext)
   // The keys taken before kit-editor sees them (keys.ts, `capture`): Shift+Space would type a
   // space into the cell, a Mac's Ctrl+Enter would fill the selection. Only from the grid.
+  // A triple-click in the cell being typed selects its text (the engine's tool sees presses, not
+  // how many there were).
+  const runRef = useRef(editor.run)
+  runRef.current = editor.run
+  useEffect(() => {
+    const clicked = (event: globalThis.MouseEvent) => {
+      if (event.detail === 3 && event.button === 0 && event.target instanceof Element && event.target.closest('.kui-canvas')) void runRef.current('editor.editText', { action: 'selectAll' })
+    }
+    document.addEventListener('click', clicked, true)
+    return () => document.removeEventListener('click', clicked, true)
+  }, [])
   const capturedKeys = useRef(keyContext)
   capturedKeys.current = keyContext
   useEffect(() => {
@@ -771,7 +808,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         <div className="kui-row" onContextMenu={(event) => void gridMenu(event)}>
           <div className="sheet-grid-workspace" data-testid="sheet-grid-workspace">
           <div className="sheet-grid-viewport" id={gridId} ref={gridRegion}>
-          <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} tool={gridTool} decorate={comments.decorate} onView={(view) => {
+          <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} tool={gridTool} decorate={gridDecoration} animated={caret.blinking} onView={(view) => {
             views.set(view)
             setZoom(view.zoom)
             if (shown.current) sheetViews.current.set(shown.current.sheet, { x: view.x, y: view.y })

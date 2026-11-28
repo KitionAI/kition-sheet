@@ -17,6 +17,8 @@ import type { FindTab } from './FindReplace'
 export type KeyContext = {
   state: SheetInfo
   run: (command: string, params?: Record<string, unknown>) => void
+  /** Runs a command as its shortcut does: in the ordered queue, only when it is enabled then. */
+  runWhenEnabled: (command: string) => void
   /** Runs a command in the editor's ordered queue and answers what it answered. */
   answer: (command: string, params?: Record<string, unknown>) => Promise<Record<string, unknown> | null>
   /** Opens the Find and Replace window at a tab (FindReplace.tsx). */
@@ -24,6 +26,8 @@ export type KeyContext = {
   /** Opens Paste Special when the sheet holds a copy to paste (PasteSpecial.tsx). */
   openPasteSpecial: () => void
   clipboard: (action: 'cut' | 'copy' | 'paste') => void
+  /** Copies (or cuts) the selected text of the cell being typed to the system clipboard. */
+  copyText: (cut: boolean) => void
   /** Moves a screenful: `rows` down (negative up), or `cols` across; `extend` keeps the anchor. */
   page: (direction: 1 | -1, across: boolean, extend: boolean) => void
   /** The status bar's + and −. */
@@ -56,7 +60,20 @@ const lines = (context: KeyContext, insert: boolean) => {
 const notEverything = (context: KeyContext) => !(context.state.lines.wholeRows && context.state.lines.wholeCols)
 const onMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform)
 
+/** Runs `editor.editText`; the engine decides in the ordered queue whether a cell is typed. */
+const text = (c: KeyContext, action: string) => c.answer('editor.editText', { action })
+
 export const KEYS: KeyRow[] = [
+  // While a cell is typed, the keys that hold Cmd edit its text (plan stage 5; WPS W-H5; a Mac's
+  // text keys), never the cells: Cmd+A selects the text, Cmd+Z takes back what was typed and goes
+  // on typing, Cmd+C and Cmd+X copy and cut the selected text (Cmd+arrows reach the engine's tool).
+  // The engine decides in the ordered queue (the editor's state may lag keys typed just before);
+  // with nothing typed Cmd+A and Cmd+Z are the cells' again.
+  { keys: ['Cmd+A'], editing: true, act: (c) => void text(c, 'selectAll').then((answer) => answer?.editing === false && c.runWhenEnabled('edit.selectAll')) },
+  { keys: ['Cmd+Z'], editing: true, act: (c) => void text(c, 'undo').then((answer) => answer?.editing === false && c.runWhenEnabled('edit.undo')) },
+  { keys: ['Cmd+Shift+Z', 'Cmd+Y'], editing: true, when: (c) => c.state.editing, act: () => undefined },
+  { keys: ['Cmd+C'], editing: true, when: (c) => c.state.editing, act: (c) => c.copyText(false) },
+  { keys: ['Cmd+X'], editing: true, when: (c) => c.state.editing, act: (c) => c.copyText(true) },
   // Shift+Space selects the rows of the selection, Ctrl+Space its columns (WPS W-A10; Excel;
   // walkthrough C8); while a cell is typed Shift+Space types a space. The editor's state may not
   // have caught up with keys typed just before (it lags the engine), so the engine decides in the

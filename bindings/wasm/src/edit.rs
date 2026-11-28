@@ -19,6 +19,8 @@ pub struct Edit {
     /// Edit mode (F2, a double-click, a click into the text): arrows move the caret. Otherwise
     /// (typing over the cell) arrows enter it and move, as in Excel's Enter mode.
     pub in_place: bool,
+    /// The text and fonts the typing started from: Cmd+Z while typing goes back to them (WPS W-H5).
+    initial: (Vec<char>, Vec<RunFont>),
 }
 
 impl Edit {
@@ -30,7 +32,90 @@ impl Edit {
             None => vec![RunFont::default(); chars.len()],
         };
         let end = chars.len();
-        Edit { chars, fonts, caret: end, anchor: end, in_place }
+        let initial = (chars.clone(), fonts.clone());
+        Edit { chars, fonts, caret: end, anchor: end, in_place, initial }
+    }
+
+    /// Takes back everything typed since the typing started (Cmd+Z while typing, WPS W-H5): the
+    /// text it started from, the caret at its end, still typing. Answers whether anything changed.
+    pub fn undo_typing(&mut self) -> bool {
+        let changed = self.chars != self.initial.0 || self.fonts != self.initial.1;
+        self.chars = self.initial.0.clone();
+        self.fonts = self.initial.1.clone();
+        let end = self.chars.len();
+        self.caret = end;
+        self.anchor = end;
+        changed
+    }
+
+    /// Selects all the text (Cmd+A, a triple-click).
+    pub fn select_all(&mut self) {
+        self.anchor = 0;
+        self.caret = self.chars.len();
+    }
+
+    /// The selected text.
+    pub fn selected_text(&self) -> String {
+        let (from, to) = self.selection();
+        self.chars.get(from.min(self.chars.len())..to.min(self.chars.len())).unwrap_or_default().iter().collect()
+    }
+
+    /// Takes the selected text out (a cut), answering it.
+    pub fn cut(&mut self) -> String {
+        let text = self.selected_text();
+        self.delete_selection();
+        text
+    }
+
+    /// The start and the end (before its line break) of the line of text caret position `at` is on
+    /// (lines are the cell's line breaks).
+    pub fn line_bounds(&self, at: usize) -> (usize, usize) {
+        let at = at.min(self.chars.len());
+        let start = self.chars.get(..at).and_then(|before| before.iter().rposition(|c| *c == '\n')).map_or(0, |i| i + 1);
+        let end = self.chars.get(at..).and_then(|after| after.iter().position(|c| *c == '\n')).map_or(self.chars.len(), |i| at + i);
+        (start, end)
+    }
+
+    /// The caret position a line up (`up`) or down from the caret, as far along its line as it can
+    /// go; `None` on the first (last) line.
+    pub fn line_step(&self, up: bool) -> Option<usize> {
+        let (start, end) = self.line_bounds(self.caret);
+        let along = self.caret.min(self.chars.len()) - start;
+        if up {
+            let previous = start.checked_sub(1)?;
+            let (p_start, p_end) = self.line_bounds(previous);
+            Some((p_start + along).min(p_end))
+        } else {
+            if end >= self.chars.len() {
+                return None;
+            }
+            let (n_start, n_end) = self.line_bounds(end + 1);
+            Some((n_start + along).min(n_end))
+        }
+    }
+
+    /// The caret position a word to the left (right) of the caret, as Option+arrow moves on a Mac:
+    /// to the start of the word before (the end of the word after), over spaces and punctuation.
+    pub fn word_stop(&self, right: bool) -> usize {
+        let word = |c: &char| c.is_alphanumeric();
+        let len = self.chars.len();
+        let mut at = self.caret.min(len);
+        if right {
+            while at < len && !self.chars.get(at).is_some_and(word) {
+                at += 1;
+            }
+            while at < len && self.chars.get(at).is_some_and(word) {
+                at += 1;
+            }
+        } else {
+            while at > 0 && !self.chars.get(at - 1).is_some_and(word) {
+                at -= 1;
+            }
+            while at > 0 && self.chars.get(at - 1).is_some_and(word) {
+                at -= 1;
+            }
+        }
+        at
     }
 
     pub fn text(&self) -> String {
@@ -235,6 +320,40 @@ pub fn format_params(command: &str, params: &Json) -> Option<Json> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn words_lines_select_all_cut_and_undo_typing() {
+        let mut e = Edit::new("harbour north", None, true);
+        assert_eq!(e.word_stop(false), 8);
+        e.move_to(8, false);
+        assert_eq!(e.word_stop(false), 0);
+        e.move_to(7, false);
+        assert_eq!(e.word_stop(true), 13);
+        e.move_to(0, false);
+        assert_eq!(e.word_stop(true), 7);
+        e.select_all();
+        assert_eq!(e.selection(), (0, 13));
+        e.move_to(3, false);
+        e.move_to(8, true);
+        assert_eq!(e.selected_text(), "bour ");
+        assert_eq!(e.cut(), "bour ");
+        assert_eq!(e.text(), "harnorth");
+        e.insert("X");
+        assert!(e.undo_typing());
+        assert_eq!(e.text(), "harbour north");
+        assert_eq!(e.selection(), (13, 13));
+        assert!(!e.undo_typing(), "nothing more to take back");
+
+        let mut lines = Edit::new("one\ntwo more\nx", None, true);
+        lines.move_to(6, false);
+        assert_eq!(lines.line_bounds(6), (4, 12));
+        assert_eq!(lines.line_step(true), Some(2), "up: as far along the shorter line as it goes");
+        assert_eq!(lines.line_step(false), Some(14));
+        lines.move_to(1, false);
+        assert_eq!(lines.line_step(true), None, "the first line has nothing above");
+        lines.move_to(14, false);
+        assert_eq!(lines.line_step(false), None, "the last line has nothing below");
+    }
 
     #[test]
     fn typing_deleting_and_moving_keep_each_characters_font() {

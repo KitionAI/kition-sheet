@@ -137,8 +137,13 @@ impl SheetDocument {
             return;
         }
         let Some(text) = text else {
-            if self.editing.is_none() {
-                self.edit_in_place(self.active());
+            match self.editing.as_mut() {
+                None => self.edit_in_place(self.active()),
+                // F2 while typing switches between Enter mode and Edit mode (WPS W-C4).
+                Some(edit) => {
+                    edit.in_place = !edit.in_place;
+                    self.edits += 1;
+                }
             }
             return;
         };

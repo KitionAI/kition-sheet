@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-i3-undo-while-editing
+feature: sheet.editor.cell-editor-keys
+intent: "Cmd+Z while a cell is typed takes back what was typed and leaves the cell open: abc, Cmd+Z, d, Enter enters d (Cmd+Z did nothing while typing; walkthrough I3, WPS W-H5)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cell-editor.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cell-editor.mjs, chromium, i3-undo-while-editing]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

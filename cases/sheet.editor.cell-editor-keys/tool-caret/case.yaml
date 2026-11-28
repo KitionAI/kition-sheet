@@ -1,0 +1,23 @@
+format: 1
+id: sheet.editor.cell-editor-keys/tool-caret
+feature: sheet.editor.cell-editor-keys
+intent: >-
+  The caret of the cell being typed is not in the engine's rendered pixels: `inspect()` gives its
+  rectangle (`caretRect`) and colour (`caretColor`) for the editor to draw and blink, and the
+  pixels are the same wherever the caret is.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_caret_is_drawn_by_the_editor_not_in_the_pixels
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

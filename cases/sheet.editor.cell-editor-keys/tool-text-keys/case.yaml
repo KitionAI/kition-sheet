@@ -1,0 +1,26 @@
+format: 1
+id: sheet.editor.cell-editor-keys/tool-text-keys
+feature: sheet.editor.cell-editor-keys
+intent: >-
+  The cell being typed in the engine's tool: a double-click puts the caret where it was pressed
+  (at the end on a cell that shows something else than it holds); Option+←/→ go by words, Cmd+←/→
+  to the line's ends, Cmd+↑/↓ to the text's; F2 (the key or edit.beginEdit) switches Enter and Edit
+  mode; ↑/↓ go from line to line of a cell of several lines and past its first or last line enter
+  it and move; `editor.editText` selects all, takes the typing back, copies, cuts and pastes text,
+  never touching the workbook or its undo history.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: the_cell_being_typed_edits_like_text
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

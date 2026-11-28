@@ -775,6 +775,17 @@ features:
     gap: "Checked with Chromium's composition (DevTools) in the development host only: a real input method (the Mac's pinyin, Sogou, Microsoft Pinyin) and Kition Desktop have not been tried by hand. The caret shows at the input method's cursor, which some input methods move inside the composition; a drawing object's text shows no composition until it is chosen."
     cases: [regressions/issue-hand-d13-ime-composition, regressions/issue-hand-d13-ime-keys, sheet.editor.input-method/tool-preedit]
     since: "2026-11-28"
+  - id: sheet.editor.cell-editor-keys
+    title: "The cell being typed edits like text, as WPS and a Mac's text fields do: a double-click puts the caret where the cell was pressed (at the end on a cell that shows something else than it holds); F2 starts Edit mode and, while typing, switches between Enter mode (arrows enter the cell and move) and Edit mode (arrows move the caret); in Edit mode Option+←/→ go by words, Cmd+←/→ to the line's ends, Cmd+↑/↓ to the text's ends, with Shift selecting; ↑/↓ go from line to line of a cell of several lines and past its first or last line enter it and move; Cmd+A and a triple-click select the cell's text; Cmd+C and Cmd+X copy and cut the selected text to the system clipboard and Cmd+V pastes its text at the caret; Cmd+Z takes back everything typed since the typing began and leaves the cell open; none of it is a step of the workbook's undo history; the caret blinks without the cells being drawn again"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [cell.set]
+    paths: [bindings/wasm/src/edit.rs, bindings/wasm/src/controls.rs, bindings/wasm/src/bar.rs, bindings/wasm/src/lib.rs, web/src/keys.ts, web/src/caret.ts, web/src/App.tsx, web/tests/hand/cell-editor.mjs]
+    target: "WPS Office for Mac 7.5.1"
+    gap: "Completing a word from the column above (WPS W-C11) and naming the typing mode in the status bar were cut. Cmd+Shift+Z and Cmd+Y do nothing while typing. Copying the selected text is checked in Chromium; WebKit's system clipboard is not read back."
+    cases: [regressions/issue-hand-d5-double-click-caret, regressions/issue-hand-i3-undo-while-editing, regressions/issue-hand-r5-text-keys-while-editing, regressions/issue-hand-d16-caret-blinks, sheet.editor.cell-editor-keys/tool-text-keys, sheet.editor.cell-editor-keys/tool-caret]
+    since: "2026-11-28"
   - id: sheet.editor.edge-scroll
     title: "Scrolling at the grid's edge during a drag, as WPS does: past the bottom or the right edge (or the top and left while the view can go back) the view scrolls every frame with the pointer still, faster the further past (2.3 rows a second at 13 px, 5 at 43 px; 40 columns a second at 68 px), and the selection, the fill handle's cells, the block being moved and the reference pointed at for a formula reach the cells that come into view; on the grid nothing scrolls; a column or row being resized does not scroll back towards its start"
     dimension: [function]

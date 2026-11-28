@@ -2458,3 +2458,120 @@ fn input_method_composes_in_the_cell_without_changing_it() {
     assert_eq!(value(&mut doc, "B5")["value"], json!(null));
     assert!(doc.execute("editor.preedit", json!({ "text": "a\u{7}" })).is_err(), "no control characters");
 }
+
+/// Stage 5 (plan "Sheet usable by hand"; walkthrough D5, R5, I3; WPS W-C3–W-C5, W-H5): the cell
+/// being typed edits like text. A double-click puts the caret where it was pressed; Option+←/→ go
+/// by words, Cmd+←/→ to the line's ends, Cmd+↑/↓ to the text's; F2 switches between Enter mode and
+/// Edit mode; in a cell of several lines ↑ and ↓ go from line to line and past the first or last
+/// line enter it and move; `editor.editText` (Cmd and a letter) selects all, takes the typing
+/// back, copies and cuts the selected text, never touching the workbook or its undo history.
+#[test]
+fn the_cell_being_typed_edits_like_text() {
+    let mut doc = SheetDocument::create("Text.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "B2", "input": "harbour north" })).unwrap();
+    doc.execute("cell.set", json!({ "cell": "B12", "input": "one\ntwo more" })).unwrap();
+    let caret = |doc: &SheetDocument| doc.editing.as_ref().map(|e| e.selection());
+    // A double-click at the text's start puts the caret there, not at the end.
+    let (x0, y) = (HEADER_W + CW + 2.0, centre(1, 1).1);
+    doc.pointer(&event(PointerAction::DoubleClick, x0, y, false)).unwrap();
+    assert_eq!(get(&doc, "editing"), json!(true));
+    assert_eq!(caret(&doc), Some((0, 0)), "the caret is where the cell was double-clicked");
+    // Inside the text: between its start and end.
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    doc.pointer(&event(PointerAction::DoubleClick, x0 + 20.0, y, false)).unwrap();
+    let (at, _) = caret(&doc).unwrap();
+    assert!(at > 0 && at < 13, "a double-click inside the text puts the caret inside it ({at})");
+    KitTools::text(&mut doc, "X", 1.0).unwrap();
+    assert_eq!(get(&doc, "editText"), json!(format!("{}X{}", &"harbour north"[..at], &"harbour north"[at..])));
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    // F2 puts the caret at the end; Option+← goes to the last word's start; typing goes there.
+    doc.key("F2", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(caret(&doc), Some((13, 13)));
+    let alt = ToolMods { alt: true, ..ToolMods::default() };
+    doc.key("ArrowLeft", alt, 1.0).unwrap();
+    assert_eq!(caret(&doc), Some((8, 8)));
+    doc.key("ArrowLeft", ToolMods { alt: true, shift: true, ..ToolMods::default() }, 1.0).unwrap();
+    assert_eq!(caret(&doc), Some((0, 8)), "Shift+Option+← selects the word before");
+    doc.key("ArrowRight", alt, 1.0).unwrap();
+    assert_eq!(caret(&doc), Some((7, 7)), "Option+→ goes to the end of the word");
+    // Cmd+A, Cmd+C, Cmd+X and Cmd+Z: the text, not the cells; no undo step.
+    let steps = undo_steps(&doc);
+    assert_eq!(doc.execute("editor.editText", json!({ "action": "selectAll" })).unwrap(), json!({ "editing": true }));
+    assert_eq!(caret(&doc), Some((0, 13)));
+    assert_eq!(doc.execute("editor.editText", json!({ "action": "copy" })).unwrap()["text"], json!("harbour north"));
+    let command = ToolMods { command: true, ..ToolMods::default() };
+    doc.key("ArrowLeft", command, 1.0).unwrap();
+    doc.key("ArrowRight", ToolMods { command: true, shift: true, ..ToolMods::default() }, 1.0).unwrap();
+    assert_eq!(caret(&doc), Some((0, 13)), "Cmd+Shift+→ selects to the line's end");
+    doc.key("ArrowDown", command, 1.0).unwrap();
+    assert_eq!(caret(&doc), Some((13, 13)), "Cmd+↓ goes to the text's end");
+    doc.key("ArrowUp", command, 1.0).unwrap();
+    doc.key("ArrowRight", ToolMods { alt: true, shift: true, ..ToolMods::default() }, 1.0).unwrap();
+    assert_eq!(doc.execute("editor.editText", json!({ "action": "cut" })).unwrap()["text"], json!("harbour"));
+    assert_eq!(get(&doc, "editText"), json!(" north"));
+    doc.execute("editor.editText", json!({ "action": "paste", "text": "a\r\nb\tc" })).unwrap();
+    assert_eq!(get(&doc, "editText"), json!("a\nb c north"), "a paste keeps its line break, a tab is a space");
+    KitTools::text(&mut doc, "d", 1.0).unwrap();
+    doc.execute("editor.editText", json!({ "action": "undo" })).unwrap();
+    assert_eq!((get(&doc, "editing"), get(&doc, "editText")), (json!(true), json!("harbour north")), "Cmd+Z takes the typing back, still typing");
+    assert_eq!(value(&mut doc, "B2")["value"], json!("harbour north"));
+    assert_eq!(undo_steps(&doc), steps, "the workbook's undo history is untouched");
+    // Typed over a cell: Cmd+Z takes everything typed back, the cell still open (WPS W-H5).
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    click(&mut doc, centre(1, 7), false);
+    KitTools::text(&mut doc, "abc", 1.0).unwrap();
+    doc.execute("editor.editText", json!({ "action": "undo" })).unwrap();
+    KitTools::text(&mut doc, "d", 1.0).unwrap();
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "B8")["value"], json!("d"), "abc, Cmd+Z, d, Enter gives d");
+    // F2 switches modes: typing over a cell (Enter mode) an arrow enters it; after F2 it moves the caret.
+    click(&mut doc, centre(1, 9), false);
+    KitTools::text(&mut doc, "xy", 1.0).unwrap();
+    doc.key("F2", ToolMods::default(), 1.0).unwrap();
+    doc.key("ArrowLeft", ToolMods::default(), 1.0).unwrap();
+    assert_eq!((get(&doc, "editing"), caret(&doc)), (json!(true), Some((1, 1))), "Edit mode: ← moves the caret");
+    doc.key("F2", ToolMods::default(), 1.0).unwrap();
+    doc.key("ArrowLeft", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(get(&doc, "editing"), json!(false), "Enter mode again: ← enters the cell");
+    assert_eq!(value(&mut doc, "B10")["value"], json!("xy"));
+    // Lines: ↑ goes to the first line; past it the cell is entered and the active cell moves up.
+    click(&mut doc, centre(1, 11), false);
+    doc.key("F2", ToolMods::default(), 1.0).unwrap();
+    doc.key("ArrowUp", ToolMods::default(), 1.0).unwrap();
+    assert_eq!((get(&doc, "editing"), caret(&doc)), (json!(true), Some((3, 3))), "↑ goes to the first line");
+    KitTools::text(&mut doc, "!", 1.0).unwrap();
+    doc.key("ArrowUp", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(get(&doc, "editing"), json!(false), "past the first line ↑ enters the cell");
+    assert_eq!(value(&mut doc, "B12")["value"], json!("one!\ntwo more"));
+    assert_eq!(get(&doc, "active"), json!("B11"));
+    // F2 from the frame (`edit.beginEdit`) switches modes too.
+    click(&mut doc, centre(2, 1), false);
+    KitTools::text(&mut doc, "ab", 1.0).unwrap();
+    doc.execute("edit.beginEdit", json!({})).unwrap();
+    doc.key("ArrowLeft", ToolMods::default(), 1.0).unwrap();
+    assert_eq!((get(&doc, "editing"), caret(&doc)), (json!(true), Some((1, 1))), "edit.beginEdit while typing: Edit mode");
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    // With nothing typed, editor.editText does nothing; a wrong action is refused.
+    assert_eq!(doc.execute("editor.editText", json!({ "action": "selectAll" })).unwrap(), json!({ "editing": false }));
+    assert!(doc.execute("editor.editText", json!({ "action": "redo" })).is_err());
+}
+
+/// Stage 5 (walkthrough D16): the caret of the cell being typed is not in the rendered pixels; the
+/// editor draws it over them from `caretRect` in `caretColor` and makes it blink, so moving the
+/// caret (or a blink) never changes what the cells look like.
+#[test]
+fn the_caret_is_drawn_by_the_editor_not_in_the_pixels() {
+    let mut doc = SheetDocument::create("Caret.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "B2", "input": "harbour" })).unwrap();
+    assert_eq!(get(&doc, "caretColor"), Json::Null, "no caret with nothing typed");
+    click(&mut doc, centre(1, 1), false);
+    doc.key("F2", ToolMods::default(), 1.0).unwrap();
+    let area = |doc: &SheetDocument| doc.render(HEADER_W + CW, HEADER_H + RH, 2.0, (CW * 2.0) as u32, (RH * 2.0) as u32).unwrap();
+    let at_end = area(&doc);
+    let rect = get(&doc, "caretRect");
+    doc.key("ArrowLeft", ToolMods::default(), 1.0).unwrap();
+    doc.key("ArrowLeft", ToolMods::default(), 1.0).unwrap();
+    assert_ne!(get(&doc, "caretRect"), rect, "the caret moved");
+    assert_eq!(area(&doc), at_end, "the pixels are the same wherever the caret is");
+    assert!(get(&doc, "caretColor").as_str().is_some_and(|c| c.len() == 7 && c.starts_with('#')));
+}

@@ -263,6 +263,7 @@ pub const EDITOR_STATE: &[&str] = &[
     "/copied",
     "/preedit",
     "/caretRect",
+    "/caretColor",
     "/style",
     "/tableInfo",
     "/dialog",
@@ -415,6 +416,9 @@ impl SheetDocument {
         }
         if command == "editor.validation" {
             return self.validation_answer(&params);
+        }
+        if command == "editor.editText" {
+            return self.edit_text_command(&params);
         }
         if command == "editor.insertText" {
             let text = params.get("text").and_then(Json::as_str).unwrap_or_default().to_owned();
@@ -1018,7 +1022,7 @@ impl SheetDocument {
             self.paint_chart(&mut canvas, wb, si, chart, card, scale, palette);
         }
 
-        // The cell being typed, over the cells: its runs, the selected characters and the caret.
+        // The cell being typed, over the cells: its runs and the selected characters.
         if let (Some(b), Some((edit, composed))) = (self.edit_box(x, y, scale).filter(|_| !plain && paint.editor), self.shown_edit()) {
             canvas.fill(b.rect, palette.background);
             let (from, to) = edit.selection();
@@ -1043,10 +1047,8 @@ impl SheetDocument {
                     }
                 }
             }
-            if let Some(line) = b.line_of(edit.caret) {
-                let (top, under) = (line.baseline - b.ascent, line.baseline + b.descent);
-                canvas.vline((b.start + line.x(edit.caret)).round(), top, under, scale.clamp(1.0, 2.0).round(), palette.editing_text);
-            }
+            // The caret is not in the pixels: the editor draws it over them from `caretRect` and
+            // makes it blink without the cells being drawn again (plan stage 5, walkthrough D16).
         }
 
         // The headings, after the outline gutter (when rows or columns are grouped).
@@ -2816,6 +2818,13 @@ impl KitDocument for SheetDocument {
         // the editor puts the input method's field at, for its candidate window (`composing`).
         out["preedit"] = self.preedit_info();
         out["caretRect"] = json!(self.caret_rect());
+        // The colour the editor draws that caret in (the grid's scheme: light text on a dark grid).
+        out["caretColor"] = if self.editing.is_some() {
+            let [r, g, b, _] = self.scheme.palette().editing_text;
+            json!(format!("#{r:02x}{g:02x}{b:02x}"))
+        } else {
+            Json::Null
+        };
         out["copied"] = self.copy_live().map_or(Json::Null, |copied| {
             let name = self.session.doc().ok().and_then(|d| d.wb.sheet(copied.sheet).map(|s| s.name.clone()));
             json!({ "sheet": name, "range": copied.range.a1(), "cut": copied.cut })
@@ -2890,6 +2899,7 @@ impl KitDocument for SheetDocument {
                 ("editor.acceptFunction", "Insert Function From List", "{name?: string}"),
                 ("editor.contextMenu", "Right-Click the Grid", "{x: number, y: number}"),
                 ("editor.insertText", "Insert Text at the Caret", "{text: string, append?: boolean, typing?: boolean}"),
+                ("editor.editText", "Edit the Text Being Typed", "{action: selectAll|undo|copy|cut|paste, text?: string}"),
                 ("editor.freezePreview", "Preview a Freeze", "{rows?: number, cols?: number}"),
                 ("editor.preedit", "Show an Input Method's Composition", "{text: string, cursor?: number}"),
                 ("editor.validation", "Answer a Data Validation Message", "{answer: string}"),
@@ -3066,6 +3076,17 @@ impl KitTools for SheetDocument {
                     // A checkbox cell is not typed in (WPS): a double-click leaves it.
                     if !self.shows_checkbox(cell) {
                         self.edit_in_place(cell);
+                        // The caret goes where the cell was double-clicked (WPS W-C5), at the end
+                        // when the press was beside the text. A cell that shows something else than
+                        // it holds (a formula's result, a formatted number) had nothing of its text
+                        // under the pointer: the caret goes to the end there.
+                        let shown = self.sheet().map(|(wb, sheet)| kition_sheet_engine::display::cell_text(wb, sheet, cell));
+                        if shown.is_some_and(|shown| self.editing.as_ref().is_some_and(|edit| edit.text() == shown))
+                            && let Some(at) = self.edit_index(event.x, event.y, false)
+                            && let Some(edit) = self.editing.as_mut()
+                        {
+                            edit.move_to(at, false);
+                        }
                     }
                 }
             }
@@ -3118,9 +3139,13 @@ impl KitTools for SheetDocument {
             self.edits += 1;
             // Any other key ends pointing: the reference stays as it is in the text.
             self.point = None;
+            let lines = edit.chars().contains(&'\n');
             match key {
                 // Alt+Enter (Option+Return): a line break in the cell.
                 "Enter" if mods.alt => edit.insert("\n"),
+                // F2 switches between Enter mode (arrows enter the cell and move) and Edit mode
+                // (arrows move the caret), as WPS and Excel do (W-C4).
+                "F2" => edit.in_place = !edit.in_place,
                 // Cmd+Enter (Ctrl+Enter elsewhere) fills the selection with it (WPS W-C10).
                 "Enter" if (mods.command || mods.control) && !mods.shift => self.fill_selection()?,
                 "Enter" => self.enter_and_step(validation::Step::Enter(mods.shift))?,
@@ -3128,8 +3153,28 @@ impl KitTools for SheetDocument {
                 "Escape" => self.editing = None,
                 "Backspace" => edit.delete(false),
                 "Delete" => edit.delete(true),
-                // Edit mode: arrows, Home and End move the caret (Shift selects).
+                // Edit mode: arrows, Home and End move the caret (Shift selects); Option+arrow by
+                // words (a Mac's text keys).
+                // Cmd+←/→ go to the line's ends, Cmd+↑/↓ to the text's.
+                "ArrowLeft" | "ArrowRight" if edit.in_place && (mods.command || mods.control) => {
+                    let (start, end) = edit.line_bounds(edit.caret);
+                    edit.move_to(if key == "ArrowLeft" { start } else { end }, mods.shift);
+                }
+                "ArrowUp" | "ArrowDown" if edit.in_place && (mods.command || mods.control) => {
+                    let to = if key == "ArrowUp" { 0 } else { edit.len() };
+                    edit.move_to(to, mods.shift);
+                }
+                "ArrowLeft" | "ArrowRight" if edit.in_place && mods.alt => {
+                    let to = edit.word_stop(key == "ArrowRight");
+                    edit.move_to(to, mods.shift);
+                }
                 "ArrowLeft" | "ArrowRight" if edit.in_place => edit.step(key == "ArrowRight", mods.shift),
+                // Up and Down go from line to line of a cell of several lines; past its first or
+                // last line they enter the cell and move, as in Enter mode.
+                "ArrowUp" | "ArrowDown" if edit.in_place && lines && edit.line_step(key == "ArrowUp").is_some() => {
+                    let to = edit.line_step(key == "ArrowUp").unwrap_or(edit.caret);
+                    edit.move_to(to, mods.shift);
+                }
                 "Home" if edit.in_place => edit.move_to(0, mods.shift),
                 "End" if edit.in_place => {
                     let end = edit.len();

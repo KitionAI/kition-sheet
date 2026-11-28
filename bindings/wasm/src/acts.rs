@@ -320,6 +320,7 @@ pub const BINDING_COMMANDS: &[(&str, &[EditorState], &str)] = &[
     ("editor.acceptFunction", SELECTION, "puts the chosen function into the cell being typed"),
     ("editor.contextMenu", SELECTION_AND_PART, "right-clicks the active sheet's grid, selecting what it hits"),
     ("editor.insertText", SELECTION_AND_PART, "inserts at the caret of the active cell being typed"),
+    ("editor.editText", SELECTION_AND_PART, "selects, takes back, copies, cuts or pastes text of the active cell being typed"),
     ("editor.freezePreview", PART, "previews a freeze of the active sheet"),
     ("editor.preedit", SELECTION_AND_PART, "shows an input method's composition in the active cell being typed"),
     ("editor.validation", SELECTION_AND_PART, "answers the active cell's data validation message"),

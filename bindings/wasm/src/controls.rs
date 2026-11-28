@@ -94,4 +94,57 @@ impl SheetDocument {
         self.edits += 1;
         Ok(json!({ "editing": true }))
     }
+
+    /// `editor.editText {action}`: the text keys the editor's frame keeps from the tool (they hold
+    /// Cmd and a letter) for the cell being typed (plan stage 5; WPS W-H5; a Mac's text keys):
+    /// `selectAll` selects its text (Cmd+A, a triple-click); `undo` takes back what was typed since
+    /// the typing began, still typing (Cmd+Z); `copy` answers the selected text and `cut` takes it
+    /// out too (Cmd+C, Cmd+X: the system clipboard gets the text, not the cell); `paste` types
+    /// `text` over the selection (Cmd+V: the system clipboard's text, its line breaks kept, tabs as
+    /// spaces, at most a cell's 32,767 characters). With nothing typed
+    /// it does nothing (`editing: false`): the key is the cells' then. The document and its undo
+    /// history are never touched.
+    pub(crate) fn edit_text_command(&mut self, params: &Json) -> Result<Json, String> {
+        let action = params.get("action").and_then(Json::as_str).unwrap_or_default();
+        if !matches!(action, "selectAll" | "undo" | "copy" | "cut" | "paste") {
+            return Err(format!("invalid-params: editor.editText's action is selectAll, undo, copy, cut or paste, not `{action}`"));
+        }
+        let pasted: String = params
+            .get("text")
+            .and_then(Json::as_str)
+            .unwrap_or_default()
+            .replace("\r\n", "\n")
+            .chars()
+            .map(|c| if c == '\t' || c == '\r' { ' ' } else { c })
+            .filter(|c| *c == '\n' || !c.is_control())
+            .take(32_767)
+            .collect();
+        let Some(edit) = self.editing.as_mut() else { return Ok(json!({ "editing": false })) };
+        let text = match action {
+            "selectAll" => {
+                edit.select_all();
+                None
+            }
+            "undo" => {
+                edit.undo_typing();
+                None
+            }
+            "copy" => Some(edit.selected_text()),
+            "paste" => {
+                edit.insert(&pasted);
+                None
+            }
+            _ => Some(edit.cut()),
+        };
+        // Changing the text or its selection ends pointing at cells for a formula, as any key does.
+        if action != "copy" {
+            self.point = None;
+            self.preedit = None;
+            self.edits += 1;
+        }
+        Ok(match text {
+            Some(text) => json!({ "editing": true, "text": text }),
+            None => json!({ "editing": true }),
+        })
+    }
 }
