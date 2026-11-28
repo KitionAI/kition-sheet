@@ -177,7 +177,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   const active = state?.activeRect
   // The caret of the cell being typed blinks over the rendered grid (caret.ts, walkthrough D16).
   const caret = useCaret(state?.editing ? state.caretRect : null, state?.caretColor)
-  const gridDecoration = useMemo(() => bothDecorations(comments.decorate, caret.decorate), [comments.decorate, caret.decorate])
+  const gridDecoration = useMemo(() => bothDecorations(comments.decorate, caret), [comments.decorate, caret])
   useInputAtCaret(state?.caretRect ?? (active ? [active[0], active[1], active[0] + 1, active[3]] : null), views, doc?.pinned ?? null)
   const gridId = useId()
   // The overlays follow what the engine draws them from: the cell being typed, the highlight of the
@@ -808,7 +808,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         <div className="kui-row" onContextMenu={(event) => void gridMenu(event)}>
           <div className="sheet-grid-workspace" data-testid="sheet-grid-workspace">
           <div className="sheet-grid-viewport" id={gridId} ref={gridRegion}>
-          <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} tool={gridTool} decorate={gridDecoration} animated={caret.blinking} onView={(view) => {
+          <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} tool={gridTool} decorate={gridDecoration} onView={(view) => {
             views.set(view)
             setZoom(view.zoom)
             if (shown.current) sheetViews.current.set(shown.current.sheet, { x: view.x, y: view.y })
