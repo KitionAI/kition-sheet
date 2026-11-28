@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-q1-find-keys
+feature: sheet.editor.find-replace
+intent: "Cmd+F opens a small window beside the grid with the keyboard in Find what; Enter finds the next match by rows and the cell found becomes the active cell, in view; Escape closes it and typing goes into the cell found, as WPS does (the key opened the command's parameters form; walkthrough Q1, WPS W-O1, W-O3, W-O4)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/find.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/find.mjs, chromium, q1-find-keys]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

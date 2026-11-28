@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-c10-go-to
+feature: sheet.editor.find-replace
+intent: "Ctrl+G opens the Find and Replace window at Go To; Enter there selects the cell or range typed, closes the window and gives the grid the keyboard; an invalid reference keeps the window open and says so (Go To was the command's parameters form; walkthrough C10, WPS W-O2)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/find.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/find.mjs, chromium, c10-go-to]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

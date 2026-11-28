@@ -110,7 +110,7 @@ pub fn specs() -> Vec<CommandSpec> {
             fill_series
         ),
         cmd!("edit.smartFill", "Smart fill", ["Home", "Editing", "Fill"], Some("Cmd+E"), "{range?}", has_doc, smart_fill),
-        cmd!(noundo "edit.find", "Find…", ["Home", "Editing", "Find & Select"], Some("Cmd+F"), "{what, matchCase?, wholeCell?, lookIn?: formulas|values, byColumns?, all?: bool, within?: sheet|workbook}", has_doc, find),
+        cmd!(noundo "edit.find", "Find…", ["Home", "Editing", "Find & Select"], Some("Cmd+F"), "{what, matchCase?, wholeCell?, lookIn?: formulas|values, byColumns?, all?: bool, within?: sheet|workbook, backward?: bool}", has_doc, find),
         cmd!(
             "edit.replace",
             "Replace…",
@@ -1714,10 +1714,15 @@ fn find(s: &mut Session, p: &Json) -> Result<Json> {
             hits.iter().map(|(si, c, t)| json!({"sheet": d.wb.sheet(*si).map(|s| s.name.clone()), "cell": c.a1(), "value": t})).collect();
         return Ok(json!({"count": list.len(), "results": list}));
     }
-    // Next hit after the active cell.
+    // The next hit after the active cell (`backward`: the last one before it, Find Previous),
+    // round to the first (last) past the end.
     let cur = (d.wb.active_sheet, d.selection.active);
     let key = |si: usize, c: CellRef| if by_cols { (si, c.col, c.row) } else { (si, c.row, c.col) };
-    let next = hits.iter().find(|(si, c, _)| key(*si, *c) > key(cur.0, cur.1)).or_else(|| hits.first()).cloned();
+    let next = if bool_param(p, "backward").unwrap_or(false) {
+        hits.iter().rev().find(|(si, c, _)| key(*si, *c) < key(cur.0, cur.1)).or_else(|| hits.last()).cloned()
+    } else {
+        hits.iter().find(|(si, c, _)| key(*si, *c) > key(cur.0, cur.1)).or_else(|| hits.first()).cloned()
+    };
     let Some((si, c, t)) = next else { return Err(EngineError::Other("not found".into())) };
     let dd = s.doc_mut()?;
     dd.wb_switch_sheet(si);
@@ -1736,38 +1741,51 @@ fn replace(s: &mut Session, p: &Json) -> Result<Json> {
     let all = bool_param(p, "all").unwrap_or(true);
     let workbook = str_param(p, "within") == Some("workbook");
     let active = s.doc()?.selection.active;
-    let n = edit(s, |cx| {
-        let sheets: Vec<usize> = if workbook { (0..cx.wb.sheets.len()).collect() } else { vec![cx.wb.active_sheet] };
-        let mut n = 0;
-        for si in sheets {
-            let cells: Vec<(CellRef, String)> =
-                cx.wb.sheet(si).map(|sh| sh.cells.iter().map(|(c, _)| (c, sh.input_text(c))).collect()).unwrap_or_default();
-            for (c, text) in cells {
-                if !all && c != active {
-                    continue;
-                }
-                if !matches(&text, &what, case, whole) {
-                    continue;
-                }
-                let new = if whole {
-                    with.clone()
-                } else if case {
-                    text.replace(&what, &with)
-                } else {
-                    replace_ci(&text, &what, &with)
-                };
-                let cell = input_to_cell(&new, si, c, &mut cx.wb).unwrap_or_else(|_| Some(Cell::value(Value::text(new.as_str()))));
-                let sh = cx.sheet_mut(si)?;
-                let cell = keep_runs(sh.cells.get(c), cell);
-                match cell {
-                    Some(cell) => sh.set_cell(c, cell),
-                    None => {
-                        sh.remove_cell(c);
-                    }
-                }
-                cx.touch(si, c);
-                n += 1;
+    // What changes, worked out first: a cell whose text the replacement leaves as it was (a
+    // wildcard matched it, but the text holds no `*` or `?` to replace) is neither counted nor
+    // written, and with nothing to change the workbook and the undo history stay as they were.
+    let d = s.doc()?;
+    let sheets: Vec<usize> = if workbook { (0..d.wb.sheets.len()).collect() } else { vec![d.wb.active_sheet] };
+    let mut planned: Vec<(usize, CellRef, String)> = Vec::new();
+    for si in sheets {
+        let Some(sh) = d.wb.sheet(si) else { continue };
+        for (c, _) in sh.cells.iter() {
+            if !all && c != active {
+                continue;
             }
+            let text = sh.input_text(c);
+            if !matches(&text, &what, case, whole) {
+                continue;
+            }
+            let new = if whole {
+                with.clone()
+            } else if case {
+                text.replace(&what, &with)
+            } else {
+                replace_ci(&text, &what, &with)
+            };
+            if new != text {
+                planned.push((si, c, new));
+            }
+        }
+    }
+    if planned.is_empty() {
+        return Ok(json!({"replaced": 0}));
+    }
+    let n = edit(s, |cx| {
+        let mut n = 0;
+        for (si, c, new) in planned {
+            let cell = input_to_cell(&new, si, c, &mut cx.wb).unwrap_or_else(|_| Some(Cell::value(Value::text(new.as_str()))));
+            let sh = cx.sheet_mut(si)?;
+            let cell = keep_runs(sh.cells.get(c), cell);
+            match cell {
+                Some(cell) => sh.set_cell(c, cell),
+                None => {
+                    sh.remove_cell(c);
+                }
+            }
+            cx.touch(si, c);
+            n += 1;
         }
         Ok(n)
     })?;

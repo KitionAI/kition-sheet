@@ -41,6 +41,7 @@ import { TableDesignTab, TableStyleDialogs } from './TableStyles'
 import { HomeTab } from './ribbon/HomeTab'
 import { ViewTab } from './ribbon/ViewTab'
 import { InsertFunctionDialog, openInsertFunction } from './InsertFunction'
+import { FindReplaceDialog, openFind, type FindTab } from './FindReplace'
 import { backToGrid } from './sheet'
 import { ExportGroup } from './ribbon/ExportGroup'
 import { CommentMarkerTargets, HostCommentGroup, createViewStore, useHostComments } from './HostComments'
@@ -537,6 +538,19 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per request
   }, [state?.dialog?.seq])
 
+  // The commands the editor has its own windows for never show their parameters dialog: whatever
+  // asks for one (a menu item, a ribbon tab's command list, the engine's request above) opens the
+  // window instead, before the dialog paints.
+  const ownWindows: Record<string, FindTab> = { 'edit.find': 'find', 'edit.replace': 'replace', 'edit.goTo': 'goTo' }
+  const askedFor = editor.dialog?.command.id
+  useLayoutEffect(() => {
+    const tab = askedFor ? ownWindows[askedFor] : undefined
+    if (!tab) return
+    editor.setDialog(null)
+    openFind(tab)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- per dialog asked for
+  }, [editor.dialog])
+
   // What the engine tells the person (a checkbox typed in: 「复选框不可直接编辑，请删除后再插入」),
   // once each; the same words again within a moment (every key typed on it) show once.
   const noticeSeen = useRef({ seq: 0, text: '', at: 0 })
@@ -583,7 +597,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
           const raw = await editor.run(command, params)
           return raw ? (JSON.parse(raw) as Record<string, unknown>) : null
         },
-        ask: (command) => editor.ask(command, {}),
+        openFind,
         clipboard: (action) => void clipboard(action),
         page,
         zoomStep,
@@ -782,6 +796,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         {state ? <SheetDialogs info={state} /> : null}
         {state ? <GridMenu info={state} onClipboard={(action) => void clipboard(action)} /> : null}
         <InsertFunctionDialog />
+        {state ? <FindReplaceDialog /> : null}
         <ValidationAlert />
         {state ? <ValidationDialog info={state} /> : null}
         <SymbolDialog />

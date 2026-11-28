@@ -3,7 +3,7 @@
  * WPS W-B12, W-B13, W-H2, W-I5, W-I9, W-M5, W-O1, W-S3). kit-editor's frame asks the editor
  * (`EditorFrame`'s `onKeyDown`) after the engine's tool and before its own zoom keys and the
  * commands' shortcuts, so a key here takes the place of both. Each row's action runs through the
- * editor's `run` (the ordered queue with the tool's events) or opens a dialog of the editor.
+ * editor's `run` (the ordered queue with the tool's events) or opens a window of the editor.
  *
  * A row names its keys as the commands' shortcuts do: `Cmd` is Cmd on a Mac and Ctrl elsewhere
  * (either of them), `Ctrl` the Control key itself. `editing` rows also work while a cell is typed;
@@ -11,6 +11,7 @@
  * their rows here.
  */
 import type { SheetInfo } from './sheet'
+import type { FindTab } from './FindReplace'
 
 /** What a row's action can do: the engine's state, the editor's runs and dialogs. */
 export type KeyContext = {
@@ -18,8 +19,8 @@ export type KeyContext = {
   run: (command: string, params?: Record<string, unknown>) => void
   /** Runs a command in the editor's ordered queue and answers what it answered. */
   answer: (command: string, params?: Record<string, unknown>) => Promise<Record<string, unknown> | null>
-  /** Opens a command's parameters dialog (the menus' entry, until the editor has its own). */
-  ask: (command: string) => void
+  /** Opens the Find and Replace window at a tab (FindReplace.tsx). */
+  openFind: (tab: FindTab) => void
   clipboard: (action: 'cut' | 'copy' | 'paste') => void
   /** Moves a screenful: `rows` down (negative up), or `cols` across; `extend` keeps the anchor. */
   page: (direction: 1 | -1, across: boolean, extend: boolean) => void
@@ -123,10 +124,11 @@ export const KEYS: KeyRow[] = [
   // UI-C62 zoom with it), and Cmd+- (cells selected) out.
   { keys: ['Cmd+=', 'Cmd+Shift+='], editing: true, act: (c) => c.zoomStep(1) },
   { keys: ['Cmd+-'], editing: true, act: (c) => c.zoomStep(-1) },
-  // Find, Replace and Go To open their dialogs (WPS W-O1; Cmd+H is the system's Hide).
-  { keys: ['Cmd+F'], act: (c) => c.ask('edit.find') },
-  { keys: ['Ctrl+H'], act: (c) => c.ask('edit.replace') },
-  { keys: ['Ctrl+G'], act: (c) => c.ask('edit.goTo') },
+  // Find, Replace and Go To open the Find and Replace window at their tab (WPS W-O1, W-O2; Cmd+H
+  // is the system's Hide).
+  { keys: ['Cmd+F'], act: (c) => c.openFind('find') },
+  { keys: ['Ctrl+H'], act: (c) => c.openFind('replace') },
+  { keys: ['Ctrl+G'], act: (c) => c.openFind('goTo') },
   // The system clipboard: written while the key press is still the person's (WebKit refuses a
   // write once the engine has answered), read from the browser's paste.
   { keys: ['Cmd+C'], act: (c) => c.clipboard('copy') },

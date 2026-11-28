@@ -1888,6 +1888,10 @@
    "type": "object"
   },
   "params": {
+   "backward": {
+    "description": "find the hit before the active cell (Find Previous), the last one past the start",
+    "type": "boolean"
+   },
    "byColumns": {
     "type": "boolean"
    },

@@ -66,7 +66,7 @@ Sources: the kit's editor (`web/src`, its gate cases in `web/tests`),
 |---|---|---|
 | Shortcuts bound to commands | 200+ documented shortcuts per platform | 59 command shortcuts in the engine's command specs, plus the editor's own grid and formula-bar keys (`web/src/App.tsx`, `web/src/FormulaBar.tsx`) |
 | Ctrl+arrow, Ctrl+Shift+arrow, Ctrl+Home/End, Page Up/Down, Alt+Page | yes | Web editor: Ctrl+arrow and Ctrl+Shift+arrow; Page Up/Down a screenful with the view (Shift extends, Alt/Option across, web/tests/hand/keys.mjs); Ctrl+Page Up/Down (Cmd on a Mac too) switch sheets; as WPS, Home goes to column A, Cmd/Ctrl+Home to the first cell (below and right of frozen panes), Cmd/Ctrl+End to the used range's last cell, Shift extends, End alone does nothing (no End mode); Shift+Space and Ctrl+Space select the row and the column (web/tests/hand/cycle.mjs) |
-| Ctrl+1, Ctrl+; and Ctrl+Shift+; , Ctrl+D/R, Ctrl+E, Ctrl+T, Ctrl+K, Ctrl+Shift+L | yes | most done; web editor, as WPS: Cmd+Shift+L the filter, Cmd+Shift+Z redo beside Cmd+Y, Cmd+0 / Cmd+Shift+0 hide and show columns, Cmd+Shift+= / Cmd+- insert and delete selected whole rows or columns, Cmd+F, Ctrl+H, Ctrl+G open Find, Replace, Go To (their parameter forms for now); the editor's keys are a table (`web/src/keys.ts`); audit pending |
+| Ctrl+1, Ctrl+; and Ctrl+Shift+; , Ctrl+D/R, Ctrl+E, Ctrl+T, Ctrl+K, Ctrl+Shift+L | yes | most done; web editor, as WPS: Cmd+Shift+L the filter, Cmd+Shift+Z redo beside Cmd+Y, Cmd+0 / Cmd+Shift+0 hide and show columns, Cmd+Shift+= / Cmd+- insert and delete selected whole rows or columns, Cmd+F, Ctrl+H, Ctrl+G open the Find and Replace window at Find, Replace, Go To (web/tests/hand/find.mjs); the editor's keys are a table (`web/src/keys.ts`); audit pending |
 | F2, F4, F5, F9 family, Shift+F3, F11 | yes | most; F11 chart sheet missing (no chart sheets) |
 | Mac-specific (Cmd variants, Fn keys) | yes | Cmd mapping done |
 
@@ -75,7 +75,7 @@ shortcut lists for Windows and Mac, then fill the gaps: 6–10 h.
 
 ## Dialogs
 
-Format Cells (web editor, as WPS's 单元格格式: Number with categories, decimal places, separators, symbols, date/time/fraction lists, custom codes and a sample of the active cell; Alignment with merge; Font with a preview; Border presets, edges, line styles and colours; Patterns; Protection — from Cmd/Ctrl+1, the cell menu and Home › Format, one undo step), Insert Function/Formula Builder, Find and Replace, Go To and Go To Special, Sort,
+Format Cells (web editor, as WPS's 单元格格式: Number with categories, decimal places, separators, symbols, date/time/fraction lists, custom codes and a sample of the active cell; Alignment with merge; Font with a preview; Border presets, edges, line styles and colours; Patterns; Protection — from Cmd/Ctrl+1, the cell menu and Home › Format, one undo step), Insert Function/Formula Builder, Find and Replace with Go To (web editor, as WPS's 查找和替换: one window beside the grid that leaves it usable, tabs Find, Replace and Go To, Enter finds the next match, Find All, Replace All in one undo step; web/tests/hand/find.mjs), Go To Special, Sort,
 Name Manager, Data Validation, Paste Special, Conditional Formatting manager, Page Setup, Goal
 Seek, Scenario Manager and others exist. Missing or partial: Options, Solver, Data Analysis,
 Forecast Sheet, Power Query editor, Insert Object, Equation editor, Protect/Allow Edit Ranges,

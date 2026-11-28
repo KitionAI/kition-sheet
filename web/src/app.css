@@ -1172,11 +1172,11 @@
 }
 .sheet-filter-count {
   margin-left: auto;
-  color: var(--kit-text-muted, inherit);
+  color: var(--kit-text-muted);
 }
 .sheet-filter-none {
   padding: 6px;
-  color: var(--kit-text-muted, inherit);
+  color: var(--kit-text-muted);
 }
 .sheet-filter-actions {
   display: flex;
@@ -1348,4 +1348,51 @@
 }
 .sheet-zoom-field {
   width: 52px;
+}
+
+/* Find and Replace (FindReplace.tsx): a window beside the grid that leaves it usable. */
+.sheet-find {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 420px;
+  max-width: 100%;
+}
+
+.sheet-find .sheet-fc-tabs {
+  margin-bottom: 2px;
+}
+
+.sheet-find-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet-find-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.sheet-find-options .sheet-dialog-row > span:first-child {
+  min-width: 64px;
+}
+
+.sheet-find-results {
+  max-height: 160px;
+  overflow: auto;
+}
+
+.sheet-find-results li {
+  display: grid;
+  grid-template-columns: 1fr 56px 2fr;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.sheet-find-status {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--kit-text-muted);
+  font-size: 12px;
 }
