@@ -2,10 +2,9 @@ format: 1
 id: regressions/issue-hand-q2-replace-counts-changes
 feature: sheet.editor.find-replace
 intent: >-
-  A Replace that changes nothing (no match, the active cell not matching, or a wildcard match whose
-  text holds nothing to replace) left an empty undo step and counted the cells it rewrote as they
-  were; it now leaves the workbook and the undo history alone and answers 0, and Replace All counts
-  only the cells it changes. Find Previous (`backward`) goes back by rows and round to the last.
+  A Replace that matched nothing (no match, or Replace's active cell not matching) still left an
+  empty undo step; it now leaves the workbook and the undo history alone and answers 0. Find
+  Previous (`backward`) goes back by rows and round to the last.
 layer: gate
 dimension: function
 source:

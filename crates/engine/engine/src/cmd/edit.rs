@@ -1741,9 +1741,8 @@ fn replace(s: &mut Session, p: &Json) -> Result<Json> {
     let all = bool_param(p, "all").unwrap_or(true);
     let workbook = str_param(p, "within") == Some("workbook");
     let active = s.doc()?.selection.active;
-    // What changes, worked out first: a cell whose text the replacement leaves as it was (a
-    // wildcard matched it, but the text holds no `*` or `?` to replace) is neither counted nor
-    // written, and with nothing to change the workbook and the undo history stay as they were.
+    // The matches, worked out first: with none (nothing matches, or Replace's active cell does
+    // not), the workbook and the undo history stay as they were.
     let d = s.doc()?;
     let sheets: Vec<usize> = if workbook { (0..d.wb.sheets.len()).collect() } else { vec![d.wb.active_sheet] };
     let mut planned: Vec<(usize, CellRef, String)> = Vec::new();
@@ -1764,9 +1763,7 @@ fn replace(s: &mut Session, p: &Json) -> Result<Json> {
             } else {
                 replace_ci(&text, &what, &with)
             };
-            if new != text {
-                planned.push((si, c, new));
-            }
+            planned.push((si, c, new));
         }
     }
     if planned.is_empty() {

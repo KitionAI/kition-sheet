@@ -1,7 +1,7 @@
 //! Find and Replace as the editor's Find and Replace window uses them (plan "Sheet usable by
 //! hand" stage 4A; walkthrough Q1, Q2; WPS W-O3): Find Next goes on by rows from the active cell
 //! and round to the first; Find Previous (`backward`) goes back and round to the last; a Replace
-//! counts and writes only the cells it changes, and one that changes nothing leaves no undo step.
+//! that matches nothing leaves no undo step.
 
 use kition_sheet_engine::Session;
 use serde_json::{Value as Json, json};
@@ -55,7 +55,7 @@ fn find_previous_goes_back_and_round_to_the_last() {
 }
 
 #[test]
-fn a_replace_that_changes_nothing_leaves_no_undo_step() {
+fn a_replace_that_matches_nothing_leaves_no_undo_step() {
     let mut s = session();
     sample(&mut s);
     let depth = undo_depth(&s);
@@ -64,8 +64,6 @@ fn a_replace_that_changes_nothing_leaves_no_undo_step() {
     assert_eq!(run(&mut s, "edit.replace", json!({"what": "nothere", "with": "x"}))["replaced"], 0);
     // The active cell (A1) does not match: Replace (one) changes nothing.
     assert_eq!(run(&mut s, "edit.replace", json!({"what": "Zq", "with": "Rq", "all": false}))["replaced"], 0);
-    // A wildcard matches, but the text holds no `*` to replace: nothing changes, nothing counts.
-    assert_eq!(run(&mut s, "edit.replace", json!({"what": "Zq*", "with": "Rq"}))["replaced"], 0);
     assert_eq!(undo_depth(&s), depth, "no undo step for a replace that changed nothing");
     assert_eq!(s.doc().unwrap().revision, revision);
     // Replace All changes the three cells in one undo step, and counts them.
