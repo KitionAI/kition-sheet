@@ -42,6 +42,8 @@ import { HomeTab } from './ribbon/HomeTab'
 import { ViewTab } from './ribbon/ViewTab'
 import { InsertFunctionDialog, openInsertFunction } from './InsertFunction'
 import { FindReplaceDialog, openFind, type FindTab } from './FindReplace'
+import { SortDialog, openSortDialog } from './SortDialog'
+import { PasteSpecialDialog, openPasteSpecial } from './PasteSpecial'
 import { backToGrid } from './sheet'
 import { ExportGroup } from './ribbon/ExportGroup'
 import { CommentMarkerTargets, HostCommentGroup, createViewStore, useHostComments } from './HostComments'
@@ -226,6 +228,11 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       toast('error', t('commandFailed'), error instanceof Error ? error.message : String(error))
     }
   }
+  // Paste Special works on the sheet's own copy (the command's condition), not after a cut (Excel).
+  const pasteSpecialOff = !editor.enabled('edit.pasteSpecial') || state?.copied?.cut === true
+  const pasteSpecial = () => {
+    if (!pasteSpecialOff) openPasteSpecial()
+  }
   const latest = useRef({ editing: false, paste })
   latest.current = { editing: state?.editing === true, paste }
 
@@ -236,7 +243,8 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     const inSink = (target: EventTarget | null) => target instanceof HTMLTextAreaElement && target.classList.contains('kui-text-sink')
     const onKey = (event: globalThis.KeyboardEvent) => {
       const command = event.metaKey || event.ctrlKey
-      if (command && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'v' && inSink(event.target) && !latest.current.editing) event.stopPropagation()
+      // ⌃⌘V is Paste Special's (keys.ts), not a paste.
+      if (command && !(event.metaKey && event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'v' && inSink(event.target) && !latest.current.editing) event.stopPropagation()
     }
     const onPaste = (event: ClipboardEvent) => {
       if (!inSink(event.target) || latest.current.editing || !event.clipboardData) return
@@ -490,6 +498,10 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       case 'formatCells':
         openFormatCells()
         break
+      // Sort with no keys (Custom Sort): the range and the header guess are the engine's.
+      case 'sort':
+        openSortDialog({ range: String(asked.params.range ?? state?.selection ?? ''), header: asked.params.header !== false, active: state?.active ?? '' })
+        break
       case 'insertFunction':
         openInsertFunction({
           onChoose: async (name) => {
@@ -541,13 +553,23 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   // The commands the editor has its own windows for never show their parameters dialog: whatever
   // asks for one (a menu item, a ribbon tab's command list, the engine's request above) opens the
   // window instead, before the dialog paints.
+  // Custom Sort asks the engine for its range first (its `sort` dialog above); Paste Special opens
+  // its own dialog.
   const ownWindows: Record<string, FindTab> = { 'edit.find': 'find', 'edit.replace': 'replace', 'edit.goTo': 'goTo' }
   const askedFor = editor.dialog?.command.id
   useLayoutEffect(() => {
-    const tab = askedFor ? ownWindows[askedFor] : undefined
-    if (!tab) return
-    editor.setDialog(null)
-    openFind(tab)
+    if (!askedFor) return
+    const tab = ownWindows[askedFor]
+    if (tab) {
+      editor.setDialog(null)
+      openFind(tab)
+    } else if (askedFor === 'data.sort') {
+      editor.setDialog(null)
+      void editor.run('data.sort', {})
+    } else if (askedFor === 'edit.pasteSpecial') {
+      editor.setDialog(null)
+      pasteSpecial()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- per dialog asked for
   }, [editor.dialog])
 
@@ -598,6 +620,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
           return raw ? (JSON.parse(raw) as Record<string, unknown>) : null
         },
         openFind,
+        openPasteSpecial: pasteSpecial,
         clipboard: (action) => void clipboard(action),
         page,
         zoomStep,
@@ -628,7 +651,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         <ExportGroup sheet={state?.sheet ?? ''} sheets={state?.sheets ?? []} />
       </>
     ),
-    home: state ? <HomeTab info={state} onClipboard={(action) => void clipboard(action)} /> : <CommandTab menu="Home" />,
+    home: state ? <HomeTab info={state} onClipboard={(action) => void clipboard(action)} onPasteSpecial={pasteSpecial} pasteSpecialOff={pasteSpecialOff} /> : <CommandTab menu="Home" />,
     view: state ? <ViewTab info={state} formulaBar={formulaBarBox} onFormulaBar={showFormulaBar} zoom={zoomActions} /> : <CommandTab menu="View" />,
     formulas: (
       <>
@@ -794,9 +817,11 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
           </FrameChrome>
         ) : null}
         {state ? <SheetDialogs info={state} /> : null}
-        {state ? <GridMenu info={state} onClipboard={(action) => void clipboard(action)} /> : null}
+        {state ? <GridMenu info={state} onClipboard={(action) => void clipboard(action)} onPasteSpecial={pasteSpecial} pasteSpecialOff={pasteSpecialOff} /> : null}
         <InsertFunctionDialog />
         {state ? <FindReplaceDialog /> : null}
+        {state ? <SortDialog /> : null}
+        {state ? <PasteSpecialDialog /> : null}
         <ValidationAlert />
         {state ? <ValidationDialog info={state} /> : null}
         <SymbolDialog />

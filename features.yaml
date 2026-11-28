@@ -695,7 +695,7 @@ features:
     status: has
     paths: [web/src/focus.ts, web/src/keys.ts, web/src/zoom.ts, web/src/ZoomControl.tsx, web/src/useSheetWheel.ts, web/src/App.tsx, web/src/FormulaBar.tsx, web/src/FontControls.tsx, web/src/ViewControls.tsx, web/src/ribbon/HomeTab.tsx, web/src/ribbon/ViewTab.tsx, web/src/sheet.ts, web/src/strings.ts, web/src/app.css, web/tests/hand/harness.mjs, web/tests/hand/focus.mjs, web/tests/hand/keys.mjs, web/tests/hand/zoom.mjs, web/tests/hand/menus.mjs]
     target: "WPS Office for Mac 7.5.1"
-    gap: "Checked in the development host only: whether Kition Desktop gives the editor the keyboard as a file opens is the host's part. Page Down counts a screenful in rows of the sheet's default height. The zoom is the view's: it is not saved and an agent's inspect() reports the sheet's stored zoom. Cmd+= still zooms in (the sheet tab tests zoom with it), and with only cells selected Cmd+Shift+= and Cmd+- zoom too until stage 7 asks what to insert or delete (WPS W-I8). Custom Sort opens the command's parameter form until stage 4B. A real mouse notch's delta and a trackpad pinch are checked with synthetic wheel events only."
+    gap: "Checked in the development host only: whether Kition Desktop gives the editor the keyboard as a file opens is the host's part. Page Down counts a screenful in rows of the sheet's default height. The zoom is the view's: it is not saved and an agent's inspect() reports the sheet's stored zoom. Cmd+= still zooms in (the sheet tab tests zoom with it), and with only cells selected Cmd+Shift+= and Cmd+- zoom too until stage 7 asks what to insert or delete (WPS W-I8). A real mouse notch's delta and a trackpad pinch are checked with synthetic wheel events only."
     cases: [regressions/issue-hand-g1-single-line-menus, regressions/issue-hand-k1-first-key, regressions/issue-hand-k2-name-box-focus, regressions/issue-hand-b15-typing-scrolls-back, regressions/issue-hand-a8-cmd-0-hides-column, regressions/issue-hand-a7-wheel-zoom-step, regressions/issue-hand-a9-view-zoom, regressions/issue-hand-c7-page-keys, regressions/issue-hand-i2-redo-key]
     since: "2026-11-27"
   - id: sheet.editor.selection-keys
@@ -741,6 +741,28 @@ features:
     target: "WPS Office for Mac 7.5.1"
     gap: "Find looks through the whole sheet (or workbook), not only a selection of several cells (Excel and WPS's Options may narrow it). No history list of earlier searches, no Special menu, no Format matching, no Go To Special or list of names in the Go To tab (Home › Find & Select › Go To Special keeps its parameter form). Replace takes a match in the cell's text as typed (its formula, not its value), and a wildcard (* ?) matches but is replaced only as itself. The window's place is kept for the session, not saved."
     cases: [regressions/issue-hand-q1-find-keys, regressions/issue-hand-q2-replace-dialog, regressions/issue-hand-q2-replace-counts-changes, regressions/issue-hand-c10-go-to]
+    since: "2026-11-28"
+  - id: sheet.editor.sort-dialog
+    title: "Custom Sort as Excel for Mac has it (WPS's 自定义排序): Data › Sort…, Home › Sort › Custom Sort and the cell menu's Sort ▸ Custom Sort open the kit's dialog with the range round the active cell and whether its first row is headers (the engine's), one row per level with a column named by its header and an order, levels added, deleted and moved up and down, case sensitivity; OK sorts in one undo step with the header row in place, Escape and Cancel sort nothing"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [data.sort, cell.get]
+    paths: [web/src/SortDialog.tsx, web/src/App.tsx, web/src/ribbon/HomeTab.tsx, web/src/LineMenus.tsx, web/src/strings.ts, web/tests/hand/sort.mjs]
+    target: "Excel for Mac 16.113.4"
+    gap: "Sorts by columns only: by rows (orientation columns), by cell or font colour and by a custom list are the engine's (agents) but not in the dialog. The range is typed (no picking it on the grid). A sort is refused with a notice when the range holds merged cells of different sizes; the dialog stays."
+    cases: [regressions/issue-hand-s2-sort-dialog]
+    since: "2026-11-28"
+  - id: sheet.editor.paste-special
+    title: "Paste Special as Excel has it, with WPS's paste options at once: ⌃⌘V (Ctrl+Alt+V), the cell menu and Home › Paste › Paste Special… open the kit's dialog (paste all, formulas, values, formats, comments, all except borders, column widths, formulas or values with number formats; add, subtract, multiply or divide; skip blanks; transpose; Paste Link); Home › Paste has Paste Values, Paste Formatting and Transpose without a dialog; each is one undo step"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [edit.pasteSpecial]
+    paths: [web/src/PasteSpecial.tsx, web/src/App.tsx, web/src/keys.ts, web/src/ribbon/HomeTab.tsx, web/src/LineMenus.tsx, web/src/strings.ts, web/tests/hand/paste-special.mjs]
+    target: "Excel for Mac 16.113.4"
+    gap: "Works on a copy made in the sheet (the command's condition): text copied in another application pastes with Cmd+V only. After a cut, Paste Special is greyed (Excel). No paste options button after a paste (WPS W-F9) and no Validation choice (the engine's validation paste keeps the cell as it was). The dialog's choices are lists and boxes, not Excel's radio buttons."
+    cases: [regressions/issue-hand-j5-paste-special]
     since: "2026-11-28"
   - id: sheet.editor.input-method
     title: "Input methods in the grid as WPS shows them: pinyin (wubi, kana, hangul) typed on a selected cell starts typing in it over what it held; what is composed shows in the cell at the caret, underlined, and in the formula bar, without changing the cell, the undo history or the file; the input method's candidate window opens beside the cell (its field sits at the caret, in frozen panes, zoomed and scrolled); the chosen text goes in and the cell stays open until Enter; Enter, Escape, the arrows and Backspace while composing are the input method's; Escape there takes the composition away and a second Escape gives the typing up"

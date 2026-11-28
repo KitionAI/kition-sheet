@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-j5-paste-special
+feature: sheet.editor.paste-special
+intent: "Ctrl+Alt+V (⌃⌘V on a Mac) after a copy in the sheet opens the kit's Paste Special dialog; Values pastes a formula's result, not the formula, in one undo step; with nothing copied the key opens nothing (Paste Special was the command's parameters form and had no key; walkthrough J5)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/paste-special.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/paste-special.mjs, chromium, j5-paste-special]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

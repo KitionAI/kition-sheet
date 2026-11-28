@@ -21,6 +21,8 @@ export type KeyContext = {
   answer: (command: string, params?: Record<string, unknown>) => Promise<Record<string, unknown> | null>
   /** Opens the Find and Replace window at a tab (FindReplace.tsx). */
   openFind: (tab: FindTab) => void
+  /** Opens Paste Special when the sheet holds a copy to paste (PasteSpecial.tsx). */
+  openPasteSpecial: () => void
   clipboard: (action: 'cut' | 'copy' | 'paste') => void
   /** Moves a screenful: `rows` down (negative up), or `cols` across; `extend` keeps the anchor. */
   page: (direction: 1 | -1, across: boolean, extend: boolean) => void
@@ -129,6 +131,9 @@ export const KEYS: KeyRow[] = [
   { keys: ['Cmd+F'], act: (c) => c.openFind('find') },
   { keys: ['Ctrl+H'], act: (c) => c.openFind('replace') },
   { keys: ['Ctrl+G'], act: (c) => c.openFind('goTo') },
+  // ⌃⌘V (Ctrl+Alt+V elsewhere) opens Paste Special (Excel); with nothing copied in the sheet it
+  // does nothing (and is not a paste).
+  { keys: ['Ctrl+Cmd+V', 'Ctrl+Alt+V'], act: (c) => c.openPasteSpecial() },
   // The system clipboard: written while the key press is still the person's (WebKit refuses a
   // write once the engine has answered), read from the browser's paste.
   { keys: ['Cmd+C'], act: (c) => c.clipboard('copy') },
@@ -148,7 +153,9 @@ export function keyMatches(shortcut: string, event: KeyEvent) {
   const mods = new Set(parts.filter(Boolean))
   const command = mods.has('Cmd')
   const control = mods.has('Ctrl')
-  if (command ? !(event.metaKey || event.ctrlKey) : control ? !event.ctrlKey || event.metaKey : event.metaKey || event.ctrlKey) return false
+  // `Ctrl+Cmd` wants both keys (⌃⌘V); a `Cmd` row is not pressed with both, so Cmd+V leaves ⌃⌘V be.
+  const both = event.metaKey && event.ctrlKey
+  if (command && control ? !both : command ? !(event.metaKey || event.ctrlKey) || both : control ? !event.ctrlKey || event.metaKey : event.metaKey || event.ctrlKey) return false
   if (mods.has('Shift') !== event.shiftKey || mods.has('Alt') !== event.altKey) return false
   if (/^[A-Za-z]$/.test(name)) return event.code === `Key${name.toUpperCase()}` || event.key.toLowerCase() === name.toLowerCase()
   if (/^[0-9]$/.test(name)) return event.code === `Digit${name}` || event.key === name

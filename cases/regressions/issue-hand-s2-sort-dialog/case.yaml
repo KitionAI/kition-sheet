@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-s2-sort-dialog
+feature: sheet.editor.sort-dialog
+intent: "Data › Sort… opens the kit's Sort dialog with the range round the active cell and the header guess the engine chose, the columns named by their headers and the active cell's column first; a second level added, OK sorts by both in one undo step and the header row stays (Custom Sort was the command's parameters form with keys as JSON; walkthrough S2)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/sort.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/sort.mjs, chromium, s2-sort-dialog]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

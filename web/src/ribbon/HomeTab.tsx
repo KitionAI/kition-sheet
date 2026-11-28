@@ -24,10 +24,11 @@ const BORDERS: Array<[string, string]> = [
 
 const CELL_STYLES = ['Normal', 'Good', 'Bad', 'Neutral', 'Title', 'Heading 1', 'Heading 2', 'Total', 'Accent1']
 
-export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (action: 'cut' | 'copy' | 'paste') => void }) {
+export function HomeTab({ info, onClipboard, onPasteSpecial, pasteSpecialOff }: { info: SheetInfo; onClipboard: (action: 'cut' | 'copy' | 'paste') => void; onPasteSpecial: () => void; pasteSpecialOff: boolean }) {
   const { run, enabled, phrase: p, t, testId } = useKitEditor()
   const { font = {}, align = {} } = info.style
   const key = shortcutKey()
+  const pasteAs = (params: Record<string, unknown>) => void run('edit.pasteSpecial', params).finally(backToGrid)
   const formats = info.style.num_fmt && !NUMBER_FORMATS.includes(info.style.num_fmt) ? [...NUMBER_FORMATS, info.style.num_fmt] : NUMBER_FORMATS
 
   return (
@@ -36,8 +37,13 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
         {/* WPS puts Format Painter first, left of Paste (in Single line it waits in the group's popover, so Home fits at 1024 px). */}
         <FormatPainterButton info={info} />
         <RibbonMenu icon={ClipboardPaste} label={p('Paste')} size="large" testId={`${testId}-paste`} primary>
+          {/* WPS's paste options (W-F9): values, formatting and transpose at once; Paste Special… the dialog. */}
           <MenuItem label={p('Paste')} disabled={!enabled('edit.paste')} onSelect={() => onClipboard('paste')} testId={`${testId}-paste-text`} />
-          <CommandItem command="edit.pasteSpecial" label={p('Paste Special')} />
+          <MenuItem label={t('pasteValuesItem')} disabled={pasteSpecialOff} onSelect={() => pasteAs({ what: 'values' })} testId={`${testId}-paste-values`} />
+          <MenuItem label={t('pasteFormatsItem')} disabled={pasteSpecialOff} onSelect={() => pasteAs({ what: 'formats' })} testId={`${testId}-paste-formats`} />
+          <MenuItem label={t('pasteTransposeItem')} disabled={pasteSpecialOff} onSelect={() => pasteAs({ what: 'all', transpose: true })} testId={`${testId}-paste-transpose`} />
+          <MenuSeparator />
+          <MenuItem label={t('pasteSpecialItem')} disabled={pasteSpecialOff} onSelect={onPasteSpecial} testId={`${testId}-paste-special`} />
         </RibbonMenu>
         <RibbonStack>
           <RibbonButton icon={Scissors} label={p('Cut')} disabled={!enabled('edit.cut')} onClick={() => onClipboard('cut')} data-testid={`${testId}-cut`} />
@@ -231,7 +237,8 @@ function SortSplit(_: { primary?: boolean }) {
       >
         <CommandItem command="data.sortAscending" label={p('Sort A to Z')} />
         <CommandItem command="data.sortDescending" label={p('Sort Z to A')} />
-        <CommandItem command="data.sort" ask label={p('Custom Sort')} />
+        {/* The engine answers the range and the header guess, then the kit's dialog opens (SortDialog.tsx). */}
+        <MenuItem label={p('Custom Sort')} disabled={readOnly || !enabled('data.sort')} onSelect={() => void run('data.sort', {})} testId="sheet-sort-custom" />
       </MenuButton>
     </span>
   )

@@ -169,7 +169,7 @@ export const showGridMenu = (state: GridMenuState | null) => openMenu(state)
  * unhide, rows above and below with their counts, row height) and a column heading's (the same
  * for columns).
  */
-export function GridMenu({ info, onClipboard }: { info: SheetInfo; onClipboard: (action: 'cut' | 'copy' | 'paste') => void }) {
+export function GridMenu({ info, onClipboard, onPasteSpecial, pasteSpecialOff }: { info: SheetInfo; onClipboard: (action: 'cut' | 'copy' | 'paste') => void; onPasteSpecial: () => void; pasteSpecialOff: boolean }) {
   const { t, enabled, run, ask } = useKitEditor()
   const [menu, setMenu] = useState<GridMenuState | null>(null)
   useEffect(() => {
@@ -194,7 +194,7 @@ export function GridMenu({ info, onClipboard }: { info: SheetInfo; onClipboard: 
       <MenuItem label={t('menuCut')} disabled={!enabled('edit.cut')} onSelect={() => onClipboard('cut')} testId="sheet-grid-menu-cut" />
       <MenuItem label={t('menuCopy')} disabled={!enabled('edit.copy')} onSelect={() => onClipboard('copy')} testId="sheet-grid-menu-copy" />
       <MenuItem label={t('menuPaste')} disabled={!enabled('edit.paste')} onSelect={() => onClipboard('paste')} testId="sheet-grid-menu-paste" />
-      {menu?.target === 'cell' || menu?.target === 'all' ? <MenuItem label={t('pasteSpecialItem')} disabled={!enabled('edit.pasteSpecial')} onSelect={() => ask('edit.pasteSpecial')} testId="sheet-grid-menu-paste-special" /> : null}
+      {menu?.target === 'cell' || menu?.target === 'all' ? <MenuItem label={t('pasteSpecialItem')} disabled={pasteSpecialOff} onSelect={onPasteSpecial} testId="sheet-grid-menu-paste-special" /> : null}
       <MenuSeparator />
     </>
   )
@@ -233,6 +233,8 @@ export function GridMenu({ info, onClipboard }: { info: SheetInfo; onClipboard: 
           <SubMenu label={t('sortMenu')} path="Grid/Sort" testId="sheet-grid-menu-sort">
             <MenuItem label={t('sortAscendingItem')} disabled={!enabled('data.sortAscending')} onSelect={() => go('data.sortAscending')} testId="sheet-grid-sort-ascending" />
             <MenuItem label={t('sortDescendingItem')} disabled={!enabled('data.sortDescending')} onSelect={() => go('data.sortDescending')} testId="sheet-grid-sort-descending" />
+            {/* Custom Sort (WPS's Sort ▸ 自定义排序): the kit's dialog, its range the engine's (SortDialog.tsx). */}
+            <MenuItem label={t('sortCustomItem')} disabled={!enabled('data.sort')} onSelect={() => void run('data.sort', {})} testId="sheet-grid-sort-custom" />
           </SubMenu>
           <MenuItem label={t('mergeCellsItem')} disabled={!enabled('cell.merge')} onSelect={merge} testId="sheet-grid-menu-merge" />
           <MenuItem label={t('unmergeCellsItem')} disabled={!enabled('cell.unmerge')} onSelect={() => go('cell.unmerge')} testId="sheet-grid-menu-unmerge" />

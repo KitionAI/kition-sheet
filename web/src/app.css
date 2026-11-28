@@ -1396,3 +1396,42 @@
   color: var(--kit-text-muted);
   font-size: 12px;
 }
+
+/* Custom Sort (SortDialog.tsx): one row per level, a column and an order. */
+.sheet-sort-options {
+  display: flex;
+  gap: 16px;
+}
+
+.sheet-sort-levels {
+  display: grid;
+  grid-template-columns: max-content minmax(140px, 1fr) minmax(96px, max-content) max-content;
+  gap: 6px 8px;
+  align-items: center;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.sheet-sort-level {
+  display: contents;
+}
+
+.sheet-sort-head {
+  color: var(--kit-text-muted);
+  font-size: 12px;
+}
+
+.sheet-sort-moves {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.sheet-sort-note {
+  color: var(--kit-danger);
+  font-size: 12px;
+}
+
+/* Paste Special (PasteSpecial.tsx): Paste Link at the start of the buttons. */
+.sheet-paste-link {
+  margin-right: auto;
+}
