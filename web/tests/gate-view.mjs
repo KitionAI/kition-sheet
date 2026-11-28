@@ -96,6 +96,22 @@ const wheel = async (dx, dy) => {
   }
   await settle(400)
 }
+/**
+ * What a press at a screen cell (column, row from 0) reaches, and the editor then: the element at
+ * that point and the engine's active cell. Printed when a freeze case fails (FRZ-C11 and FRZ-C27
+ * failed on WebKit in CI after stage 5 of the plan "Sheet usable by hand", the press not taken).
+ */
+const hitAt = async (col, row) => {
+  const box = await region()
+  const at = { x: box.x + 46 + col * G.cw + G.cw / 2, y: box.y + 21 + row * G.rh + G.rh / 2 }
+  const element = await page.frames()[1].evaluate(({ x, y }) => {
+    const host = window.frameElement?.getBoundingClientRect() ?? { left: 0, top: 0 }
+    const hit = document.elementFromPoint(x - host.left, y - host.top)
+    return hit ? `${hit.tagName.toLowerCase()}${hit.getAttribute('data-testid') ? `[${hit.getAttribute('data-testid')}]` : ''}.${String(hit.className).split(' ')[0]}` : null
+  }, at)
+  const shown = await details()
+  return { element, active: shown.active, editing: shown.editing, escape: shown.escape }
+}
 /** The cell under a screen cell (column, row from 0) at 100%: clicks it and reads the Name Box. */
 const under = async (col, row) => {
   await clickCell(col, row)
@@ -299,7 +315,8 @@ try {
     await kit.getByTestId('sheet-freeze-rows').click()
     await settle()
     await wheel(0, 2000)
-    step('FRZ-C11 选中 A1000「冻结至第999行」：第 1–999 行冻结，向下滚动顶部仍是第 1 行', rows.includes('冻结至第999行') && same(await freeze(), [999, 0]) && (await under(0, 0)) === 'A1', JSON.stringify([rows, await freeze(), (await details()).freezeShift, await under(0, 0)]))
+    const before = await hitAt(0, 0)
+    step('FRZ-C11 选中 A1000「冻结至第999行」：第 1–999 行冻结，向下滚动顶部仍是第 1 行', rows.includes('冻结至第999行') && same(await freeze(), [999, 0]) && (await under(0, 0)) === 'A1', JSON.stringify([rows, await freeze(), (await details()).freezeShift, await under(0, 0), before, await hitAt(0, 0)]))
   })
 
   await section('FRZ-C12 已冻结 5 行再冻结至第 20 行', async () => {
@@ -384,7 +401,9 @@ try {
     await freezeMenu()
     await kit.getByTestId('sheet-freeze-at').click()
     await settle()
-    step('FRZ-C27 选中 AY1000「冻结至第999行AX列」：行列全部冻结，滚动后左上仍是 A1', same(await freeze(), [999, 50]) && (await under(0, 0)) === 'A1')
+    const before = await hitAt(0, 0)
+    const corner = await under(0, 0)
+    step('FRZ-C27 选中 AY1000「冻结至第999行AX列」：行列全部冻结，滚动后左上仍是 A1', same(await freeze(), [999, 50]) && corner === 'A1', JSON.stringify([await freeze(), corner, before, await hitAt(0, 0)]))
   })
 
   await section('FRZ-C28/C29 改冻结行列、撤销与恢复', async () => {

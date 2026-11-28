@@ -70,8 +70,12 @@ const list = [
     await e.click('O6')
     menu = await openMenu(e, 'home', 'sheet-autosum')
     await menu.getByRole('menuitem').filter({ hasText: /^Sum/ }).click()
+    // The guess is typed for Enter to confirm (plan stage 6, walkthrough E8).
+    await until(async () => (await e.details()).editText === '=SUM(O1:O5)', 30)
+    await page.keyboard.press('Enter')
     await until(async () => (await e.value('O6')) === 150)
     assert.equal(await e.value('O6'), 150, 'AutoSum › Sum adds O1:O5')
+    await e.click('O6')
     await page.keyboard.press('Delete')
     await until(async () => (await e.value('O6')) == null)
 
