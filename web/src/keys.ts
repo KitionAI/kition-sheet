@@ -62,15 +62,21 @@ const onMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(
 
 /** Runs `editor.editText`; the engine decides in the ordered queue whether a cell is typed. */
 const text = (c: KeyContext, action: string) => c.answer('editor.editText', { action })
+/** A text key of the cell being typed (`action`), or the cells' command when nothing is typed. */
+const textOrCells = (c: KeyContext, action: string, command: string) => {
+  if (!c.state.editing) c.runWhenEnabled(command)
+  else void text(c, action).then((answer) => answer?.editing === false && c.runWhenEnabled(command))
+}
 
 export const KEYS: KeyRow[] = [
   // While a cell is typed, the keys that hold Cmd edit its text (plan stage 5; WPS W-H5; a Mac's
   // text keys), never the cells: Cmd+A selects the text, Cmd+Z takes back what was typed and goes
   // on typing, Cmd+C and Cmd+X copy and cut the selected text (Cmd+arrows reach the engine's tool).
-  // The engine decides in the ordered queue (the editor's state may lag keys typed just before);
-  // with nothing typed Cmd+A and Cmd+Z are the cells' again.
-  { keys: ['Cmd+A'], editing: true, act: (c) => void text(c, 'selectAll').then((answer) => answer?.editing === false && c.runWhenEnabled('edit.selectAll')) },
-  { keys: ['Cmd+Z'], editing: true, act: (c) => void text(c, 'undo').then((answer) => answer?.editing === false && c.runWhenEnabled('edit.undo')) },
+  // With nothing typed Cmd+A and Cmd+Z are the cells', run at once so a key pressed next (Cmd+Y)
+  // comes after them. While the editor shows a cell typed, the engine decides in the ordered queue
+  // (the state may lag a key that just entered the cell): the text's, else the cells'.
+  { keys: ['Cmd+A'], editing: true, act: (c) => textOrCells(c, 'selectAll', 'edit.selectAll') },
+  { keys: ['Cmd+Z'], editing: true, act: (c) => textOrCells(c, 'undo', 'edit.undo') },
   { keys: ['Cmd+Shift+Z', 'Cmd+Y'], editing: true, when: (c) => c.state.editing, act: () => undefined },
   { keys: ['Cmd+C'], editing: true, when: (c) => c.state.editing, act: (c) => c.copyText(false) },
   { keys: ['Cmd+X'], editing: true, when: (c) => c.state.editing, act: (c) => c.copyText(true) },
