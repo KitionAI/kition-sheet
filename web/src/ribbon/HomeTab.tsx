@@ -193,7 +193,7 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
         </RibbonStack>
         <RibbonStack>
           <SortSplit primary />
-          <RibbonMenu icon={Funnel} label={p('Filter')} testId="sheet-filter-menu">
+          <RibbonMenu icon={Funnel} label={p('Filter')} testId="sheet-home-filter">
             <CommandItem command="data.filter" label={p('Filter')} shortcut="Cmd+Shift+L" />
             <CommandItem command="data.clearFilter" label={p('Clear')} />
             <CommandItem command="data.reapply" label={p('Reapply')} />
