@@ -731,6 +731,17 @@ features:
     gap: "The ants are a still dashed frame (WPS's move): animating them would repaint the grid every frame while nothing happens (plan stage S, S-s3). Only the person's copy is marked; an agent's edit.copy fills the same clipboard and leaves the grid alone. A copy made in another application after Cmd+C is not seen until a paste, so Enter still pastes the sheet's copy. On a Mac a Ctrl press is the system's secondary click; elsewhere Ctrl is the main modifier and Ctrl dragging copies (Excel for Windows). The readout is numbers only (no words to translate), beside the line by the headings rather than at the pointer; the name box does not show the dragged selection's size (5R × 3C), and the headings keep the cell cursor."
     cases: [regressions/issue-hand-b3-selection-outline, regressions/issue-hand-j3-marching-ants, regressions/issue-hand-j4-enter-pastes, regressions/issue-hand-p2-cmd-drag-copies, sheet.editor.clipboard-marks/tool-outline, sheet.editor.clipboard-marks/tool-copy, sheet.editor.clipboard-marks/tool-border, sheet.editor.clipboard-marks/tool-readout]
     since: "2026-11-28"
+  - id: sheet.editor.input-method
+    title: "Input methods in the grid as WPS shows them: pinyin (wubi, kana, hangul) typed on a selected cell starts typing in it over what it held; what is composed shows in the cell at the caret, underlined, and in the formula bar, without changing the cell, the undo history or the file; the input method's candidate window opens beside the cell (its field sits at the caret, in frozen panes, zoomed and scrolled); the chosen text goes in and the cell stays open until Enter; Enter, Escape, the arrows and Backspace while composing are the input method's; Escape there takes the composition away and a second Escape gives the typing up"
+    dimension: [function]
+    priority: P1
+    status: partial
+    commands: [cell.set]
+    paths: [bindings/wasm/src/composing.rs, bindings/wasm/src/lib.rs, web/src/inputMethod.ts, web/src/App.tsx, web/src/FormulaBar.tsx, web/src/sheet.ts, web/tests/hand/ime.mjs]
+    target: "WPS Office for Mac 7.5.1"
+    gap: "Checked with Chromium's composition (DevTools) in the development host only: a real input method (the Mac's pinyin, Sogou, Microsoft Pinyin) and Kition Desktop have not been tried by hand. The caret shows at the input method's cursor, which some input methods move inside the composition; a drawing object's text shows no composition until it is chosen."
+    cases: [regressions/issue-hand-d13-ime-composition, regressions/issue-hand-d13-ime-keys, sheet.editor.input-method/tool-preedit]
+    since: "2026-11-28"
   - id: sheet.editor.edge-scroll
     title: "Scrolling at the grid's edge during a drag, as WPS does: past the bottom or the right edge (or the top and left while the view can go back) the view scrolls every frame with the pointer still, faster the further past (2.3 rows a second at 13 px, 5 at 43 px; 40 columns a second at 68 px), and the selection, the fill handle's cells, the block being moved and the reference pointed at for a formula reach the cells that come into view; on the grid nothing scrolls; a column or row being resized does not scroll back towards its start"
     dimension: [function]

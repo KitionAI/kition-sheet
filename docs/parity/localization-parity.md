@@ -1,6 +1,6 @@
 # Localization parity
 
-> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-17 · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
+> **Last reviewed:** 2026-11-17 · **Last updated:** 2026-11-28 · **Target:** Microsoft Excel (Microsoft 365), Excel for Mac 16.113.4
 
 Per-language status against Excel, which ships its UI in dozens of languages (Windows language
 packs cover 100+), with localized function names, argument separators, number and date formats,
@@ -24,8 +24,10 @@ right-to-left sheets and full complex-script support. Part of
   Droid Sans Fallback from a kition-fonts checkout, and the engine adds it at run time for
   characters its built-in faces lack (Chinese text). There is no complex-text shaping: Arabic and
   Devanagari don't join or reorder, and there is no bidirectional layout. **Sheet Right-to-Left**
-  is a stored flag (`view.rightToLeft`) but the grid doesn't mirror. IME input goes
-  through the browser and is unverified for Chinese, Japanese and Korean.
+  is a stored flag (`view.rightToLeft`) but the grid doesn't mirror. An input method composes
+  in the cell being typed, underlined at the caret, with its candidate window beside the cell
+  (`sheet.editor.input-method`, web/tests/hand/ime.mjs, as WPS shows it); checked with Chromium's
+  composition only, a real Chinese, Japanese or Korean input method not yet by hand.
 - **PDF export** writes Latin text in the 14 standard PDF fonts, and other text in a subset of a
   font the host added; scripts without a host font drop out.
 
@@ -38,7 +40,7 @@ separators, number/date formats, machine translation with agent review, and scri
 | Language | Code | UI strings translated | Dialogs / tooltips / help | Script support | Native review | Status | Estimate to full |
 |---|---|---|---|---|---|---|---|
 | English | en | ~2,200 / ~2,200 (100%, source) | yes | Latin: yes | yes | full | — |
-| Simplified Chinese (Mandarin) | zh-Hans | 266 (~12%) | no | Droid Sans Fallback added at run time; IME unverified; PDF with the host's font | no | menus only | 8–13 h |
+| Simplified Chinese (Mandarin) | zh-Hans | 266 (~12%) | no | Droid Sans Fallback added at run time; IME composes in the cell (real input methods not yet tried by hand); PDF with the host's font | no | menus only | 8–13 h |
 | Spanish | es | 0 (0%) | no | Latin: yes | no | none | 6–10 h |
 | Hindi | hi | 0 (0%) | no | Devanagari: **no shaping** | no | none | 12–18 h |
 | Arabic | ar | 0 (0%) | no | **no shaping, no RTL UI, RTL sheet flag not rendered** | no | none | 25–35 h |

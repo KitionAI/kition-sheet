@@ -1,0 +1,24 @@
+format: 1
+id: sheet.editor.input-method/tool-preedit
+feature: sheet.editor.input-method
+intent: >-
+  `editor.preedit` in the engine: a composition starts typing in the active cell over what it held,
+  shows at the caret (drawn in the cell) and moves the caret the editor puts the input method's
+  field at, without changing the edit's text, the cell, the undo history or the file; the chosen
+  text ends it and the cell stays open; an empty composition takes it away.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: input_method_composes
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

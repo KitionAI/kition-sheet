@@ -53,6 +53,7 @@ import { SymbolDialog, SymbolGroup } from './Symbols'
 import { useColorScheme } from './colorScheme'
 import { gridInput, takeKeyboardOnOpen, useKeyboardFallback } from './focus'
 import { pressKey, type KeyContext } from './keys'
+import { useCompositions, useInputAtCaret } from './inputMethod'
 import { steppedCanvas, stepZoom, zoomKeepingCorner } from './zoom'
 import { ZoomControl, type ZoomActions } from './ZoomControl'
 import { useSheetWheel } from './useSheetWheel'
@@ -166,6 +167,11 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   // Comment threads the host keeps (Kit UI protocol section 7k): marked here, created there.
   const comments = useHostComments(host, doc, change, state?.sheet, t('commentFailed'))
   const views = useMemo(createViewStore, [])
+  // Input methods compose in the cell being typed, their candidate window beside it (inputMethod.ts):
+  // the text input sits at the caret, else at the active cell's bottom-left, where typing starts.
+  useCompositions((command, params) => editor.run(command, params))
+  const active = state?.activeRect
+  useInputAtCaret(state?.caretRect ?? (active ? [active[0], active[1], active[0] + 1, active[3]] : null), views, doc?.pinned ?? null)
   const gridId = useId()
   // The overlays follow what the engine draws them from: the cell being typed, the highlight of the
   // selection's rows and columns, the frozen panes and the freeze being previewed, the marching

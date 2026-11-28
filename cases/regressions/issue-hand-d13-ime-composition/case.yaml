@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-d13-ime-composition
+feature: sheet.editor.input-method
+intent: "Pinyin composing in a selected cell starts typing there and shows the composition in the cell and the formula bar without changing the cell or the undo history; the chosen text goes in and the cell stays open until Enter; the input method's field (so its candidate window) is at the cell, also zoomed and scrolled (the composition showed nowhere and the field sat at the canvas's corner; walkthrough D13). Chromium's composition (DevTools)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/ime.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/ime.mjs, chromium, d13-ime-composition, d13-ime-zoomed-scrolled, d13-typing-without-composing]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-28"

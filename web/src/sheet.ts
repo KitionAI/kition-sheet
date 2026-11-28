@@ -90,6 +90,10 @@ export type SheetInfo = {
   content: string
   editing: boolean
   editText: string | null
+  /** What an input method composes in the cell being typed, and where it goes in `editText` (UTF-16). */
+  preedit: { text: string; at: number } | null
+  /** The caret of the cell being typed (document points: x0, y0, x1, y1), for the input method's field. */
+  caretRect: [number, number, number, number] | null
   /** View › Show: the formula bar (the person's setting), the sheet's gridlines and headings. */
   formulaBar: boolean
   gridlines: boolean
@@ -159,6 +163,8 @@ export function describe(info: KitEngineInfo): SheetInfo {
     content: inspected.content ?? '',
     editing: inspected.editing === true,
     editText: inspected.editText ?? null,
+    preedit: inspected.preedit && typeof inspected.preedit.text === 'string' ? { text: inspected.preedit.text, at: Number(inspected.preedit.at) || 0 } : null,
+    caretRect: Array.isArray(inspected.caretRect) && inspected.caretRect.length === 4 ? inspected.caretRect : null,
     formulaBar: inspected.formulaBar !== false,
     gridlines: inspected.gridlines !== false,
     gridColor: typeof inspected.gridColor === 'string' ? inspected.gridColor : null,

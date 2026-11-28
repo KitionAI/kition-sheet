@@ -60,7 +60,10 @@ export function FormulaBar({ info }: { info: SheetInfo }) {
   // keyboard back. Typing in the cell, or the typing ending, ends it.
   const owns = useRef(false)
   const [expanded, setExpanded] = useState(false)
-  const text = draft ?? (info.editing ? (info.editText ?? '') : info.content)
+  // While an input method composes in the cell, the field shows it in place too (WPS W-T1).
+  const typed = info.editText ?? ''
+  const shownTyping = info.preedit ? typed.slice(0, info.preedit.at) + info.preedit.text + typed.slice(info.preedit.at) : typed
+  const text = draft ?? (info.editing ? shownTyping : info.content)
   const references = info.formulaText === text ? info.formulaReferences : []
   const [scroll, setScroll] = useState({ left: 0, top: 0 })
   // The function list and argument hint for the formula being typed here, and the function chosen.

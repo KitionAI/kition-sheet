@@ -2409,3 +2409,52 @@ fn clipboard_marks_an_agents_clear_leaves_the_system_text_pasting() {
     doc.execute_as("edit.copy", json!({ "range": "D4" }), &agent).unwrap();
     assert_eq!(get(&doc, "copied"), Json::Null);
 }
+
+/// D13 (WPS W-T1–W-T4): what an input method composes starts typing in the active cell (what it
+/// held is replaced), shows at the caret and widens the box, but is not the edit's text, nor the
+/// workbook, nor an undo step, nor a change; the caret (for the candidate window) follows it; the
+/// chosen text ends it and the cell stays open; an empty composition takes it away.
+#[test]
+fn input_method_composes_in_the_cell_without_changing_it() {
+    let mut doc = SheetDocument::create("Compose.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "B2", "input": "old" })).unwrap();
+    click(&mut doc, centre(1, 1), false);
+    let steps = undo_steps(&doc);
+    let dirty = doc.dirty();
+    assert_eq!(doc.execute("editor.preedit", json!({ "text": "n" })).unwrap(), json!({ "editing": true }));
+    assert_eq!(get(&doc, "editing"), json!(true), "the first of it starts typing");
+    assert_eq!(get(&doc, "editText"), json!(""), "over what the cell held, and it is not the text");
+    assert_eq!(get(&doc, "preedit"), json!({ "text": "n", "at": 0 }));
+    let short = get(&doc, "caretRect")[0].as_f64().unwrap();
+    doc.execute("editor.preedit", json!({ "text": "ni hao" })).unwrap();
+    let long = get(&doc, "caretRect")[0].as_f64().unwrap();
+    assert!(long > short + 10.0, "the caret follows the composition: {short} → {long}");
+    let caret = get(&doc, "caretRect");
+    let (x0, y0, _, y1) = cells_rect((1, 1), (1, 1));
+    assert!(caret[1].as_f64().unwrap() >= y0 - 1.0 && caret[3].as_f64().unwrap() <= y1 + 1.0 && caret[0].as_f64().unwrap() > x0, "in B2: {caret}");
+    assert_eq!(value(&mut doc, "B2")["value"], json!("old"), "the cell is unchanged");
+    assert_eq!((undo_steps(&doc), doc.dirty()), (steps, dirty), "no undo step, no change");
+    // Drawn: dark pixels of the composition in the cell, under the old text's place.
+    let pixels = doc.render(HEADER_W + CW, HEADER_H + RH, 1.0, CW as u32 * 2, RH as u32).unwrap();
+    assert!(pixels.chunks(4).filter(|p| p[0] < 100 && p[1] < 100 && p[2] < 100).count() > 20, "the composition shows");
+    // Chosen: the text goes in, the composition ends, the cell stays open.
+    KitTools::text(&mut doc, "你好", 1.0).unwrap();
+    assert_eq!(get(&doc, "preedit"), Json::Null);
+    assert_eq!((get(&doc, "editing"), get(&doc, "editText")), (json!(true), json!("你好")));
+    // Another composition after it, cancelled: the cell still open with its text.
+    doc.execute("editor.preedit", json!({ "text": "ma", "cursor": 1 })).unwrap();
+    assert_eq!(get(&doc, "preedit"), json!({ "text": "ma", "at": 2 }));
+    doc.execute("editor.preedit", json!({ "text": "" })).unwrap();
+    assert_eq!((get(&doc, "preedit"), get(&doc, "editText")), (Json::Null, json!("你好")));
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "B2")["value"], json!("你好"));
+    // A composition cancelled at once leaves an empty cell open; Escape then drops it.
+    click(&mut doc, centre(1, 4), false);
+    doc.execute("editor.preedit", json!({ "text": "x" })).unwrap();
+    doc.execute("editor.preedit", json!({ "text": "" })).unwrap();
+    assert_eq!(get(&doc, "editing"), json!(true));
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(get(&doc, "editing"), json!(false));
+    assert_eq!(value(&mut doc, "B5")["value"], json!(null));
+    assert!(doc.execute("editor.preedit", json!({ "text": "a\u{7}" })).is_err(), "no control characters");
+}

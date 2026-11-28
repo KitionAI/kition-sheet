@@ -21,6 +21,7 @@ mod check;
 mod clear_premises;
 mod collab;
 mod comments;
+mod composing;
 mod computed;
 mod conditional_read_premises;
 mod context;
@@ -199,6 +200,8 @@ pub struct SheetDocument {
     /// A press on the selection's border (`moving`): where, the selection then, and the side, so a
     /// double-click there jumps that way even when the press's click selected the cell beside it.
     border_press: Option<moving::BorderPress>,
+    /// What an input method composes in the cell being typed (`composing`), shown at its caret.
+    preedit: Option<composing::Preedit>,
 }
 
 /// What [`SheetDocument::paint_sheet`] draws besides the cells.
@@ -258,6 +261,8 @@ pub const EDITOR_STATE: &[&str] = &[
     "/formatPainter",
     "/drawTool",
     "/copied",
+    "/preedit",
+    "/caretRect",
     "/style",
     "/tableInfo",
     "/dialog",
@@ -437,6 +442,9 @@ impl SheetDocument {
         {
             return self.insert_text(symbol, true);
         }
+        if command == "editor.preedit" {
+            return self.preedit_command(&params);
+        }
         if command == "editor.freezePreview" {
             let count = |key: &str| params.get(key).and_then(Json::as_u64).map_or(0, |n| u32::try_from(n).unwrap_or(u32::MAX).min(MAX_ROWS - 1));
             let (rows, cols) = (count("rows"), count("cols").min(MAX_COLS - 1));
@@ -571,6 +579,7 @@ impl SheetDocument {
             copy_mark: None,
             copy_spent: None,
             border_press: None,
+            preedit: None,
         })
     }
 
@@ -1010,7 +1019,7 @@ impl SheetDocument {
         }
 
         // The cell being typed, over the cells: its runs, the selected characters and the caret.
-        if let (Some(b), Some(edit)) = (self.edit_box(x, y, scale).filter(|_| !plain && paint.editor), self.editing.as_ref()) {
+        if let (Some(b), Some((edit, composed))) = (self.edit_box(x, y, scale).filter(|_| !plain && paint.editor), self.shown_edit()) {
             canvas.fill(b.rect, palette.background);
             let (from, to) = edit.selection();
             for line in &b.lines {
@@ -1022,6 +1031,17 @@ impl SheetDocument {
                     canvas.fill(Rect { x0: b.start + line.x(a), y0: top, x1: b.start + right, y1: under }, TEXT_SELECTION);
                 }
                 Segment::draw_all(b.segments.get(line.segments.clone()).unwrap_or_default(), &mut canvas, b.start, line.baseline, b.rect);
+            }
+            // What an input method composes is underlined, as WPS shows it (W-T1).
+            if let Some((from, to)) = composed {
+                for line in &b.lines {
+                    let end = line.first + line.stops.len().saturating_sub(1);
+                    let (a, z) = (from.max(line.first), to.min(end));
+                    if a < z {
+                        let under = (line.baseline + (b.descent / 2.0).max(scale)).round();
+                        canvas.hline(b.start + line.x(a), b.start + line.x(z), under, scale.clamp(1.0, 2.0).round(), palette.editing_text);
+                    }
+                }
             }
             if let Some(line) = b.line_of(edit.caret) {
                 let (top, under) = (line.baseline - b.ascent, line.baseline + b.descent);
@@ -1892,6 +1912,7 @@ impl SheetDocument {
         }
         self.edit_inserted = false;
         self.end_copy();
+        self.preedit = None;
         let text = self.content(cell);
         let runs = self.sheet().and_then(|(_, sheet)| sheet.cell(cell)).and_then(kition_sheet_engine::model::Cell::runs).cloned();
         self.editing = Some(Edit::new(&text, runs.as_ref(), true));
@@ -1910,7 +1931,9 @@ impl SheetDocument {
     /// box (the cell, wider when the text is), the text's start and baseline, and where each
     /// caret position is from the start.
     fn edit_box(&self, x: f64, y: f64, scale: f64) -> Option<EditBox> {
-        let edit = self.editing.as_ref()?;
+        // With what an input method composes at the caret (`composing`).
+        let (edit, _) = self.shown_edit()?;
+        let edit = edit.as_ref();
         // Pointing at another sheet's cells: the cell being typed is on its own sheet.
         if self.editing_elsewhere() {
             return None;
@@ -2789,6 +2812,10 @@ impl KitDocument for SheetDocument {
         // editor does not scroll at the grid's edge for it.
         // The person's copy the grid marks with marching ants (`copying`): Escape ends it, Enter
         // pastes it once.
+        // What an input method composes in the cell being typed, and the caret (document points)
+        // the editor puts the input method's field at, for its candidate window (`composing`).
+        out["preedit"] = self.preedit_info();
+        out["caretRect"] = json!(self.caret_rect());
         out["copied"] = self.copy_live().map_or(Json::Null, |copied| {
             let name = self.session.doc().ok().and_then(|d| d.wb.sheet(copied.sheet).map(|s| s.name.clone()));
             json!({ "sheet": name, "range": copied.range.a1(), "cut": copied.cut })
@@ -2864,6 +2891,7 @@ impl KitDocument for SheetDocument {
                 ("editor.contextMenu", "Right-Click the Grid", "{x: number, y: number}"),
                 ("editor.insertText", "Insert Text at the Caret", "{text: string, append?: boolean, typing?: boolean}"),
                 ("editor.freezePreview", "Preview a Freeze", "{rows?: number, cols?: number}"),
+                ("editor.preedit", "Show an Input Method's Composition", "{text: string, cursor?: number}"),
                 ("editor.validation", "Answer a Data Validation Message", "{answer: string}"),
                 ("editor.commentAnchor", "Comment Anchor of Selection", "{}"),
                 ("editor.commentPlaces", "Find Comment Anchors", "{anchors: array}"),
@@ -3177,6 +3205,10 @@ impl KitTools for SheetDocument {
 
     /// Typing replaces the active cell's content, as in Excel (in edit mode, the selection).
     fn text(&mut self, text: &str, _zoom: f64) -> Result<ToolResponse, String> {
+        // The chosen text ends the composition it was chosen in.
+        if self.preedit.take().is_some() {
+            self.edits += 1;
+        }
         if self.editing.is_none() && text.chars().all(|c| !c.is_control()) && self.object_text(text) {
             return Ok(self.respond());
         }

@@ -273,6 +273,18 @@
    }
   }
  },
+ "editor.preedit": {
+  "description": "Shows what an input method composes (`text`, its cursor at `cursor` characters, else at its end) at the caret of the cell being typed, underlined, without changing the cell's text or the workbook; with nothing typed it starts typing in the active cell, as a typed character does. Empty, it takes the composition away. Answers whether a cell is being typed.",
+  "params": {
+   "text": { "description": "the composition, at most 1000 characters", "type": "string" },
+   "cursor": { "description": "the input method's cursor in it, in characters", "type": "integer" }
+  },
+  "output": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": { "editing": { "type": "boolean" } }
+  }
+ },
  "editor.freezePreview": {
   "description": "Shows (or with no rows and cols, takes away) the preview of a freeze the editor's Freeze Panes menu points at: the rows and columns that would freeze, tinted, and the line under and right of them. Changes nothing.",
   "params": {
