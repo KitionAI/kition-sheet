@@ -672,10 +672,14 @@
   outline-offset: -2px;
 }
 
-/* The function list and argument hint while a formula is typed (under the cell or the formula bar). */
+/* The function list and argument hint while a formula is typed (under the cell or the formula bar).
+   The box under the cell takes no presses of its own: where its argument hint shows, a press goes
+   to the cell under it (FX-C6: a click just after Escape, before the hint went, landed on the box
+   and was lost). */
 .sheet-cell-hints {
   position: absolute;
   z-index: 3;
+  pointer-events: none;
 }
 .sheet-formula-field > .sheet-formula-hints {
   position: absolute;
