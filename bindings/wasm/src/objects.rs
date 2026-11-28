@@ -13,7 +13,7 @@ use kition_office_core::ops::{DrawingOp, FrameChange};
 use kition_office_core::{Point, Xfrm};
 use serde_json::json;
 
-use crate::{ACCENT, HEADER_H, HEADER_W, SheetDocument, engine_error};
+use crate::{ACCENT, Drag, HEADER_H, HEADER_W, SheetDocument, engine_error};
 
 /// Handle hit radius in screen pixels.
 const REACH_PX: f64 = 4.0;
@@ -61,6 +61,14 @@ impl SheetDocument {
         kition_sheet_engine::cmd::drawing::objects(&doc.wb)
     }
 
+    /// The drawing object's gesture under way.
+    fn object_gesture(&self) -> Option<&ObjectDrag> {
+        match &self.drag {
+            Drag::Object(drag) => Some(drag),
+            _ => None,
+        }
+    }
+
     fn selected_object(&self) -> Option<DrawingObject> {
         let id = self.session.selected_shape?.to_string();
         self.drawing_objects().into_iter().find(|o| o.id == id)
@@ -79,14 +87,14 @@ impl SheetDocument {
         Ok(())
     }
 
-    /// A pointer event for drawing objects; `true` when it was theirs.
-    pub(crate) fn object_pointer(&mut self, event: &ToolPointer) -> Result<bool, String> {
+    /// A press or a double-click for drawing objects (a pen's or the eraser's first); `true`
+    /// when it was theirs.
+    pub(crate) fn object_press(&mut self, event: &ToolPointer) -> Result<bool, String> {
         let p = sheet_point(event.x, event.y);
-        if let Some(handled) = self.ink_pointer(event, p)? {
+        if let Some(handled) = self.ink_press(event, p)? {
             return Ok(handled);
         }
         let tol = REACH_PX / event.zoom.max(0.05);
-        let mods = Mods { shift: event.mods.shift, alt: event.mods.alt };
         match event.action {
             PointerAction::Down => {
                 // A selected shape's adjust handles, then its other handles, then the topmost shape
@@ -96,7 +104,7 @@ impl SheetDocument {
                     self.finish_shape_text()?;
                     let drag = kition_office_core::connect::CreateDrag::start(&preset, p, &self.drawing_objects(), tol * 1.5);
                     let frame = drag.frame();
-                    self.object_drag = Some(ObjectDrag {
+                    self.drag = Drag::Object(ObjectDrag {
                         gesture: Gesture::moving(Vec::new(), p),
                         preview: Preview { frames: Vec::new() },
                         end: None,
@@ -111,7 +119,7 @@ impl SheetDocument {
                     self.finish_shape_text()?;
                     let drag = kition_office_core::connect::EndDrag::start(&o, end, &self.drawing_objects());
                     let frame = drag.frame();
-                    self.object_drag = Some(ObjectDrag {
+                    self.drag = Drag::Object(ObjectDrag {
                         gesture: Gesture::moving(Vec::new(), p),
                         preview: Preview { frames: Vec::new() },
                         end: Some((drag, frame)),
@@ -124,7 +132,7 @@ impl SheetDocument {
                 {
                     self.finish_shape_text()?;
                     let gesture = Gesture::adjusting(o.id.clone(), o.frame, o.geometry.clone(), index);
-                    self.object_drag = Some(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None });
+                    self.drag = Drag::Object(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None });
                     return Ok(true);
                 }
                 if let Some(o) = self.selected_object().filter(|o| o.kind != ObjectKind::Ink)
@@ -135,7 +143,7 @@ impl SheetDocument {
                         HandleHit::Resize(i) => Gesture::resizing(o.id.clone(), i, o.frame, p),
                         HandleHit::Rotate => Gesture::rotating(vec![(o.id.clone(), o.frame)], &o.frame, p),
                     };
-                    self.object_drag = Some(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None });
+                    self.drag = Drag::Object(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None });
                     return Ok(true);
                 }
                 let objects = self.drawing_objects();
@@ -165,59 +173,12 @@ impl SheetDocument {
                 self.commit()?;
                 self.session.selected_shape = Some(id);
                 self.edits += 1;
-                self.object_drag = Some(ObjectDrag {
+                self.drag = Drag::Object(ObjectDrag {
                     gesture: Gesture::moving(vec![(hit.id.clone(), hit.frame)], p),
                     preview: Preview { frames: Vec::new() },
                     end: None,
                     create: None,
                 });
-                Ok(true)
-            }
-            PointerAction::Drag => {
-                let Some(drag) = self.object_drag.as_mut() else { return Ok(false) };
-                if let Some((end, frame)) = drag.end.as_mut() {
-                    *frame = end.drag(p, tol * 1.5).0;
-                } else if let Some((create, frame)) = drag.create.as_mut() {
-                    *frame = create.drag(p, tol * 1.5, mods.shift);
-                } else {
-                    drag.preview = drag.gesture.drag(p, mods, tol, None);
-                }
-                self.edits += 1;
-                Ok(true)
-            }
-            PointerAction::Up => {
-                let Some(drag) = self.object_drag.take() else { return Ok(false) };
-                self.edits += 1;
-                if let Some((end, _)) = &drag.end {
-                    self.session.execute("drawing.reconnect", end.release()).map_err(engine_error)?;
-                    return Ok(true);
-                }
-                if let Some((create, _)) = &drag.create {
-                    self.session.draw_shape = None;
-                    let (command, params, ends) = create.release();
-                    let made = self.session.execute(command, params).map_err(engine_error)?;
-                    let id = made.get("id").and_then(serde_json::Value::as_str).unwrap_or_default().to_string();
-                    for (end, at) in ends {
-                        let which = if end == 0 { "start" } else { "end" };
-                        self.session
-                            .execute("drawing.reconnect", json!({ "id": id, "end": which, "to": at.id, "site": at.site }))
-                            .map_err(engine_error)?;
-                    }
-                    // The new object is selected.
-                    self.session.selected_shape = id.parse().ok();
-                    return Ok(true);
-                }
-                match drag.gesture.release(&drag.preview) {
-                    Some(DrawingOp::Transform(FrameChange::Set(frames))) => {
-                        if let Some((id, frame)) = frames.first() {
-                            self.session.execute("drawing.transform", json!({ "ids": [id], "frame": frame })).map_err(engine_error)?;
-                        }
-                    }
-                    Some(DrawingOp::Format { ids, format }) => {
-                        self.session.execute("drawing.format", json!({ "ids": ids, "geometry": format.geometry })).map_err(engine_error)?;
-                    }
-                    _ => {}
-                }
                 Ok(true)
             }
             PointerAction::DoubleClick => {
@@ -235,65 +196,118 @@ impl SheetDocument {
                 self.edits += 1;
                 Ok(true)
             }
-            PointerAction::Move => Ok(false),
+            _ => Ok(false),
         }
     }
 
-    /// A key for drawing objects; `true` when it was theirs.
-    /// A pointer event while the Draw tab holds a pen or the eraser: it draws or erases ink
-    /// instead of selecting. `None` when no pen or eraser is in use.
-    fn ink_pointer(&mut self, event: &ToolPointer, p: Point) -> Result<Option<bool>, String> {
+    /// A drawing object's gesture follows the pointer: its preview changes, the object does not.
+    pub(crate) fn object_drag_to(&mut self, event: &ToolPointer) {
+        let p = sheet_point(event.x, event.y);
+        let tol = REACH_PX / event.zoom.max(0.05);
+        let mods = Mods { shift: event.mods.shift, alt: event.mods.alt };
+        let Drag::Object(drag) = &mut self.drag else { return };
+        if let Some((end, frame)) = drag.end.as_mut() {
+            *frame = end.drag(p, tol * 1.5).0;
+        } else if let Some((create, frame)) = drag.create.as_mut() {
+            *frame = create.drag(p, tol * 1.5, mods.shift);
+        } else {
+            drag.preview = drag.gesture.drag(p, mods, tol, None);
+        }
+        self.edits += 1;
+    }
+
+    /// The release runs the gesture's one command: a reconnected end, the shape drawn, or the
+    /// object's new frame or geometry.
+    pub(crate) fn object_release(&mut self, drag: ObjectDrag) -> Result<(), String> {
+        self.edits += 1;
+        if let Some((end, _)) = &drag.end {
+            self.session.execute("drawing.reconnect", end.release()).map_err(engine_error)?;
+            return Ok(());
+        }
+        if let Some((create, _)) = &drag.create {
+            self.session.draw_shape = None;
+            let (command, params, ends) = create.release();
+            let made = self.session.execute(command, params).map_err(engine_error)?;
+            let id = made.get("id").and_then(serde_json::Value::as_str).unwrap_or_default().to_string();
+            for (end, at) in ends {
+                let which = if end == 0 { "start" } else { "end" };
+                self.session.execute("drawing.reconnect", json!({ "id": id, "end": which, "to": at.id, "site": at.site })).map_err(engine_error)?;
+            }
+            // The new object is selected.
+            self.session.selected_shape = id.parse().ok();
+            return Ok(());
+        }
+        match drag.gesture.release(&drag.preview) {
+            Some(DrawingOp::Transform(FrameChange::Set(frames))) => {
+                if let Some((id, frame)) = frames.first() {
+                    self.session.execute("drawing.transform", json!({ "ids": [id], "frame": frame })).map_err(engine_error)?;
+                }
+            }
+            Some(DrawingOp::Format { ids, format }) => {
+                self.session.execute("drawing.format", json!({ "ids": ids, "geometry": format.geometry })).map_err(engine_error)?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    /// A press while the Draw tab holds a pen or the eraser begins a stroke or an erasing path
+    /// instead of selecting; other events with no stroke under way do nothing. `None` when no pen
+    /// or eraser is in use.
+    fn ink_press(&mut self, event: &ToolPointer, p: Point) -> Result<Option<bool>, String> {
         let tool = self.session.draw_tool.clone();
         let pen = InkTool::parse(&tool);
-        if pen.is_none() && tool != "eraser" && self.ink_drag.is_none() {
+        if pen.is_none() && tool != "eraser" {
             return Ok(None);
         }
-        let pressure = f64::from(event.pressure);
-        match event.action {
-            PointerAction::Down => {
-                self.finish_shape_text()?;
-                self.ink_drag = Some(match pen {
-                    Some(tool) => {
-                        let state = kition_sheet_engine::cmd::draw::draw_state(&self.session);
-                        let color = state["color"].as_str().and_then(|c| kition_office_core::model::Color::from_value(&json!(c)));
-                        let width = state["width"].as_f64().unwrap_or(2.0);
-                        InkDrag::Pen { gesture: InkGesture::start(tool, color, width, p, pressure), zoom: event.zoom }
-                    }
-                    None => InkDrag::Eraser { gesture: EraserGesture::start(p, kition_sheet_engine::cmd::ink::ERASER_RADIUS) },
-                });
-                self.edits += 1;
-                Ok(Some(true))
-            }
-            PointerAction::Drag => {
-                match self.ink_drag.as_mut() {
-                    Some(InkDrag::Pen { gesture, .. }) => gesture.drag(p, pressure),
-                    Some(InkDrag::Eraser { gesture }) => gesture.drag(p),
-                    None => return Ok(Some(false)),
-                }
-                self.edits += 1;
-                Ok(Some(true))
-            }
-            PointerAction::Up => {
-                self.edits += 1;
-                match self.ink_drag.take() {
-                    Some(InkDrag::Pen { gesture, .. }) => {
-                        self.session.execute("drawing.ink", json!({ "strokes": [gesture.release()] })).map_err(engine_error)?;
-                    }
-                    Some(InkDrag::Eraser { gesture }) => {
-                        let path: Vec<[f64; 2]> = gesture.path().iter().map(|q| [q.x, q.y]).collect();
-                        self.session.execute("drawing.erase", json!({ "path": path, "radius": gesture.radius })).map_err(engine_error)?;
-                    }
-                    None => return Ok(Some(false)),
-                }
-                Ok(Some(true))
-            }
-            _ => Ok(Some(self.ink_drag.is_some())),
+        if event.action != PointerAction::Down {
+            return Ok(Some(false));
         }
+        self.finish_shape_text()?;
+        let pressure = f64::from(event.pressure);
+        self.drag = Drag::Ink(match pen {
+            Some(tool) => {
+                let state = kition_sheet_engine::cmd::draw::draw_state(&self.session);
+                let color = state["color"].as_str().and_then(|c| kition_office_core::model::Color::from_value(&json!(c)));
+                let width = state["width"].as_f64().unwrap_or(2.0);
+                InkDrag::Pen { gesture: InkGesture::start(tool, color, width, p, pressure), zoom: event.zoom }
+            }
+            None => InkDrag::Eraser { gesture: EraserGesture::start(p, kition_sheet_engine::cmd::ink::ERASER_RADIUS) },
+        });
+        self.edits += 1;
+        Ok(Some(true))
+    }
+
+    /// The stroke (the eraser's path) follows the pointer.
+    pub(crate) fn ink_drag_to(&mut self, event: &ToolPointer) {
+        let p = sheet_point(event.x, event.y);
+        let pressure = f64::from(event.pressure);
+        match &mut self.drag {
+            Drag::Ink(InkDrag::Pen { gesture, .. }) => gesture.drag(p, pressure),
+            Drag::Ink(InkDrag::Eraser { gesture }) => gesture.drag(p),
+            _ => return,
+        }
+        self.edits += 1;
+    }
+
+    /// The release draws the stroke (`drawing.ink`) or erases along the path (`drawing.erase`).
+    pub(crate) fn ink_release(&mut self, drag: InkDrag) -> Result<(), String> {
+        self.edits += 1;
+        match drag {
+            InkDrag::Pen { gesture, .. } => {
+                self.session.execute("drawing.ink", json!({ "strokes": [gesture.release()] })).map_err(engine_error)?;
+            }
+            InkDrag::Eraser { gesture } => {
+                let path: Vec<[f64; 2]> = gesture.path().iter().map(|q| [q.x, q.y]).collect();
+                self.session.execute("drawing.erase", json!({ "path": path, "radius": gesture.radius })).map_err(engine_error)?;
+            }
+        }
+        Ok(())
     }
 
     /// The stroke being drawn, or the eraser's path.
     pub(crate) fn ink_overlays(&self, out: &mut Vec<ToolOverlay>) {
-        let Some(drag) = &self.ink_drag else { return };
+        let Drag::Ink(drag) = &self.drag else { return };
         let path = |pts: &mut dyn Iterator<Item = Point>| {
             let mut d = String::new();
             for (i, q) in pts.enumerate() {
@@ -325,23 +339,13 @@ impl SheetDocument {
     pub(crate) fn escape_cancels(&self) -> bool {
         self.editing.is_some()
             || self.shape_edit.is_some()
-            || self.ink_drag.is_some()
-            || self.object_drag.is_some()
+            || self.drag.cancels()
             || self.session.draw_shape.is_some()
             || self.selected_object().is_some()
             || self.session.format_painter.is_some()
     }
 
     pub(crate) fn object_key(&mut self, key: &str, mods: ToolMods) -> Result<bool, String> {
-        if key == "Escape" && self.ink_drag.take().is_some() {
-            self.edits += 1;
-            return Ok(true);
-        }
-        if key == "Escape" && self.object_drag.take().is_some() {
-            self.session.draw_shape = None;
-            self.edits += 1;
-            return Ok(true);
-        }
         // Escape puts down a shape chosen to draw.
         if key == "Escape" && self.session.draw_shape.take().is_some() {
             self.edits += 1;
@@ -506,7 +510,7 @@ impl SheetDocument {
     /// being typed.
     pub(crate) fn object_overlays(&self, out: &mut Vec<ToolOverlay>) {
         // A shape being drawn: its outline (a line, or its box) as it would be.
-        if let Some((create, f)) = self.object_drag.as_ref().and_then(|d| d.create.as_ref()) {
+        if let Some((create, f)) = self.object_gesture().and_then(|d| d.create.as_ref()) {
             let d = if kition_office_core::connect::is_line_preset(&create.preset) {
                 let (p0, p1) = kition_office_core::connect::line_ends(f);
                 let ([x0, y0], [x1, y1]) = (canvas(p0), canvas(p1));
@@ -529,7 +533,7 @@ impl SheetDocument {
             )
         };
         // A connector's end under way: the line as it would be.
-        if let Some((_, f)) = self.object_drag.as_ref().and_then(|d| d.end.as_ref()) {
+        if let Some((_, f)) = self.object_gesture().and_then(|d| d.end.as_ref()) {
             let (p0, p1) = kition_office_core::connect::line_ends(f);
             let ([x0, y0], [x1, y1]) = (canvas(p0), canvas(p1));
             out.push(ToolOverlay::Path { d: format!("M{x0:.1},{y0:.1} L{x1:.1},{y1:.1}"), color: ACCENT, width: 1.5, dashed: false });
@@ -539,13 +543,13 @@ impl SheetDocument {
             return;
         }
         // An adjust handle under way: the shape's new outline.
-        if let Some((_, path)) = self.object_drag.as_ref().and_then(|d| d.gesture.preview_outline()) {
+        if let Some((_, path)) = self.object_gesture().and_then(|d| d.gesture.preview_outline()) {
             let shifted = kition_office_core::kurbo::Affine::translate((HEADER_W, HEADER_H)) * path;
             out.push(ToolOverlay::Path { d: quad(&o.frame), color: ACCENT, width: 1.0, dashed: true });
             out.push(ToolOverlay::Path { d: shifted.to_svg(), color: ACCENT, width: 1.5, dashed: false });
             return;
         }
-        let preview = self.object_drag.as_ref().and_then(|d| d.preview.frames.first().map(|(_, f)| *f));
+        let preview = self.object_gesture().and_then(|d| d.preview.frames.first().map(|(_, f)| *f));
         out.push(ToolOverlay::Path { d: quad(&o.frame), color: ACCENT, width: 1.0, dashed: preview.is_some() });
         if let Some(f) = preview {
             out.push(ToolOverlay::Path { d: quad(&f), color: ACCENT, width: 1.5, dashed: false });

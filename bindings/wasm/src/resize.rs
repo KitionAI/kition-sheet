@@ -50,33 +50,10 @@ impl SheetDocument {
         None
     }
 
-    /// Takes a pointer event that resizes a column or row; answers whether it did.
-    pub(crate) fn resize_pointer(&mut self, event: &ToolPointer) -> Result<bool, String> {
-        if let Some(resize) = self.resize.as_mut() {
-            match event.action {
-                PointerAction::Drag | PointerAction::Move => {
-                    let at = if resize.rows { event.y } else { event.x };
-                    resize.size = (at - resize.start).clamp(0.0, if resize.rows { MAX_HEIGHT } else { MAX_WIDTH }).round();
-                }
-                PointerAction::Up => {
-                    if let Some(resize) = self.resize.take()
-                        && (resize.size - resize.from).abs() >= 1.0
-                    {
-                        let lines = self.resize_lines(resize.rows, resize.line);
-                        let (command, params) = if resize.rows {
-                            ("row.setHeight", json!({ "rows": lines, "height": resize.size }))
-                        } else {
-                            ("column.setWidth", json!({ "cols": lines, "width": resize.size }))
-                        };
-                        self.session.execute(command, params).map_err(engine_error)?;
-                    }
-                }
-                PointerAction::Down | PointerAction::DoubleClick => self.resize = None,
-            }
-            if self.resize.is_some() || event.action == PointerAction::Up {
-                return Ok(true);
-            }
-        }
+    /// A press (or a double-click) on the line after a column's heading (below a row's) begins a
+    /// resize (fits the column or row); hovering there shows the resize cursor. Answers whether
+    /// the event was the headings' line's.
+    pub(crate) fn resize_press(&mut self, event: &ToolPointer) -> Result<bool, String> {
         let Some((rows, line)) = self.heading_edge(event.x, event.y, event.zoom) else {
             self.edge_hover = None;
             return Ok(false);
@@ -91,7 +68,7 @@ impl SheetDocument {
                 } else {
                     (header_w(sheet) + view::left(sheet, line), view::col_w(sheet, line) as f64)
                 };
-                self.resize = Some(Resize { rows, line, start, from: size, size });
+                self.drag = Drag::Resize(Resize { rows, line, start, from: size, size });
                 Ok(true)
             }
             PointerAction::DoubleClick => {
@@ -104,6 +81,28 @@ impl SheetDocument {
             // Hovering shows the cursor; the rest is the grid's.
             _ => Ok(false),
         }
+    }
+
+    /// The guide line follows the pointer.
+    pub(crate) fn resize_drag_to(&mut self, event: &ToolPointer) {
+        if let Drag::Resize(resize) = &mut self.drag {
+            let at = if resize.rows { event.y } else { event.x };
+            resize.size = (at - resize.start).clamp(0.0, if resize.rows { MAX_HEIGHT } else { MAX_WIDTH }).round();
+        }
+    }
+
+    /// The release sets the new size, on every selected whole column or row the line belongs to.
+    pub(crate) fn resize_release(&mut self, resize: Resize) -> Result<(), String> {
+        if (resize.size - resize.from).abs() < 1.0 {
+            return Ok(());
+        }
+        let lines = self.resize_lines(resize.rows, resize.line);
+        let (command, params) = if resize.rows {
+            ("row.setHeight", json!({ "rows": lines, "height": resize.size }))
+        } else {
+            ("column.setWidth", json!({ "cols": lines, "width": resize.size }))
+        };
+        self.session.execute(command, params).map(|_| ()).map_err(engine_error)
     }
 
     /// The columns (else rows) a resize of `line` sets: the selected whole ones when `line` is
@@ -120,7 +119,11 @@ impl SheetDocument {
 
     /// The cursor over the headings' lines and during a resize.
     pub(crate) fn resize_cursor(&self) -> Option<&'static str> {
-        match self.resize.as_ref().map(|r| r.rows).or(self.edge_hover) {
+        let resizing = match &self.drag {
+            Drag::Resize(resize) => Some(resize.rows),
+            _ => None,
+        };
+        match resizing.or(self.edge_hover) {
             Some(true) => Some("ns-resize"),
             Some(false) => Some("ew-resize"),
             None => None,
@@ -129,7 +132,7 @@ impl SheetDocument {
 
     /// The guide line where the resized column or row will end, across the grid.
     pub(crate) fn resize_overlays(&self, out: &mut Vec<ToolOverlay>) {
-        let (Some(resize), Some((_, sheet))) = (self.resize.as_ref(), self.sheet()) else { return };
+        let (Drag::Resize(resize), Some((_, sheet))) = (&self.drag, self.sheet()) else { return };
         let (cols, rows) = self.extent();
         let at = resize.start + resize.size;
         let d = if resize.rows {

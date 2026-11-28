@@ -77,69 +77,65 @@ impl SheetDocument {
         (near_side && along_y) || (near_edge && along_x)
     }
 
-    /// Takes a pointer event that moves the selection by its border; answers whether it did.
-    pub(crate) fn move_pointer(&mut self, event: &ToolPointer) -> Result<bool, String> {
+    /// A press on the selection's border begins moving it; hovering there shows the move cursor
+    /// (the copy cursor with Cmd/Ctrl or Option held). Answers whether the press was the border's.
+    pub(crate) fn move_press(&mut self, event: &ToolPointer) -> Result<bool, String> {
         let copy = event.mods.command || event.mods.control || event.mods.alt;
-        if self.move_drag.is_some() {
-            match event.action {
-                PointerAction::Drag | PointerAction::Move => {
-                    let target = self.move_target(event);
-                    if let Some(drag) = self.move_drag.as_mut()
-                        && target.is_some()
-                    {
-                        drag.target = target;
-                    }
-                    self.move_hover = Some(copy);
-                    self.edits += 1;
-                    return Ok(true);
-                }
-                PointerAction::Up => {
-                    self.move_hover = None;
-                    self.edits += 1;
-                    let Some(drag) = self.move_drag.take() else { return Ok(true) };
-                    let moved = (event.x - drag.press.0).abs() > 2.0 || (event.y - drag.press.1).abs() > 2.0;
-                    let target = self.move_target(event).or(drag.target);
-                    match target {
-                        Some(target) if moved => self.drop_block(drag.from, target)?,
-                        // Pressed and released in place: a click on the cell there.
-                        _ => {
-                            if let Hit::Cell(cell) = self.hit(drag.press.0, drag.press.1) {
-                                self.select(RangeRef::new(cell, cell), cell)?;
-                            }
-                        }
-                    }
-                    return Ok(true);
-                }
-                PointerAction::Down | PointerAction::DoubleClick => self.move_drag = None,
-            }
-        }
         let on = self.on_selection_border(event.x, event.y, event.zoom);
         self.move_hover = on.then_some(copy);
-        if !on {
+        if !on || event.action != PointerAction::Down {
+            // Hovering shows the cursor; the rest is the grid's.
             return Ok(false);
         }
-        match event.action {
-            PointerAction::Down => {
-                let Some(from) = self.movable() else { return Ok(false) };
-                let cell = match self.hit(event.x, event.y) {
-                    Hit::Cell(cell) => cell,
-                    _ => return Ok(false),
-                };
-                // The pointer's cell, clamped into the block (the border is shared with the cells round it).
-                let inside = CellRef::new(cell.row.clamp(from.start.row, from.end.row), cell.col.clamp(from.start.col, from.end.col));
-                let grab = (i64::from(inside.row) - i64::from(from.start.row), i64::from(inside.col) - i64::from(from.start.col));
-                self.move_drag = Some(MoveDrag { from, grab, press: (event.x, event.y), target: None });
-                self.edits += 1;
-                Ok(true)
+        let Some(from) = self.movable() else { return Ok(false) };
+        let cell = match self.hit(event.x, event.y) {
+            Hit::Cell(cell) => cell,
+            _ => return Ok(false),
+        };
+        // The pointer's cell, clamped into the block (the border is shared with the cells round it).
+        let inside = CellRef::new(cell.row.clamp(from.start.row, from.end.row), cell.col.clamp(from.start.col, from.end.col));
+        let grab = (i64::from(inside.row) - i64::from(from.start.row), i64::from(inside.col) - i64::from(from.start.col));
+        self.drag = Drag::Move(MoveDrag { from, grab, press: (event.x, event.y), target: None });
+        self.edits += 1;
+        Ok(true)
+    }
+
+    /// The landing place follows the pointer.
+    pub(crate) fn move_drag_to(&mut self, event: &ToolPointer) {
+        let copy = event.mods.command || event.mods.control || event.mods.alt;
+        let target = match &self.drag {
+            Drag::Move(drag) => self.move_target(drag, event),
+            _ => return,
+        };
+        if let Drag::Move(drag) = &mut self.drag
+            && target.is_some()
+        {
+            drag.target = target;
+        }
+        self.move_hover = Some(copy);
+        self.edits += 1;
+    }
+
+    /// The release drops the block where it lands; pressed and released in place, it is a click
+    /// on the cell there.
+    pub(crate) fn move_release(&mut self, drag: MoveDrag, event: &ToolPointer) -> Result<(), String> {
+        self.move_hover = None;
+        self.edits += 1;
+        let moved = (event.x - drag.press.0).abs() > 2.0 || (event.y - drag.press.1).abs() > 2.0;
+        let target = self.move_target(&drag, event).or(drag.target);
+        match target {
+            Some(target) if moved => self.drop_block(drag.from, target),
+            _ => {
+                if let Hit::Cell(cell) = self.hit(drag.press.0, drag.press.1) {
+                    self.select(RangeRef::new(cell, cell), cell)?;
+                }
+                Ok(())
             }
-            // Hovering shows the cursor; the rest is the grid's.
-            _ => Ok(false),
         }
     }
 
     /// Where the dragged block would land with the pointer at `event`.
-    fn move_target(&self, event: &ToolPointer) -> Option<Target> {
-        let drag = self.move_drag.as_ref()?;
+    fn move_target(&self, drag: &MoveDrag, event: &ToolPointer) -> Option<Target> {
         let (_, sheet) = self.sheet()?;
         let from = drag.from;
         let (rows, cols) = (from.is_full_rows(), from.is_full_cols());
@@ -211,7 +207,8 @@ impl SheetDocument {
 
     /// The cursor over the selection's border and while it is dragged.
     pub(crate) fn move_cursor(&self) -> Option<&'static str> {
-        match self.move_hover.or(self.move_drag.as_ref().map(|_| false)) {
+        let moving = matches!(self.drag, Drag::Move(_)).then_some(false);
+        match self.move_hover.or(moving) {
             Some(true) => Some("copy"),
             Some(false) => Some("move"),
             None => None,
@@ -221,7 +218,7 @@ impl SheetDocument {
     /// Where the dragged block would land: a dashed frame, or with Shift a thick line where it
     /// goes in between the cells.
     pub(crate) fn move_overlays(&self, out: &mut Vec<ToolOverlay>) {
-        let Some(drag) = self.move_drag.as_ref() else { return };
+        let Drag::Move(drag) = &self.drag else { return };
         let Some(target) = drag.target else { return };
         let from = drag.from;
         let end = target.to.offset_clamped(i64::from(from.height()) - 1, i64::from(from.width()) - 1);
@@ -237,7 +234,7 @@ impl SheetDocument {
 
     /// The range the dragged block would land on (the status bar shows it), if one is dragged.
     pub(crate) fn move_status(&self) -> Option<String> {
-        let drag = self.move_drag.as_ref()?;
+        let Drag::Move(drag) = &self.drag else { return None };
         let target = drag.target?;
         let end = target.to.offset_clamped(i64::from(drag.from.height()) - 1, i64::from(drag.from.width()) - 1);
         let range = RangeRef::new(target.to, end);

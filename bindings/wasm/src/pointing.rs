@@ -79,7 +79,7 @@ impl SheetDocument {
             crate::Hit::Row(row) => self.point_at(CellRef::new(row, 0), CellRef::new(row, MAX_COLS - 1), Some(false)),
             _ => return false,
         }
-        self.point_drag = true;
+        self.drag = crate::Drag::Point;
         true
     }
 

@@ -35,6 +35,7 @@ mod files;
 mod fill_read_premises;
 mod format_premises;
 mod formula;
+mod gesture;
 mod icons;
 mod ids;
 
@@ -64,6 +65,7 @@ mod view_read_premises;
 
 use draw::{Canvas, Faces, Line, Rect, Rgba};
 use edit::Edit;
+use gesture::Drag;
 use image::ImageEncoder as _;
 use kition_kit::raster::{self, Frame};
 use kition_kit::tools::{KitTools, PointerAction, ToolInfo, ToolMods, ToolOverlay, ToolPointer, ToolRequest, ToolResponse};
@@ -146,26 +148,16 @@ pub struct SheetDocument {
     drawn: u64,
     /// The pointer is over the cell being typed (or selecting its characters): the text cursor.
     text_hover: bool,
-    /// A drag that started in the grid.
-    dragging: bool,
-    /// A drag that selects characters of the cell being typed.
-    selecting: bool,
+    /// The gesture a press began, until its release ends it.
+    drag: Drag,
     /// The text of the shape being typed (`objects`).
     shape_edit: Option<objects::ShapeEdit>,
-    /// A drawing object's move, resize or turn under way (`objects`).
-    object_drag: Option<objects::ObjectDrag>,
-    /// A pen stroke or an eraser drag under way (Draw tab, `objects`).
-    ink_drag: Option<objects::InkDrag>,
     /// Drawing objects added to the selection with Shift (for Group), besides the selected one.
     also_selected: Vec<u32>,
-    /// A column width or row height being dragged (`resize`).
-    resize: Option<resize::Resize>,
     /// The pointer is on the line after a row's heading (`true`) or a column's.
     edge_hover: Option<bool>,
     /// The reference being pointed at while a formula is typed (`pointing`).
     point: Option<pointing::Pointing>,
-    /// A drag that points at cells for the formula being typed.
-    point_drag: bool,
     /// The sheet and cell of the formula being typed while another sheet is shown to point at.
     edit_home: Option<(usize, CellRef)>,
     /// The function chosen in the function list.
@@ -178,8 +170,6 @@ pub struct SheetDocument {
     dialog_asked: (u64, Option<(String, Json, String)>),
     /// The rows and columns a freeze the Freeze Panes menu points at would freeze (a preview).
     freeze_preview: Option<(u32, u32)>,
-    /// A press with the format painter up: the range selected by the release is painted.
-    painting: bool,
     /// Where the view is scrolled to (document points of its top-left, `editor.viewport`): a
     /// freeze starts at the cell shown there.
     view_at: (f64, f64),
@@ -188,8 +178,6 @@ pub struct SheetDocument {
     /// The cell being typed began with what Insert put in (Insert Function, a symbol): entered,
     /// it does not make a table beside it larger (TS-C60), as typing does.
     edit_inserted: bool,
-    /// A drag of the selection's border under way (`moving`).
-    move_drag: Option<moving::MoveDrag>,
     /// The pointer is over the selection's border: with Cmd/Ctrl held (a copy) or not.
     move_hover: Option<bool>,
     /// What was typed is held by its cell's data validation (`validation`): the rule's error style
@@ -534,26 +522,19 @@ impl SheetDocument {
             schemes: 0,
             drawn: 0,
             text_hover: false,
-            dragging: false,
-            selecting: false,
+            drag: Drag::None,
             shape_edit: None,
-            object_drag: None,
-            ink_drag: None,
             also_selected: Vec::new(),
-            resize: None,
             edge_hover: None,
             point: None,
-            point_drag: false,
             edit_home: None,
             hint_pick: 0,
             zoom_asked: 0,
             dialog_asked: (0, None),
             freeze_preview: None,
-            painting: false,
             view_at: (0.0, 0.0),
             notice: (0, None),
             edit_inserted: false,
-            move_drag: None,
             move_hover: None,
             validation_held: None,
             tab_run: None,
@@ -2915,17 +2896,34 @@ impl KitTools for SheetDocument {
         // In the cell being typed: a press places the caret (Shift extends), a drag selects, a
         // double-click selects a word.
         let typing_at = self.edit_index(event.x, event.y, false);
-        self.text_hover = typing_at.is_some() || self.selecting;
-        // Otherwise drawing objects come before the cells under them.
-        let in_cell_text = typing_at.is_some() && matches!(event.action, PointerAction::Down | PointerAction::DoubleClick) || self.selecting;
-        if !in_cell_text && !self.dragging && self.resize_pointer(event)? {
+        self.text_hover = typing_at.is_some() || matches!(self.drag, Drag::Text);
+        // A gesture under way takes the moves and the release; a press without a release before
+        // it drops the gesture and begins anew.
+        if !matches!(self.drag, Drag::None) {
+            match event.action {
+                PointerAction::Drag | PointerAction::Move => {
+                    self.drag_to(event, hit)?;
+                    return Ok(self.respond());
+                }
+                PointerAction::Up => {
+                    self.release(event)?;
+                    return Ok(self.respond());
+                }
+                PointerAction::Down | PointerAction::DoubleClick => self.drag = Drag::None,
+            }
+        }
+        // A press goes to the first that takes it, in this order: the cell being typed, the lines
+        // between headings, drawing objects (over the cells), the selection's border, a filter
+        // button, then the cells and headings. Hovering shows the cursor of the one under it.
+        let in_cell_text = typing_at.is_some() && matches!(event.action, PointerAction::Down | PointerAction::DoubleClick);
+        if !in_cell_text && self.resize_press(event)? {
             return Ok(self.respond());
         }
-        if !in_cell_text && self.object_pointer(event)? {
+        if !in_cell_text && self.object_press(event)? {
             return Ok(self.respond());
         }
         // The selection's border moves it (WPS, Excel); a filter button opens its list.
-        if !in_cell_text && !self.dragging && self.move_pointer(event)? {
+        if !in_cell_text && self.move_press(event)? {
             return Ok(self.respond());
         }
         if !in_cell_text && event.action == PointerAction::Down && !event.mods.shift && self.filter_button_press(event.x, event.y) {
@@ -2938,140 +2936,13 @@ impl KitTools for SheetDocument {
                     edit.move_to(at, event.mods.shift);
                     // A click into the text ends pointing.
                     self.point = None;
-                    self.selecting = true;
+                    self.drag = Drag::Text;
                     self.edits += 1;
                 }
             }
             // Typing a formula where a reference can go: the cell (or heading) pressed is pointed at.
             PointerAction::Down if self.point_press(hit, event.mods.shift) => {}
-            PointerAction::Down => {
-                self.tab_run = None;
-                // A formula typed for another sheet's cell goes in, and its sheet shows again.
-                let elsewhere = self.editing_elsewhere();
-                self.commit()?;
-                // What its cell's validation holds stays there until the person answers.
-                if elsewhere || self.editing.is_some() {
-                    return Ok(self.respond());
-                }
-                self.dragging = true;
-                // With the format painter up, the cells (rows, columns) pressed and dragged over are
-                // painted when the button goes up.
-                self.painting = self.session.format_painter.is_some() && matches!(hit, Hit::Cell(_) | Hit::Row(_) | Hit::Column(_) | Hit::All);
-                // A press on a checkbox's box ticks or clears it (beside the box: only selects).
-                let ticked = if self.painting || event.mods.shift || event.mods.command || event.mods.control {
-                    None
-                } else {
-                    self.checkbox_at(event.x, event.y)
-                };
-                match hit {
-                    Hit::Cell(cell) if event.mods.shift => {
-                        let anchor = self.session.active().map(|st| st.selection.anchor).unwrap_or(cell);
-                        self.select(RangeRef::new(anchor, cell), anchor)?;
-                    }
-                    // Cmd+click (Ctrl+click) on a selected cell takes it out of the selection (WPS
-                    // W-A6); the press is not a drag.
-                    Hit::Cell(cell) if (event.mods.command || event.mods.control) && !self.painting && self.deselect(cell)? => {
-                        self.dragging = false;
-                    }
-                    // Cmd+click (Ctrl+click) adds a cell to the selection, a drag from it a range
-                    // (WPS, Excel); it becomes the active cell.
-                    Hit::Cell(cell) if (event.mods.command || event.mods.control) && !self.painting => {
-                        let mut ranges = self.session.active().map(|st| st.selection.a1()).unwrap_or_default();
-                        if !ranges.is_empty() {
-                            ranges.push(',');
-                        }
-                        ranges.push_str(&cell.a1());
-                        self.session.execute("select.set", json!({ "range": ranges, "active": cell.a1() })).map_err(engine_error)?;
-                        if let Ok(st) = self.session.doc_mut() {
-                            st.selection.anchor = cell;
-                        }
-                    }
-                    Hit::Cell(cell) => {
-                        self.select(RangeRef::new(cell, cell), cell)?;
-                        if let Some(at) = ticked {
-                            self.toggle_checkbox(at)?;
-                        }
-                    }
-                    // Shift+click on a heading extends from the selection's anchor to that column or row.
-                    Hit::Column(col) if event.mods.shift => {
-                        let anchor = self.session.active().map(|st| st.selection.anchor).unwrap_or_default();
-                        self.select(RangeRef::cols(anchor.col.min(col), anchor.col.max(col)), CellRef::new(0, anchor.col))?;
-                    }
-                    Hit::Row(row) if event.mods.shift => {
-                        let anchor = self.session.active().map(|st| st.selection.anchor).unwrap_or_default();
-                        self.select(RangeRef::rows(anchor.row.min(row), anchor.row.max(row)), CellRef::new(anchor.row, 0))?;
-                    }
-                    // Cmd+click (Ctrl+click) on a heading adds its column or row, a drag from it more
-                    // (WPS W-A6; walkthrough B8).
-                    Hit::Column(col) if (event.mods.command || event.mods.control) && !self.painting => {
-                        self.add_area(RangeRef::cols(col, col), CellRef::new(0, col))?;
-                    }
-                    Hit::Row(row) if (event.mods.command || event.mods.control) && !self.painting => {
-                        self.add_area(RangeRef::rows(row, row), CellRef::new(row, 0))?;
-                    }
-                    Hit::Column(col) => self.select(RangeRef::new(CellRef::new(0, col), CellRef::new(MAX_ROWS - 1, col)), CellRef::new(0, col))?,
-                    Hit::Row(row) => self.select(RangeRef::new(CellRef::new(row, 0), CellRef::new(row, MAX_COLS - 1)), CellRef::new(row, 0))?,
-                    // The corner selects the whole sheet (Cmd+A first takes the region around the active cell).
-                    Hit::All => self.select(RangeRef::all(), self.active())?,
-                    Hit::Group { rows, start, end, hidden } => {
-                        self.dragging = false;
-                        self.toggle_group(rows, start, end, hidden)?;
-                    }
-                    Hit::Level { rows, level } => {
-                        self.dragging = false;
-                        self.show_level(rows, level)?;
-                    }
-                    Hit::Gutter => self.dragging = false,
-                }
-            }
-            PointerAction::Drag if self.selecting => {
-                // Only a caret that moved repaints: the drag reports far more often than it
-                // crosses a character, and each repaint draws the whole view again.
-                if let Some(at) = self.edit_index(event.x, event.y, true)
-                    && let Some(edit) = self.editing.as_mut()
-                    && at != edit.caret
-                {
-                    edit.move_to(at, true);
-                    self.edits += 1;
-                }
-            }
-            PointerAction::Drag if self.point_drag => self.point_drag_to(hit),
-            PointerAction::Drag if self.dragging => {
-                if let Ok(st) = self.session.doc_mut() {
-                    let current = st.selection.current();
-                    let anchor = st.selection.anchor;
-                    let to = match hit {
-                        Hit::Cell(cell) => Some(cell),
-                        Hit::Row(row) => Some(CellRef::new(row, anchor.col)),
-                        Hit::Column(col) => Some(CellRef::new(anchor.row, col)),
-                        _ => None,
-                    };
-                    // A drag that began on a heading selects whole rows or columns.
-                    let lines = match (current.is_full_rows(), current.is_full_cols(), to) {
-                        (true, false, Some(to)) => Some(RangeRef::rows(anchor.row.min(to.row), anchor.row.max(to.row))),
-                        (false, true, Some(to)) => Some(RangeRef::cols(anchor.col.min(to.col), anchor.col.max(to.col))),
-                        _ => None,
-                    };
-                    match (lines, hit) {
-                        (Some(range), _) => {
-                            if let Some(last) = st.selection.ranges.last_mut() {
-                                *last = range;
-                            }
-                        }
-                        (None, Hit::Cell(cell)) => st.selection.extend_to(cell),
-                        _ => {}
-                    }
-                }
-            }
-            PointerAction::Up => {
-                self.dragging = false;
-                self.selecting = false;
-                self.point_drag = false;
-                if std::mem::take(&mut self.painting) && self.session.format_painter.is_some() {
-                    let range = self.session.active().map(|st| st.selection.current()).unwrap_or_default();
-                    self.session.execute("edit.formatPainter", json!({ "apply": range.a1() })).map_err(engine_error)?;
-                }
-            }
+            PointerAction::Down => self.select_press(event, hit)?,
             PointerAction::DoubleClick => {
                 if let (Some(edit), Some(at)) = (self.editing.as_mut(), typing_at) {
                     edit.select_word(at);
@@ -3090,6 +2961,10 @@ impl KitTools for SheetDocument {
     }
 
     fn key(&mut self, key: &str, mods: ToolMods, _zoom: f64) -> Result<ToolResponse, String> {
+        // Escape drops a gesture under way (the editor also sends it for a pointer taken away).
+        if key == "Escape" && self.escape_drag() {
+            return Ok(self.respond());
+        }
         if self.editing.is_none() && self.object_key(key, mods)? {
             return Ok(self.respond());
         }
@@ -3156,7 +3031,6 @@ impl KitTools for SheetDocument {
         }
         if key == "Escape" && self.session.format_painter.is_some() {
             self.session.format_painter = None;
-            self.painting = false;
             self.edits += 1;
             return Ok(self.respond());
         }
