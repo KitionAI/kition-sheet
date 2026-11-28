@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CheckIcon as Check, ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, SquareFunctionIcon as FunctionSquare, XIcon as X } from '@kition/tessera/icons/react'
 import { IconButton, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { backToGrid, type SheetInfo } from './sheet'
+import { focusGrid } from './focus'
 import { FormulaText } from './FormulaText'
 import { HintPanel, type FormulaHint } from './FormulaHints'
 import { openInsertFunction } from './InsertFunction'
@@ -48,6 +49,8 @@ export function FormulaBar({ info }: { info: SheetInfo }) {
   // A checkbox cell is not typed in (WPS): the field shows its TRUE or FALSE and stays shut.
   const readOnly = viewer || (info.checkbox && !info.editing)
   const [reference, setReference] = useState<string | null>(null)
+  /** The Name Box was just focused (its click's mouseup leaves the selection as it is). */
+  const nameBoxFocused = useRef(false)
   const field = useRef<HTMLTextAreaElement>(null)
   // What the person is typing here, while the field has the keyboard; otherwise the field shows
   // the cell being typed (`editText`, which pointing changes) or the active cell's content.
@@ -223,7 +226,16 @@ export function FormulaBar({ info }: { info: SheetInfo }) {
         value={reference ?? place}
         aria-label={t('nameBox')}
         spellCheck={false}
-        onFocus={(event) => event.target.select()}
+        onFocus={(event) => {
+          event.target.select()
+          nameBoxFocused.current = true
+        }}
+        // The click that focused it keeps the whole reference selected, so typing replaces it
+        // (WebKit's mouseup otherwise puts the caret where it was clicked).
+        onMouseUp={(event) => {
+          if (nameBoxFocused.current) event.preventDefault()
+          nameBoxFocused.current = false
+        }}
         onChange={(event) => setReference(event.target.value)}
         onBlur={() => setReference(null)}
         onKeyDown={(event) => {
@@ -232,12 +244,15 @@ export function FormulaBar({ info }: { info: SheetInfo }) {
             if (info.editing) void run('editor.formula', { enter: 'stay' })
             void run('edit.goTo', { reference: reference.trim() })
             setReference(null)
-            event.currentTarget.blur()
+            // Typing goes on in the cell gone to (walkthrough K2: the keyboard was left on the
+            // body); the Enter itself types nothing there.
+            event.preventDefault()
+            if (!focusGrid()) event.currentTarget.blur()
           } else if (event.key === 'Escape') {
             // What this Escape cancelled: the reference being typed.
             event.preventDefault()
             setReference(null)
-            event.currentTarget.blur()
+            if (!focusGrid()) event.currentTarget.blur()
           }
         }}
         data-testid="sheet-name-box"

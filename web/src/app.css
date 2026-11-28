@@ -1299,3 +1299,44 @@
   grid-column: 1;
   grid-row: 2;
 }
+
+/*
+ * Single line's row hides each control of a group not marked primary (Tessera's
+ * `.kui-line-inline :is(button, select, input, label):not([data-primary], …)`), and the rule reaches
+ * into the menus a row button opens, which render inside the row: Paste, Merge & Center, AutoSum,
+ * Sort, Shapes, Chart and Symbol opened as an empty box (walkthrough G1). A menu shows whole.
+ */
+.kui-line-inline .kui-popover :is(button, select, input, label) {
+  display: revert;
+}
+.kui-line-inline .kui-popover .kui-menu-item,
+.kui-line-inline .kui-popover .kui-gallery-item {
+  display: flex;
+}
+.kui-line-inline .kui-popover :is(.kui-ribbon-button, .kui-button, .kui-icon-button, .sheet-table-item, .sheet-table-swatch) {
+  display: inline-flex;
+}
+
+/* The status bar's zoom percentage opens the zoom choices (plan 0A; walkthrough A10). */
+.sheet-zoom-value {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 4px;
+  border-radius: var(--kit-radius-control);
+  cursor: pointer;
+}
+.sheet-zoom-value:hover,
+.sheet-zoom-value[aria-expanded='true'] {
+  background: var(--kui-hover);
+}
+.sheet-zoom-custom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+}
+.sheet-zoom-field {
+  width: 52px;
+}

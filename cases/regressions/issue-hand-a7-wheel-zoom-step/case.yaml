@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-a7-wheel-zoom-step
+feature: sheet.editor.keyboard-and-zoom
+intent: "A mouse wheel notch with Ctrl or Cmd zooms 15 points (100% → 115% → 130%, back 115%, 100%, 85%), as WPS does (a notch zoomed 2.72 times; walkthrough A7)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/zoom.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/zoom.mjs, chromium, a7-wheel-zoom-step]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

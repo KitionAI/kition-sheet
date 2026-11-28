@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-i2-redo-key
+feature: sheet.editor.keyboard-and-zoom
+intent: "Cmd+Shift+Z redoes as Cmd+Y does, as WPS has it (it did nothing; walkthrough I2)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/keys.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/keys.mjs, chromium, i2-redo-key]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

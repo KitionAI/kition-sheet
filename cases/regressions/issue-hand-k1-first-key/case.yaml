@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-k1-first-key
+feature: sheet.editor.keyboard-and-zoom
+intent: "Typing right after the workbook opens, before any click, goes into the active cell A1 and Enter moves down (the keyboard stayed on the page's body until a cell was clicked; walkthrough K1)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/focus.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/focus.mjs, chromium, k1-first-key]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-a8-cmd-0-hides-column
+feature: sheet.editor.keyboard-and-zoom
+intent: "Cmd+0 hides the selected columns and Cmd+Shift+0 shows them, as the menus say and WPS does, and the zoom stays (Cmd+0 fitted the whole sheet into the window, 36% or less; walkthrough A8, H4)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/keys.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/keys.mjs, chromium, a8-cmd-0-hides-column]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

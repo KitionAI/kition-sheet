@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-a9-view-zoom
+feature: sheet.editor.keyboard-and-zoom
+intent: "View › Zoom opens the zoom choices (presets and a typed percentage) and zooms the view, with no parameters dialog and no error (it reported \"missing `percent`\"; walkthrough A9, A10)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/zoom.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/zoom.mjs, chromium, a9-view-zoom]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-g1-single-line-menus
+feature: sheet.editor.keyboard-and-zoom
+intent: "In the default Single line mode the menus a row button opens show their items and a choice works: Home's Paste, Merge & Center, AutoSum and Sort, Insert's Shapes, Chart and Symbol (Tessera's row rule hid every control inside them, so they opened as an empty box; walkthrough G1)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/menus.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/menus.mjs, chromium, g1-single-line-menus]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

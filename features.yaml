@@ -688,6 +688,16 @@ features:
     gap: "圈释无效数据 draws no circles in the editor (the command lists the cells); a list from another sheet's range follows the engine's evaluation without WPS's refusal of whole-column sources."
     cases: [sheet.editor.data-validation/gate-cleanup, sheet.editor.data-validation/validation-messages]
     since: "2026-11-17"
+  - id: sheet.editor.keyboard-and-zoom
+    title: "The editor by hand, as WPS works: typing goes into the active cell from the first key after opening and after the Name Box's Enter, and an active cell out of view comes back with the first character; Page Down and Page Up move a screenful (Shift extends, Alt goes across); Cmd+Shift+Z redoes; Cmd+0 hides columns (Cmd+Shift+0 shows them), Cmd+Shift+= and Cmd+- insert and delete whole rows or columns; Cmd+Shift+L turns the filter on and off; Cmd+F, Ctrl+H and Ctrl+G open Find, Replace and Go To; the menus of Single line's row show their items; Home's Sort sorts the active column at once; Freeze Panes is in View's row and a choice in a group's panel closes it; the zoom goes 15 points a wheel notch and 10 a button step within 10%-400%, with presets, a typed percentage and Zoom to Selection under the status bar's percentage and View › Zoom"
+    dimension: [function]
+    priority: P1
+    status: has
+    paths: [web/src/focus.ts, web/src/keys.ts, web/src/zoom.ts, web/src/ZoomControl.tsx, web/src/useSheetWheel.ts, web/src/App.tsx, web/src/FormulaBar.tsx, web/src/FontControls.tsx, web/src/ViewControls.tsx, web/src/ribbon/HomeTab.tsx, web/src/ribbon/ViewTab.tsx, web/src/sheet.ts, web/src/strings.ts, web/src/app.css, web/tests/hand/harness.mjs, web/tests/hand/focus.mjs, web/tests/hand/keys.mjs, web/tests/hand/zoom.mjs, web/tests/hand/menus.mjs]
+    target: "WPS Office for Mac 7.5.1"
+    gap: "Checked in the development host only: whether Kition Desktop gives the editor the keyboard as a file opens is the host's part. Page Down counts a screenful in rows of the sheet's default height. The zoom is the view's: it is not saved and an agent's inspect() reports the sheet's stored zoom. Cmd+= still zooms in (the sheet tab tests zoom with it). Find, Replace, Go To and Custom Sort open the commands' parameter forms until stages 4A and 4B. Cmd+Shift+F, the filter command's catalogue key, does nothing until stage 0B moves the catalogue to Cmd+Shift+L. A real mouse notch's delta and a trackpad pinch are checked with synthetic wheel events only."
+    cases: [regressions/issue-hand-g1-single-line-menus, regressions/issue-hand-k1-first-key, regressions/issue-hand-k2-name-box-focus, regressions/issue-hand-b15-typing-scrolls-back, regressions/issue-hand-a8-cmd-0-hides-column, regressions/issue-hand-a7-wheel-zoom-step, regressions/issue-hand-a9-view-zoom, regressions/issue-hand-c7-page-keys, regressions/issue-hand-i2-redo-key]
+    since: "2026-11-27"
   - id: sheet.agent.observe
     title: An agent reads the workbook and answers in it
     dimension: [ai]

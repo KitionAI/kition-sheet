@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-b15-typing-scrolls-back
+feature: sheet.editor.keyboard-and-zoom
+intent: "Typing in an active cell scrolled out of view brings it back into view at the first character, as WPS and Excel do (the view stayed away until Enter; walkthrough B15)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/focus.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/focus.mjs, chromium, b15-typing-scrolls-back]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

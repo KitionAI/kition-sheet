@@ -2,15 +2,18 @@ import { useEffect, useRef } from 'react'
 import { ChevronDownIcon as ChevronDown, ChevronUpIcon as ChevronUp, CrosshairIcon as Crosshair, Grid3x3Icon as Grid3x3, SnowflakeIcon as Snowflake } from '@kition/tessera/icons/react'
 import { ColorGrid, MenuButton, MenuItem, MenuSeparator, RibbonButton, RibbonMenu, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { FOCUS_COLORS, GRIDLINE_COLORS, backToGrid, cellParts, columnLetters, type SheetInfo } from './sheet'
+import { closeLinePanels } from './focus'
 import { usePendingToggle } from './pendingToggle'
 
 /**
  * Freeze Panes as WPS has it (开始 › 冻结窗格, 视图 › 冻结窗格): 取消冻结 first while panes are
  * frozen, then 冻结至第 4 行 B 列, 冻结至第 4 行 and 冻结至第 B 列 for the active cell (each only
  * when it would freeze something), 冻结首行 and 冻结首列. Pointing at a choice previews it on the
- * grid (an engine overlay); each choice replaces the frozen panes.
+ * grid (an engine overlay); each choice replaces the frozen panes. A choice closes the Single line
+ * panel it was made in and gives the grid the keyboard back (walkthrough V2). `primary` puts it in
+ * Single line's row itself.
  */
-export function FreezeMenu({ info, size = 'large' }: { info: SheetInfo; size?: 'large' | 'small' }) {
+export function FreezeMenu({ info, size = 'large' }: { info: SheetInfo; size?: 'large' | 'small'; primary?: boolean }) {
   const { enabled, t } = useKitEditor()
   const readOnly = useReadOnly()
   return (
@@ -46,6 +49,7 @@ function FreezeItems({ info }: { info: SheetInfo }) {
   // A choice ends the preview in the engine itself.
   const choose = (command: string, params: Record<string, unknown> = {}) => {
     shownPreview.current = null
+    closeLinePanels()
     void run(command, params).finally(backToGrid)
   }
   const item = (label: string, rows: number, cols: number, command: string, params: Record<string, unknown>, testId: string) => (

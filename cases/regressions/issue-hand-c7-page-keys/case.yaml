@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-c7-page-keys
+feature: sheet.editor.keyboard-and-zoom
+intent: "Page Down and Page Up move the active cell a screenful of rows and the view with it, Shift extends the selection, Alt moves a screenful of columns, as WPS does (the keys did nothing; walkthrough C7)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/keys.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/keys.mjs, chromium, c7-page-keys]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

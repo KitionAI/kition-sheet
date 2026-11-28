@@ -2,6 +2,10 @@ import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent as
 import { ChevronDownIcon as ChevronDown, PaintbrushIcon as Paintbrush } from '@kition/tessera/icons/react'
 import { ColorGrid, MenuButton, RibbonButton, RibbonPresentationContext, isMac, readKitStore, toast, useKitEditor, useReadOnly, writeKitStore, type IconComponent } from '@kition/sdk/editor'
 import { FONTS, SIZES, backToGrid, fontMatches, type FontChoice, type SheetInfo } from './sheet'
+import { closeLinePanels } from './focus'
+
+/** How long a second click may follow the first to make a double-click (the format painter's). */
+const DOUBLE_CLICK_MS = 400
 
 /** How many fonts the Font list keeps under Recently Used. */
 const RECENT_FONTS = 6
@@ -47,6 +51,7 @@ export function FormatPainterButton({ info }: { info: SheetInfo; primary?: boole
   const { run, enabled, t } = useKitEditor()
   const readOnly = useReadOnly()
   const disabled = readOnly || info.editing || !enabled('edit.formatPainter')
+  const closing = useRef(0)
   return (
     <RibbonButton
       icon={Paintbrush}
@@ -59,8 +64,15 @@ export function FormatPainterButton({ info }: { info: SheetInfo; primary?: boole
         // The second click of a double-click is the double-click's.
         if (event.detail > 1) return
         void run('edit.formatPainter', {}).finally(backToGrid)
+        // Single line's panel closes once no double-click follows (walkthrough F6).
+        window.clearTimeout(closing.current)
+        closing.current = window.setTimeout(closeLinePanels, DOUBLE_CLICK_MS)
       }}
-      onDoubleClick={() => void run('edit.formatPainter', { sticky: true }).finally(backToGrid)}
+      onDoubleClick={() => {
+        window.clearTimeout(closing.current)
+        closeLinePanels()
+        void run('edit.formatPainter', { sticky: true }).finally(backToGrid)
+      }}
       data-testid="sheet-format-painter"
       data-sticky={info.formatPainter === 'sticky' || undefined}
     />

@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   CommandTab,
   ChartDesignGroups,
@@ -23,6 +23,7 @@ import {
   type HostConnection,
   type KitCanvasHandle,
   type Phrases,
+  type RasterPins,
   type RasterView,
 } from '@kition/sdk/editor'
 import { ChartColumnIcon as ChartColumn, ShieldCheckIcon, SquareFunctionIcon as FunctionSquare } from '@kition/tessera/icons/react'
@@ -50,6 +51,11 @@ import { FocusCellButton } from './ViewControls'
 import { usePendingToggle } from './pendingToggle'
 import { SymbolDialog, SymbolGroup } from './Symbols'
 import { useColorScheme } from './colorScheme'
+import { gridInput, takeKeyboardOnOpen, useKeyboardFallback } from './focus'
+import { pressKey, type KeyContext } from './keys'
+import { steppedCanvas, stepZoom, zoomKeepingCorner } from './zoom'
+import { ZoomControl, type ZoomActions } from './ZoomControl'
+import { useSheetWheel } from './useSheetWheel'
 
 const TABS: Array<[string, string]> = [
   ['file', 'File'],
@@ -133,6 +139,23 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   }, [])
   const tools = useEngineTools(session.tool, doc != null, change, { initial: 'select', hostTools: {}, escapable: () => state?.escape === true || unanswered.current !== null })
   const canvas = useRef<KitCanvasHandle>(null)
+  // kit-editor's frame zooms through this canvas (its Fit and zoom keys): 100% and 10-point steps
+  // within 10%–400%, never the whole sheet fitted into the window (zoom.ts).
+  const frameCanvas = useMemo(() => steppedCanvas(canvas), [])
+  // The workbook just opened has the keyboard, once kit-editor's text input is there (walkthrough
+  // K1); a key that still finds the page's body is handed to it (focus.ts).
+  useKeyboardFallback()
+  useEffect(() => {
+    if (!doc) return
+    let frame = 0
+    let tries = 0
+    const take = () => {
+      if (gridInput()) takeKeyboardOnOpen()
+      else if (tries++ < 120) frame = window.requestAnimationFrame(take)
+    }
+    take()
+    return () => window.cancelAnimationFrame(frame)
+  }, [doc])
   // A sheet opens at its top-left cell at 1:1, as spreadsheets do.
   const viewMemory = useRef<RasterView | null>({ x: 0, y: 0, zoom: 1 })
   const [zoom, setZoom] = useState(1)
@@ -253,13 +276,48 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     if (view) canvas.current?.panTo(Math.max(0, view.x - (x - before.x)), Math.max(0, view.y - (y - before.y)))
   }, [state?.sheet, state?.freezeShift.join()])
 
-  // View › Zoom (100%, Zoom to Selection, a percentage) zooms the view.
+  // An agent's View › Zoom (`view.zoom`, `view.zoomToSelection`) zooms the view; Zoom to
+  // Selection shows the selection from its top-left.
   const zoomAsked = useRef(0)
+  const selectionZoom = useRef(false)
   useEffect(() => {
     if (!state || state.zoomAsked === zoomAsked.current) return
     zoomAsked.current = state.zoomAsked
-    canvas.current?.zoomTo(state.zoom / 100)
+    if (canvas.current) zoomKeepingCorner(canvas.current, state.zoom / 100)
+    if (!selectionZoom.current || !state.activeRect || !doc) return
+    selectionZoom.current = false
+    const [x0, y0] = state.activeRect
+    const { left, top } = doc.pinned
+    const view = canvas.current?.view()
+    if (view) canvas.current?.panTo(x0 >= left ? Math.max(0, x0 - left) : view.x, y0 >= top ? Math.max(0, y0 - top) : view.y)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- when the zoom is asked for
   }, [state?.zoomAsked, state?.zoom])
+
+  // The person's zoom (plan 0A; WPS W-S1, W-S2): the status bar, View › Zoom, Cmd+= and the wheel
+  // with Ctrl or Cmd zoom the view only, as Excel and WPS do (no undo step, no change of the
+  // workbook), within 10%–400%.
+  const zoomTo = (value: number) => {
+    if (canvas.current) zoomKeepingCorner(canvas.current, value)
+  }
+  const zoomStep = (direction: 1 | -1) => {
+    const view = canvas.current?.view()
+    if (view) zoomTo(stepZoom(view.zoom, direction))
+  }
+  const zoomActions: ZoomActions = {
+    zoom,
+    zoomTo,
+    toSelection: () => {
+      const view = canvas.current?.view()
+      if (!view || !doc) return
+      selectionZoom.current = true
+      void editor.run('view.zoomToSelection', { viewWidth: Math.max(1, view.width - doc.pinned.left * view.zoom), viewHeight: Math.max(1, view.height - doc.pinned.top * view.zoom) })
+    },
+  }
+  const gridRegion = useRef<HTMLDivElement>(null)
+  const pinned = useRef<RasterPins | null>(null)
+  pinned.current = doc?.pinned ?? null
+  const pins = useCallback(() => pinned.current, [])
+  useSheetWheel(gridRegion, canvas, pins)
 
   // View › Show › Formula Bar is the person's (Excel's and WPS's application setting): the engine
   // has it for agents (`view.formulaBar`), and the editor keeps it for the next time, giving it
@@ -315,14 +373,10 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   // show it, past the frozen rows and columns, as WPS does; a click on a cell in view leaves the view where it is (one partly in view is brought in
   // whole). Showing another sheet keeps the place that sheet was left at.
   const followed = useRef<{ sheet: string; active: string } | null>(null)
-  useEffect(() => {
-    if (!state?.activeRect || !doc) return
-    const before = followed.current
-    followed.current = { sheet: state.sheet, active: state.active }
-    if (!before || before.sheet !== state.sheet || before.active === state.active) return
+  const reveal = (rect: [number, number, number, number]) => {
     const view = views.get()
-    if (!view) return
-    const [x0, y0, x1, y1] = state.activeRect
+    if (!view || !doc) return
+    const [x0, y0, x1, y1] = rect
     const { left, top } = doc.pinned ?? { left: 0, top: 0 }
     const width = view.width / view.zoom
     const height = view.height / view.zoom
@@ -336,8 +390,51 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       else if (y1 - y > height) y = Math.min(y0 - top, y1 - height)
     }
     if (x !== view.x || y !== view.y) canvas.current?.panTo(Math.max(0, x), Math.max(0, y))
+  }
+  // Page Down and Page Up move the view as far as the active cell moved, so it stays where it was
+  // on the screen (WPS W-B12); the key's request, if the engine answers it within a moment.
+  const paging = useRef<{ before: [number, number, number, number]; view: { x: number; y: number }; at: number } | null>(null)
+  useEffect(() => {
+    if (!state?.activeRect || !doc) return
+    const before = followed.current
+    followed.current = { sheet: state.sheet, active: state.active }
+    const paged = paging.current
+    paging.current = null
+    if (!before || before.sheet !== state.sheet || before.active === state.active) return
+    if (paged && performance.now() - paged.at < 2000) {
+      const [x0, y0] = state.activeRect
+      canvas.current?.panTo(Math.max(0, paged.view.x + x0 - paged.before[0]), Math.max(0, paged.view.y + y0 - paged.before[1]))
+      return
+    }
+    reveal(state.activeRect)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- when the active cell moves
   }, [state?.sheet, state?.active, state?.activeRect?.join()])
+  // Typing in (or F2 on) an active cell scrolled out of view brings it back first, as WPS and Excel
+  // do (walkthrough B15): the first character shows where it goes.
+  const typing = useRef(false)
+  useEffect(() => {
+    const was = typing.current
+    typing.current = state?.editing === true
+    if (!state?.editing || was || !state.activeRect) return
+    if (state.editCell && state.editCell.sheet !== state.sheet) return
+    reveal(state.activeRect)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- when typing starts
+  }, [state?.editing])
+  /** Page Down / Up (Alt: across): a screenful of whole rows or columns at the sheet's size. */
+  const page = (direction: 1 | -1, across: boolean, extend: boolean) => {
+    const view = canvas.current?.view()
+    if (!state || !doc || !view) return
+    const { left, top } = doc.pinned
+    const [width, height] = state.defaultSize
+    const count = across ? Math.floor((view.width / view.zoom - left) / width) : Math.floor((view.height / view.zoom - top) / height)
+    const by = direction * Math.max(1, count)
+    if (extend) {
+      canvas.current?.panTo(Math.max(0, across ? view.x + by * width : view.x), Math.max(0, across ? view.y : view.y + by * height))
+    } else if (state.activeRect) {
+      paging.current = { before: state.activeRect, view: { x: view.x, y: view.y }, at: performance.now() }
+    }
+    void editor.run('select.move', across ? { dr: 0, dc: by, extend } : { dr: by, dc: 0, extend })
+  }
 
   // Names the engine makes up follow the editor's language: a table column with an empty header
   // is 列1 in Chinese (WPS), Column1 in English.
@@ -459,62 +556,21 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     if (target === 'cell' || target === 'rows' || target === 'cols' || target === 'all') showGridMenu({ at, target })
   }
 
-  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const command = event.metaKey || event.ctrlKey
-    const key = event.key.toLowerCase()
-    // Ctrl+Page Down and Ctrl+Page Up show the next and the previous sheet (Cmd on a Mac too).
-    if (command && !event.shiftKey && !event.altKey && (event.key === 'PageDown' || event.key === 'PageUp')) {
-      void editor.run(event.key === 'PageDown' ? 'sheet.next' : 'sheet.previous', {})
-      return true
-    }
-    // Cmd+5 (Ctrl+5) strikes the selection through, as WPS and Excel for Windows have it (the
-    // engine's own shortcut, Cmd+Shift+X, still works).
-    if (command && !event.shiftKey && !event.altKey && event.key === '5') {
-      void editor.run('format.strikethrough', {})
-      return true
-    }
-    // Ctrl+; types today's date and Ctrl+Shift+; the time (WPS, Excel): at the caret while a cell
-    // is typed, else in place of the active cell (a checkbox cell refuses it).
-    if (event.ctrlKey && !event.metaKey && !event.altKey && (event.key === ';' || event.key === ':' || event.code === 'Semicolon')) {
-      const now = new Date()
-      const text = event.shiftKey ? `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}` : `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`
-      void editor.run('editor.insertText', { text })
-      return true
-    }
-    // Alt+↓ (Option+↓) opens the active cell's list of entries (its data validation's arrow).
-    if (event.altKey && !command && event.key === 'ArrowDown' && state?.validation?.list && !state.editing) {
-      openValidationList(true)
-      return true
-    }
-    // Cmd+1 (Ctrl+1) opens Format Cells, as in WPS and Excel.
-    if (command && !event.shiftKey && !event.altKey && event.key === '1' && state && !state.editing) {
-      openFormatCells()
-      return true
-    }
-    // F4 while a formula is typed in the cell cycles the reference at the caret ($A$1, A$1, $A1, A1).
-    if (event.key === 'F4' && !command && !event.altKey && state?.editing && state.editText?.startsWith('=')) {
-      void editor.run('editor.cycleReference', {})
-      return true
-    }
-    // Ctrl+Shift+= inserts and Ctrl+- deletes the selected rows, or the selected columns when whole
-    // columns are selected (WPS, Excel; Cmd+- and Cmd+= zoom the view).
-    if (event.ctrlKey && !event.metaKey && !event.altKey && state && !state.editing && !(state.lines.wholeRows && state.lines.wholeCols)) {
-      const columns = state.lines.wholeCols
-      if (event.shiftKey && (event.key === '=' || event.key === '+')) {
-        void editor.run(columns ? 'column.insert' : 'row.insert', {})
-        return true
+  // The editor's own keys are a table (keys.ts): Page Down and Up, Cmd+Shift+Z, Cmd+0, Find, the
+  // clipboard and the rest, each through the editor's ordered runs.
+  const keyContext: KeyContext | null = state
+    ? {
+        state,
+        run: (command, params = {}) => void editor.run(command, params),
+        ask: (command) => editor.ask(command, {}),
+        clipboard: (action) => void clipboard(action),
+        page,
+        zoomStep,
+        openFormatCells,
+        openValidationList: () => openValidationList(true),
       }
-      if (!event.shiftKey && (event.key === '-' || event.key === '_')) {
-        void editor.run(columns ? 'column.delete' : 'row.delete', {})
-        return true
-      }
-    }
-    if (command && !event.shiftKey && !event.altKey && (key === 'c' || key === 'x' || key === 'v') && !state?.editing) {
-      void clipboard(key === 'c' ? 'copy' : key === 'x' ? 'cut' : 'paste')
-      return true
-    }
-    return false
-  }
+    : null
+  const keyDown = (event: KeyboardEvent<HTMLDivElement>) => pressKey(event, keyContext)
 
   const ribbons: Record<string, ReactNode> = {
     file: (
@@ -524,7 +580,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       </>
     ),
     home: state ? <HomeTab info={state} onClipboard={(action) => void clipboard(action)} /> : <CommandTab menu="Home" />,
-    view: state ? <ViewTab info={state} formulaBar={formulaBarBox} onFormulaBar={showFormulaBar} /> : <CommandTab menu="View" />,
+    view: state ? <ViewTab info={state} formulaBar={formulaBarBox} onFormulaBar={showFormulaBar} zoom={zoomActions} /> : <CommandTab menu="View" />,
     formulas: (
       <>
         {/* Insert Function opens the kit's dialog; the function chosen starts the formula in the cell. */}
@@ -616,10 +672,16 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         tabs={tabs}
         tab={activeTab}
         onTab={setTab}
-        canvas={canvas}
-        zoom={zoom}
+        canvas={frameCanvas}
         onKeyDown={keyDown}
-        statusEnd={state ? <FocusCellButton info={state} place="status" /> : null}
+        statusEnd={
+          state ? (
+            <>
+              <FocusCellButton info={state} place="status" />
+              <ZoomControl {...zoomActions} />
+            </>
+          ) : null
+        }
         status={
           state ? (
             <>
@@ -636,7 +698,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         ) : null}
         <div className="kui-row" onContextMenu={(event) => void gridMenu(event)}>
           <div className="sheet-grid-workspace" data-testid="sheet-grid-workspace">
-          <div className="sheet-grid-viewport" id={gridId}>
+          <div className="sheet-grid-viewport" id={gridId} ref={gridRegion}>
           <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} decorate={comments.decorate} onView={(view) => {
             views.set(view)
             setZoom(view.zoom)

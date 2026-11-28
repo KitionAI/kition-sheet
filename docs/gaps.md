@@ -1,6 +1,6 @@
 # Gaps
 
-> **Last updated:** 2026-11-17 · **Source:** `features.yaml` (updated 2026-11-17) and the engine's command list
+> **Last updated:** 2026-11-27 · **Source:** `features.yaml` (updated 2026-11-27) and the engine's command list
 
 Every known shortfall of Kition Sheet, from the feature catalogue: features that are not yet `has`,
 then the differences recorded on features that work. Update the feature in `features.yaml` when you
@@ -57,6 +57,7 @@ land work, then this list. The comparison with the target application is in
 - `sheet.security.workspace`: A hosted workbook has no spelling (it reads no system word list and the kit bundles none), and no command reads a file of the workspace by path; links a workbook holds to other workbooks are dropped on open.
 - `sheet.sheets.manage`: Save and reopen as .xlsx is proven by command for inserting, renaming, colouring, moving and hiding sheets; the feature's other commands are covered by engine tests only.
 - `sheet.editor.data-validation`: 圈释无效数据 draws no circles in the editor (the command lists the cells); a list from another sheet's range follows the engine's evaluation without WPS's refusal of whole-column sources.
+- `sheet.editor.keyboard-and-zoom`: Checked in the development host only: whether Kition Desktop gives the editor the keyboard as a file opens is the host's part. Page Down counts a screenful in rows of the sheet's default height. The zoom is the view's: it is not saved and an agent's inspect() reports the sheet's stored zoom. Cmd+= still zooms in (the sheet tab tests zoom with it). Find, Replace, Go To and Custom Sort open the commands' parameter forms until stages 4A and 4B. Cmd+Shift+F, the filter command's catalogue key, does nothing until stage 0B moves the catalogue to Cmd+Shift+L. A real mouse notch's delta and a trackpad pinch are checked with synthetic wheel events only.
 - `sheet.editor.filter-buttons`: 颜色筛选 (by fill or font colour) is kept from files and offered to agents but not in the list; date filters by year, month and day (WPS's 日期筛选 tree) are not offered; columns inserted inside a table do not shift its criteria.
 - `sheet.editor.format-font`: Cloud font services (licensed fonts, downloads, uploads, weight submenus), collaborators, cell locks and mobile are not planned; 楷体 draws in Ma Shan Zheng, and the Song and FangSong fonts in Droid Sans Fallback (no open Song or FangSong face in kition-fonts); read-only shows no Home tab, so the font of a cell is not shown to a viewer.
 - `sheet.editor.formula-bar`: WPS cloud's separate views (独立视图) are not planned.
@@ -74,4 +75,4 @@ land work, then this list. The comparison with the target application is in
 
 ## Catalogue
 
-The catalogue has 80 features: 45 `has`, 35 not yet.
+The catalogue has 86 features: 50 `has`, 36 not yet.

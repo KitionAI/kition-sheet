@@ -1,11 +1,12 @@
-import { AArrowDownIcon as AArrowDown, AArrowUpIcon as AArrowUp, TextAlignCenterIcon as AlignCenter, TextAlignStartIcon as AlignLeft, TextAlignEndIcon as AlignRight, AlignVerticalJustifyCenterIcon as AlignVerticalJustifyCenter, AlignVerticalJustifyEndIcon as AlignVerticalJustifyEnd, AlignVerticalJustifyStartIcon as AlignVerticalJustifyStart, ArrowDownWideNarrowIcon as ArrowDownWideNarrow, BaselineIcon as Baseline, BoldIcon as Bold, ClipboardPasteIcon as ClipboardPaste, CopyIcon as Copy, DecimalsArrowLeftIcon as DecimalsArrowLeft, DecimalsArrowRightIcon as DecimalsArrowRight, DollarSignIcon as DollarSign, EraserIcon as Eraser, Grid2x2Icon as Grid2x2, ListIndentDecreaseIcon as IndentDecrease, ListIndentIncreaseIcon as IndentIncrease, ItalicIcon as Italic, PaintBucketIcon as PaintBucket, PercentIcon as Percent, Rows3Icon as Rows3, ScissorsIcon as Scissors, SearchIcon as Search, SigmaIcon as Sigma, StrikethroughIcon as Strikethrough, TableCellsMergeIcon as TableCellsMerge, TablePropertiesIcon as TableProperties, UnderlineIcon as Underline, TextWrapIcon as WrapText, ArrowDownToLineIcon as ArrowDownToLine, PaletteIcon as Palette, SquarePlusIcon as SquarePlus, SquareMinusIcon as SquareMinus, SquareSplitVerticalIcon as SquareSplitVertical, RotateCcwIcon as RotateCcw } from '@kition/tessera/icons/react'
-import { CommandButton, CommandItem, MenuItem, MenuSeparator, RibbonButton, RibbonGroup, RibbonItem, RibbonMenu, RibbonRow, RibbonStack, useKitEditor } from '@kition/sdk/editor'
+import { AArrowDownIcon as AArrowDown, AArrowUpIcon as AArrowUp, TextAlignCenterIcon as AlignCenter, TextAlignStartIcon as AlignLeft, TextAlignEndIcon as AlignRight, AlignVerticalJustifyCenterIcon as AlignVerticalJustifyCenter, AlignVerticalJustifyEndIcon as AlignVerticalJustifyEnd, AlignVerticalJustifyStartIcon as AlignVerticalJustifyStart, ArrowDownWideNarrowIcon as ArrowDownWideNarrow, BaselineIcon as Baseline, BoldIcon as Bold, ClipboardPasteIcon as ClipboardPaste, CopyIcon as Copy, DecimalsArrowLeftIcon as DecimalsArrowLeft, DecimalsArrowRightIcon as DecimalsArrowRight, DollarSignIcon as DollarSign, EraserIcon as Eraser, Grid2x2Icon as Grid2x2, ListIndentDecreaseIcon as IndentDecrease, ListIndentIncreaseIcon as IndentIncrease, ItalicIcon as Italic, PaintBucketIcon as PaintBucket, PercentIcon as Percent, Rows3Icon as Rows3, ScissorsIcon as Scissors, SearchIcon as Search, SigmaIcon as Sigma, StrikethroughIcon as Strikethrough, TableCellsMergeIcon as TableCellsMerge, TablePropertiesIcon as TableProperties, UnderlineIcon as Underline, TextWrapIcon as WrapText, ArrowDownToLineIcon as ArrowDownToLine, ChevronDownIcon as ChevronDown, FunnelIcon as Funnel, PaletteIcon as Palette, SquarePlusIcon as SquarePlus, SquareMinusIcon as SquareMinus, SquareSplitVerticalIcon as SquareSplitVertical, RotateCcwIcon as RotateCcw } from '@kition/tessera/icons/react'
+import { CommandButton, CommandItem, MenuButton, MenuItem, MenuSeparator, RibbonButton, RibbonGroup, RibbonItem, RibbonMenu, RibbonRow, RibbonStack, useKitEditor, useReadOnly } from '@kition/sdk/editor'
 import { NUMBER_FORMATS, type SheetInfo } from '../sheet'
 import { ColorSplit, FontNamePicker, FontSizePicker, FormatPainterButton, shortcutKey } from '../FontControls'
 import { openUnhideSheets } from '../SheetDialogs'
 import { DeleteMenuItems, InsertMenuItems } from '../LineMenus'
 import { FreezeMenu } from '../ViewControls'
 import { FormatAsTableMenu } from '../TableStyles'
+import { backToGrid } from '../sheet'
 
 const BORDERS: Array<[string, string]> = [
   ['Bottom Border', 'bottom'],
@@ -191,12 +192,9 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
           </RibbonMenu>
         </RibbonStack>
         <RibbonStack>
-          <RibbonMenu icon={ArrowDownWideNarrow} label={p('Sort & Filter')} testId="sheet-sort" primary>
-            <CommandItem command="data.sortAscending" label={p('Sort A to Z')} />
-            <CommandItem command="data.sortDescending" label={p('Sort Z to A')} />
-            <CommandItem command="data.sort" ask label={p('Custom Sort')} />
-            <MenuSeparator />
-            <CommandItem command="data.filter" label={p('Filter')} />
+          <SortSplit primary />
+          <RibbonMenu icon={Funnel} label={p('Filter')} testId="sheet-filter-menu">
+            <CommandItem command="data.filter" label={p('Filter')} shortcut="Cmd+Shift+L" />
             <CommandItem command="data.clearFilter" label={p('Clear')} />
             <CommandItem command="data.reapply" label={p('Reapply')} />
           </RibbonMenu>
@@ -210,5 +208,31 @@ export function HomeTab({ info, onClipboard }: { info: SheetInfo; onClipboard: (
         </RibbonStack>
       </RibbonGroup>
     </>
+  )
+}
+
+/**
+ * Home's Sort (WPS W-M1): the button sorts the active cell's column ascending at once; its arrow
+ * offers Ascending, Descending and Custom Sort.
+ */
+function SortSplit(_: { primary?: boolean }) {
+  const { run, enabled, phrase: p, t } = useKitEditor()
+  const readOnly = useReadOnly()
+  const sort = (command: string) => void run(command, {}).finally(backToGrid)
+  return (
+    <span className="sheet-split" data-primary="true">
+      <RibbonButton icon={ArrowDownWideNarrow} label={p('Sort')} primary disabled={readOnly || !enabled('data.sortAscending')} onClick={() => sort('data.sortAscending')} data-testid="sheet-sort-apply" />
+      <MenuButton
+        trigger={({ toggle, open }) => (
+          <button type="button" className="kui-ribbon-button sheet-split-arrow" data-primary="true" aria-label={t('sortChoices')} title={t('sortChoices')} aria-haspopup="menu" aria-expanded={open} disabled={readOnly} onClick={toggle} data-testid="sheet-sort">
+            <ChevronDown size={11} aria-hidden="true" />
+          </button>
+        )}
+      >
+        <CommandItem command="data.sortAscending" label={p('Sort A to Z')} />
+        <CommandItem command="data.sortDescending" label={p('Sort Z to A')} />
+        <CommandItem command="data.sort" ask label={p('Custom Sort')} />
+      </MenuButton>
+    </span>
   )
 }

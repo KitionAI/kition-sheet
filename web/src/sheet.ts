@@ -108,6 +108,8 @@ export type SheetInfo = {
   formatPainter: 'once' | 'sticky' | null
   /** The active cell's rectangle in document pixels (x0, y0, x1, y1). */
   activeRect: [number, number, number, number] | null
+  /** The sheet's column width and row height where a column or row has no size of its own (document pixels). */
+  defaultSize: [number, number]
   /** The sheet's zoom in percent (View › Zoom), and how many times it was set (the view follows). */
   zoom: number
   zoomAsked: number
@@ -164,6 +166,7 @@ export function describe(info: KitEngineInfo): SheetInfo {
     freezeShift: Array.isArray(inspected.freezeShift) ? inspected.freezeShift : [0, 0],
     formatPainter: inspected.formatPainter === 'once' || inspected.formatPainter === 'sticky' ? inspected.formatPainter : null,
     activeRect: Array.isArray(inspected.activeRect) ? inspected.activeRect : null,
+    defaultSize: Array.isArray(inspected.defaultSize) && inspected.defaultSize.length === 2 && inspected.defaultSize.every((size) => typeof size === 'number' && size > 0) ? inspected.defaultSize : [69, 19],
     zoom: typeof inspected.zoom === 'number' ? inspected.zoom : 100,
     zoomAsked: typeof inspected.zoomAsked === 'number' ? inspected.zoomAsked : 0,
     formulaText: inspected.formulaText ?? '',
@@ -205,7 +208,7 @@ export const SHEET_PRIMARY: Record<string, readonly string[]> = {
   Data: ['data.getData', 'data.refreshAll', 'data.sortAscending', 'data.sortDescending', 'data.sort', 'data.filter', 'data.textToColumns', 'data.removeDuplicates', 'data.validation', 'data.group'],
   Automate: ['script.record', 'script.new', 'script.list'],
   Review: ['spelling.check', 'workbook.statistics', 'accessibility.check', 'comment.add', 'comment.delete', 'note.add', 'sheet.protect', 'workbook.protect'],
-  View: ['view.normal', 'view.pageBreakPreview', 'view.pageLayout', 'view.freezePanes', 'view.gridlines', 'view.headings', 'view.zoom', 'view.zoomToSelection', 'view.split'],
+  View: ['view.normal', 'view.pageBreakPreview', 'view.pageLayout', 'view.freezePanes', 'view.gridlines', 'view.headings', 'view.split'],
   Table: ['table.rename', 'table.resize', 'table.removeDuplicates', 'table.convertToRange', 'table.headerRow', 'table.totalRow', 'table.bandedRows', 'table.style'],
   'Chart Design': ['chart.quickLayout', 'chart.changeColors', 'chart.selectData', 'chart.switchRowColumn', 'chart.move'],
 }
