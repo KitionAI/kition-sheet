@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-d10-date-widens-column
+feature: sheet.editor.selection-keys
+intent: "A date typed into a column of the default width widens the column so the date shows instead of ####, and one undo takes back the value and the width, as WPS does (walkthrough D10)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/commit.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/commit.mjs, chromium, d10-date-widens-column]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

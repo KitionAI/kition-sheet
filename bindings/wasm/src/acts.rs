@@ -270,6 +270,7 @@ pub fn reads(id: &str) -> &'static [EditorState] {
         | "spelling.check"
         | "select.currentRegion"
         | "select.move"
+        | "select.next"
         | "select.set"
         | "select.stats"
         | "sheet.hide"
@@ -301,7 +302,7 @@ pub fn reads(id: &str) -> &'static [EditorState] {
         "script.run" | "file.inspect" => ALL,
         "ink.eraser" | "ink.highlighter" | "ink.pen" | "ink.pencil" | "ink.select" | "ink.shape" | "ink.state" => MODE,
         "ink.stroke" | "drawing.ink" => MODE_AND_PART,
-        "edit.redo" | "edit.undo" | "select.column" | "select.next" | "select.row" => SELECTION,
+        "edit.redo" | "edit.undo" | "select.column" | "select.row" => SELECTION,
         _ => &[],
     }
 }

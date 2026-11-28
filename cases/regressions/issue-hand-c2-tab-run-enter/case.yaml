@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-c2-tab-run-enter
+feature: sheet.editor.selection-keys
+intent: "Enter after a run of Tabs goes to the next row at the column the run began in, typed or not, and an arrow ends the run, as WPS does (Enter stayed in the last column; walkthrough C2)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cycle.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cycle.mjs, chromium, c2-tab-run-enter]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

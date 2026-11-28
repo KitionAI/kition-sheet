@@ -27,10 +27,15 @@ export type KeyContext = {
   openValidationList: () => void
 }
 
-type KeyEvent = { key: string; code: string; shiftKey: boolean; altKey: boolean; metaKey: boolean; ctrlKey: boolean; keyCode?: number; nativeEvent?: { isComposing?: boolean } }
+type KeyEvent = { key: string; code: string; shiftKey: boolean; altKey: boolean; metaKey: boolean; ctrlKey: boolean; keyCode?: number; isComposing?: boolean; target?: EventTarget | null; nativeEvent?: { isComposing?: boolean } }
 
 type KeyRow = {
   keys: string[]
+  /**
+   * Taken before kit-editor sees the key (a capture listener on the document, `pressCapturedKey`):
+   * keys the engine's tool would otherwise take as typing (Shift+Space) or as another key.
+   */
+  capture?: boolean
   /** Also while a cell is typed. */
   editing?: boolean
   /** Only when this holds (the row's key is left to others otherwise). */
@@ -44,9 +49,17 @@ const lines = (context: KeyContext, insert: boolean) => {
   context.run(insert ? (columns ? 'column.insert' : 'row.insert') : columns ? 'column.delete' : 'row.delete', {})
 }
 const notEverything = (context: KeyContext) => !(context.state.lines.wholeRows && context.state.lines.wholeCols)
-const nothing = () => undefined
+const onMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform)
 
 export const KEYS: KeyRow[] = [
+  // Shift+Space selects the rows of the selection, Ctrl+Space its columns (WPS W-A10; Excel;
+  // walkthrough C8); while a cell is typed Shift+Space types a space.
+  { keys: ['Shift+Space'], capture: true, when: (c) => c.state.shape == null, act: (c) => c.run('select.row', {}) },
+  { keys: ['Ctrl+Space'], act: (c) => c.run('select.column', {}) },
+  // Cmd+Enter fills the selection with what is typed (WPS W-C10, the engine's tool); on a Mac,
+  // Ctrl+Enter only enters it and moves down, as Enter does (kit-editor gives the tool Ctrl as
+  // Cmd, so the key goes on as Enter). Elsewhere Ctrl is the main modifier and fills.
+  { keys: ['Ctrl+Enter'], capture: true, editing: true, when: onMac, act: (_, event) => event.target?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true, composed: true })) },
   // Ctrl+Page Down and Ctrl+Page Up show the next and the previous sheet (Cmd on a Mac too).
   { keys: ['Cmd+PageDown'], editing: true, act: (c) => c.run('sheet.next', {}) },
   { keys: ['Cmd+PageUp'], editing: true, act: (c) => c.run('sheet.previous', {}) },
@@ -102,10 +115,6 @@ export const KEYS: KeyRow[] = [
   { keys: ['Cmd+F'], act: (c) => c.ask('edit.find') },
   { keys: ['Ctrl+H'], act: (c) => c.ask('edit.replace') },
   { keys: ['Ctrl+G'], act: (c) => c.ask('edit.goTo') },
-  // Cmd+Shift+L turns the filter on and off (WPS W-M5). The command's catalogue key Cmd+Shift+F
-  // does nothing: one key for it.
-  { keys: ['Cmd+Shift+L'], act: (c) => c.run('data.filter', {}) },
-  { keys: ['Cmd+Shift+F'], act: nothing },
   // The system clipboard: written while the key press is still the person's (WebKit refuses a
   // write once the engine has answered), read from the browser's paste.
   { keys: ['Cmd+C'], act: (c) => c.clipboard('copy') },
@@ -114,9 +123,9 @@ export const KEYS: KeyRow[] = [
 ]
 
 /** The key codes of the characters rows name (the code, not the character Shift makes of it). */
-const CODES: Record<string, string> = { '=': 'Equal', '-': 'Minus', ';': 'Semicolon', '`': 'Backquote' }
+const CODES: Record<string, string> = { '=': 'Equal', '-': 'Minus', ';': 'Semicolon', '`': 'Backquote', Space: 'Space' }
 /** The characters a key with Shift (or without) may report for a row's character. */
-const CHARACTERS: Record<string, string[]> = { '=': ['=', '+'], '-': ['-', '_'], ';': [';', ':'] }
+const CHARACTERS: Record<string, string[]> = { '=': ['=', '+'], '-': ['-', '_'], ';': [';', ':'], Space: [' '] }
 
 /** Whether `event` is the key `shortcut` names (`Cmd+Shift+Z`, `Alt+PageDown`, `Ctrl+;`). */
 export function keyMatches(shortcut: string, event: KeyEvent) {
@@ -133,10 +142,11 @@ export function keyMatches(shortcut: string, event: KeyEvent) {
   return event.key === name
 }
 
-/** Runs the first row `event` names; answers whether one took the key. */
-export function pressKey(event: KeyEvent, context: KeyContext | null) {
-  if (!context || event.nativeEvent?.isComposing || event.keyCode === 229 || event.key === 'Process') return false
+/** Runs the first row `event` names (of the rows taken first when `captured`); answers whether one took the key. */
+export function pressKey(event: KeyEvent, context: KeyContext | null, captured = false) {
+  if (!context || event.nativeEvent?.isComposing || event.isComposing || event.keyCode === 229 || event.key === 'Process') return false
   for (const row of KEYS) {
+    if ((row.capture === true) !== captured) continue
     if (!row.keys.some((shortcut) => keyMatches(shortcut, event))) continue
     if (context.state.editing && !row.editing) continue
     if (row.when && !row.when(context)) continue

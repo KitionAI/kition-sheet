@@ -195,6 +195,8 @@ pub struct SheetDocument {
     /// What was typed is held by its cell's data validation (`validation`): the rule's error style
     /// and where Enter (Tab, an arrow) would have moved once it goes in.
     validation_held: Option<validation::Held>,
+    /// The run of Tabs Enter goes back from (WPS W-B3); session state, never saved.
+    tab_run: Option<validation::TabRun>,
     /// Entering what is typed skips the cell's data validation (a warning or a note answered Yes).
     validation_skip: bool,
 }
@@ -471,7 +473,7 @@ impl SheetDocument {
             }
             let cell = self.active().a1();
             self.session.execute("cell.set", json!({ "cell": cell, "input": text })).map_err(engine_error)?;
-            self.step(1, 0, false, false)?;
+            self.step_after(validation::Step::Enter(false))?;
             return Ok(json!({ "cell": cell }));
         }
         // Leaving the sheet, or changing the sheets, enters what is being typed into its cell
@@ -554,6 +556,7 @@ impl SheetDocument {
             move_drag: None,
             move_hover: None,
             validation_held: None,
+            tab_run: None,
             validation_skip: false,
         })
     }
@@ -1751,6 +1754,58 @@ impl SheetDocument {
         self.session.execute("select.set", json!({ "range": range.a1(), "active": active.a1() })).map(|_| ()).map_err(engine_error)
     }
 
+    /// Adds `area` to the selection with `active` as its active cell and anchor (Cmd+click).
+    fn add_area(&mut self, area: RangeRef, active: CellRef) -> Result<(), String> {
+        let mut ranges = self.session.active().map(|st| st.selection.a1()).unwrap_or_default();
+        if !ranges.is_empty() {
+            ranges.push(',');
+        }
+        ranges.push_str(&area.a1());
+        self.session.execute("select.set", json!({ "range": ranges, "active": active.a1() })).map_err(engine_error)?;
+        if let Ok(st) = self.session.doc_mut() {
+            st.selection.anchor = active;
+        }
+        Ok(())
+    }
+
+    /// Cmd+click on a selected cell (WPS W-A6): the cell (its merge) leaves the selection, the
+    /// areas around it splitting into the pieces left; the active cell stays if it is still
+    /// selected, else the last piece's first cell is. Answers whether the press was on a selected
+    /// cell (the only selected cell stays selected).
+    fn deselect(&mut self, cell: CellRef) -> Result<bool, String> {
+        let Some((selection, hole)) = self
+            .session
+            .active()
+            .zip(self.sheet())
+            .map(|(st, (_, sheet))| (st.selection.clone(), sheet.merge_at(cell).unwrap_or(RangeRef::cell(cell))))
+        else {
+            return Ok(false);
+        };
+        if !selection.contains(cell) {
+            return Ok(false);
+        }
+        let mut ranges: Vec<RangeRef> = Vec::new();
+        for area in &selection.ranges {
+            if area.intersects(&hole) {
+                ranges.extend(without(*area, hole));
+            } else {
+                ranges.push(*area);
+            }
+        }
+        if ranges.is_empty() {
+            return Ok(true);
+        }
+        let active = if ranges.iter().any(|r| r.contains(selection.active)) { selection.active } else { ranges.last().map_or(cell, |r| r.start) };
+        // The area with the active cell goes last, as the selection keeps it.
+        if let Some(at) = ranges.iter().rposition(|r| r.contains(active)) {
+            let area = ranges.remove(at);
+            ranges.push(area);
+        }
+        let text = ranges.iter().map(RangeRef::a1).collect::<Vec<_>>().join(",");
+        self.session.execute("select.set", json!({ "range": text, "active": active.a1() })).map_err(engine_error)?;
+        Ok(true)
+    }
+
     /// Enters the text being typed into the active cell, with its runs.
     fn commit(&mut self) -> Result<(), String> {
         self.point = None;
@@ -1776,7 +1831,7 @@ impl SheetDocument {
             self.validation_held = None;
             let circular = |doc: &Self| doc.session.doc().ok().and_then(|d| d.wb.sheet(sheet)).is_some_and(|sh| sh.circular.contains(&cell));
             let was_circular = circular(self);
-            let params = json!({ "sheet": sheet, "cell": cell.a1(), "input": text, "runs": edit.runs_param(), "expand": !std::mem::take(&mut self.edit_inserted) });
+            let params = json!({ "sheet": sheet, "cell": cell.a1(), "input": text, "runs": edit.runs_param(), "expand": !std::mem::take(&mut self.edit_inserted), "widen": true });
             let entered = self.session.execute("cell.set", params).map(|_| ()).map_err(engine_error);
             // A formula that makes a new circular reference is warned about once (WPS, Excel), unless
             // iterative calculation is on; the cells show 0 meanwhile.
@@ -1971,10 +2026,12 @@ impl SheetDocument {
             }
         }
         self.focus_overlays(sheet, st.selection.current(), (cols, rows), &mut out);
+        let several = st.selection.ranges.len() > 1;
         for range in &st.selection.ranges {
             let clamped = RangeRef::new(range.start, CellRef::new(range.end.row.min(rows - 1), range.end.col.min(cols - 1)));
             let (x0, y0, x1, y1) = Self::cell_rect(sheet, clamped);
-            if range.start != range.end {
+            // A one-cell area among several is tinted too, unless it is the active cell (B6).
+            if range.start != range.end || (several && !range.contains(st.selection.active)) {
                 out.push(ToolOverlay::Highlight { quad: quad((x0, y0, x1, y1)), color: SELECTION });
             }
             out.push(ToolOverlay::Highlight { quad: quad((x0, col_gutter(sheet), x1, header_h(sheet))), color: HEADING_SELECTED });
@@ -2888,6 +2945,7 @@ impl KitTools for SheetDocument {
             // Typing a formula where a reference can go: the cell (or heading) pressed is pointed at.
             PointerAction::Down if self.point_press(hit, event.mods.shift) => {}
             PointerAction::Down => {
+                self.tab_run = None;
                 // A formula typed for another sheet's cell goes in, and its sheet shows again.
                 let elsewhere = self.editing_elsewhere();
                 self.commit()?;
@@ -2909,6 +2967,11 @@ impl KitTools for SheetDocument {
                     Hit::Cell(cell) if event.mods.shift => {
                         let anchor = self.session.active().map(|st| st.selection.anchor).unwrap_or(cell);
                         self.select(RangeRef::new(anchor, cell), anchor)?;
+                    }
+                    // Cmd+click (Ctrl+click) on a selected cell takes it out of the selection (WPS
+                    // W-A6); the press is not a drag.
+                    Hit::Cell(cell) if (event.mods.command || event.mods.control) && !self.painting && self.deselect(cell)? => {
+                        self.dragging = false;
                     }
                     // Cmd+click (Ctrl+click) adds a cell to the selection, a drag from it a range
                     // (WPS, Excel); it becomes the active cell.
@@ -2937,6 +3000,14 @@ impl KitTools for SheetDocument {
                     Hit::Row(row) if event.mods.shift => {
                         let anchor = self.session.active().map(|st| st.selection.anchor).unwrap_or_default();
                         self.select(RangeRef::rows(anchor.row.min(row), anchor.row.max(row)), CellRef::new(anchor.row, 0))?;
+                    }
+                    // Cmd+click (Ctrl+click) on a heading adds its column or row, a drag from it more
+                    // (WPS W-A6; walkthrough B8).
+                    Hit::Column(col) if (event.mods.command || event.mods.control) && !self.painting => {
+                        self.add_area(RangeRef::cols(col, col), CellRef::new(0, col))?;
+                    }
+                    Hit::Row(row) if (event.mods.command || event.mods.control) && !self.painting => {
+                        self.add_area(RangeRef::rows(row, row), CellRef::new(row, 0))?;
                     }
                     Hit::Column(col) => self.select(RangeRef::new(CellRef::new(0, col), CellRef::new(MAX_ROWS - 1, col)), CellRef::new(0, col))?,
                     Hit::Row(row) => self.select(RangeRef::new(CellRef::new(row, 0), CellRef::new(row, MAX_COLS - 1)), CellRef::new(row, 0))?,
@@ -3060,8 +3131,10 @@ impl KitTools for SheetDocument {
             match key {
                 // Alt+Enter (Option+Return): a line break in the cell.
                 "Enter" if mods.alt => edit.insert("\n"),
-                "Enter" => self.enter_and_step(if mods.shift { -1 } else { 1 }, 0)?,
-                "Tab" => self.enter_and_step(0, if mods.shift { -1 } else { 1 })?,
+                // Cmd+Enter (Ctrl+Enter elsewhere) fills the selection with it (WPS W-C10).
+                "Enter" if (mods.command || mods.control) && !mods.shift => self.fill_selection()?,
+                "Enter" => self.enter_and_step(validation::Step::Enter(mods.shift))?,
+                "Tab" => self.enter_and_step(validation::Step::Tab(mods.shift))?,
                 "Escape" => self.editing = None,
                 "Backspace" => edit.delete(false),
                 "Delete" => edit.delete(true),
@@ -3075,7 +3148,7 @@ impl KitTools for SheetDocument {
                 _ => {
                     if let Some((dr, dc)) = arrow {
                         // Arrows enter the cell and move, as in Excel's Enter mode.
-                        self.enter_and_step(dr, dc)?;
+                        self.enter_and_step(validation::Step::By(dr, dc))?;
                     }
                 }
             }
@@ -3094,10 +3167,23 @@ impl KitTools for SheetDocument {
             self.edits += 1;
             return Ok(self.respond());
         }
+        if key != "Tab" && key != "Enter" {
+            self.tab_run = None;
+        }
         match key {
-            "Enter" => self.step(if mods.shift { -1 } else { 1 }, 0, false, false)?,
-            "Tab" => self.step(0, if mods.shift { -1 } else { 1 }, false, false)?,
+            "Enter" => self.step_after(validation::Step::Enter(mods.shift))?,
+            "Tab" => self.step_after(validation::Step::Tab(mods.shift))?,
             "Delete" | "Backspace" => self.session.execute("edit.clearContents", json!({})).map(|_| ()).map_err(engine_error)?,
+            // Home goes to the row's first column, Cmd+Home (Ctrl+Home) to the first cell, Cmd+End
+            // to the used range's last; Shift extends; End alone does nothing (WPS W-B9–W-B11).
+            "Home" | "End" if key == "Home" || mods.command || mods.control => {
+                let to = match (key, mods.command || mods.control) {
+                    ("Home", false) => "rowStart",
+                    ("Home", true) => "sheetStart",
+                    _ => "lastCell",
+                };
+                self.session.execute("select.move", json!({ "to": to, "extend": mods.shift })).map(|_| ()).map_err(engine_error)?;
+            }
             "F2" => self.edit_in_place(self.active()),
             "PageDown" => self
                 .session
@@ -3585,6 +3671,27 @@ pub mod web {
     fn origin_of(origin: &str) -> Result<kition_sheet_engine::Origin, JsError> {
         kition_sheet_engine::Origin::decode(origin).ok_or_else(|| error(format!("origin is not [kind, principal, label]: {origin}")))
     }
+}
+
+/// What is left of `area` without `hole` (inside it): the rows above and below the hole across
+/// the area, and the parts left and right of it on the hole's rows.
+fn without(area: RangeRef, hole: RangeRef) -> Vec<RangeRef> {
+    let Some(hole) = area.intersection(&hole) else { return vec![area] };
+    let (a, h) = (area, hole);
+    let mut out = Vec::new();
+    if h.start.row > a.start.row {
+        out.push(RangeRef::new(a.start, CellRef::new(h.start.row - 1, a.end.col)));
+    }
+    if h.start.col > a.start.col {
+        out.push(RangeRef::new(CellRef::new(h.start.row, a.start.col), CellRef::new(h.end.row, h.start.col - 1)));
+    }
+    if h.end.col < a.end.col {
+        out.push(RangeRef::new(CellRef::new(h.start.row, h.end.col + 1), CellRef::new(h.end.row, a.end.col)));
+    }
+    if h.end.row < a.end.row {
+        out.push(RangeRef::new(CellRef::new(h.end.row + 1, a.start.col), a.end));
+    }
+    out
 }
 
 #[cfg(test)]

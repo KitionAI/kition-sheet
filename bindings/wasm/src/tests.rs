@@ -1760,3 +1760,224 @@ fn the_engine_members_leave_a_cell_being_typed_alone() {
     let cell = doc.execute("cell.get", json!({ "cell": "C2" })).unwrap();
     assert_eq!((cell["input"].clone(), cell["value"].clone()), (json!("=SUM(1,2)"), json!(3.0)), "{cell}");
 }
+
+fn mods(shift: bool, command: bool) -> ToolMods {
+    ToolMods { shift, command, ..ToolMods::default() }
+}
+
+fn press(doc: &mut SheetDocument, name: &str, mods: ToolMods) {
+    doc.key(name, mods, 1.0).unwrap();
+}
+
+/// Home, End and their Cmd and Shift forms as WPS has them (W-B9–W-B11; walkthrough C6): Home to
+/// the row's column A, Cmd+Home to A1 (below and right of frozen panes), Cmd+End to the used
+/// range's last cell, Shift extending; End alone does nothing. Ctrl is Cmd's twin.
+#[test]
+fn home_and_end_move_as_wps_does() {
+    let mut doc = SheetDocument::create("Keys.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "J61", "input": "last" })).unwrap();
+    doc.execute("cell.set", json!({ "cell": "C3", "input": "x" })).unwrap();
+    doc.execute("select.set", json!({ "range": "G7" })).unwrap();
+    press(&mut doc, "Home", mods(false, false));
+    assert_eq!(get(&doc, "selection"), "A7");
+    press(&mut doc, "End", mods(false, false));
+    assert_eq!(get(&doc, "selection"), "A7", "End alone does nothing");
+    press(&mut doc, "End", mods(false, true));
+    assert_eq!(get(&doc, "selection"), "J61");
+    press(&mut doc, "Home", mods(false, true));
+    assert_eq!(get(&doc, "selection"), "A1");
+    doc.execute("select.set", json!({ "range": "G7" })).unwrap();
+    press(&mut doc, "Home", mods(true, false));
+    assert_eq!((get(&doc, "selection"), get(&doc, "active")), (json!("A7:G7"), json!("G7")));
+    doc.execute("select.set", json!({ "range": "B3" })).unwrap();
+    press(&mut doc, "End", mods(true, true));
+    assert_eq!(get(&doc, "selection"), "B3:J61");
+    press(&mut doc, "Home", ToolMods { shift: true, control: true, ..ToolMods::default() });
+    assert_eq!(get(&doc, "selection"), "A1:B3");
+    // Frozen panes: Cmd+Home goes to the scrolling pane's first cell.
+    doc.execute("view.freezePanes", json!({ "cell": "B2" })).unwrap();
+    press(&mut doc, "Home", ToolMods { control: true, ..ToolMods::default() });
+    assert_eq!(get(&doc, "selection"), "B2");
+    // While a cell is typed in place, Home and End move the caret, not the cell.
+    doc.execute("select.set", json!({ "range": "D5" })).unwrap();
+    press(&mut doc, "F2", mods(false, false));
+    KitTools::text(&mut doc, "ab", 1.0).unwrap();
+    press(&mut doc, "Home", mods(false, false));
+    KitTools::text(&mut doc, "x", 1.0).unwrap();
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!(value(&mut doc, "D5")["value"], "xab");
+}
+
+/// Enter and Tab in a selection of more than one cell go round its cells, the selection staying
+/// (WPS W-B4; walkthrough C3): Enter down each column, Tab along each row, Shift back; typing goes
+/// into the active cell and moves on the same way; areas one after another; a merge once; a value
+/// the cell's validation refuses holds the active cell where it is.
+#[test]
+fn enter_and_tab_go_round_the_selection() {
+    let mut doc = SheetDocument::create("Cycle.xlsx", 0, 0).unwrap();
+    let walk = |doc: &mut SheetDocument, name: &str, shift: bool, n: usize| {
+        (0..n)
+            .map(|_| {
+                press(doc, name, mods(shift, false));
+                get(doc, "active").as_str().unwrap_or_default().to_owned()
+            })
+            .collect::<Vec<_>>()
+    };
+    doc.execute("select.set", json!({ "range": "B2:C4" })).unwrap();
+    assert_eq!(walk(&mut doc, "Enter", false, 6), ["B3", "B4", "C2", "C3", "C4", "B2"]);
+    assert_eq!(walk(&mut doc, "Tab", false, 3), ["C2", "B3", "C3"]);
+    assert_eq!(walk(&mut doc, "Tab", true, 2), ["B3", "C2"]);
+    assert_eq!(walk(&mut doc, "Enter", true, 1), ["B4"]);
+    assert_eq!(get(&doc, "selection"), "B2:C4", "the selection stays");
+    // Typing in the selection: each Enter enters the value and goes on.
+    doc.execute("select.set", json!({ "range": "B2:C4", "active": "B2" })).unwrap();
+    for text in ["1", "2", "3", "4"] {
+        KitTools::text(&mut doc, text, 1.0).unwrap();
+        press(&mut doc, "Enter", mods(false, false));
+    }
+    assert_eq!(["B2", "B3", "B4", "C2"].map(|c| value(&mut doc, c)["value"].clone()), [json!(1.0), json!(2.0), json!(3.0), json!(4.0)]);
+    assert_eq!((get(&doc, "active"), get(&doc, "selection")), (json!("C3"), json!("B2:C4")));
+    // Several areas, one after another; a merged area is one stop.
+    doc.execute("cell.merge", json!({ "range": "F2:G2" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A10:A11,F2:G3", "active": "A10" })).unwrap();
+    assert_eq!(walk(&mut doc, "Tab", false, 5), ["A11", "F2", "F3", "G3", "A10"]);
+    // A refused value holds: the cell stays open and the active cell where it is.
+    doc.execute("data.validation", json!({ "range": "E5", "type": "list", "formula1": "\"是,否\"" })).unwrap();
+    doc.execute("select.set", json!({ "range": "E5:E6", "active": "E5" })).unwrap();
+    KitTools::text(&mut doc, "也许", 1.0).unwrap();
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!((get(&doc, "active"), get(&doc, "editing")), (json!("E5"), json!(true)));
+    doc.execute("editor.validation", json!({ "answer": "cancel" })).unwrap();
+}
+
+/// Tab along a row and Enter goes to the next row at the column the Tabs began in, typed or not
+/// (WPS W-B3; walkthrough C2); an arrow or a click ends the run; Shift+Enter goes up as before.
+#[test]
+fn enter_after_tabs_goes_back_to_the_first_column() {
+    let mut doc = SheetDocument::create("Rows.xlsx", 0, 0).unwrap();
+    doc.execute("select.set", json!({ "range": "B3" })).unwrap();
+    for text in ["x", "y"] {
+        KitTools::text(&mut doc, text, 1.0).unwrap();
+        press(&mut doc, "Tab", mods(false, false));
+    }
+    KitTools::text(&mut doc, "z", 1.0).unwrap();
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!(get(&doc, "active"), "B4");
+    assert_eq!(["B3", "C3", "D3"].map(|c| value(&mut doc, c)["value"].clone()), [json!("x"), json!("y"), json!("z")]);
+    // Without typing.
+    press(&mut doc, "Tab", mods(false, false));
+    press(&mut doc, "Tab", mods(false, false));
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!(get(&doc, "active"), "B5");
+    // Shift+Tab goes on with the run.
+    press(&mut doc, "Tab", mods(false, false));
+    press(&mut doc, "Tab", mods(false, false));
+    press(&mut doc, "Tab", mods(true, false));
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!(get(&doc, "active"), "B6");
+    // An arrow ends the run.
+    press(&mut doc, "Tab", mods(false, false));
+    press(&mut doc, "ArrowRight", mods(false, false));
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!(get(&doc, "active"), "D7");
+    // A click ends it too.
+    press(&mut doc, "Tab", mods(false, false));
+    click(&mut doc, centre(5, 6), false);
+    press(&mut doc, "Enter", mods(false, false));
+    assert_eq!(get(&doc, "active"), "F8");
+    // Shift+Enter after Tabs goes up, in the column it is in.
+    press(&mut doc, "Tab", mods(false, false));
+    press(&mut doc, "Enter", mods(true, false));
+    assert_eq!(get(&doc, "active"), "G7");
+    // The formula bar's Enter and Tab end the same way.
+    doc.execute("select.set", json!({ "range": "B20" })).unwrap();
+    doc.execute("editor.formula", json!({ "text": "a" })).unwrap();
+    doc.execute("editor.formula", json!({ "enter": "right" })).unwrap();
+    doc.execute("editor.formula", json!({ "text": "b" })).unwrap();
+    doc.execute("editor.formula", json!({ "enter": "down" })).unwrap();
+    assert_eq!(get(&doc, "active"), "B21");
+}
+
+/// Cmd+Enter (Ctrl+Enter elsewhere) enters what is typed into every selected cell (WPS W-C10;
+/// walkthrough D14), a formula's relative references moving; the active cell and the selection
+/// stay; one undo takes it all back.
+#[test]
+fn cmd_enter_fills_the_selection() {
+    let mut doc = SheetDocument::create("Fill.xlsx", 0, 0).unwrap();
+    doc.execute("range.setValues", json!({ "range": "A2", "values": [[1], [2], [3], [4]] })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2:B5", "active": "B2" })).unwrap();
+    KitTools::text(&mut doc, "7", 1.0).unwrap();
+    press(&mut doc, "Enter", mods(false, true));
+    assert_eq!(["B2", "B3", "B4", "B5"].map(|c| value(&mut doc, c)["value"].clone()), [json!(7.0), json!(7.0), json!(7.0), json!(7.0)]);
+    assert_eq!((get(&doc, "active"), get(&doc, "selection"), get(&doc, "editing")), (json!("B2"), json!("B2:B5"), json!(false)));
+    doc.execute("select.set", json!({ "range": "C2:C5", "active": "C2" })).unwrap();
+    KitTools::text(&mut doc, "=A2*2", 1.0).unwrap();
+    press(&mut doc, "Enter", ToolMods { control: true, ..ToolMods::default() });
+    assert_eq!(value(&mut doc, "C5")["value"], json!(8.0));
+    assert_eq!(value(&mut doc, "C5")["input"], json!("=A5*2"));
+    doc.execute("edit.undo", json!({})).unwrap();
+    assert_eq!(value(&mut doc, "C2")["value"], json!(null), "one undo takes the whole fill back");
+    assert_eq!(value(&mut doc, "C5")["value"], json!(null));
+}
+
+/// A date typed into a column of the default width widens it, in the same undo step as the value
+/// (WPS W-E6; walkthrough D10); the grid then shows the date, not ####.
+#[test]
+fn a_typed_date_widens_its_column() {
+    let mut doc = SheetDocument::create("Dates.xlsx", 0, 0).unwrap();
+    let width = |doc: &SheetDocument| doc.sheet().map(|(_, sheet)| sheet.col_width(0)).unwrap_or_default();
+    let before = width(&doc);
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
+    KitTools::text(&mut doc, "2026-11-27", 1.0).unwrap();
+    press(&mut doc, "Enter", mods(false, false));
+    assert!(width(&doc) > before, "{} > {before}", width(&doc));
+    doc.execute("edit.undo", json!({})).unwrap();
+    assert_eq!((width(&doc), value(&mut doc, "A1")["value"].clone()), (before, json!(null)));
+}
+
+/// Cmd+click on a selected cell takes it out (WPS W-A6; walkthrough B6): a one-cell area goes, a
+/// cell inside a larger area leaves the pieces around it; Cmd+click on a heading adds its column
+/// or row (walkthrough B8); a one-cell area among several is tinted.
+#[test]
+fn cmd_click_takes_a_selected_cell_out_and_adds_headings() {
+    let mut doc = SheetDocument::create("Pick.xlsx", 0, 0).unwrap();
+    let cmd = |action, (x, y): (f64, f64)| ToolPointer { action, x, y, mods: mods(false, true), pressure: 1.0, zoom: 1.0 };
+    let cmd_click = |doc: &mut SheetDocument, at: (f64, f64)| {
+        doc.pointer(&cmd(PointerAction::Down, at)).unwrap();
+        doc.pointer(&cmd(PointerAction::Up, at)).unwrap()
+    };
+    doc.execute("select.set", json!({ "range": "B3:D6" })).unwrap();
+    cmd_click(&mut doc, centre(2, 3));
+    let selection = get(&doc, "selection").as_str().unwrap_or_default().to_owned();
+    let doc_state = doc.session.active().unwrap().selection.clone();
+    assert!(!doc_state.contains(CellRef::parse("C4").unwrap()), "{selection}");
+    for cell in ["B3", "D3", "B4", "D4", "B6", "D6"] {
+        assert!(doc_state.contains(CellRef::parse(cell).unwrap()), "{cell} in {selection}");
+    }
+    assert_eq!(doc_state.ranges.len(), 4, "{selection}");
+    // A one-cell area among several: Cmd+click adds it, tinted; again takes it out.
+    cmd_click(&mut doc, centre(7, 2));
+    assert!(get(&doc, "selection").as_str().unwrap_or_default().ends_with("H3"));
+    cmd_click(&mut doc, centre(9, 4));
+    assert_eq!(get(&doc, "active"), "J5");
+    let (x0, y0, x1, y1) = (HEADER_W + 7.0 * CW, HEADER_H + 2.0 * RH, HEADER_W + 8.0 * CW, HEADER_H + 3.0 * RH);
+    let tinted = doc.respond().overlays.iter().any(|overlay| {
+        matches!(overlay, ToolOverlay::Highlight { quad, .. } if (quad[0][0] - x0).abs() < 0.5 && (quad[0][1] - y0).abs() < 0.5 && (quad[2][0] - x1).abs() < 0.5 && (quad[2][1] - y1).abs() < 0.5)
+    });
+    assert!(tinted, "H3 is tinted among the areas");
+    cmd_click(&mut doc, centre(7, 2));
+    assert!(!doc.session.active().unwrap().selection.contains(CellRef::parse("H3").unwrap()));
+    // The only selected cell stays selected.
+    doc.execute("select.set", json!({ "range": "E5" })).unwrap();
+    cmd_click(&mut doc, centre(4, 4));
+    assert_eq!(get(&doc, "selection"), "E5");
+    // Headings: Cmd+click adds the column, a drag from it more.
+    doc.execute("select.set", json!({ "range": "C:G" })).unwrap();
+    let heading = |col: u32| (HEADER_W + f64::from(col) * CW + 10.0, 10.0);
+    cmd_click(&mut doc, heading(9));
+    assert_eq!(get(&doc, "selection"), "C:G,J:J");
+    doc.pointer(&cmd(PointerAction::Down, heading(11))).unwrap();
+    doc.pointer(&cmd(PointerAction::Drag, heading(12))).unwrap();
+    doc.pointer(&cmd(PointerAction::Up, heading(12))).unwrap();
+    assert_eq!(get(&doc, "selection"), "C:G,J:J,L:M");
+}

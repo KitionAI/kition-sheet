@@ -4820,7 +4820,7 @@
   }
  },
  "select.move": {
-  "description": "Moves the active cell by rows and columns, optionally extending the selection or jumping to the data edge like Ctrl+arrow; answers the new selection.",
+  "description": "Moves the active cell by rows and columns, optionally extending the selection or jumping to the data edge like Ctrl+arrow, or to the row's first column, the sheet's first cell or the used range's last cell like Home, Ctrl+Home and Ctrl+End; answers the new selection.",
   "output": {
    "additionalProperties": true,
    "properties": {
@@ -4841,6 +4841,15 @@
    "dr": {
     "description": "rows to move, negative moves up",
     "type": "integer"
+   },
+   "to": {
+    "description": "instead of dr and dc: rowStart (Home), sheetStart (Ctrl+Home; below and right of frozen panes) or lastCell (Ctrl+End)",
+    "enum": [
+     "rowStart",
+     "sheetStart",
+     "lastCell"
+    ],
+    "type": "string"
    }
   }
  },

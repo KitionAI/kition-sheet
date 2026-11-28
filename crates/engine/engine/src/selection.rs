@@ -76,45 +76,123 @@ impl Selection {
             *r = cur;
         }
     }
-    /// Moves the active cell within the selection (Enter/Tab inside a multi-cell selection).
-    pub fn cycle(&mut self, forward: bool, by_row: bool) {
-        let r = self.current();
-        if r.is_single() && self.ranges.len() == 1 {
+    /// Moves the active cell within the selection (Enter/Tab inside a multi-cell selection), the
+    /// selection unchanged: Enter goes down each column first (`by_row` false), Tab along each row
+    /// first, Shift backwards. Past an area's last cell it goes on in the next area (Excel), from the
+    /// last back to the first. Hidden rows and columns and the cells a merge covers are passed over
+    /// (`sheet`); a merge is visited at its top-left cell.
+    pub fn cycle(&mut self, sheet: Option<&Sheet>, forward: bool, by_row: bool) {
+        if self.is_single_cell() {
             return;
         }
-        let a = self.active;
-        let (mut row, mut col) = (a.row as i64, a.col as i64);
-        let step: i64 = if forward { 1 } else { -1 };
-        if by_row {
-            col += step;
-            if col > r.end.col as i64 {
-                col = r.start.col as i64;
-                row += 1;
-            } else if col < r.start.col as i64 {
-                col = r.end.col as i64;
-                row -= 1;
+        let count = self.ranges.len();
+        let Some(mut index) = self.ranges.iter().rposition(|r| r.contains(self.active)) else {
+            self.active = self.current().start;
+            return;
+        };
+        let passed =
+            |c: CellRef| sheet.is_some_and(|s| s.is_row_hidden(c.row) || s.is_col_hidden(c.col) || s.merge_at(c).is_some_and(|m| m.start != c));
+        let mut at = self.active;
+        // Bounded: a whole column of hidden rows is not walked to its end.
+        for _ in 0..100_000 {
+            let Some(area) = self.ranges.get(index).copied() else { break };
+            match step_within(area, at, forward, by_row) {
+                Some(next) => at = next,
+                None => {
+                    index = if forward { (index + 1) % count } else { (index + count - 1) % count };
+                    let Some(next) = self.ranges.get(index) else { break };
+                    at = if forward { next.start } else { next.end };
+                }
             }
-            if row > r.end.row as i64 {
-                row = r.start.row as i64;
-            } else if row < r.start.row as i64 {
-                row = r.end.row as i64;
-            }
-        } else {
-            row += step;
-            if row > r.end.row as i64 {
-                row = r.start.row as i64;
-                col += 1;
-            } else if row < r.start.row as i64 {
-                row = r.end.row as i64;
-                col -= 1;
-            }
-            if col > r.end.col as i64 {
-                col = r.start.col as i64;
-            } else if col < r.start.col as i64 {
-                col = r.end.col as i64;
+            if !passed(at) {
+                break;
             }
         }
-        self.active = CellRef::new(row.clamp(0, MAX_ROWS as i64 - 1) as u32, col.clamp(0, MAX_COLS as i64 - 1) as u32);
+        self.active = at;
+    }
+}
+
+/// The next cell of `area` after `at` in reading order (along rows when `by_row`, else down the
+/// columns), backwards unless `forward`; `None` past its last (first) cell.
+fn step_within(area: RangeRef, at: CellRef, forward: bool, by_row: bool) -> Option<CellRef> {
+    let (start, end) = (area.start, area.end);
+    // The axis walked first and the one it wraps onto.
+    let (inner, inner_lo, inner_hi, outer, outer_lo, outer_hi) =
+        if by_row { (at.col, start.col, end.col, at.row, start.row, end.row) } else { (at.row, start.row, end.row, at.col, start.col, end.col) };
+    let (inner, outer) = if forward {
+        if inner < inner_hi {
+            (inner + 1, outer)
+        } else if outer < outer_hi {
+            (inner_lo, outer + 1)
+        } else {
+            return None;
+        }
+    } else if inner > inner_lo {
+        (inner - 1, outer)
+    } else if outer > outer_lo {
+        (inner_hi, outer - 1)
+    } else {
+        return None;
+    };
+    Some(if by_row { CellRef::new(outer, inner) } else { CellRef::new(inner, outer) })
+}
+
+impl Selection {
+    /// Where Home, Cmd+Home and Cmd+End go from `from` (`select.move {to}`; WPS W-B9, W-B11): the
+    /// row's first column, the sheet's first cell, or the used range's bottom-right cell. With
+    /// frozen panes the first cell is the scrolling pane's top-left (Excel); rows and columns the
+    /// panes leave out of reach, and hidden ones, are passed over.
+    pub fn place(sheet: &Sheet, from: CellRef, to: Place) -> CellRef {
+        let (top, left) = match sheet.freeze {
+            Some((rows, cols)) => (if rows > 0 { sheet.view_top_left.row } else { 0 }, if cols > 0 { sheet.view_top_left.col } else { 0 }),
+            None => (0, 0),
+        };
+        let (rows, cols) = sheet.freeze.unwrap_or((0, 0));
+        let visible_col = |mut c: u32| {
+            let mut guard = 0;
+            while sheet.is_col_hidden(c) && c + 1 < MAX_COLS && guard < 16_384 {
+                c += 1;
+                guard += 1;
+            }
+            c
+        };
+        let visible_row = |mut r: u32| {
+            let mut guard = 0;
+            while sheet.is_row_hidden(r) && r + 1 < MAX_ROWS && guard < 100_000 {
+                r += 1;
+                guard += 1;
+            }
+            r
+        };
+        match to {
+            Place::RowStart => CellRef::new(from.row, visible_col(left)),
+            Place::SheetStart => {
+                CellRef::new(visible_row(top.saturating_add(rows).min(MAX_ROWS - 1)), visible_col(left.saturating_add(cols).min(MAX_COLS - 1)))
+            }
+            Place::LastCell => sheet.used_range().map_or(CellRef::new(visible_row(top), visible_col(left)), |used| used.end),
+        }
+    }
+}
+
+/// Where `select.move {to}` goes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Place {
+    /// Home: the row's first column.
+    RowStart,
+    /// Cmd+Home (Ctrl+Home): the sheet's first cell.
+    SheetStart,
+    /// Cmd+End (Ctrl+End): the used range's bottom-right cell.
+    LastCell,
+}
+
+impl Place {
+    pub fn parse(name: &str) -> Option<Place> {
+        match name {
+            "rowStart" => Some(Place::RowStart),
+            "sheetStart" => Some(Place::SheetStart),
+            "lastCell" => Some(Place::LastCell),
+            _ => None,
+        }
     }
 }
 
@@ -254,11 +332,62 @@ mod tests {
     #[test]
     fn cycling() {
         let mut sel = Selection::range(RangeRef::parse("A1:B2").unwrap());
-        sel.cycle(true, false);
+        sel.cycle(None, true, false);
         assert_eq!(sel.active.a1(), "A2");
-        sel.cycle(true, false);
+        sel.cycle(None, true, false);
         assert_eq!(sel.active.a1(), "B1");
-        sel.cycle(true, true);
+        sel.cycle(None, true, true);
         assert_eq!(sel.active.a1(), "A2");
+    }
+
+    /// Enter and Tab in a selection (WPS W-B4): down each column first, along each row first,
+    /// Shift backwards, the selection unchanged; areas one after another; merges at their
+    /// top-left; hidden lines passed over.
+    #[test]
+    fn cycling_through_areas_merges_and_hidden_lines() {
+        let order = |sel: &mut Selection, sheet: Option<&Sheet>, forward: bool, by_row: bool, n: usize| {
+            (0..n)
+                .map(|_| {
+                    sel.cycle(sheet, forward, by_row);
+                    sel.active.a1()
+                })
+                .collect::<Vec<_>>()
+        };
+        let mut sel = Selection::range(RangeRef::parse("B2:C4").unwrap());
+        assert_eq!(order(&mut sel, None, true, false, 6), ["B3", "B4", "C2", "C3", "C4", "B2"]);
+        assert_eq!(order(&mut sel, None, true, true, 6), ["C2", "B3", "C3", "B4", "C4", "B2"]);
+        assert_eq!(order(&mut sel, None, false, true, 2), ["C4", "B4"]);
+        assert_eq!(sel.a1(), "B2:C4");
+        let mut sel = Selection {
+            active: CellRef::parse("A1").unwrap(),
+            anchor: CellRef::parse("A1").unwrap(),
+            ranges: vec![RangeRef::parse("A1:A2").unwrap(), RangeRef::parse("C3").unwrap(), RangeRef::parse("E1:E2").unwrap()],
+        };
+        assert_eq!(order(&mut sel, None, true, false, 6), ["A2", "C3", "E1", "E2", "A1", "A2"]);
+        assert_eq!(order(&mut sel, None, false, false, 2), ["A1", "E2"]);
+        let mut sheet = Sheet::new("S");
+        sheet.merges.push(RangeRef::parse("B3:C3").unwrap());
+        sheet.rows.entry(3).or_default().hidden = true;
+        let mut sel = Selection::range(RangeRef::parse("B2:C5").unwrap());
+        assert_eq!(order(&mut sel, Some(&sheet), true, true, 5), ["C2", "B3", "B5", "C5", "B2"]);
+    }
+
+    #[test]
+    fn home_and_end_places() {
+        let mut sheet = Sheet::new("S");
+        sheet.set_value(CellRef::parse("J61").unwrap(), Value::Number(1.0));
+        sheet.set_value(CellRef::parse("C3").unwrap(), Value::Number(1.0));
+        let g7 = CellRef::parse("G7").unwrap();
+        assert_eq!(Selection::place(&sheet, g7, Place::RowStart).a1(), "A7");
+        assert_eq!(Selection::place(&sheet, g7, Place::SheetStart).a1(), "A1");
+        assert_eq!(Selection::place(&sheet, g7, Place::LastCell).a1(), "J61");
+        // Frozen panes: the scrolling pane's top-left; a hidden first column is passed over.
+        sheet.freeze = Some((1, 0));
+        assert_eq!(Selection::place(&sheet, g7, Place::SheetStart).a1(), "A2");
+        sheet.cols.entry(0).or_default().hidden = true;
+        assert_eq!(Selection::place(&sheet, g7, Place::RowStart).a1(), "B7");
+        assert_eq!(Place::parse("rowStart"), Some(Place::RowStart));
+        assert_eq!(Place::parse("end"), None);
+        assert_eq!(Selection::place(&Sheet::new("E"), g7, Place::LastCell).a1(), "A1");
     }
 }

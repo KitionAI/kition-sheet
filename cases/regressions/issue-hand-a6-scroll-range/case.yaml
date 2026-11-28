@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-a6-scroll-range
+feature: sheet.editor.selection-keys
+intent: "After Cmd+Down to the last row and Cmd+Up back, the sheet's scroll reach comes back to what the view needs, so the scrollbar's thumb is not left at its smallest (walkthrough A6)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cycle.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cycle.mjs, chromium, a6-scroll-range]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

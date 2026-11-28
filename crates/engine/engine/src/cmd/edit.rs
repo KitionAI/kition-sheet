@@ -15,7 +15,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Enter Cell",
             [],
             None,
-            "{cell?: \"B2\", name?: \"static single-cell defined name, instead of cell\", input: \"text, number or =formula\", sheet?, array?: bool, runs?: [{text, font}] (a text's rich text runs, as cell.get answers them), expand?: bool (an entry right under or right of a table makes it larger; default true, false for what Insert put in: a function, a symbol)}",
+            "{cell?: \"B2\", name?: \"static single-cell defined name, instead of cell\", input: \"text, number or =formula\", sheet?, array?: bool, runs?: [{text, font}] (a text's rich text runs, as cell.get answers them), expand?: bool (an entry right under or right of a table makes it larger; default true, false for what Insert put in: a function, a symbol), widen?: bool (as typing does: a column of the default width widens so the date or number entered shows in full instead of #### or scientific notation; default false)}",
             has_doc,
             cell_set
         ),
@@ -41,13 +41,13 @@ pub fn specs() -> Vec<CommandSpec> {
             "range.fill",
             "Fill Range With Input",
             [],
-            Some("Ctrl+Enter"),
-            "{range?, input}: enters the same input in every cell of the range (default: the selection); a formula is written for the range's first cell (for the active cell when the selection is filled, like Ctrl+Enter) and its relative references move per cell",
+            Some("Cmd+Enter"),
+            "{range?, input}: enters the same input in every cell of the range (default: the selection); a formula is written for the range's first cell (for the active cell when the selection is filled, like Cmd+Enter) and its relative references move per cell",
             has_doc,
             range_fill
         ),
         cmd!(noundo "select.set", "Select", [], None, "{range: \"A1:B2,D4\" | cell, active?: \"A1\", sheet?}", has_doc, selection_set),
-        cmd!(noundo "select.move", "Move Selection", [], None, "{dr, dc, extend?: bool, jump?: bool (Ctrl+arrow), page?: bool}", has_doc, selection_move),
+        cmd!(noundo "select.move", "Move Selection", [], None, "{dr, dc, extend?: bool, jump?: bool (Ctrl+arrow), page?: bool, to?: rowStart|sheetStart|lastCell (Home, Ctrl+Home, Ctrl+End: instead of dr and dc)}", has_doc, selection_move),
         cmd!(noundo "select.next", "Next Cell in Selection", [], None, "{forward?: true, byRow?: false} (Enter/Tab inside a selection)", has_doc, selection_next),
         cmd!(noundo "edit.selectAll", "Select All", ["Edit"], Some("Cmd+A"), "{} (current region first, then the whole sheet)", has_doc, select_all),
         cmd!(noundo "select.currentRegion", "Select Current Region", [], Some("Ctrl+Shift+8"), "{}", has_doc, select_region),
@@ -320,6 +320,7 @@ fn cell_set(s: &mut Session, p: &Json) -> Result<Json> {
         check_unlocked(s, sheet, at)?;
     }
     s.expand_tables = bool_param(p, "expand").unwrap_or(true);
+    let widen = bool_param(p, "widen").unwrap_or(false) && !array;
     edit(s, |cx| {
         if array {
             // Legacy Ctrl+Shift+Enter array formula over the selection.
@@ -353,10 +354,47 @@ fn cell_set(s: &mut Session, p: &Json) -> Result<Json> {
             }
         }
         cx.touch(sheet, at);
+        // Typed, a date or a number too wide for its column widens the column in the same step.
+        if widen && let Some(width) = cx.wb.sheet(sheet).and_then(|sh| entry_width(&cx.wb, sh, at)) {
+            cx.sheet_mut(sheet)?.cols.entry(at.col).or_default().size = Some(width);
+        }
         Ok(Json::Null)
     })?;
     let v = s.doc()?.wb.sheet(sheet).map(|sh| sh.value(at)).unwrap_or_default();
     Ok(json!({"cell": at.a1(), "value": v.display()}))
+}
+
+/// The width (pixels) a column of the default width takes so the number just entered at `at`
+/// shows in full, as typing a date does in WPS (W-E6) and the whole part of a General number of
+/// up to 11 digits in Excel (WPS untested); `None` when it already fits, when the cell holds text or a formula, when
+/// the column's width was set (by a person or the file), or when the cell is merged, turned,
+/// wrapped or shrunk to fit. Measured as the grid draws a number: the text and the cell's padding.
+fn entry_width(wb: &kition_sheet_model::Workbook, sheet: &kition_sheet_model::Sheet, at: CellRef) -> Option<f32> {
+    let cell = sheet.cell(at)?;
+    if cell.formula.is_some() || sheet.show_formulas {
+        return None;
+    }
+    let Value::Number(n) = cell.value else { return None };
+    if sheet.cols.get(&at.col).is_some_and(|line| line.size.is_some() || line.hidden) || sheet.merge_at(at).is_some_and(|m| !m.is_single()) {
+        return None;
+    }
+    let style = wb.styles.get(sheet.style_id(at));
+    if style.align.rotation != 0 || style.align.wrap || style.align.shrink {
+        return None;
+    }
+    let text = if style.num_fmt.as_str() == "General" {
+        // General shows fewer decimals in a narrow column; only the whole part widens it, and
+        // more than 11 digits stay in scientific notation at the column's width (Excel).
+        if !n.is_finite() || n.abs() >= 1e11 {
+            return None;
+        }
+        kition_sheet_numfmt::format_general_fit(n.trunc(), 11)?
+    } else {
+        crate::display::format(&cell.value, style.num_fmt.as_str(), wb).text
+    };
+    // The grid's padding (2.5 px a side) and a pixel, and a little room for the face drawn.
+    let needed = (crate::metrics::text_width(&text, &style.font) + f32::from(style.align.indent) * 9.0 + 9.0).ceil();
+    (needed > sheet.col_width(at.col)).then_some(needed.min(1785.0))
 }
 
 pub(crate) fn json_to_input(v: &Json) -> String {
@@ -518,6 +556,10 @@ fn selection_move(s: &mut Session, p: &Json) -> Result<Json> {
     let dc = p.get("dc").and_then(Json::as_i64).unwrap_or(0);
     let extend = bool_param(p, "extend").unwrap_or(false);
     let jmp = bool_param(p, "jump").unwrap_or(false);
+    let place = match str_param(p, "to") {
+        Some(name) => Some(crate::selection::Place::parse(name).ok_or_else(|| bad("select.move", "`to` is rowStart, sheetStart or lastCell"))?),
+        None => None,
+    };
     let d = s.doc_mut()?;
     let Some(sheet) = d.wb.active() else { return Err(EngineError::NoDocument) };
     let sel = &mut d.selection;
@@ -531,7 +573,9 @@ fn selection_move(s: &mut Session, p: &Json) -> Result<Json> {
         sel.active
     };
     // Skip hidden rows/columns and step over merged areas.
-    let mut to = if jmp {
+    let mut to = if let Some(place) = place {
+        crate::Selection::place(sheet, from, place)
+    } else if jmp {
         jump(sheet, from, dr.signum(), dc.signum())
     } else {
         let mut t = from.offset_clamped(dr, dc);
@@ -575,7 +619,8 @@ fn selection_next(s: &mut Session, p: &Json) -> Result<Json> {
     let fwd = bool_param(p, "forward").unwrap_or(true);
     let by_row = bool_param(p, "byRow").unwrap_or(false);
     let d = s.doc_mut()?;
-    d.selection.cycle(fwd, by_row);
+    let sheet = d.wb.active();
+    d.selection.cycle(sheet, fwd, by_row);
     Ok(json!({"active": d.selection.active.a1()}))
 }
 
@@ -2197,6 +2242,59 @@ mod tests {
         assert_eq!(get(&mut s, "D1")["formula"], "=(B3*2)*1");
         assert_eq!(get(&mut s, "D1")["value"], json!(8.0));
         assert_eq!(get(&mut s, "E1")["value"], json!(5.0));
+    }
+
+    /// Typing a date into a column of the default width widens it (WPS W-E6; walkthrough D10),
+    /// in the same undo step as the entry; a set width, text, a long number and an entry without
+    /// `widen` (an agent's, a paste) leave the column as it is.
+    #[test]
+    fn a_typed_date_widens_its_column_in_the_same_step() {
+        let mut s = Session::new();
+        s.new_workbook();
+        let width = |s: &Session, col: u32| s.doc().unwrap().wb.active().unwrap().col_width(col);
+        let default = width(&s, 0);
+        s.execute("cell.set", json!({"cell": "A1", "input": "2026-11-27", "widen": true})).unwrap();
+        assert!(width(&s, 0) > default, "the date's column widened: {}", width(&s, 0));
+        s.execute("edit.undo", json!({})).unwrap();
+        assert_eq!(width(&s, 0), default, "one undo takes the value and the width back");
+        assert_eq!(s.execute("cell.get", json!({"cell": "A1"})).unwrap()["value"], Json::Null);
+        s.execute("cell.set", json!({"cell": "B1", "input": "2026-11-27"})).unwrap();
+        assert_eq!(width(&s, 1), default, "without widen the column stays");
+        s.execute("cell.set", json!({"cell": "C1", "input": "12345678901", "widen": true})).unwrap();
+        assert!(width(&s, 2) > default, "11 digits widen");
+        s.execute("cell.set", json!({"cell": "D1", "input": "123456789012", "widen": true})).unwrap();
+        assert_eq!(width(&s, 3), default, "12 digits stay in scientific notation");
+        s.execute("cell.set", json!({"cell": "E1", "input": "1234.56789", "widen": true})).unwrap();
+        assert_eq!(width(&s, 4), default, "decimals are shown fewer, not widened");
+        s.execute("cell.set", json!({"cell": "F1", "input": "a long piece of text", "widen": true})).unwrap();
+        assert_eq!(width(&s, 5), default, "text overflows instead");
+        s.execute("column.setWidth", json!({"cols": "G", "width": 40})).unwrap();
+        let set = width(&s, 6);
+        s.execute("cell.set", json!({"cell": "G1", "input": "2026-11-27", "widen": true})).unwrap();
+        assert_eq!(width(&s, 6), set, "a width that was set stays");
+        s.execute("cell.set", json!({"cell": "H1", "input": "5", "widen": true})).unwrap();
+        assert_eq!(width(&s, 7), default, "what fits changes nothing");
+    }
+
+    /// Home, Cmd+Home and Cmd+End (WPS W-B9, W-B11; walkthrough C6), Shift extending.
+    #[test]
+    fn select_move_goes_to_the_row_start_the_first_and_the_last_cell() {
+        let mut s = Session::new();
+        s.new_workbook();
+        s.execute("range.setValues", json!({"range": "B2", "values": [[1, 2], [3, 4]]})).unwrap();
+        s.execute("cell.set", json!({"cell": "J61", "input": "x"})).unwrap();
+        s.execute("select.set", json!({"range": "G7"})).unwrap();
+        let moved = |s: &mut Session, p: Json| s.execute("select.move", p).unwrap();
+        assert_eq!(moved(&mut s, json!({"to": "rowStart"}))["selection"], "A7");
+        assert_eq!(moved(&mut s, json!({"to": "lastCell"}))["selection"], "J61");
+        assert_eq!(moved(&mut s, json!({"to": "sheetStart"}))["selection"], "A1");
+        s.execute("select.set", json!({"range": "G7"})).unwrap();
+        assert_eq!(moved(&mut s, json!({"to": "rowStart", "extend": true}))["selection"], "A7:G7");
+        s.execute("select.set", json!({"range": "B3"})).unwrap();
+        let r = moved(&mut s, json!({"to": "lastCell", "extend": true}));
+        assert_eq!((r["selection"].as_str(), r["active"].as_str()), (Some("B3:J61"), Some("B3")));
+        assert_eq!(moved(&mut s, json!({"to": "sheetStart", "extend": true}))["selection"], "A1:B3");
+        assert!(s.execute("select.move", json!({"to": "end"})).is_err());
     }
 
     #[test]

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-c6-home-end
+feature: sheet.editor.selection-keys
+intent: "Home goes to column A of the row, Shift+Home selects to it, Cmd+End to the used range's last cell, Cmd+Shift+End selects to it, Cmd+Home back to A1, and End alone does nothing, as WPS does (the keys did nothing; walkthrough C6)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cycle.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cycle.mjs, chromium, c6-home-end]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

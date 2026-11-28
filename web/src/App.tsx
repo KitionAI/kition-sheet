@@ -571,6 +571,20 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
       }
     : null
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => pressKey(event, keyContext)
+  // The keys taken before kit-editor sees them (keys.ts, `capture`): Shift+Space would type a
+  // space into the cell, a Mac's Ctrl+Enter would fill the selection. Only from the grid.
+  const capturedKeys = useRef(keyContext)
+  capturedKeys.current = keyContext
+  useEffect(() => {
+    const listen = (event: globalThis.KeyboardEvent) => {
+      if (event.defaultPrevented || !(event.target instanceof Element) || !event.target.closest('.kui-text-sink, .kui-canvas')) return
+      if (!pressKey(event, capturedKeys.current, true)) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    document.addEventListener('keydown', listen, true)
+    return () => document.removeEventListener('keydown', listen, true)
+  }, [])
 
   const ribbons: Record<string, ReactNode> = {
     file: (
@@ -718,6 +732,11 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
             scrolled.current.timer = window.setTimeout(() => {
               if (at.x === scrolled.current.x && at.y === scrolled.current.y) return
               scrolled.current = { ...scrolled.current, ...at }
+              // Back from far away (Cmd+↓ to the last row and up again), the sheet's reach comes
+              // back to what the view needs, so the scrollbar's thumb is not left at its smallest
+              // (walkthrough A6); a little past the view, as when it grows.
+              const shrink = (now: number, need: number) => (now > need * 4 + 10_000 ? need : now)
+              reach.current = { doc, right: shrink(reach.current.right, right + 512), bottom: shrink(reach.current.bottom, bottom + 600) }
               void editor.run('editor.viewport', { right: reach.current.right, bottom: reach.current.bottom, ...at })
             }, 120)
           }}>

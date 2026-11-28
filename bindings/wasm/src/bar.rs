@@ -6,6 +6,7 @@
 use serde_json::{Value as Json, json};
 
 use crate::edit::Edit;
+use crate::validation::Step;
 use crate::{SheetDocument, point, pointing};
 
 /// Characters in the first `units` UTF-16 units of `text`.
@@ -46,19 +47,20 @@ impl SheetDocument {
             self.bar_text(text, at("start"), at("end"));
         }
         if let Some(direction) = params.get("enter").and_then(Json::as_str) {
-            let (dr, dc) = match direction {
-                "down" => (1, 0),
-                "up" => (-1, 0),
-                "right" => (0, 1),
-                "left" => (0, -1),
-                _ => (0, 0),
+            let step = match direction {
+                "down" => Step::Enter(false),
+                "up" => Step::Enter(true),
+                "right" => Step::Tab(false),
+                "left" => Step::Tab(true),
+                _ => Step::By(0, 0),
             };
-            // With nothing typed, Enter and Tab still move, as in the grid; what the cell's
-            // validation holds stays until the person answers.
+            // With nothing typed, Enter and Tab still move, as in the grid (round a selection,
+            // back to where a run of Tabs began); what the cell's validation holds stays until
+            // the person answers.
             if self.editing.is_some() {
-                self.enter_and_step(dr, dc)?;
-            } else if (dr, dc) != (0, 0) {
-                self.step(dr, dc, false, false)?;
+                self.enter_and_step(step)?;
+            } else {
+                self.step_after(step)?;
             }
         } else if text.is_none() && params.get("peek").and_then(Json::as_bool) != Some(true) {
             self.cancel_edit()?;

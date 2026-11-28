@@ -454,6 +454,12 @@ impl SheetDocument {
         let mut under = Under::default();
         let mut pending = Vec::new();
 
+        // A typed entry that may widen its column (`widen`) reads the column's width and the
+        // entry's look besides what an entry reads: the whole document stands under it.
+        if command == "cell.set" && params.get("widen").and_then(Value::as_bool) == Some(true) {
+            return self.document_premises().map(Some);
+        }
+
         if command == "select.set" {
             let ranges = if let Some(text) = params.get("range").or_else(|| params.get("cell")).and_then(Value::as_str) {
                 text.rsplit_once('!')
