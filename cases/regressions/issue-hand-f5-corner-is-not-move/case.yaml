@@ -1,0 +1,20 @@
+format: 1
+id: regressions/issue-hand-f5-corner-is-not-move
+feature: sheet.editor.fill-handle
+intent: "A drag from the selection's bottom-right corner fills and leaves the cells where they are; it does not move them (the corner was the border and a drag there carried the data away with no sign; walkthrough F5). The engine's select tool, fed pointer events: the handle's hit box, the pane it answers in, the fill, Cmd's copy, Escape, a drag back into the selection and the double-click."
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: fill_handle
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-27"

@@ -33,6 +33,7 @@ mod edit;
 mod edit_read_premises;
 mod files;
 mod fill_read_premises;
+mod filling;
 mod format_premises;
 mod formula;
 mod gesture;
@@ -178,6 +179,8 @@ pub struct SheetDocument {
     /// The cell being typed began with what Insert put in (Insert Function, a symbol): entered,
     /// it does not make a table beside it larger (TS-C60), as typing does.
     edit_inserted: bool,
+    /// The pointer is over the fill handle (`filling`).
+    fill_hover: bool,
     /// The pointer is over the selection's border: with Cmd/Ctrl held (a copy) or not.
     move_hover: Option<bool>,
     /// What was typed is held by its cell's data validation (`validation`): the rule's error style
@@ -244,6 +247,7 @@ pub const EDITOR_STATE: &[&str] = &[
     "/shapeEditing",
     "/escape",
     "/formatPainter",
+    "/drawTool",
     "/style",
     "/tableInfo",
     "/dialog",
@@ -535,6 +539,7 @@ impl SheetDocument {
             view_at: (0.0, 0.0),
             notice: (0, None),
             edit_inserted: false,
+            fill_hover: false,
             move_hover: None,
             validation_held: None,
             tab_run: None,
@@ -2031,6 +2036,7 @@ impl SheetDocument {
         self.object_overlays(&mut out);
         self.ink_overlays(&mut out);
         self.resize_overlays(&mut out);
+        self.fill_overlays(&mut out);
         self.move_overlays(&mut out);
         self.freeze_preview_overlays(sheet, &mut out);
         out
@@ -2089,6 +2095,7 @@ impl SheetDocument {
             overlays: self.overlays(),
             cursor: self
                 .resize_cursor()
+                .or_else(|| ((self.fill_hover && self.fill_source().is_some()) || matches!(self.drag, Drag::Fill(_))).then_some("crosshair"))
                 .or_else(|| self.move_cursor())
                 .or_else(|| (self.text_hover && self.editing.is_some()).then_some("text"))
                 .unwrap_or(if self.session.format_painter.is_some() { PAINTER_CURSOR } else { "cell" })
@@ -2712,6 +2719,9 @@ impl KitDocument for SheetDocument {
         // The active table's options (the Table Design tab), and the last dialog a command asked
         // for: how many were asked (the editor opens each once), its name and values, the command.
         out["tableInfo"] = table_info.unwrap_or(Json::Null);
+        // The Draw tab's pen or eraser, when one is up (a drag draws instead of selecting): the
+        // editor does not scroll at the grid's edge for it.
+        out["drawTool"] = json!(Some(self.session.draw_tool.as_str()).filter(|t| !t.is_empty() && *t != "select"));
         out["dialog"] = dialog.unwrap_or(Json::Null);
         // The last notice for the person (the editor shows each once), and whether the active
         // cell shows a checkbox (not typed in: the formula bar stays shut, Insert Link greys).
@@ -2913,13 +2923,17 @@ impl KitTools for SheetDocument {
             }
         }
         // A press goes to the first that takes it, in this order: the cell being typed, the lines
-        // between headings, drawing objects (over the cells), the selection's border, a filter
-        // button, then the cells and headings. Hovering shows the cursor of the one under it.
+        // between headings, drawing objects (over the cells), the fill handle, the selection's
+        // border, a filter button, then the cells and headings. Hovering shows the cursor of the one under it.
         let in_cell_text = typing_at.is_some() && matches!(event.action, PointerAction::Down | PointerAction::DoubleClick);
         if !in_cell_text && self.resize_press(event)? {
             return Ok(self.respond());
         }
         if !in_cell_text && self.object_press(event)? {
+            return Ok(self.respond());
+        }
+        // The fill handle comes before the border round it (WPS, Excel).
+        if !in_cell_text && self.fill_press(event)? {
             return Ok(self.respond());
         }
         // The selection's border moves it (WPS, Excel); a filter button opens its list.

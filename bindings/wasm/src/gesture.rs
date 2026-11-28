@@ -27,12 +27,14 @@ pub(crate) enum Drag {
     Object(objects::ObjectDrag),
     /// A pen stroke or an eraser's path (the Draw tab, `objects`).
     Ink(objects::InkDrag),
+    /// The fill handle (`filling`).
+    Fill(filling::FillDrag),
 }
 
 impl Drag {
     /// Whether Escape drops it: a gesture whose release would change the workbook.
     pub(crate) fn cancels(&self) -> bool {
-        matches!(self, Drag::Resize(_) | Drag::Move(_) | Drag::Object(_) | Drag::Ink(_))
+        matches!(self, Drag::Resize(_) | Drag::Move(_) | Drag::Object(_) | Drag::Ink(_) | Drag::Fill(_))
     }
 }
 
@@ -118,7 +120,7 @@ impl SheetDocument {
         let dragged = event.action == PointerAction::Drag;
         match &self.drag {
             Drag::None => {}
-            Drag::Select { .. } if dragged => self.select_to(hit),
+            Drag::Select { .. } if dragged => self.select_to(event, hit),
             // Only a caret that moved repaints: the drag reports far more often than it crosses a
             // character, and each repaint draws the whole view again.
             Drag::Text if dragged => {
@@ -135,6 +137,7 @@ impl SheetDocument {
             Drag::Move(_) => self.move_drag_to(event),
             Drag::Object(_) if dragged => self.object_drag_to(event),
             Drag::Ink(_) if dragged => self.ink_drag_to(event),
+            Drag::Fill(_) => self.fill_drag_to(event),
             _ => {}
         }
         Ok(())
@@ -155,6 +158,7 @@ impl SheetDocument {
             Drag::Move(drag) => self.move_release(drag, event),
             Drag::Object(drag) => self.object_release(drag),
             Drag::Ink(drag) => self.ink_release(drag),
+            Drag::Fill(drag) => self.fill_release(drag, event.mods),
         }
     }
 
@@ -174,8 +178,11 @@ impl SheetDocument {
         true
     }
 
-    /// A drag of cells, or of whole rows or columns from a heading, to `hit`.
-    fn select_to(&mut self, hit: Hit) {
+    /// A drag of cells, or of whole rows or columns from a heading, to `hit`. A drag of cells that
+    /// reaches the headings (or the outline gutter) goes to the nearest cell, as the editor holds
+    /// a pointer past the grid's edge at the edge while it scrolls (`web/src/edgeScroll.ts`).
+    fn select_to(&mut self, event: &ToolPointer, hit: Hit) {
+        let near = self.cell_near(event.x, event.y);
         let Ok(st) = self.session.doc_mut() else { return };
         let current = st.selection.current();
         let anchor = st.selection.anchor;
@@ -197,8 +204,7 @@ impl SheetDocument {
                     *last = range;
                 }
             }
-            (None, Hit::Cell(cell)) => st.selection.extend_to(cell),
-            _ => {}
+            (None, _) => st.selection.extend_to(near),
         }
     }
 }

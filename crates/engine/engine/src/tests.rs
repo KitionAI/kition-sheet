@@ -452,6 +452,41 @@ fn fill_series() {
     assert_eq!(v(&s, "C2"), Value::from("Item 10"));
 }
 
+/// The fill handle as WPS works it (W-E1–W-E6): `extend` counts a single number on, where
+/// `series` copies it; the rest fills as `series`; `copy` repeats the source, round and round;
+/// Chinese weekdays, months, quarters and the stems and branches go on in their order.
+#[test]
+fn fill_extend_counts_a_single_number_on() {
+    let mut s = s();
+    s.execute("cell.set", json!({"cell": "A1", "input": "5"})).unwrap();
+    s.execute("edit.autoFill", json!({"source": "A1", "target": "A1:A6", "mode": "extend"})).unwrap();
+    assert_eq!((v(&s, "A2"), v(&s, "A6")), (Value::Number(6.0), Value::Number(10.0)));
+    s.execute("edit.autoFill", json!({"source": "A1", "target": "A1:A3", "mode": "series"})).unwrap();
+    assert_eq!(v(&s, "A3"), Value::Number(5.0), "series still copies a single number");
+    s.execute("range.setValues", json!({"range": "B1", "values": [[1.5], [2]]})).unwrap();
+    s.execute("edit.autoFill", json!({"source": "B1:B2", "target": "B1:B5", "mode": "copy"})).unwrap();
+    assert_eq!((v(&s, "B3"), v(&s, "B4"), v(&s, "B5")), (Value::Number(1.5), Value::Number(2.0), Value::Number(1.5)));
+    for (cell, input, third) in [
+        ("C1", "Item1", "Item3"),
+        ("D1", "x1y", "x3y"),
+        ("E1", "Monday", "Wednesday"),
+        ("F1", "abc", "abc"),
+        ("G1", "星期一", "星期三"),
+        ("H1", "十一月", "一月"),
+        ("I1", "第三季度", "第一季度"),
+        ("J1", "甲", "丙"),
+    ] {
+        s.execute("cell.set", json!({"cell": cell, "input": input})).unwrap();
+        let col = &cell[..1];
+        s.execute("edit.autoFill", json!({"source": cell, "target": format!("{col}1:{col}3"), "mode": "extend"})).unwrap();
+        assert_eq!(v(&s, &format!("{col}3")), Value::from(third), "{input}");
+    }
+    s.execute("cell.set", json!({"cell": "K1", "input": "2026-11-27"})).unwrap();
+    s.execute("edit.autoFill", json!({"source": "K1", "target": "K1:K2", "mode": "extend"})).unwrap();
+    let (Value::Number(a), Value::Number(b)) = (v(&s, "K1"), v(&s, "K2")) else { panic!("dates are numbers") };
+    assert_eq!(b - a, 1.0, "a date goes on a day");
+}
+
 #[test]
 fn insert_delete_cells_adjust() {
     let formula = |s: &mut Session, a: &str| s.execute("cell.get", json!({"cell": a})).unwrap()["formula"].clone();

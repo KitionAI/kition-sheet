@@ -20,6 +20,44 @@ const parseCell = (ref) => {
   return { col: colIndex(match[1]), row: Number(match[2]) - 1 }
 }
 
+/**
+ * Records what the editor draws over the grid on the canvas surface, frame by frame (a frame starts
+ * where the rendered grid is copied in): small filled squares (handles) and dashed strokes, in the
+ * canvas's CSS pixels. Read with `marks()`.
+ */
+const MARKS_INIT = () => {
+  const marks = (window.__marks = { cur: { squares: [], dashed: 0 }, frames: 0 })
+  const P = window.CanvasRenderingContext2D?.prototype
+  if (!P) return
+  const surface = (canvas) => canvas?.classList?.contains('kui-canvas-surface')
+  const at = (ctx, x, y) => {
+    const m = ctx.getTransform()
+    const d = window.devicePixelRatio || 1
+    return [(m.a * x + m.c * y + m.e) / d, (m.b * x + m.d * y + m.f) / d]
+  }
+  const wrap = (name, fn) => {
+    const original = P[name]
+    P[name] = function (...args) {
+      try {
+        if (surface(this.canvas)) fn(this, args)
+      } catch {}
+      return original.apply(this, args)
+    }
+  }
+  wrap('drawImage', () => {
+    marks.cur = { squares: [], dashed: 0 }
+    marks.frames += 1
+  })
+  wrap('fillRect', (ctx, [x, y, w, h]) => {
+    const p = at(ctx, x, y)
+    const q = at(ctx, x + w, y + h)
+    if (Math.abs(q[0] - p[0]) <= 14 && Math.abs(q[1] - p[1]) <= 14) marks.cur.squares.push({ x: p[0], y: p[1], w: q[0] - p[0], h: q[1] - p[1], fill: String(ctx.fillStyle) })
+  })
+  wrap('stroke', (ctx) => {
+    if (ctx.getLineDash().length) marks.cur.dashed += 1
+  })
+}
+
 /** Opens dev.html (the sample workbook) in `which` browser at `width` × `height`; Single line unless `query` says otherwise. */
 export async function open({ which = process.argv[2] ?? 'chromium', query = 'locale=en-US', width = 1600, height = 1000 } = {}) {
   const server = await createServer({ configFile: new URL('../../vite.config.ts', import.meta.url).pathname, server: { port: 0, host: '127.0.0.1' }, logLevel: 'error' })
@@ -27,6 +65,7 @@ export async function open({ which = process.argv[2] ?? 'chromium', query = 'loc
   const browser = await (which === 'webkit' ? webkit : chromium).launch()
   const context = await browser.newContext({ viewport: { width, height } })
   if (which === 'chromium') await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await context.addInitScript(MARKS_INIT)
   const page = await context.newPage()
   page.setDefaultTimeout(10_000)
   const errors = []
@@ -135,11 +174,20 @@ export async function open({ which = process.argv[2] ?? 'chromium', query = 'loc
       if (!element || element === document.body) return 'body'
       return `${element.tagName.toLowerCase()}${element.className && typeof element.className === 'string' ? `.${element.className.split(' ')[0]}` : ''}`
     })
+  /** What is drawn over the grid now: small filled squares (on the page) and how many dashed strokes. */
+  const marks = async () => {
+    const drawn = await frame().evaluate(() => window.__marks?.cur ?? null)
+    const box = await surface()
+    if (!drawn) return null
+    return { dashed: drawn.dashed, squares: drawn.squares.map((item) => ({ ...item, x: box.x + item.x, y: box.y + item.y })) }
+  }
+  /** The pointer's look over the grid (the engine tool's cursor). */
+  const cursor = () => kit.locator('.kui-canvas-surface').evaluate((element) => element.style.cursor)
   const close = async () => {
     await browser.close().catch(() => undefined)
     await server.close().catch(() => undefined)
   }
-  return { which, page, kit, frame, wait, until, agent, ask, details, value, zoom, surface, canvasState, layout, cellPoint, click, home, active, errors, close }
+  return { which, page, kit, frame, wait, until, agent, ask, details, value, zoom, surface, canvasState, layout, cellPoint, click, home, active, marks, cursor, errors, close }
 }
 
 /**

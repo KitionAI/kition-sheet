@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-f2-fill-double-click
+feature: sheet.editor.fill-handle
+intent: "A double-click on the fill handle fills down as far as the data in the column beside it goes, counting a single number on, and does not start typing, as WPS does (the double-click went into the cell; walkthrough F2)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/fill.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/fill.mjs, chromium, f2-fill-double-click]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-27"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-f1-fill-handle
+feature: sheet.editor.fill-handle
+intent: "The selection's corner has the fill handle, the thin cross over it, and a drag from it fills as WPS does: a single number counts on (5 to 10), Cmd at the release copies, two cells go on by their step, text with a number, dates, weekdays and formulas go on, one undo step, also at 130% and scrolled (there was no handle and the corner moved the cells; walkthrough F1)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/fill.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/fill.mjs, chromium, f1-fill-handle, f1-cmd-copies, f1-series, f1-formula, f1-zoomed-scrolled]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-27"

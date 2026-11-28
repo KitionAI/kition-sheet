@@ -206,7 +206,7 @@ schema says which.
 | `kind` | `rectangle`, `roundedRectangle`, `ellipse`, `triangle`, `line`, `arrow`, `textBox` | `shape.insert` |
 | `kind` | `shape`, `textBox`, `chart` | `drawing.insert` |
 | `layout` | `compact`, `outline`, `tabular` | `pivot.layout`, `pivot.reportLayout` |
-| `mode` | `series`, `copy`, `formats`, `values` | `edit.autoFill` |
+| `mode` | `series`, `extend`, `copy`, `formats`, `values` | `edit.autoFill` |
 | `mode` | `moveOnly`, `moveAndSize`, `absolute` | `image.insert` |
 | `mode` | `moveAndSize`, `moveOnly`, `absolute` | `object.setAnchorMode` |
 | `mode` | `automatic`, `automaticExceptTables`, `manual` | `formula.calculationOptions` |

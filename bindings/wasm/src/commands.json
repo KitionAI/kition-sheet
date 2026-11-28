@@ -1702,7 +1702,7 @@
   "description": "Splits groups back into their objects."
  },
  "edit.autoFill": {
-  "description": "Extends a source range over a target range as the fill handle does: continues series (1, 2, 3…; months), or copies values or formats only."
+  "description": "Extends a source range over a target range as the fill handle does: continues series (1, 2, 3…; months), with `extend` a single number counting on too (5, 6, 7, as a person's fill handle drag does), or copies values or formats only."
  },
  "edit.beginEdit": {
   "description": "Puts the active cell into edit mode in the editor (F2); for agents, use cell.set to change a cell."

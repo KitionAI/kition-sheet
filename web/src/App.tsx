@@ -56,6 +56,7 @@ import { pressKey, type KeyContext } from './keys'
 import { steppedCanvas, stepZoom, zoomKeepingCorner } from './zoom'
 import { ZoomControl, type ZoomActions } from './ZoomControl'
 import { useSheetWheel } from './useSheetWheel'
+import { edgeScrolling } from './edgeScroll'
 
 const TABS: Array<[string, string]> = [
   ['file', 'File'],
@@ -318,6 +319,14 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   pinned.current = doc?.pinned ?? null
   const pins = useCallback(() => pinned.current, [])
   useSheetWheel(gridRegion, canvas, pins)
+  // A drag past the grid's edge scrolls the view (edgeScroll.ts), whichever gesture the engine's
+  // tool runs; it reads the tool's cursor and the state as they are at each frame.
+  const edge = useRef({ cursor: tools.canvasTool.cursor, drawing: false, cell: [69, 19] as [number, number] })
+  edge.current = { cursor: tools.canvasTool.cursor, drawing: state?.drawTool != null, cell: state?.defaultSize ?? [69, 19] }
+  const gridTool = useMemo(() => edgeScrolling(tools.canvasTool, () => {
+    const view = canvas.current?.view()
+    return { ...edge.current, pins: pinned.current, size: view ? { width: view.width, height: view.height } : null }
+  }), [tools.canvasTool])
 
   // View › Show › Formula Bar is the person's (Excel's and WPS's application setting): the engine
   // has it for agents (`view.formulaBar`), and the editor keeps it for the next time, giving it
@@ -713,7 +722,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         <div className="kui-row" onContextMenu={(event) => void gridMenu(event)}>
           <div className="sheet-grid-workspace" data-testid="sheet-grid-workspace">
           <div className="sheet-grid-viewport" id={gridId} ref={gridRegion}>
-          <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} decorate={comments.decorate} onView={(view) => {
+          <KitDocumentCanvas canvas={canvas} viewMemory={viewMemory} framed={false} tool={gridTool} decorate={comments.decorate} onView={(view) => {
             views.set(view)
             setZoom(view.zoom)
             if (shown.current) sheetViews.current.set(shown.current.sheet, { x: view.x, y: view.y })

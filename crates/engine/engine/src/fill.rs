@@ -13,6 +13,9 @@ use crate::cmd::Ctx;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FillMode {
     Series,
+    /// A series in which a single number counts on too (5, 6, 7), as WPS's fill handle does;
+    /// otherwise as `Series`.
+    Extend,
     Copy,
     Formats,
     ValuesOnly,
@@ -28,7 +31,19 @@ fn lists() -> Vec<Vec<String>> {
         short_months,
         MONTHS.iter().map(|s| s.to_string()).collect(),
         vec!["Q1".into(), "Q2".into(), "Q3".into(), "Q4".into()],
+        // The Chinese lists a Chinese spreadsheet fills by (Excel's and WPS's built-in ones).
+        chinese(&["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]),
+        chinese(&["周日", "周一", "周二", "周三", "周四", "周五", "周六"]),
+        chinese(&["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"]),
+        chinese(&["第一季", "第二季", "第三季", "第四季"]),
+        chinese(&["第一季度", "第二季度", "第三季度", "第四季度"]),
+        chinese(&["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]),
+        chinese(&["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]),
     ]
+}
+
+fn chinese(words: &[&str]) -> Vec<String> {
+    words.iter().map(|w| (*w).to_string()).collect()
 }
 
 /// Fills `target` (which contains `src` at one edge) from the pattern in `src`.
@@ -62,12 +77,13 @@ pub fn fill(cx: &mut Ctx, sheet: usize, src: RangeRef, target: RangeRef, mode: F
                 if forward { (src.end.col + 1..=target.end.col).collect() } else { (target.start.col..src.start.col).rev().collect() };
             cols.into_iter().map(|c| CellRef::new(lane, c)).collect()
         };
-        let pattern = if mode == FillMode::Series {
+        let pattern = if matches!(mode, FillMode::Series | FillMode::Extend) {
             Pattern::detect(
                 &src_cells,
                 &custom,
                 cx.wb.date_system,
                 cx.wb.styles.get(src_cells.first().and_then(|c| c.1.as_ref()).map(|c| c.style).unwrap_or_default()).num_fmt.as_str(),
+                mode == FillMode::Extend,
             )
         } else {
             Pattern::Copy
@@ -84,7 +100,7 @@ pub fn fill(cx: &mut Ctx, sheet: usize, src: RangeRef, target: RangeRef, mode: F
                     writes.push((*t, Some(existing)));
                     continue;
                 }
-                FillMode::ValuesOnly | FillMode::Series | FillMode::Copy => {
+                FillMode::ValuesOnly | FillMode::Series | FillMode::Extend | FillMode::Copy => {
                     let style = if mode == FillMode::ValuesOnly { sh.cell(*t).map(|c| c.style).unwrap_or_default() } else { cell.style };
                     if let Some(f) = &cell.formula {
                         if let Some(e) = f.expr() {
@@ -158,7 +174,7 @@ enum Pattern {
 }
 
 impl Pattern {
-    fn detect(cells: &[(CellRef, Option<Cell>)], custom: &[Vec<String>], sys: kition_sheet_core::DateSystem, fmt: &str) -> Pattern {
+    fn detect(cells: &[(CellRef, Option<Cell>)], custom: &[Vec<String>], sys: kition_sheet_core::DateSystem, fmt: &str, extend: bool) -> Pattern {
         let vals: Vec<Value> = cells.iter().map(|(_, c)| c.as_ref().map(|c| c.value.clone()).unwrap_or_default()).collect();
         if cells.iter().any(|(_, c)| c.as_ref().is_some_and(|c| c.formula.is_some())) {
             return Pattern::Copy;
@@ -170,8 +186,8 @@ impl Pattern {
             let last = nums.last().copied().unwrap_or(0.0);
             let is_date = fmt.contains('d') || fmt.contains('y') || (fmt.contains('m') && !fmt.contains('h'));
             if nums.len() == 1 {
-                // A single number copies; a single date increments by a day.
-                return if is_date { Pattern::Linear { last, first, step: 1.0 } } else { Pattern::Copy };
+                // A single number copies (counts on when extending); a single date increments by a day.
+                return if is_date || extend { Pattern::Linear { last, first, step: 1.0 } } else { Pattern::Copy };
             }
             // Dates that differ by whole months.
             if is_date && nums.len() >= 2 {

@@ -39,6 +39,7 @@
     "test:drafts": "node tests/drafts.mjs chromium && node tests/drafts.mjs webkit",
     "test:hand-keys": "node tests/hand/focus.mjs chromium && node tests/hand/keys.mjs chromium && node tests/hand/zoom.mjs chromium && node tests/hand/cycle.mjs chromium && node tests/hand/commit.mjs chromium && node tests/hand/focus.mjs webkit && node tests/hand/keys.mjs webkit && node tests/hand/zoom.mjs webkit && node tests/hand/cycle.mjs webkit && node tests/hand/commit.mjs webkit",
     "test:hand-dialogs": "node tests/hand/menus.mjs chromium && node tests/hand/menus.mjs webkit",
+    "test:hand-grid": "node tests/hand/fill.mjs chromium && node tests/hand/edge-scroll.mjs chromium && node tests/hand/fill.mjs webkit && node tests/hand/edge-scroll.mjs webkit",
     "test:contract": "node ../../kition-sdk/tools/check-manifest.mjs ../kit.json --module public/engine"
   },
   "dependencies": {

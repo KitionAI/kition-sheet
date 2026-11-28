@@ -106,6 +106,8 @@ export type SheetInfo = {
   freezeShift: [number, number]
   /** The format painter: up for one paint, sticky (until put down), or down. */
   formatPainter: 'once' | 'sticky' | null
+  /** The Draw tab's pen or eraser, when one is up (a drag draws instead of selecting). */
+  drawTool: string | null
   /** The active cell's rectangle in document pixels (x0, y0, x1, y1). */
   activeRect: [number, number, number, number] | null
   /** The sheet's column width and row height where a column or row has no size of its own (document pixels). */
@@ -165,6 +167,7 @@ export function describe(info: KitEngineInfo): SheetInfo {
     freezePreview: Array.isArray(inspected.freezePreview) ? inspected.freezePreview : null,
     freezeShift: Array.isArray(inspected.freezeShift) ? inspected.freezeShift : [0, 0],
     formatPainter: inspected.formatPainter === 'once' || inspected.formatPainter === 'sticky' ? inspected.formatPainter : null,
+    drawTool: typeof inspected.drawTool === 'string' ? inspected.drawTool : null,
     activeRect: Array.isArray(inspected.activeRect) ? inspected.activeRect : null,
     defaultSize: Array.isArray(inspected.defaultSize) && inspected.defaultSize.length === 2 && inspected.defaultSize.every((size) => typeof size === 'number' && size > 0) ? inspected.defaultSize : [69, 19],
     zoom: typeof inspected.zoom === 'number' ? inspected.zoom : 100,

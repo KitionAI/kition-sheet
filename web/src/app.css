@@ -690,6 +690,15 @@
   font: 12px var(--kit-font-ui, inherit);
   color: var(--kit-text);
 }
+/* Under the cell being typed the argument hint only shows: a press on it goes to the cell under it
+   (pointing at it, or selecting it just after Escape, before the hint goes); the function list
+   takes presses. */
+.sheet-cell-hints .sheet-formula-hints {
+  pointer-events: none;
+}
+.sheet-cell-hints .sheet-formula-list-row {
+  pointer-events: auto;
+}
 .sheet-formula-call,
 .sheet-formula-list,
 .sheet-formula-doc {

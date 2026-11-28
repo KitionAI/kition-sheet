@@ -96,7 +96,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "AutoFill",
             [],
             None,
-            "{source: \"A1:A2\", target: \"A1:A10\", mode?: series|copy|formats|values}: the fill-handle drag",
+            "{source: \"A1:A2\", target: \"A1:A10\", mode?: series|extend|copy|formats|values}: the fill-handle drag; extend also counts a single number on",
             has_doc,
             auto_fill
         ),
@@ -1580,6 +1580,7 @@ fn auto_fill(s: &mut Session, p: &Json) -> Result<Json> {
     let src = str_param(p, "source").and_then(RangeRef::parse).map_or_else(|| target_range(s, p), Ok)?;
     let Some(target) = str_param(p, "target").and_then(RangeRef::parse) else { return Err(bad("edit.autoFill", "missing `target`")) };
     let mode = match str_param(p, "mode").unwrap_or("series") {
+        "extend" => crate::fill::FillMode::Extend,
         "copy" => crate::fill::FillMode::Copy,
         "formats" => crate::fill::FillMode::Formats,
         "values" => crate::fill::FillMode::ValuesOnly,

@@ -1981,3 +1981,181 @@ fn cmd_click_takes_a_selected_cell_out_and_adds_headings() {
     doc.pointer(&cmd(PointerAction::Up, heading(12))).unwrap();
     assert_eq!(get(&doc, "selection"), "C:G,J:J,L:M");
 }
+
+/// The fill handle's corner of a range at the default sizes (document pixels).
+fn corner_of(last_col: u32, last_row: u32) -> (f64, f64) {
+    (HEADER_W + f64::from(last_col + 1) * CW, HEADER_H + f64::from(last_row + 1) * RH)
+}
+
+fn undo_steps(doc: &SheetDocument) -> usize {
+    doc.session.doc().map(|d| d.undo.len()).unwrap_or(0)
+}
+
+/// F1 (WPS W-A1, R-H1): a selection's bottom-right corner has the fill handle, a 6-pixel square
+/// on a white edge; over it (9 × 9 screen pixels) the pointer is the thin cross; it is not there
+/// for several areas, whole columns, or while typing.
+#[test]
+fn fill_handle_is_drawn_and_shows_the_cross() {
+    let mut doc = SheetDocument::create("Fill.xlsx", 0, 0).unwrap();
+    let shown = click(&mut doc, centre(1, 1), false);
+    let (x, y) = corner_of(1, 1);
+    let handle = |response: &ToolResponse| {
+        response.overlays.iter().any(|o| matches!(o, ToolOverlay::Anchor { x: ax, y: ay, filled: true, size, color } if (ax - x).abs() < 0.5 && (ay - y).abs() < 0.5 && *size == 6.0 && *color == ACCENT))
+    };
+    assert!(handle(&shown), "the handle at B2's corner: {:?}", shown.overlays);
+    assert_eq!(doc.pointer(&event(PointerAction::Move, x + 4.0, y + 4.0, false)).unwrap().cursor, "crosshair", "4 px off: the handle");
+    assert_ne!(doc.pointer(&event(PointerAction::Move, x + 7.0, y + 7.0, false)).unwrap().cursor, "crosshair", "7 px off: the cells");
+    assert_eq!(doc.pointer(&event(PointerAction::Move, centre(1, 1).0, centre(1, 1).1, false)).unwrap().cursor, "cell");
+    // Zoomed in, the reach is still 4.5 screen pixels.
+    let zoomed = ToolPointer { action: PointerAction::Move, x: x + 3.0, y: y + 3.0, mods: ToolMods::default(), pressure: 1.0, zoom: 2.0 };
+    assert_ne!(doc.pointer(&zoomed).unwrap().cursor, "crosshair", "6 screen px off at 200%");
+    doc.execute("select.set", json!({ "range": "B2,D4" })).unwrap();
+    assert!(!doc.respond().overlays.iter().any(|o| matches!(o, ToolOverlay::Anchor { size, .. } if *size == 6.0)), "none for several areas");
+    doc.execute("select.set", json!({ "range": "C:C" })).unwrap();
+    assert!(!doc.respond().overlays.iter().any(|o| matches!(o, ToolOverlay::Anchor { size, .. } if *size == 6.0)), "none for a whole column");
+    click(&mut doc, centre(1, 1), false);
+    KitTools::text(&mut doc, "7", 1.0).unwrap();
+    assert!(!handle(&doc.respond()), "none while typing");
+}
+
+/// F5 (WPS W-E1, W-E2): a drag from the corner fills, it no longer moves the cells: a single number
+/// counts on (5…10) along the direction the pointer went further, in one undo step, the selection
+/// the filled block; with Cmd held at the release it is copied; a dashed frame shows the cells it
+/// would fill meanwhile, and the workbook does not change until the release.
+#[test]
+fn fill_handle_corner_fills_instead_of_moving() {
+    let mut doc = SheetDocument::create("Fill.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "A1", "input": "5" })).unwrap();
+    click(&mut doc, centre(0, 0), false);
+    let before = undo_steps(&doc);
+    let from = corner_of(0, 0);
+    doc.pointer(&event(PointerAction::Down, from.0 - 1.0, from.1 - 1.0, false)).unwrap();
+    // Five rows down and a little right: down wins.
+    let to = (centre(0, 5).0 + CW * 0.4, centre(0, 5).1);
+    let during = doc.pointer(&event(PointerAction::Drag, to.0, to.1, false)).unwrap();
+    assert_eq!(during.cursor, "crosshair");
+    assert!(
+        during.overlays.iter().any(|o| matches!(o, ToolOverlay::Path { dashed: true, color, .. } if *color == [64, 64, 64, 255])),
+        "a dashed frame"
+    );
+    assert_eq!(value(&mut doc, "A2")["value"], json!(null), "nothing filled yet");
+    doc.pointer(&event(PointerAction::Up, to.0, to.1, false)).unwrap();
+    let column: Vec<Json> = (1..=6).map(|r| value(&mut doc, &format!("A{r}"))["value"].clone()).collect();
+    assert_eq!(column, [5.0, 6.0, 7.0, 8.0, 9.0, 10.0].map(|n| json!(n)));
+    assert_eq!(value(&mut doc, "B2")["value"], json!(null), "only down");
+    assert_eq!(get(&doc, "selection"), "A1:A6");
+    assert_eq!(undo_steps(&doc), before + 1, "one undo step");
+    doc.execute("edit.undo", json!({})).unwrap();
+    assert_eq!(value(&mut doc, "A6")["value"], json!(null));
+    assert_eq!(value(&mut doc, "A1")["value"], json!(5.0), "the cells did not move");
+    // Cmd at the release: a copy.
+    click(&mut doc, centre(0, 0), false);
+    let cmd = ToolMods { command: true, ..ToolMods::default() };
+    doc.pointer(&event(PointerAction::Down, from.0, from.1, false)).unwrap();
+    doc.pointer(&event(PointerAction::Drag, centre(0, 3).0, centre(0, 3).1, false)).unwrap();
+    doc.pointer(&event_with(PointerAction::Up, centre(0, 3), cmd)).unwrap();
+    let column: Vec<Json> = (1..=4).map(|r| value(&mut doc, &format!("A{r}"))["value"].clone()).collect();
+    assert_eq!(column, [json!(5.0), json!(5.0), json!(5.0), json!(5.0)]);
+    // Two cells go on by their step; further right than down fills right.
+    doc.execute("range.setValues", json!({ "range": "C1", "values": [[1, 2]] })).unwrap();
+    doc.execute("select.set", json!({ "range": "C1:D1" })).unwrap();
+    let from = corner_of(3, 0);
+    doc.pointer(&event(PointerAction::Down, from.0, from.1, false)).unwrap();
+    doc.pointer(&event(PointerAction::Drag, centre(6, 1).0, centre(6, 1).1, false)).unwrap();
+    doc.pointer(&event(PointerAction::Up, centre(6, 1).0, centre(6, 1).1, false)).unwrap();
+    let row: Vec<Json> = ["E1", "F1", "G1"].iter().map(|c| value(&mut doc, c)["value"].clone()).collect();
+    assert_eq!(row, [json!(3.0), json!(4.0), json!(5.0)]);
+    assert_eq!(value(&mut doc, "C2")["value"], json!(null));
+    // A press and release on the handle does nothing.
+    let steps = undo_steps(&doc);
+    let corner = corner_of(6, 0);
+    click(&mut doc, corner, false);
+    assert_eq!(undo_steps(&doc), steps);
+    assert_eq!(get(&doc, "selection"), "C1:G1");
+}
+
+/// A formula filled down moves its relative references; Escape drops the drag (no change, no undo
+/// step); dragged back into the selection, the release clears the cells passed over.
+#[test]
+fn fill_handle_formulas_escape_and_clearing() {
+    let mut doc = SheetDocument::create("Fill.xlsx", 0, 0).unwrap();
+    doc.execute("range.setValues", json!({ "range": "A1", "values": [[1], [2], [3]] })).unwrap();
+    doc.execute("cell.set", json!({ "cell": "B1", "input": "=A1*2" })).unwrap();
+    doc.execute("select.set", json!({ "range": "B1" })).unwrap();
+    let from = corner_of(1, 0);
+    drag_with(&mut doc, from, centre(1, 2), ToolMods::default());
+    assert_eq!(formula_of(&mut doc, "B3"), "=A3*2");
+    assert_eq!(value(&mut doc, "B3")["value"], json!(6.0));
+    // Escape mid-drag.
+    let steps = undo_steps(&doc);
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
+    let from = corner_of(0, 0);
+    doc.pointer(&event(PointerAction::Down, from.0, from.1, false)).unwrap();
+    doc.pointer(&event(PointerAction::Drag, centre(0, 6).0, centre(0, 6).1, false)).unwrap();
+    assert_eq!(get(&doc, "escape"), json!(true), "Escape has the drag to cancel");
+    let dropped = doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    assert!(!dropped.overlays.iter().any(|o| matches!(o, ToolOverlay::Path { dashed: true, .. })), "the frame goes");
+    doc.pointer(&event(PointerAction::Up, centre(0, 6).0, centre(0, 6).1, false)).unwrap();
+    assert_eq!((value(&mut doc, "A4")["value"].clone(), undo_steps(&doc)), (json!(null), steps), "nothing filled");
+    // Back into A1:B3 from its corner to A1: rows 2 and 3 are cleared, A1:B1 stays selected.
+    doc.execute("select.set", json!({ "range": "A1:B3" })).unwrap();
+    let from = corner_of(1, 2);
+    doc.pointer(&event(PointerAction::Down, from.0, from.1, false)).unwrap();
+    let back = doc.pointer(&event(PointerAction::Drag, centre(1, 0).0, centre(1, 0).1, false)).unwrap();
+    assert!(
+        back.overlays.iter().any(|o| matches!(o, ToolOverlay::Highlight { color, .. } if *color == [96, 96, 96, 72])),
+        "the cells to clear are shaded"
+    );
+    doc.pointer(&event(PointerAction::Up, centre(1, 0).0, centre(1, 0).1, false)).unwrap();
+    assert_eq!((value(&mut doc, "A2")["value"].clone(), value(&mut doc, "B3")["value"].clone()), (json!(null), json!(null)));
+    assert_eq!(value(&mut doc, "A1")["value"], json!(1.0));
+    assert_eq!(get(&doc, "selection"), "A1:B1");
+}
+
+/// F2 (WPS W-E7): a double-click on the handle fills down as far as the data in the column on the
+/// left goes (else the one on the right), counting a single number on; nothing when the cell
+/// beside the row under it is empty.
+#[test]
+fn fill_handle_double_click_fills_beside_the_data() {
+    let mut doc = SheetDocument::create("Fill.xlsx", 0, 0).unwrap();
+    let rows: Vec<Json> = (0..60).map(|i| json!([format!("r{i}")])).collect();
+    doc.execute("range.setValues", json!({ "range": "C2", "values": rows })).unwrap();
+    doc.execute("cell.set", json!({ "cell": "D2", "input": "1" })).unwrap();
+    doc.execute("select.set", json!({ "range": "D2" })).unwrap();
+    let corner = corner_of(3, 1);
+    // The editor sends the presses, then the double-click.
+    click(&mut doc, corner, false);
+    click(&mut doc, corner, false);
+    doc.pointer(&event(PointerAction::DoubleClick, corner.0, corner.1, false)).unwrap();
+    assert_eq!(value(&mut doc, "D61")["value"], json!(60.0));
+    assert_eq!(value(&mut doc, "D62")["value"], json!(null));
+    assert_eq!(get(&doc, "editing"), json!(false), "not typing");
+    assert_eq!(get(&doc, "selection"), "D2:D61");
+    // The right-hand column when the left one is empty.
+    doc.execute("range.setValues", json!({ "range": "G2", "values": [["a"], ["b"], ["c"]] })).unwrap();
+    doc.execute("cell.set", json!({ "cell": "F1", "input": "Mon" })).unwrap();
+    doc.execute("select.set", json!({ "range": "F1" })).unwrap();
+    let corner = corner_of(5, 0);
+    doc.pointer(&event(PointerAction::DoubleClick, corner.0, corner.1, false)).unwrap();
+    assert_eq!(value(&mut doc, "F4")["value"], json!("Thu"));
+    assert_eq!(value(&mut doc, "F5")["value"], json!(null));
+    // Nothing beside it: nothing happens.
+    doc.execute("cell.set", json!({ "cell": "J1", "input": "x" })).unwrap();
+    doc.execute("select.set", json!({ "range": "J1" })).unwrap();
+    let steps = undo_steps(&doc);
+    let corner = corner_of(9, 0);
+    doc.pointer(&event(PointerAction::DoubleClick, corner.0, corner.1, false)).unwrap();
+    assert_eq!(undo_steps(&doc), steps);
+}
+
+/// With frozen rows, the handle of a selection ending on the last frozen row answers only in the
+/// frozen pane: a press just under the freeze line is the cells'.
+#[test]
+fn fill_handle_answers_only_in_its_pane() {
+    let mut doc = SheetDocument::create("Fill.xlsx", 0, 0).unwrap();
+    doc.execute("view.freezePanes", json!({ "cell": "A3" })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2" })).unwrap();
+    let (x, y) = corner_of(1, 1);
+    assert_eq!(doc.pointer(&event(PointerAction::Move, x, y - 2.0, false)).unwrap().cursor, "crosshair", "above the line");
+    assert_ne!(doc.pointer(&event(PointerAction::Move, x, y + 2.0, false)).unwrap().cursor, "crosshair", "under the line");
+}

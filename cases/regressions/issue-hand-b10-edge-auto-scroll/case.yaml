@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-b10-edge-auto-scroll
+feature: sheet.editor.edge-scroll
+intent: "A drag held past the grid's bottom or right edge scrolls the view, the pointer still, and the selection reaches the rows and columns that come into view; on the grid's last row nothing scrolls; the fill handle's drag and pointing at cells for a formula scroll too, as WPS does (the view stayed put and a range larger than the window could not be dragged; walkthrough B10)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/edge-scroll.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/edge-scroll.mjs, chromium]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-27"

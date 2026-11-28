@@ -389,7 +389,7 @@ features:
       - web/tests/gate-formula-input.mjs
       - web/tests/gate-formula-input-repeat.mjs
     target: "WPS Office for Mac 7.5.1"
-    cases: [sheet.editor.formula-input/gate-formula-input, sheet.editor.formula-input/cell-editor, sheet.editor.formula-input/fx-c6-repeat]
+    cases: [sheet.editor.formula-input/gate-formula-input, sheet.editor.formula-input/cell-editor, sheet.editor.formula-input/fx-c6-repeat, regressions/issue-hand-fx-c6-click-through-hint]
     since: "2026-11-17"
   - id: sheet.editor.formula-bar
     title: "The formula bar as in WPS: View › Show › 显示编辑栏 (kept for next time), Name Box, ✕ ✓ fx (Insert Function), typing there is typing in the cell (pointing, other sheets, Enter/Tab/Esc, Alt+Enter), expand"
@@ -709,6 +709,27 @@ features:
     gap: "On a Mac, kit-editor gives the engine's tool Ctrl+Enter as Cmd+Enter; the kit hands it on as Enter (only typed in the browser tests on Linux, where Ctrl is the main modifier and fills, as in Excel for Windows). Only a column of the default width widens, once: a width the file or a person set, or one widened before, stays. Where Cmd+Home lands with frozen panes and how a merged cell takes part in the round of Enter are Excel's (WPS untested). Cmd+click takes a cell out on the press; a drag from it selects nothing more."
     cases: [regressions/issue-hand-c6-home-end, regressions/issue-hand-c3-enter-cycles, regressions/issue-hand-c2-tab-run-enter, regressions/issue-hand-d14-cmd-enter-fills, regressions/issue-hand-d10-date-widens-column, regressions/issue-hand-b8-cmd-click-heading, regressions/issue-hand-a6-scroll-range]
     since: "2026-11-27"
+  - id: sheet.editor.fill-handle
+    title: "The fill handle as WPS works it: a small square at the selection's corner with the thin cross over it; a drag from it fills along the direction the pointer went further, a dashed frame round the cells meanwhile, one undo step: a single number counts on (5, 6, 7), two cells by their step, text with a number (Item1, x1y), weekdays, months, dates and the Chinese weekdays, months, quarters, stems and branches go on, plain text and formulas copy (relative references moving); Cmd (Ctrl) at the release copies instead; dragged back into the selection it clears the cells passed over; Escape drops it; a double-click fills down as far as the data beside it goes"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [edit.autoFill, edit.clearContents]
+    paths: [crates/engine/engine/src/fill.rs, crates/engine/engine/src/cmd/edit.rs, bindings/wasm/src/filling.rs, bindings/wasm/src/gesture.rs, bindings/wasm/src/lib.rs, web/tests/hand/harness.mjs, web/tests/hand/fill.mjs]
+    target: "WPS Office for Mac 7.5.1"
+    gap: "No Auto Fill Options button after a fill (WPS W-E8) and no menu for a right-button drag (W-E9). The handle is hit 9 × 9 screen pixels round the corner and drawn 6 × 6, and a drag back into the selection clears (Excel's; WPS untested). Cmd and Ctrl both copy at the release. Whole rows and columns, and several areas, have no handle."
+    cases: [regressions/issue-hand-f1-fill-handle, regressions/issue-hand-f2-fill-double-click, regressions/issue-hand-f5-corner-is-not-move]
+    since: "2026-11-27"
+  - id: sheet.editor.edge-scroll
+    title: "Scrolling at the grid's edge during a drag, as WPS does: past the bottom or the right edge (or the top and left while the view can go back) the view scrolls every frame with the pointer still, faster the further past (2.3 rows a second at 13 px, 5 at 43 px; 40 columns a second at 68 px), and the selection, the fill handle's cells, the block being moved and the reference pointed at for a formula reach the cells that come into view; on the grid nothing scrolls; a column or row being resized does not scroll back towards its start"
+    dimension: [function]
+    priority: P1
+    status: has
+    paths: [web/src/edgeScroll.ts, web/src/App.tsx, web/src/sheet.ts, bindings/wasm/src/gesture.rs, bindings/wasm/src/filling.rs, bindings/wasm/src/lib.rs, web/tests/hand/edge-scroll.mjs]
+    target: "WPS Office for Mac 7.5.1"
+    gap: "The pace between and past WPS's three measured points is a straight line (capped at 60 rows and 120 columns a second); the pace is in rows and columns of the sheet's default size. Dragging a drawing object past the edge scrolls too; selecting the characters of the cell being typed and the Draw tab's pens do not. Checked with Playwright's mouse in the development host."
+    cases: [regressions/issue-hand-b10-edge-auto-scroll]
+    since: "2026-11-27"
   - id: sheet.agent.observe
     title: An agent reads the workbook and answers in it
     dimension: [ai]
@@ -832,9 +853,10 @@ features:
     priority: P1
     status: partial
     commands: [edit.clearAll, edit.clearFormats, edit.clearContents, edit.clearComments, edit.clearHyperlinks, edit.fillDown, edit.fillRight, edit.fillUp, edit.fillLeft, edit.autoFill, edit.fillSeries, edit.smartFill]
-    paths: [crates/engine/engine/src/cmd/edit.rs, web/src/ribbon/HomeTab.tsx, bindings/wasm/src/lib.rs, crates/engine/engine/examples/perf.rs]
+    paths: [crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/fill.rs, web/src/ribbon/HomeTab.tsx, bindings/wasm/src/lib.rs, bindings/wasm/src/filling.rs, crates/engine/engine/examples/perf.rs]
     target: "Excel for Mac 16.113.4"
-    gap: Engine tests run these commands, but no case shows them working in the editor and surviving save and reopen.
+    gap: AutoFill and clearing contents are shown in the editor by the fill handle's browser tests (sheet.editor.fill-handle); the other commands are run by engine tests only, and no case shows them surviving save and reopen.
+    cases: [regressions/issue-hand-f1-fill-handle, regressions/issue-hand-f2-fill-double-click]
     since: "2026-11-17"
   - id: sheet.edit.find-replace
     title: "Find and replace"
