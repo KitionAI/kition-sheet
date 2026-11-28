@@ -53,6 +53,28 @@ const list = [
     await e.until(async () => (await e.value('B2')) === 'blind')
     assert.equal(await e.value('B2'), 'blind', 'the text is in B2')
   }],
+  ['menu-c99-closing-keeps-a-field', async (e) => {
+    // A dialog closing gives the grid the keyboard a frame later; a field the person went to in
+    // that frame (the Name Box) keeps it. gate-sheet-menu.mjs MENU-C99 lost the Name Box's Enter to
+    // the grid on a loaded runner: Escape closed the Delete Sheet dialog, the Name Box was filled,
+    // and then the grid took the keyboard.
+    await e.click('A1')
+    await e.page.keyboard.press('ControlOrMeta+f')
+    await e.until(() => e.kit.getByTestId('sheet-find').isVisible(), 40)
+    await e.frame().evaluate(() => {
+      const field = document.activeElement
+      field?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }))
+      document.querySelector('[data-testid=sheet-name-box]')?.focus()
+    })
+    await e.wait(300)
+    const focused = await e.frame().evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.className ?? null)
+    assert.equal(focused, 'sheet-name-box', `the Name Box keeps the keyboard (${focused})`)
+    await e.page.keyboard.press('ControlOrMeta+a')
+    await e.page.keyboard.type('C5')
+    await e.page.keyboard.press('Enter')
+    await e.until(async () => (await e.details()).active === 'C5')
+    assert.equal((await e.details()).active, 'C5', 'its Enter goes to C5')
+  }],
 ]
 
 await segments('focus', list, (which) => open({ which }))

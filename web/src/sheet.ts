@@ -293,10 +293,21 @@ export function fontMatches(font: FontChoice, query: string): boolean {
 export const SIZES = [6, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 export const NUMBER_FORMATS = ['General', 'Number', 'Currency', 'Accounting', 'Short Date', 'Long Date', 'Time', 'Percentage', 'Fraction', 'Scientific', 'Text']
 
+/** A field that takes typing (not the grid's text sink). */
+const typingField = (element: Element | null) =>
+  element instanceof HTMLElement && !element.classList.contains('kui-text-sink') && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element.isContentEditable)
+
 /**
  * Gives the keyboard back to the grid (the editor's text sink) once the focused field or dialog is
  * gone: after a rename ended by a key, or a sheet dialog, Ctrl+Z and typing reach the sheet again.
+ * A field the person went to meanwhile (the Name Box clicked as a dialog closes) keeps the
+ * keyboard: gate-sheet-menu.mjs MENU-C99 lost the Name Box's Enter to the grid on a loaded runner.
  */
 export const backToGrid = () => {
-  window.requestAnimationFrame(() => document.querySelector<HTMLElement>('.kui-text-sink')?.focus({ preventScroll: true }))
+  const was = document.activeElement
+  window.requestAnimationFrame(() => {
+    const now = document.activeElement
+    if (now !== was && now?.isConnected && typingField(now)) return
+    document.querySelector<HTMLElement>('.kui-text-sink')?.focus({ preventScroll: true })
+  })
 }

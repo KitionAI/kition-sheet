@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-menu-c99-focus-race
+feature: sheet.editor.keyboard-and-zoom
+intent: "A dialog closing gives the grid the keyboard a frame later; a field the person went to in that frame (the Name Box) now keeps it, so its Enter goes where it was typed (gate-sheet-menu.mjs MENU-C99 lost the Name Box's Enter to the grid twice on loaded runners: Escape closed the Delete Sheet dialog, the Name Box was filled, then the grid took the keyboard)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/focus.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/focus.mjs, chromium, menu-c99-closing-keeps-a-field]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"
