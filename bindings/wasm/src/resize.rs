@@ -1,7 +1,8 @@
 //! Column widths and row heights by the headings, as in Excel: the pointer over the line after a
 //! column's heading (below a row's) shows the resize cursor, a drag there moves a guide line and
 //! sets the new size when it ends (on every selected whole column or row the line belongs to),
-//! and a double-click fits the column or row to its contents.
+//! and a double-click fits the column or row to its contents. While it is dragged the new size
+//! shows beside the line (WPS W-I1, W-I2).
 
 use super::*;
 
@@ -141,5 +142,13 @@ impl SheetDocument {
             format!("M{at:.1},0 L{at:.1},{:.1}", header_h(sheet) + view::top(sheet, rows))
         };
         out.push(ToolOverlay::Path { d, color: ACCENT, width: 1.0, dashed: true });
+        // The size it will have, beside the line by the headings (WPS W-I1, W-I2; walkthrough H1):
+        // a column's in characters of the default digit and pixels, a row's in points and pixels.
+        let (x, y, text) = if resize.rows {
+            (0.0, at, format!("{:.2} pt ({} px)", resize.size * 0.75, resize.size))
+        } else {
+            (at, 0.0, format!("{:.2} ({} px)", kition_sheet_engine::cmd::format::points_to_chars(resize.size), resize.size))
+        };
+        out.push(ToolOverlay::Measure { x, y, text });
     }
 }

@@ -1,0 +1,21 @@
+format: 1
+id: sheet.editor.clipboard-marks/tool-readout
+feature: sheet.editor.clipboard-marks
+intent: >-
+  Dragging a column's edge shows its new width in characters and pixels beside the guide line, a row's height in points and pixels; the readout goes at the release.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: resize_shows
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

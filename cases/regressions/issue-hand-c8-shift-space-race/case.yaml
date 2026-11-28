@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-c8-shift-space-race
+feature: sheet.editor.selection-keys
+intent: "Shift+Space right after a typed key types a space even when the editor's state has not caught up with the engine, and with nothing typed selects the row: the engine decides in the editor's ordered queue (the editor read a stale `editing`, selected the row and lost the space; the hand tests' c8 went red once)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/cycle.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/cycle.mjs, chromium, c8-shift-space-slow-engine, c8-row-column-keys]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-28"

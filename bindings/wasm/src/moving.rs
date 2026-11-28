@@ -1,8 +1,10 @@
 //! Moving cells by dragging the selection's border, as WPS and Excel do: over the border the
 //! pointer is the move cursor; a drag shows where the block will land (a dashed frame, or with
 //! Shift held the line where it goes in between the cells) and drops it there with
-//! `edit.moveCells`: a move, a copy with Cmd/Ctrl (or Option) held. Whole selected rows and
-//! columns move as rows and columns. Dropping onto cells that hold something asks first: the
+//! `edit.moveCells`: a move, a copy with Cmd held (WPS W-P2; Option is a plain move, W-P3; on a
+//! Mac a Ctrl press is the system's secondary click, elsewhere Ctrl is the main modifier and
+//! copies). Whole selected rows and columns move as rows and columns. A double-click on the
+//! border goes to the end of the data that way (W-P6), as Cmd with the arrow does. Dropping onto cells that hold something asks first: the
 //! editor's 「是否替换目标单元格内容？」 (`dialog` `moveCells`).
 //!
 //! A filter button's press opens the editor's filter list (`dialog` `filterMenu`) instead of
@@ -23,6 +25,22 @@ pub(crate) struct MoveDrag {
     press: (f64, f64),
     /// Where the block would land now.
     target: Option<Target>,
+}
+
+/// A press on the selection's border, kept for a double-click there: its click selects the cell
+/// pressed (perhaps the one beside the selection), and the double-click jumps from the selection
+/// as it was.
+pub(crate) struct BorderPress {
+    at: (f64, f64),
+    range: RangeRef,
+    active: CellRef,
+    /// The way the side pressed faces: down, up, left or right.
+    toward: (i64, i64),
+}
+
+/// Whether a press copies the block: Cmd (the main modifier; kit-editor gives Ctrl as Cmd too).
+fn copies(mods: ToolMods) -> bool {
+    mods.command || mods.control
 }
 
 /// Where a dragged block lands: its new top-left, whether it is a copy, and with Shift where it
@@ -77,12 +95,41 @@ impl SheetDocument {
         (near_side && along_y) || (near_edge && along_x)
     }
 
+    /// The side of the selection's border under (`x`, `y`), as the way it faces.
+    fn border_side(&self, x: f64, y: f64) -> Option<(i64, i64)> {
+        let (x0, y0, x1, y1) = self.movable_rect(self.movable()?)?;
+        [((x - x0).abs(), (0, -1)), ((x - x1).abs(), (0, 1)), ((y - y0).abs(), (-1, 0)), ((y - y1).abs(), (1, 0))]
+            .into_iter()
+            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, toward)| toward)
+    }
+
+    /// A double-click on the selection's border: the active cell goes to the end of the data
+    /// that way (WPS W-P6), from the selection as it was before the double-click's first click.
+    fn border_double_click(&mut self, event: &ToolPointer) -> Result<bool, String> {
+        let near = |press: &BorderPress| {
+            let slop = (BORDER_SLOP + 2.0) / event.zoom.max(0.05);
+            (press.at.0 - event.x).abs() <= slop && (press.at.1 - event.y).abs() <= slop
+        };
+        let Some(press) = self.border_press.take().filter(near) else { return Ok(false) };
+        self.select(press.range, press.active)?;
+        self.step(press.toward.0, press.toward.1, false, true)?;
+        self.edits += 1;
+        Ok(true)
+    }
+
     /// A press on the selection's border begins moving it; hovering there shows the move cursor
-    /// (the copy cursor with Cmd/Ctrl or Option held). Answers whether the press was the border's.
+    /// (the copy cursor with Cmd held). Answers whether the press was the border's.
     pub(crate) fn move_press(&mut self, event: &ToolPointer) -> Result<bool, String> {
-        let copy = event.mods.command || event.mods.control || event.mods.alt;
+        if event.action == PointerAction::DoubleClick && self.border_double_click(event)? {
+            return Ok(true);
+        }
+        let copy = copies(event.mods);
         let on = self.on_selection_border(event.x, event.y, event.zoom);
         self.move_hover = on.then_some(copy);
+        if event.action == PointerAction::Down && !on {
+            self.border_press = None;
+        }
         if !on || event.action != PointerAction::Down {
             // Hovering shows the cursor; the rest is the grid's.
             return Ok(false);
@@ -95,6 +142,14 @@ impl SheetDocument {
         // The pointer's cell, clamped into the block (the border is shared with the cells round it).
         let inside = CellRef::new(cell.row.clamp(from.start.row, from.end.row), cell.col.clamp(from.start.col, from.end.col));
         let grab = (i64::from(inside.row) - i64::from(from.start.row), i64::from(inside.col) - i64::from(from.start.col));
+        // The second press of a double-click keeps the first's selection and side.
+        let again = self.border_press.as_ref().is_some_and(|press| {
+            let slop = (BORDER_SLOP + 2.0) / event.zoom.max(0.05);
+            (press.at.0 - event.x).abs() <= slop && (press.at.1 - event.y).abs() <= slop
+        });
+        if !again && let (Some(toward), Some(st)) = (self.border_side(event.x, event.y), self.session.active()) {
+            self.border_press = Some(BorderPress { at: (event.x, event.y), range: from, active: st.selection.active, toward });
+        }
         self.drag = Drag::Move(MoveDrag { from, grab, press: (event.x, event.y), target: None });
         self.edits += 1;
         Ok(true)
@@ -102,7 +157,7 @@ impl SheetDocument {
 
     /// The landing place follows the pointer.
     pub(crate) fn move_drag_to(&mut self, event: &ToolPointer) {
-        let copy = event.mods.command || event.mods.control || event.mods.alt;
+        let copy = copies(event.mods);
         let target = match &self.drag {
             Drag::Move(drag) => self.move_target(drag, event),
             _ => return,
@@ -145,7 +200,7 @@ impl SheetDocument {
             Hit::Column(col) => CellRef::new(0, col),
             _ => return drag.target,
         };
-        let copy = event.mods.command || event.mods.control || event.mods.alt;
+        let copy = copies(event.mods);
         let (h, w) = (i64::from(from.height()), i64::from(from.width()));
         let max_row = i64::from(MAX_ROWS) - h;
         let max_col = i64::from(MAX_COLS) - w;

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-j4-enter-pastes
+feature: sheet.editor.clipboard-marks
+intent: "With cells copied, Enter on the target pastes them once and ends the copy (the next Enter moves, Cmd+V pastes nothing more); Cmd+V twice gives two copies; a cut pastes once; typing in a cell and a change to the copied cells end the copy (Enter only moved; walkthrough J4)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/clipboard-marks.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/clipboard-marks.mjs, chromium, j4-enter-pastes]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-28"

@@ -1,0 +1,21 @@
+format: 1
+id: sheet.editor.clipboard-marks/tool-outline
+feature: sheet.editor.clipboard-marks
+intent: >-
+  The engine's select tool draws a 2 px frame round every selected area, leaves the active cell untinted and unframed inside an area of several cells, and frames the cell being typed.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: selection_outline
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-j3-marching-ants
+feature: sheet.editor.clipboard-marks
+intent: "After Cmd+C the copied cells have marching ants (a dashed frame) in place of their frame; pasting leaves them; Escape ends the copy, the ants go and the system clipboard keeps its text, and Cmd+V then pastes nothing; a 2 × 2 copy pasted into 4 × 4 cells fills them four times (there were no ants and no way to see or end the copy; walkthrough J3)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/clipboard-marks.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/clipboard-marks.mjs, chromium, j3-marching-ants, f4-tiles]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-28"

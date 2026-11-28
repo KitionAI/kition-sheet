@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-b3-selection-outline
+feature: sheet.editor.clipboard-marks
+intent: "A selected area has a 2 px frame round all of it and the active cell inside it stays white with no frame of its own, as WPS draws it; several areas have a frame each (only the active cell had a frame, the area only a tint; walkthrough B3). The engine's overlays, and the frame drawn over the grid after a drag in the editor."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/clipboard-marks.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/clipboard-marks.mjs, chromium, b3-selection-outline]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-28"

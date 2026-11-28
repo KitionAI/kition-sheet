@@ -25,6 +25,7 @@ mod computed;
 mod conditional_read_premises;
 mod context;
 mod controls;
+mod copying;
 mod data_read_premises;
 mod describe;
 mod draw;
@@ -190,6 +191,14 @@ pub struct SheetDocument {
     tab_run: Option<validation::TabRun>,
     /// Entering what is typed skips the cell's data validation (a warning or a note answered Yes).
     validation_skip: bool,
+    /// The text of the person's copy the grid marks (`copying`): its marching ants, Enter pastes it.
+    copy_mark: Option<String>,
+    /// The text of the person's copy that ended (Escape, Enter's paste, typing): a paste of it
+    /// pastes nothing, as in WPS, while the system clipboard keeps it for other applications.
+    copy_spent: Option<String>,
+    /// A press on the selection's border (`moving`): where, the selection then, and the side, so a
+    /// double-click there jumps that way even when the press's click selected the cell beside it.
+    border_press: Option<moving::BorderPress>,
 }
 
 /// What [`SheetDocument::paint_sheet`] draws besides the cells.
@@ -248,6 +257,7 @@ pub const EDITOR_STATE: &[&str] = &[
     "/escape",
     "/formatPainter",
     "/drawTool",
+    "/copied",
     "/style",
     "/tableInfo",
     "/dialog",
@@ -403,7 +413,21 @@ impl SheetDocument {
         }
         if command == "editor.insertText" {
             let text = params.get("text").and_then(Json::as_str).unwrap_or_default().to_owned();
+            // `typing`: only into what is being typed (Shift+Space, decided in the editor's queue
+            // after the keys typed before it), else nothing.
+            if params.get("typing").and_then(Json::as_bool) == Some(true) && self.editing.is_none() {
+                return Ok(json!({ "editing": false }));
+            }
             return self.insert_text(&text, params.get("append").and_then(Json::as_bool) == Some(true));
+        }
+        let person = kition_kit::dispatch::role() != Some(kition_kit::dispatch::Role::Agent);
+        // A person's paste of the copy that ended pastes nothing (WPS: Cmd+V does nothing after
+        // Escape, Enter's paste or a cut pasted once).
+        if person && command == "edit.paste" && self.paste_ended(&params) {
+            return Ok(json!({ "pasted": null }));
+        }
+        if person && command == "edit.clearClipboard" {
+            self.end_copy();
         }
         // Insert › Symbol in the editor: at the caret of what is typed, else after the active
         // cell's text with the cell open (WPS). An agent's goes straight into the cell.
@@ -544,6 +568,9 @@ impl SheetDocument {
             validation_held: None,
             tab_run: None,
             validation_skip: false,
+            copy_mark: None,
+            copy_spent: None,
+            border_press: None,
         })
     }
 
@@ -1864,6 +1891,7 @@ impl SheetDocument {
             return;
         }
         self.edit_inserted = false;
+        self.end_copy();
         let text = self.content(cell);
         let runs = self.sheet().and_then(|(_, sheet)| sheet.cell(cell)).and_then(kition_sheet_engine::model::Cell::runs).cloned();
         self.editing = Some(Edit::new(&text, runs.as_ref(), true));
@@ -2013,26 +2041,56 @@ impl SheetDocument {
         }
         self.focus_overlays(sheet, st.selection.current(), (cols, rows), &mut out);
         let several = st.selection.ranges.len() > 1;
+        let active = st.selection.active;
+        let merged = sheet.merges.iter().find(|m| m.contains(active)).copied().unwrap_or(RangeRef::new(active, active));
+        let frame = |(x0, y0, x1, y1): (f64, f64, f64, f64), dashed: bool| ToolOverlay::Path {
+            d: format!("M{x0:.1},{y0:.1} L{x1:.1},{y0:.1} L{x1:.1},{y1:.1} L{x0:.1},{y1:.1} Z"),
+            color: ACCENT,
+            width: 2.0,
+            dashed,
+        };
+        // The person's copy: its marching ants take the place of its area's frame (WPS W-F1).
+        let copied = self.copy_frame();
+        // An area of one cell (or one merged cell) is the active cell's frame, drawn below.
+        let one_cell = |range: &RangeRef| range.is_single() || sheet.merge_at(range.start) == Some(*range);
+        let active_rect = Self::cell_rect(sheet, merged);
         for range in &st.selection.ranges {
             let clamped = RangeRef::new(range.start, CellRef::new(range.end.row.min(rows - 1), range.end.col.min(cols - 1)));
             let (x0, y0, x1, y1) = Self::cell_rect(sheet, clamped);
-            // A one-cell area among several is tinted too, unless it is the active cell (B6).
-            if range.start != range.end || (several && !range.contains(st.selection.active)) {
+            // An area is tinted but for the active cell, which stays white (WPS W-A3); a one-cell
+            // area among several is tinted too, unless it is the active cell (B6).
+            if !one_cell(range) && range.contains(active) {
+                let (ax0, ay0, ax1, ay1) = active_rect;
+                for part in [(x0, y0, x1, ay0), (x0, ay1, x1, y1), (x0, ay0, ax0, ay1), (ax1, ay0, x1, ay1)] {
+                    if part.2 > part.0 && part.3 > part.1 {
+                        out.push(ToolOverlay::Highlight { quad: quad(part), color: SELECTION });
+                    }
+                }
+            } else if !one_cell(range) || (several && !range.contains(active)) {
                 out.push(ToolOverlay::Highlight { quad: quad((x0, y0, x1, y1)), color: SELECTION });
             }
             out.push(ToolOverlay::Highlight { quad: quad((x0, col_gutter(sheet), x1, header_h(sheet))), color: HEADING_SELECTED });
             out.push(ToolOverlay::Highlight { quad: quad((row_gutter(sheet), y0, header_w(sheet), y1)), color: HEADING_SELECTED });
+            // Every area has its 2 px frame (WPS W-A1, walkthrough B3).
+            if Some(*range) != copied && !(one_cell(range) && range.contains(active)) {
+                out.push(frame((x0, y0, x1, y1), false));
+            }
         }
-        let active = st.selection.active;
-        let merged = sheet.merges.iter().find(|m| m.contains(active)).copied().unwrap_or(RangeRef::new(active, active));
+        if let Some(range) = copied {
+            let end = CellRef::new(range.end.row.min(rows - 1), range.end.col.min(cols - 1));
+            if end.row >= range.start.row && end.col >= range.start.col {
+                out.push(frame(Self::cell_rect(sheet, RangeRef::new(range.start, end)), true));
+            }
+        }
         // The cell being typed is drawn with the cells (see `paint`), in its runs' fonts; the
-        // frame goes round its box.
-        let (x0, y0, x1, y1) = match self.edit_box(0.0, 0.0, 1.0) {
-            Some(b) => (b.rect.x0, b.rect.y0, b.rect.x1, b.rect.y1),
-            None => Self::cell_rect(sheet, merged),
-        };
-        let d = format!("M{x0:.1},{y0:.1} L{x1:.1},{y0:.1} L{x1:.1},{y1:.1} L{x0:.1},{y1:.1} Z");
-        out.push(ToolOverlay::Path { d, color: ACCENT, width: 2.0, dashed: false });
+        // frame goes round its box. Inside an area of several cells the active cell has no frame
+        // of its own (WPS), nor where the ants go round it.
+        let in_area = st.selection.ranges.iter().any(|range| !one_cell(range) && range.contains(active));
+        match self.edit_box(0.0, 0.0, 1.0) {
+            Some(b) => out.push(frame((b.rect.x0, b.rect.y0, b.rect.x1, b.rect.y1), false)),
+            None if !in_area && copied != Some(merged) => out.push(frame(active_rect, false)),
+            None => {}
+        }
         self.object_overlays(&mut out);
         self.ink_overlays(&mut out);
         self.resize_overlays(&mut out);
@@ -2494,6 +2552,10 @@ impl KitDocument for SheetDocument {
     fn execute(&mut self, command: &str, params: Json) -> Result<Json, String> {
         let before = drawn::Drawn::before(self);
         let result = self.execute_step(command, params);
+        // The person's copy (Cmd+C, Cmd+X, the menus): the grid marks it (`copying`).
+        if result.is_ok() && matches!(command, "edit.copy" | "edit.cut") && kition_kit::dispatch::role() != Some(kition_kit::dispatch::Role::Agent) {
+            self.copy_marked();
+        }
         if let Some(before) = before
             && !before.same(self)
         {
@@ -2721,6 +2783,12 @@ impl KitDocument for SheetDocument {
         out["tableInfo"] = table_info.unwrap_or(Json::Null);
         // The Draw tab's pen or eraser, when one is up (a drag draws instead of selecting): the
         // editor does not scroll at the grid's edge for it.
+        // The person's copy the grid marks with marching ants (`copying`): Escape ends it, Enter
+        // pastes it once.
+        out["copied"] = self.copy_live().map_or(Json::Null, |copied| {
+            let name = self.session.doc().ok().and_then(|d| d.wb.sheet(copied.sheet).map(|s| s.name.clone()));
+            json!({ "sheet": name, "range": copied.range.a1(), "cut": copied.cut })
+        });
         out["drawTool"] = json!(Some(self.session.draw_tool.as_str()).filter(|t| !t.is_empty() && *t != "select"));
         out["dialog"] = dialog.unwrap_or(Json::Null);
         // The last notice for the person (the editor shows each once), and whether the active
@@ -2790,7 +2858,7 @@ impl KitDocument for SheetDocument {
                 ("editor.cycleReference", "Cycle Reference Type (F4)", "{text?: string, start?: number, end?: number}"),
                 ("editor.acceptFunction", "Insert Function From List", "{name?: string}"),
                 ("editor.contextMenu", "Right-Click the Grid", "{x: number, y: number}"),
-                ("editor.insertText", "Insert Text at the Caret", "{text: string, append?: boolean}"),
+                ("editor.insertText", "Insert Text at the Caret", "{text: string, append?: boolean, typing?: boolean}"),
                 ("editor.freezePreview", "Preview a Freeze", "{rows?: number, cols?: number}"),
                 ("editor.validation", "Answer a Data Validation Message", "{answer: string}"),
                 ("editor.commentAnchor", "Comment Anchor of Selection", "{}"),
@@ -2975,6 +3043,7 @@ impl KitTools for SheetDocument {
     }
 
     fn key(&mut self, key: &str, mods: ToolMods, _zoom: f64) -> Result<ToolResponse, String> {
+        self.border_press = None;
         // Escape drops a gesture under way (the editor also sends it for a pointer taken away).
         if key == "Escape" && self.escape_drag() {
             return Ok(self.respond());
@@ -3048,6 +3117,16 @@ impl KitTools for SheetDocument {
             self.edits += 1;
             return Ok(self.respond());
         }
+        // Then the copy: Escape ends it (its marching ants go; the system clipboard keeps its
+        // text), and Enter on the target pastes it once and ends it (WPS W-F6).
+        if key == "Escape" && self.copy_live().is_some() {
+            self.session.execute("edit.clearClipboard", json!({})).map_err(engine_error)?;
+            self.end_copy();
+            return Ok(self.respond());
+        }
+        if key == "Enter" && !mods.shift && !mods.alt && !mods.command && !mods.control && self.enter_pastes()? {
+            return Ok(self.respond());
+        }
         // Alt+↓ (Option+↓) on a cell whose validation offers a list opens it (WPS, Excel).
         if key == "ArrowDown" && mods.alt && !mods.shift && self.validation_info().get("list").is_some_and(|list| list.is_array()) {
             self.dialog_asked =
@@ -3110,6 +3189,8 @@ impl KitTools for SheetDocument {
         if text.chars().all(|c| !c.is_control()) {
             if self.editing.is_none() {
                 self.edit_inserted = false;
+                // Typing in a cell ends the copy (Excel).
+                self.end_copy();
             }
             self.editing.get_or_insert_with(|| Edit::new("", None, false)).insert(text);
             self.edits += 1;

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-p2-cmd-drag-copies
+feature: sheet.editor.clipboard-marks
+intent: "Dragging the selection's border with Cmd copies the cells and with Option (Alt) moves them, as WPS does (W-P2, W-P3; Option copied too); a double-click on the bottom border goes to the last row of the data (W-P6); dragging a column's edge shows its new width beside the line (W-I1; walkthrough F4, H1)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/move.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/move.mjs, chromium, p2-cmd-drag-copies, p3-alt-drag-moves, p6-double-click-border, h1-width-readout]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 240
+since: "2026-11-28"

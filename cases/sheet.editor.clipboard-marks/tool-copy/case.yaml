@@ -1,0 +1,21 @@
+format: 1
+id: sheet.editor.clipboard-marks/tool-copy
+feature: sheet.editor.clipboard-marks
+intent: >-
+  The person's copy in the engine's select tool: marching ants in place of the copied area's frame, pasting again while they show, Escape ending the copy (and a paste of its text then pasting nothing), Enter pasting once, a cut pasting once, typing and a change to the copied cells ending it.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: clipboard_marks
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

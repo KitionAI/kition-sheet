@@ -168,8 +168,10 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
   const views = useMemo(createViewStore, [])
   const gridId = useId()
   // The overlays follow what the engine draws them from: the cell being typed, the highlight of the
-  // selection's rows and columns, the frozen panes and the freeze being previewed.
-  useEffect(() => { tools.refresh() }, [state?.formulaText, doc?.info.width, doc?.info.height, state?.focusCell, state?.focusColor, state?.freeze.join(), state?.freezePreview?.join(), state?.freezeShift.join(), state?.formatPainter, tools.refresh])
+  // selection's rows and columns, the frozen panes and the freeze being previewed, the marching
+  // ants of the person's copy.
+  const copied = state?.copied ? `${state.copied.sheet}!${state.copied.range}` : null
+  useEffect(() => { tools.refresh() }, [state?.formulaText, doc?.info.width, doc?.info.height, state?.focusCell, state?.focusColor, state?.freeze.join(), state?.freezePreview?.join(), state?.freezeShift.join(), state?.formatPainter, copied, tools.refresh])
 
   // The system clipboard. A copy hands the clipboard the engine's answer while the key press is
   // still the person's (WebKit refuses a write once the engine has answered). A paste reads the
@@ -571,6 +573,10 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
     ? {
         state,
         run: (command, params = {}) => void editor.run(command, params),
+        answer: async (command, params = {}) => {
+          const raw = await editor.run(command, params)
+          return raw ? (JSON.parse(raw) as Record<string, unknown>) : null
+        },
         ask: (command) => editor.ask(command, {}),
         clipboard: (action) => void clipboard(action),
         page,

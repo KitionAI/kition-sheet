@@ -174,7 +174,7 @@
   }
  },
  "editor.insertText": {
-  "description": "Types text at the caret of what is being typed (the cell, or a shape's text); with nothing typed, after the selected shape's text, else in the active cell: after what it holds with the cell left open (append, as WPS inserts a symbol), or in its place. A checkbox cell refuses it. Answers where the text went.",
+  "description": "Types text at the caret of what is being typed (the cell, or a shape's text); with nothing typed, after the selected shape's text, else in the active cell: after what it holds with the cell left open (append, as WPS inserts a symbol), or in its place. A checkbox cell refuses it. With typing, only into what is being typed, else nothing (editing false). Answers where the text went.",
   "output": {
    "type": "object",
    "additionalProperties": false,

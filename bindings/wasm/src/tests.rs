@@ -2159,3 +2159,232 @@ fn fill_handle_answers_only_in_its_pane() {
     assert_eq!(doc.pointer(&event(PointerAction::Move, x, y - 2.0, false)).unwrap().cursor, "crosshair", "above the line");
     assert_ne!(doc.pointer(&event(PointerAction::Move, x, y + 2.0, false)).unwrap().cursor, "crosshair", "under the line");
 }
+
+/// The frames of `overlays`: each closed 2 px rectangle path, dashed or not, as (x0, y0, x1, y1).
+fn frames(overlays: &[ToolOverlay], dashed_only: bool) -> Vec<(f64, f64, f64, f64)> {
+    overlays
+        .iter()
+        .filter_map(|o| match o {
+            ToolOverlay::Path { d, color, width, dashed } if *color == ACCENT && *width == 2.0 && *dashed == dashed_only && d.ends_with('Z') => {
+                let n: Vec<f64> = d.split(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-')).filter_map(|t| t.parse().ok()).collect();
+                Some((n[0], n[1], n[4], n[5]))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// The rectangle of cells `(c0, r0)`–`(c1, r1)` at the default sizes.
+fn cells_rect((c0, r0): (u32, u32), (c1, r1): (u32, u32)) -> (f64, f64, f64, f64) {
+    (HEADER_W + f64::from(c0) * CW, HEADER_H + f64::from(r0) * RH, HEADER_W + f64::from(c1 + 1) * CW, HEADER_H + f64::from(r1 + 1) * RH)
+}
+
+fn near(a: (f64, f64, f64, f64), b: (f64, f64, f64, f64)) -> bool {
+    (a.0 - b.0).abs() < 0.5 && (a.1 - b.1).abs() < 0.5 && (a.2 - b.2).abs() < 0.5 && (a.3 - b.3).abs() < 0.5
+}
+
+/// B3 (WPS W-A1, W-A3): every selected area has a 2 px frame; inside an area of several cells the
+/// active cell stays white (no tint over it) and has no frame of its own; one selected cell keeps
+/// its frame; several areas each have theirs.
+#[test]
+fn selection_outline_frames_every_area_and_leaves_the_active_cell_white() {
+    let mut doc = SheetDocument::create("Outline.xlsx", 0, 0).unwrap();
+    doc.execute("select.set", json!({ "range": "B2:D6", "active": "B2" })).unwrap();
+    let shown = doc.respond().overlays;
+    let solid = frames(&shown, false);
+    assert_eq!(solid.len(), 1, "one frame: {solid:?}");
+    assert!(near(solid[0], cells_rect((1, 1), (3, 5))), "round B2:D6: {solid:?}");
+    let active = cells_rect((1, 1), (1, 1));
+    let tints: Vec<_> = shown
+        .iter()
+        .filter_map(|o| match o {
+            ToolOverlay::Highlight { quad, color } if *color == SELECTION => Some((quad[0][0], quad[0][1], quad[2][0], quad[2][1])),
+            _ => None,
+        })
+        .collect();
+    assert!(!tints.is_empty());
+    let (cx, cy) = centre(1, 1);
+    assert!(!tints.iter().any(|t| cx > t.0 && cx < t.2 && cy > t.1 && cy < t.3), "B2 is not tinted: {tints:?} {active:?}");
+    let (dx, dy) = centre(3, 5);
+    assert!(tints.iter().any(|t| dx > t.0 && dx < t.2 && dy > t.1 && dy < t.3), "D6 is");
+    // One cell: its own frame.
+    doc.execute("select.set", json!({ "range": "C3" })).unwrap();
+    let solid = frames(&doc.respond().overlays, false);
+    assert_eq!(solid.len(), 1);
+    assert!(near(solid[0], cells_rect((2, 2), (2, 2))));
+    // Several areas: a frame each.
+    doc.execute("select.set", json!({ "range": "B2:C3,E5:F7" })).unwrap();
+    let solid = frames(&doc.respond().overlays, false);
+    assert!(solid.iter().any(|f| near(*f, cells_rect((1, 1), (2, 2)))), "{solid:?}");
+    assert!(solid.iter().any(|f| near(*f, cells_rect((4, 4), (5, 6)))), "{solid:?}");
+    // Typing: the frame goes round the cell being typed.
+    doc.execute("select.set", json!({ "range": "B2:D6", "active": "B2" })).unwrap();
+    KitTools::text(&mut doc, "x", 1.0).unwrap();
+    assert_eq!(frames(&doc.respond().overlays, false).len(), 2, "the area's frame and the typed cell's");
+}
+
+/// J3 (WPS W-F1, W-F3; plan section 2, "Escape keeps the system clipboard"): the person's copy has
+/// marching ants (a dashed frame) in place of its frame; pasting leaves them, so the cells paste
+/// again; Escape ends the copy (Escape has something to cancel meanwhile) and a paste of the same
+/// text then pastes nothing; an agent's copy shows none.
+#[test]
+fn clipboard_marks_ants_round_the_copy_until_escape() {
+    let mut doc = SheetDocument::create("Ants.xlsx", 0, 0).unwrap();
+    doc.execute("range.setValues", json!({ "range": "B2", "values": [["a", "b"], ["c", "d"]] })).unwrap();
+    doc.execute("select.set", json!({ "range": "B2:C3" })).unwrap();
+    assert_eq!(get(&doc, "escape"), json!(false));
+    doc.execute("edit.copy", json!({})).unwrap();
+    let ants = frames(&doc.respond().overlays, true);
+    assert_eq!(ants.len(), 1, "ants: {ants:?}");
+    assert!(near(ants[0], cells_rect((1, 1), (2, 2))));
+    assert!(frames(&doc.respond().overlays, false).is_empty(), "the ants take the frame's place");
+    assert_eq!(get(&doc, "copied")["range"], json!("B2:C3"));
+    assert_eq!(get(&doc, "escape"), json!(true), "Escape ends the copy");
+    let text = doc.session.clipboard.as_ref().unwrap().text.clone();
+    // Pasted twice: two copies, the ants still there.
+    doc.execute("select.set", json!({ "range": "F2" })).unwrap();
+    doc.execute("edit.paste", json!({ "text": text })).unwrap();
+    doc.execute("select.set", json!({ "range": "F6" })).unwrap();
+    doc.execute("edit.paste", json!({ "text": text })).unwrap();
+    assert_eq!(value(&mut doc, "G3")["value"], json!("d"));
+    assert_eq!(value(&mut doc, "G7")["value"], json!("d"));
+    assert_eq!(frames(&doc.respond().overlays, true).len(), 1, "still marked");
+    // Escape: the ants go; the same text pasted again pastes nothing.
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    assert!(frames(&doc.respond().overlays, true).is_empty());
+    assert_eq!(get(&doc, "copied"), Json::Null);
+    assert_eq!(get(&doc, "escape"), json!(false));
+    doc.execute("select.set", json!({ "range": "J2" })).unwrap();
+    doc.execute("edit.paste", json!({ "text": text })).unwrap();
+    assert_eq!(value(&mut doc, "J2")["value"], json!(null), "the ended copy pastes nothing");
+    // Other text from the system clipboard pastes.
+    doc.execute("edit.paste", json!({ "text": "z" })).unwrap();
+    assert_eq!(value(&mut doc, "J2")["value"], json!("z"));
+}
+
+/// J4 (WPS W-F6, W-F8): Enter on the target pastes once and ends the copy (the next Enter moves);
+/// a cut pastes once; typing ends the copy, and so does a change to the copied cells.
+#[test]
+fn clipboard_marks_enter_pastes_once_and_typing_ends_the_copy() {
+    let mut doc = SheetDocument::create("Ants.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "A1", "input": "7" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("edit.copy", json!({})).unwrap();
+    click(&mut doc, centre(2, 0), false);
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "C1")["value"], json!(7.0), "Enter pasted");
+    assert_eq!(get(&doc, "copied"), Json::Null, "and ended the copy");
+    assert_eq!(get(&doc, "active"), json!("C1"));
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(get(&doc, "active"), json!("C2"), "the next Enter moves");
+    assert_eq!(value(&mut doc, "C2")["value"], json!(null));
+    // A cut pastes once.
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("edit.cut", json!({})).unwrap();
+    let text = doc.session.clipboard.as_ref().unwrap().text.clone();
+    doc.execute("select.set", json!({ "range": "E1" })).unwrap();
+    doc.execute("edit.paste", json!({ "text": text })).unwrap();
+    assert_eq!((value(&mut doc, "A1")["value"].clone(), value(&mut doc, "E1")["value"].clone()), (json!(null), json!(7.0)));
+    doc.execute("select.set", json!({ "range": "E5" })).unwrap();
+    doc.execute("edit.paste", json!({ "text": text })).unwrap();
+    assert_eq!(value(&mut doc, "E5")["value"], json!(null), "a cut pastes once");
+    // Typing in a cell ends the copy.
+    doc.execute("select.set", json!({ "range": "E1" })).unwrap();
+    doc.execute("edit.copy", json!({})).unwrap();
+    assert!(get(&doc, "copied").is_object());
+    click(&mut doc, centre(6, 6), false);
+    KitTools::text(&mut doc, "x", 1.0).unwrap();
+    assert_eq!(get(&doc, "copied"), Json::Null, "typing ended it");
+    doc.key("Escape", ToolMods::default(), 1.0).unwrap();
+    // A change to the copied cells ends it.
+    doc.execute("select.set", json!({ "range": "E1" })).unwrap();
+    doc.execute("edit.copy", json!({})).unwrap();
+    doc.execute("cell.set", json!({ "cell": "E1", "input": "8" })).unwrap();
+    assert_eq!(get(&doc, "copied"), Json::Null, "the copied cell changed");
+    click(&mut doc, centre(7, 7), false);
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "H8")["value"], json!(null), "Enter only moves");
+    assert_eq!(get(&doc, "active"), json!("H9"));
+}
+
+/// P2 (WPS W-P2, W-P3): Cmd dragging the border copies; Option (Alt) dragging moves.
+#[test]
+fn border_drag_copies_with_cmd_and_moves_with_alt() {
+    let mut doc = SheetDocument::create("Move.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "B2", "input": "m" })).unwrap();
+    click(&mut doc, centre(1, 1), false);
+    let border = (HEADER_W + CW + 1.0, centre(1, 1).1);
+    let alt = ToolMods { alt: true, ..ToolMods::default() };
+    assert_eq!(doc.pointer(&event_with(PointerAction::Move, border, alt)).unwrap().cursor, "move", "Option: the move cursor");
+    drag_with(&mut doc, border, (border.0, border.1 + 3.0 * RH), alt);
+    assert_eq!((value(&mut doc, "B2")["value"].clone(), value(&mut doc, "B5")["value"].clone()), (json!(null), json!("m")), "Option moved");
+    let border = (HEADER_W + CW + 1.0, centre(1, 4).1);
+    let cmd = ToolMods { command: true, ..ToolMods::default() };
+    assert_eq!(doc.pointer(&event_with(PointerAction::Move, border, cmd)).unwrap().cursor, "copy");
+    drag_with(&mut doc, border, (border.0 + 2.0 * CW, border.1), cmd);
+    assert_eq!((value(&mut doc, "B5")["value"].clone(), value(&mut doc, "D5")["value"].clone()), (json!("m"), json!("m")), "Cmd copied");
+}
+
+/// W-P6: a double-click on the active cell's bottom border goes to the last row of its data
+/// block (as Cmd+↓), on its right border to the block's last column; the press's click before it
+/// does not move the jump's start.
+#[test]
+fn border_double_click_goes_to_the_end_of_the_data() {
+    let mut doc = SheetDocument::create("Jump.xlsx", 0, 0).unwrap();
+    doc.execute("range.setValues", json!({ "range": "B2", "values": [[1, 1, 1], [2, 0, 0], [3, 0, 0], [4, 0, 0]] })).unwrap();
+    click(&mut doc, centre(1, 1), false);
+    // Just under B2's bottom edge: the press's click alone would select B3.
+    let bottom = (centre(1, 1).0, HEADER_H + 2.0 * RH + 1.5);
+    click(&mut doc, bottom, false);
+    click(&mut doc, bottom, false);
+    doc.pointer(&event(PointerAction::DoubleClick, bottom.0, bottom.1, false)).unwrap();
+    assert_eq!(get(&doc, "active"), json!("B5"), "to the block's last row");
+    assert_eq!(get(&doc, "editing"), json!(false), "not typing");
+    let right = (HEADER_W + 2.0 * CW - 1.5, centre(1, 4).1);
+    click(&mut doc, right, false);
+    click(&mut doc, right, false);
+    doc.pointer(&event(PointerAction::DoubleClick, right.0, right.1, false)).unwrap();
+    assert_eq!(get(&doc, "active"), json!("D5"), "to the block's last column");
+}
+
+/// H1 (WPS W-I1, W-I2): dragging a column's edge shows its new width beside the guide line, in
+/// characters and pixels; a row's in points and pixels.
+#[test]
+fn resize_shows_the_new_size_beside_the_line() {
+    let mut doc = SheetDocument::create("Resize.xlsx", 0, 0).unwrap();
+    let edge = (HEADER_W + CW, HEADER_H / 2.0);
+    doc.pointer(&event(PointerAction::Down, edge.0, edge.1, false)).unwrap();
+    let during = doc.pointer(&event(PointerAction::Drag, edge.0 + 30.0, edge.1, false)).unwrap();
+    let width = CW + 30.0;
+    let text = during.overlays.iter().find_map(|o| match o {
+        ToolOverlay::Measure { text, .. } => Some(text.clone()),
+        _ => None,
+    });
+    let chars = kition_sheet_engine::cmd::format::points_to_chars(width);
+    assert_eq!(text, Some(format!("{chars:.2} ({width} px)")));
+    let done = doc.pointer(&event(PointerAction::Up, edge.0 + 30.0, edge.1, false)).unwrap();
+    assert!(!done.overlays.iter().any(|o| matches!(o, ToolOverlay::Measure { .. })), "gone at the release");
+    let edge = (HEADER_W / 2.0, HEADER_H + RH);
+    doc.pointer(&event(PointerAction::Down, edge.0, edge.1, false)).unwrap();
+    let during = doc.pointer(&event(PointerAction::Drag, edge.0, edge.1 + 20.0, false)).unwrap();
+    let height = RH + 20.0;
+    assert!(
+        during.overlays.iter().any(|o| matches!(o, ToolOverlay::Measure { text, .. } if *text == format!("{:.2} pt ({height} px)", height * 0.75)))
+    );
+}
+
+/// C8 (the race the hand tests met): Shift+Space decided in the editor's queue, after the keys
+/// typed before it: `editor.insertText {typing}` types the space only into a cell being typed and
+/// otherwise does nothing, so the editor selects the row instead.
+#[test]
+fn insert_text_typing_only_types_into_what_is_typed() {
+    let mut doc = SheetDocument::create("Space.xlsx", 0, 0).unwrap();
+    click(&mut doc, centre(1, 1), false);
+    assert_eq!(doc.execute("editor.insertText", json!({ "text": " ", "typing": true })).unwrap(), json!({ "editing": false }));
+    assert_eq!(get(&doc, "editing"), json!(false), "nothing typed, nothing started");
+    KitTools::text(&mut doc, "a", 1.0).unwrap();
+    doc.execute("editor.insertText", json!({ "text": " ", "typing": true })).unwrap();
+    KitTools::text(&mut doc, "b", 1.0).unwrap();
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "B2")["value"], json!("a b"));
+}

@@ -343,6 +343,7 @@ impl SheetDocument {
             || self.session.draw_shape.is_some()
             || self.selected_object().is_some()
             || self.session.format_painter.is_some()
+            || self.copy_live().is_some()
     }
 
     pub(crate) fn object_key(&mut self, key: &str, mods: ToolMods) -> Result<bool, String> {

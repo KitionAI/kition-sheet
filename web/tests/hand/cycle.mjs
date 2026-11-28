@@ -120,6 +120,35 @@ const list = [
     await e.until(async () => (await e.value('N14')) === 'a b c')
     assert.equal(await e.value('N14'), 'a b c', 'while typing, Shift+Space is a space')
   }],
+  // The editor's state lags the engine: with the engine slow to answer (every message to its
+  // worker held 120 ms, in order), Shift+Space right after a typed key still types a space, and
+  // right after a click still selects the row (the c8 race the hand tests met).
+  ['c8-shift-space-slow-engine', async (e) => {
+    await e.click('N16')
+    await e.frame().evaluate(() => {
+      const original = Worker.prototype.postMessage
+      window.__fastPost = original
+      Worker.prototype.postMessage = function (...args) {
+        setTimeout(() => original.apply(this, args), 120)
+      }
+    })
+    try {
+      await e.page.keyboard.press('a')
+      await e.page.keyboard.press('Shift+Space')
+      await e.page.keyboard.press('b')
+      await press(e, 'Enter', 600)
+      await e.until(async () => (await e.value('N16')) === 'a b')
+      assert.equal(await e.value('N16'), 'a b', 'the space right after typing is typed')
+      await e.click('N18')
+      await e.page.keyboard.press('Shift+Space')
+      await e.until(async () => (await e.details()).selection === '18:18')
+      assert.equal((await e.details()).selection, '18:18', 'and with nothing typed the row is selected')
+    } finally {
+      await e.frame().evaluate(() => {
+        if (window.__fastPost) Worker.prototype.postMessage = window.__fastPost
+      })
+    }
+  }],
   ['a6-scroll-range', async (e) => {
     const vertical = e.kit.getByTestId('sheet-grid-workspace').locator('[role="scrollbar"][aria-orientation="vertical"]')
     const reach = async () => Number(await vertical.getAttribute('aria-valuemax'))

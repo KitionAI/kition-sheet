@@ -1,0 +1,21 @@
+format: 1
+id: sheet.editor.clipboard-marks/tool-border
+feature: sheet.editor.clipboard-marks
+intent: >-
+  Dragging the selection's border in the engine's select tool: Cmd copies, Option moves; a double-click on a side goes to the end of the data that way, from the selection before the double-click's first click.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: border_
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

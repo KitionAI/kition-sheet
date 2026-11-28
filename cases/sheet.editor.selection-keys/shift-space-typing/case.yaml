@@ -1,0 +1,21 @@
+format: 1
+id: sheet.editor.selection-keys/shift-space-typing
+feature: sheet.editor.selection-keys
+intent: >-
+  `editor.insertText {typing}` types only into the cell being typed and otherwise does nothing, so the editor decides Shift+Space in its ordered queue.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: insert_text_typing
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

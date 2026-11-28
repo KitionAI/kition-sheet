@@ -26,9 +26,19 @@ const parseCell = (ref) => {
  * canvas's CSS pixels. Read with `marks()`.
  */
 const MARKS_INIT = () => {
-  const marks = (window.__marks = { cur: { squares: [], dashed: 0 }, frames: 0 })
+  const marks = (window.__marks = { cur: { squares: [], dashed: 0, frames: [], texts: [] }, frames: 0 })
   const P = window.CanvasRenderingContext2D?.prototype
   if (!P) return
+  // Path2D keeps the path data it was made from, so a stroked rectangle can be read back.
+  const Original = window.Path2D
+  if (Original) {
+    window.Path2D = class extends Original {
+      constructor(d) {
+        super(d)
+        this.__d = typeof d === 'string' ? d : null
+      }
+    }
+  }
   const surface = (canvas) => canvas?.classList?.contains('kui-canvas-surface')
   const at = (ctx, x, y) => {
     const m = ctx.getTransform()
@@ -45,16 +55,28 @@ const MARKS_INIT = () => {
     }
   }
   wrap('drawImage', () => {
-    marks.cur = { squares: [], dashed: 0 }
+    marks.cur = { squares: [], dashed: 0, frames: [], texts: [] }
     marks.frames += 1
+  })
+  wrap('fillText', (ctx, [text, x, y]) => {
+    const p = at(ctx, x, y)
+    marks.cur.texts.push({ text: String(text), x: p[0], y: p[1] })
   })
   wrap('fillRect', (ctx, [x, y, w, h]) => {
     const p = at(ctx, x, y)
     const q = at(ctx, x + w, y + h)
     if (Math.abs(q[0] - p[0]) <= 14 && Math.abs(q[1] - p[1]) <= 14) marks.cur.squares.push({ x: p[0], y: p[1], w: q[0] - p[0], h: q[1] - p[1], fill: String(ctx.fillStyle) })
   })
-  wrap('stroke', (ctx) => {
-    if (ctx.getLineDash().length) marks.cur.dashed += 1
+  wrap('stroke', (ctx, [path]) => {
+    const dashed = ctx.getLineDash().length > 0
+    if (dashed) marks.cur.dashed += 1
+    // A closed rectangle (M x0,y0 L x1,y0 L x1,y1 L x0,y1 Z): its corners on the canvas.
+    const numbers = typeof path?.__d === 'string' && /Z\s*$/.test(path.__d) ? path.__d.match(/-?\d+(\.\d+)?/g)?.map(Number) : null
+    if (numbers?.length === 8) {
+      const p = at(ctx, numbers[0], numbers[1])
+      const q = at(ctx, numbers[4], numbers[5])
+      marks.cur.frames.push({ x0: p[0], y0: p[1], x1: q[0], y1: q[1], dashed, width: ctx.lineWidth, color: String(ctx.strokeStyle) })
+    }
   })
 }
 
@@ -174,12 +196,18 @@ export async function open({ which = process.argv[2] ?? 'chromium', query = 'loc
       if (!element || element === document.body) return 'body'
       return `${element.tagName.toLowerCase()}${element.className && typeof element.className === 'string' ? `.${element.className.split(' ')[0]}` : ''}`
     })
-  /** What is drawn over the grid now: small filled squares (on the page) and how many dashed strokes. */
+  /** What is drawn over the grid now: small filled squares, stroked rectangles and text (on the page), and how many dashed strokes. */
   const marks = async () => {
     const drawn = await frame().evaluate(() => window.__marks?.cur ?? null)
     const box = await surface()
     if (!drawn) return null
-    return { dashed: drawn.dashed, squares: drawn.squares.map((item) => ({ ...item, x: box.x + item.x, y: box.y + item.y })) }
+    return {
+      dashed: drawn.dashed,
+      squares: drawn.squares.map((item) => ({ ...item, x: box.x + item.x, y: box.y + item.y })),
+      // Closed rectangles stroked over the grid (selection frames, marching ants), on the page.
+      frames: (drawn.frames ?? []).map((item) => ({ ...item, x0: box.x + item.x0, y0: box.y + item.y0, x1: box.x + item.x1, y1: box.y + item.y1 })),
+      texts: (drawn.texts ?? []).map((item) => ({ ...item, x: box.x + item.x, y: box.y + item.y })),
+    }
   }
   /** The pointer's look over the grid (the engine tool's cursor). */
   const cursor = () => kit.locator('.kui-canvas-surface').evaluate((element) => element.style.cursor)

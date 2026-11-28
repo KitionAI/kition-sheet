@@ -16,6 +16,8 @@ import type { SheetInfo } from './sheet'
 export type KeyContext = {
   state: SheetInfo
   run: (command: string, params?: Record<string, unknown>) => void
+  /** Runs a command in the editor's ordered queue and answers what it answered. */
+  answer: (command: string, params?: Record<string, unknown>) => Promise<Record<string, unknown> | null>
   /** Opens a command's parameters dialog (the menus' entry, until the editor has its own). */
   ask: (command: string) => void
   clipboard: (action: 'cut' | 'copy' | 'paste') => void
@@ -53,8 +55,18 @@ const onMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(
 
 export const KEYS: KeyRow[] = [
   // Shift+Space selects the rows of the selection, Ctrl+Space its columns (WPS W-A10; Excel;
-  // walkthrough C8); while a cell is typed Shift+Space types a space.
-  { keys: ['Shift+Space'], capture: true, when: (c) => c.state.shape == null, act: (c) => c.run('select.row', {}) },
+  // walkthrough C8); while a cell is typed Shift+Space types a space. The editor's state may not
+  // have caught up with keys typed just before (it lags the engine), so the engine decides in the
+  // ordered queue: the space goes into the cell being typed, else the row is selected.
+  {
+    keys: ['Shift+Space'],
+    capture: true,
+    when: (c) => c.state.shape == null,
+    act: (c) =>
+      void c.answer('editor.insertText', { text: ' ', typing: true }).then((answer) => {
+        if (answer?.editing === false) c.run('select.row', {})
+      }),
+  },
   { keys: ['Ctrl+Space'], act: (c) => c.run('select.column', {}) },
   // Cmd+Enter fills the selection with what is typed (WPS W-C10, the engine's tool); on a Mac,
   // Ctrl+Enter only enters it and moves down, as Enter does (kit-editor gives the tool Ctrl as
