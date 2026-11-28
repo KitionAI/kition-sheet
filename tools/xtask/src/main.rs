@@ -192,6 +192,14 @@ fn cmd_ci() -> Result<(), String> {
             }),
         ),
     ];
+    // On GitHub Actions the kit CI's Rust job has run fmt, clippy (`--keep-going`) and
+    // `cargo test --workspace --no-fail-fast` as steps of their own just before this; running them
+    // again here took about 8 minutes a run.
+    let on_github = std::env::var("GITHUB_ACTIONS").is_ok_and(|value| value == "true");
+    if on_github {
+        println!("ci: GITHUB_ACTIONS=true: fmt, clippy and test skipped (the kit CI's Rust job ran them as its own steps)");
+    }
+    let steps: Vec<Step> = steps.into_iter().filter(|(name, _)| !(on_github && matches!(*name, "fmt" | "clippy" | "test"))).collect();
     let mut done = Vec::new();
     for (name, f) in &steps {
         eprintln!("\n=== ci: {name} ===");
