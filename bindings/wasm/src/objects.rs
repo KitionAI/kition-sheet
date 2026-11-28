@@ -64,7 +64,7 @@ impl SheetDocument {
     /// The drawing object's gesture under way.
     fn object_gesture(&self) -> Option<&ObjectDrag> {
         match &self.drag {
-            Drag::Object(drag) => Some(drag),
+            Drag::Object(drag) => Some(drag.as_ref()),
             _ => None,
         }
     }
@@ -104,12 +104,12 @@ impl SheetDocument {
                     self.finish_shape_text()?;
                     let drag = kition_office_core::connect::CreateDrag::start(&preset, p, &self.drawing_objects(), tol * 1.5);
                     let frame = drag.frame();
-                    self.drag = Drag::Object(ObjectDrag {
+                    self.drag = Drag::Object(Box::new(ObjectDrag {
                         gesture: Gesture::moving(Vec::new(), p),
                         preview: Preview { frames: Vec::new() },
                         end: None,
                         create: Some((drag, frame)),
-                    });
+                    }));
                     return Ok(true);
                 }
                 // A selected connector's end first: it drags onto another shape's site, or off.
@@ -119,12 +119,12 @@ impl SheetDocument {
                     self.finish_shape_text()?;
                     let drag = kition_office_core::connect::EndDrag::start(&o, end, &self.drawing_objects());
                     let frame = drag.frame();
-                    self.drag = Drag::Object(ObjectDrag {
+                    self.drag = Drag::Object(Box::new(ObjectDrag {
                         gesture: Gesture::moving(Vec::new(), p),
                         preview: Preview { frames: Vec::new() },
                         end: Some((drag, frame)),
                         create: None,
-                    });
+                    }));
                     return Ok(true);
                 }
                 if let Some(o) = self.selected_object().filter(|o| matches!(o.kind, ObjectKind::Shape | ObjectKind::TextBox))
@@ -132,7 +132,7 @@ impl SheetDocument {
                 {
                     self.finish_shape_text()?;
                     let gesture = Gesture::adjusting(o.id.clone(), o.frame, o.geometry.clone(), index);
-                    self.drag = Drag::Object(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None });
+                    self.drag = Drag::Object(Box::new(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None }));
                     return Ok(true);
                 }
                 if let Some(o) = self.selected_object().filter(|o| o.kind != ObjectKind::Ink)
@@ -143,7 +143,7 @@ impl SheetDocument {
                         HandleHit::Resize(i) => Gesture::resizing(o.id.clone(), i, o.frame, p),
                         HandleHit::Rotate => Gesture::rotating(vec![(o.id.clone(), o.frame)], &o.frame, p),
                     };
-                    self.drag = Drag::Object(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None });
+                    self.drag = Drag::Object(Box::new(ObjectDrag { gesture, preview: Preview { frames: Vec::new() }, end: None, create: None }));
                     return Ok(true);
                 }
                 let objects = self.drawing_objects();
@@ -173,12 +173,12 @@ impl SheetDocument {
                 self.commit()?;
                 self.session.selected_shape = Some(id);
                 self.edits += 1;
-                self.drag = Drag::Object(ObjectDrag {
+                self.drag = Drag::Object(Box::new(ObjectDrag {
                     gesture: Gesture::moving(vec![(hit.id.clone(), hit.frame)], p),
                     preview: Preview { frames: Vec::new() },
                     end: None,
                     create: None,
-                });
+                }));
                 Ok(true)
             }
             PointerAction::DoubleClick => {

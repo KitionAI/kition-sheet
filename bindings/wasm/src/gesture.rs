@@ -24,7 +24,7 @@ pub(crate) enum Drag {
     /// The selection's block, by its border (`moving`).
     Move(moving::MoveDrag),
     /// A drawing object's move, resize, turn or adjust handle, or a shape being drawn (`objects`).
-    Object(objects::ObjectDrag),
+    Object(Box<objects::ObjectDrag>),
     /// A pen stroke or an eraser's path (the Draw tab, `objects`).
     Ink(objects::InkDrag),
     /// The fill handle (`filling`).
@@ -156,7 +156,7 @@ impl SheetDocument {
             }
             Drag::Resize(resize) => self.resize_release(resize),
             Drag::Move(drag) => self.move_release(drag, event),
-            Drag::Object(drag) => self.object_release(drag),
+            Drag::Object(drag) => self.object_release(*drag),
             Drag::Ink(drag) => self.ink_release(drag),
             Drag::Fill(drag) => self.fill_release(drag, event.mods),
         }
