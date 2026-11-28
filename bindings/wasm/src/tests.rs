@@ -2388,3 +2388,19 @@ fn insert_text_typing_only_types_into_what_is_typed() {
     doc.key("Enter", ToolMods::default(), 1.0).unwrap();
     assert_eq!(value(&mut doc, "B2")["value"], json!("a b"));
 }
+
+/// The person's copy emptied by an agent (`edit.clearClipboard`): the system clipboard's text still
+/// pastes, as any other (web/tests/clipboard-keys.mjs pastes after an agent cleared the clipboard).
+#[test]
+fn clipboard_marks_an_agents_clear_leaves_the_system_text_pasting() {
+    let mut doc = SheetDocument::create("Ants.xlsx", 0, 0).unwrap();
+    doc.execute("cell.set", json!({ "cell": "A1", "input": "q" })).unwrap();
+    doc.execute("select.set", json!({ "range": "A1" })).unwrap();
+    doc.execute("edit.copy", json!({})).unwrap();
+    let text = doc.session.clipboard.as_ref().unwrap().text.clone();
+    // As an agent's clear leaves it: the clipboard empty, the person's mark not ended by them.
+    doc.session.clipboard = None;
+    doc.execute("select.set", json!({ "range": "D4" })).unwrap();
+    doc.execute("edit.paste", json!({ "text": text })).unwrap();
+    assert_eq!(value(&mut doc, "D4")["value"], json!("q"), "the system clipboard's text pastes");
+}

@@ -60,7 +60,14 @@ impl SheetDocument {
     /// a cut pasted once, typing): WPS pastes nothing then. A copy whose cells changed ends here.
     pub(crate) fn paste_ended(&mut self, params: &Json) -> bool {
         if self.copy_mark.is_some() && self.copy_live().is_none() {
-            self.end_copy();
+            if self.session.clipboard.as_ref().is_some_and(|clip| Some(&clip.text) == self.copy_mark.as_ref()) {
+                // The copied cells changed: the copy ended.
+                self.end_copy();
+            } else {
+                // Another emptied or replaced the clipboard (an agent): the system clipboard's
+                // text pastes as any other.
+                self.copy_mark = None;
+            }
         }
         if self.copy_mark.is_some() {
             return false;
@@ -69,6 +76,14 @@ impl SheetDocument {
         match (params.get("text").and_then(Json::as_str), self.copy_spent.as_deref()) {
             (Some(text), Some(spent)) => trim(text) == trim(spent),
             _ => false,
+        }
+    }
+
+    /// After the person's paste: a cut's paste moved the cells and emptied the clipboard, which
+    /// ends the copy (WPS W-F8: a cut pastes once).
+    pub(crate) fn after_paste(&mut self) {
+        if self.copy_mark.is_some() && self.session.clipboard.is_none() {
+            self.end_copy();
         }
     }
 
