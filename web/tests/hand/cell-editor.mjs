@@ -106,6 +106,14 @@ const list = [
         }
       }
     })
+    // The cells typed in may still be drawn once or twice after F2 on a slow machine: the blink is
+    // measured from a moment nothing is drawn for 700 ms.
+    for (let tries = 0; tries < 10; tries += 1) {
+      await e.frame().evaluate(() => Object.assign(window.__caret, { renders: 0, on: 0, off: 0, frame: null }))
+      await e.wait(700)
+      if ((await e.frame().evaluate(() => window.__caret.renders)) === 0) break
+    }
+    await e.frame().evaluate(() => Object.assign(window.__caret, { renders: 0, on: 0, off: 0, frame: null }))
     await e.wait(1500)
     const seen = await e.frame().evaluate(() => window.__caret)
     assert.equal(seen.renders, 0, `no cells drawn while the caret blinks (${JSON.stringify(seen)})`)
