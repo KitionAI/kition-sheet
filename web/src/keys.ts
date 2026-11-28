@@ -34,6 +34,8 @@ export type KeyContext = {
   zoomStep: (direction: 1 | -1) => void
   openFormatCells: () => void
   openValidationList: () => void
+  /** The engine's commands and the key each has in its catalogue (`Ctrl+…` on Windows and Linux). */
+  shortcuts: () => readonly { id: string; shortcut?: string | null }[]
 }
 
 type KeyEvent = { key: string; code: string; shiftKey: boolean; altKey: boolean; metaKey: boolean; ctrlKey: boolean; keyCode?: number; isComposing?: boolean; target?: EventTarget | null; nativeEvent?: { isComposing?: boolean } }
@@ -127,6 +129,19 @@ export const KEYS: KeyRow[] = [
       c.run('editor.insertText', { text })
     },
   },
+  // AutoSum (Cmd+Shift+T, the engine's key, and Alt+= as in WPS and Excel) types its guess with
+  // the range selected, for Enter to confirm (walkthrough E8).
+  { keys: ['Cmd+Shift+T', 'Alt+='], act: (c) => c.run('formula.autoSum', { function: 'SUM', enter: false }) },
+  // Number formats (Excel; WPS untested): Ctrl+Shift+1 two decimals with thousands, Ctrl+Shift+3 a
+  // date, Ctrl+Shift+4 currency, Ctrl+Shift+5 percent (the engine's key; walkthrough G6).
+  { keys: ['Ctrl+Shift+1'], act: (c) => c.run('format.numberFormat', { code: '#,##0.00' }) },
+  { keys: ['Ctrl+Shift+3'], act: (c) => c.run('format.numberFormat', { format: 'Short Date' }) },
+  { keys: ['Ctrl+Shift+4'], act: (c) => c.run('format.numberFormat', { format: 'Currency' }) },
+  // Cmd+T makes the selection's data a table (the engine's key: kit-editor keeps Cmd+T for the
+  // browser, so the editor takes it here; inside Kition the key reaches it).
+  { keys: ['Cmd+T'], act: (c) => c.run('table.insert', {}) },
+  // F5 opens Go To, as Ctrl+G does (Excel).
+  { keys: ['F5'], act: (c) => c.openFind('goTo') },
   // Alt+↓ (Option+↓) opens the active cell's list of entries (its data validation's arrow).
   { keys: ['Alt+ArrowDown'], when: (c) => c.state.validation?.list != null, act: (c) => c.openValidationList() },
   // Cmd+1 (Ctrl+1) opens Format Cells, as in WPS and Excel.
@@ -186,7 +201,12 @@ export function keyMatches(shortcut: string, event: KeyEvent) {
   return event.key === name
 }
 
-/** Runs the first row `event` names (of the rows taken first when `captured`); answers whether one took the key. */
+/**
+ * Runs the first row `event` names (of the rows taken first when `captured`); answers whether one
+ * took the key. On Windows and Linux an engine command registered with `Ctrl+…` (Ctrl+Shift+8,
+ * Ctrl+`, Ctrl+Alt+Tab…) is pressed with Ctrl, the main modifier there: kit-editor reads `Ctrl` in
+ * a shortcut as the Mac's Control key only (walkthrough R6; to move to kition-sdk, plan stage S).
+ */
 export function pressKey(event: KeyEvent, context: KeyContext | null, captured = false) {
   if (!context || event.nativeEvent?.isComposing || event.isComposing || event.keyCode === 229 || event.key === 'Process') return false
   for (const row of KEYS) {
@@ -197,5 +217,9 @@ export function pressKey(event: KeyEvent, context: KeyContext | null, captured =
     row.act(context, event)
     return true
   }
-  return false
+  if (captured || context.state.editing || onMac() || !event.ctrlKey || event.metaKey) return false
+  const command = context.shortcuts().find((item) => item.shortcut?.startsWith('Ctrl+') && !item.shortcut.includes('Cmd') && keyMatches(item.shortcut, event))
+  if (!command) return false
+  context.runWhenEnabled(command.id)
+  return true
 }

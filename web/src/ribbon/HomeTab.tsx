@@ -175,11 +175,13 @@ export function HomeTab({ info, onClipboard, onPasteSpecial, pasteSpecialOff }: 
       <RibbonGroup label={p('Editing')} icon={Search}>
         <RibbonStack>
           <RibbonMenu icon={Sigma} label={p('AutoSum')} testId="sheet-autosum" primary>
-            <CommandItem command="formula.autoSum" params={{ function: 'SUM' }} label={p('Sum')} />
-            <CommandItem command="formula.autoSum" params={{ function: 'AVERAGE' }} label={p('Average')} />
-            <CommandItem command="formula.autoSum" params={{ function: 'COUNT' }} label={p('Count Numbers')} />
-            <CommandItem command="formula.autoSum" params={{ function: 'MAX' }} label={p('Max')} />
-            <CommandItem command="formula.autoSum" params={{ function: 'MIN' }} label={p('Min')} />
+            {/* The guess is typed for the person to confirm with Enter (Excel; walkthrough E8); only
+                Sum has a key (Cmd+Shift+T, Alt+=: keys.ts). */}
+            <CommandItem command="formula.autoSum" params={{ function: 'SUM', enter: false }} label={p('Sum')} />
+            <CommandItem command="formula.autoSum" params={{ function: 'AVERAGE', enter: false }} label={p('Average')} shortcut={null} />
+            <CommandItem command="formula.autoSum" params={{ function: 'COUNT', enter: false }} label={p('Count Numbers')} shortcut={null} />
+            <CommandItem command="formula.autoSum" params={{ function: 'MAX', enter: false }} label={p('Max')} shortcut={null} />
+            <CommandItem command="formula.autoSum" params={{ function: 'MIN', enter: false }} label={p('Min')} shortcut={null} />
           </RibbonMenu>
           <RibbonMenu icon={ArrowDownToLine} label={p('Fill')}>
             <CommandItem command="edit.fillDown" label={p('Down')} />

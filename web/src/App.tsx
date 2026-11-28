@@ -35,7 +35,7 @@ import { FormulaBar } from './FormulaBar'
 import { SheetTabs } from './SheetTabs'
 import { SheetDialogs, askConfirm, openUnhideSheets, tell } from './SheetDialogs'
 import { FilterMenu, openFilterMenu, type FilterAsk } from './FilterMenu'
-import { ValidationAlert, ValidationDialog, ValidationOverlay, askValidation, openValidationDialog, openValidationList, type ValidationAsk } from './Validation'
+import { FormulaErrorNote, ValidationAlert, ValidationDialog, ValidationOverlay, askValidation, openValidationDialog, openValidationList, type ValidationAsk } from './Validation'
 import { FormatCellsDialog, openFormatCells } from './FormatCells'
 import { TableDesignTab, TableStyleDialogs } from './TableStyles'
 import { HomeTab } from './ribbon/HomeTab'
@@ -640,6 +640,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
         state,
         run: (command, params = {}) => void editor.run(command, params),
         runWhenEnabled: (command) => void editor.runWhenEnabled(command),
+        shortcuts: () => editor.commands,
         answer: async (command, params = {}) => {
           const raw = await editor.run(command, params)
           return raw ? (JSON.parse(raw) as Record<string, unknown>) : null
@@ -795,7 +796,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
           state ? (
             <>
               <span data-testid="sheet-status">{t('sheetSelection', { sheet: state.sheet, selection: state.selection })}</span>
-              <SelectionFigures stats={state.stats} t={t} />
+              <SelectionFigures stats={state.stats} format={state.style.num_fmt} t={t} />
             </>
           ) : null
         }
@@ -839,6 +840,7 @@ export function App({ host: given, phrase }: { host: HostConnection; phrase: Phr
               <CellFormulaHints hint={state.formulaHint} views={views} pins={doc.pinned} onPick={(name) => void editor.run('editor.acceptFunction', { name })} />
             ) : null}
             {state && doc ? <ValidationOverlay info={state} views={views} pins={doc.pinned} /> : null}
+            {state && doc ? <FormulaErrorNote info={state} views={views} pins={doc.pinned} /> : null}
             {doc ? <FilterMenu views={views} pins={doc.pinned} /> : null}
             {comments.marks && doc ? (
               <CommentMarkerTargets markers={comments.markers} views={views} pins={doc.pinned} onActivate={host.activateComment} label={(count) => t('commentThread', { count })} />
@@ -875,15 +877,25 @@ function figure(value: number) {
 }
 
 /**
+ * The average as the status bar shows it (walkthrough U2): with the decimals of the active cell's
+ * number format, at most two; in General, rounded to two and without trailing zeros.
+ */
+function averageFigure(value: number, format: string | undefined) {
+  const decimals = format && format !== 'General' && /0/.test(format) ? Math.min(2, /\.(0+)/.exec(format)?.[1].length ?? 0) : null
+  if (decimals != null) return value.toFixed(decimals)
+  return figure(Math.round(value * 100) / 100)
+}
+
+/**
  * The status bar's sum, average and count of the selected cells, when more than one cell holds
  * something; the sum and average when some of them are numbers.
  */
-function SelectionFigures({ stats, t }: { stats: SelectionStats | null; t: (key: string, params?: Record<string, string | number>) => string }) {
+function SelectionFigures({ stats, format, t }: { stats: SelectionStats | null; format?: string; t: (key: string, params?: Record<string, string | number>) => string }) {
   if (!stats || stats.count < 2) return null
   return (
     <span className="sheet-figures" data-testid="sheet-stats">
       {stats.numeric > 0 ? <span data-testid="sheet-stat-sum">{t('statSum', { value: figure(stats.sum) })}</span> : null}
-      {stats.numeric > 0 && stats.average != null ? <span data-testid="sheet-stat-average">{t('statAverage', { value: figure(stats.average) })}</span> : null}
+      {stats.numeric > 0 && stats.average != null ? <span data-testid="sheet-stat-average">{t('statAverage', { value: averageFigure(stats.average, format) })}</span> : null}
       <span data-testid="sheet-stat-count">{t('statCount', { value: stats.count })}</span>
     </span>
   )

@@ -3,6 +3,7 @@ import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Modal
 import { toScreen, type Pins } from './commentAnchors'
 import type { ViewStore } from './HostComments'
 import { backToGrid, type SheetInfo, type ValidationRule } from './sheet'
+import { localizeError } from './strings'
 
 /** What the editor asks about a value its cell's validation refused (`dialog` `validationError`). */
 export type ValidationAsk = { style: 'stop' | 'warning' | 'information'; title: string; message: string; cell: string }
@@ -370,5 +371,22 @@ export function ValidationDialog({ info }: { info: SheetInfo }) {
         </ModalFooter>
       </ModalContent>
     </Modal>
+  )
+}
+
+/**
+ * Why the formula being typed was not entered, under the cell (walkthrough E6; Excel says it in a
+ * message, WPS keeps the cell typed): the cell stays typed until the formula is put right or Escape.
+ */
+export function FormulaErrorNote({ info, views, pins }: { info: SheetInfo; views: ViewStore; pins: Pins }) {
+  const { t, phrase } = useKitEditor()
+  const view = useSyncExternalStore(views.subscribe, views.get)
+  if (!info.formulaError || !info.editing || !info.activeRect || !view) return null
+  const [x0, , , y1] = info.activeRect
+  const at = toScreen(view, pins, x0, y1)
+  return (
+    <div className="sheet-validation-prompt sheet-formula-error" style={{ left: at.x, top: at.y + 4 }} role="alert" data-testid="sheet-formula-error">
+      <span>{localizeError(phrase, t, info.formulaError)}</span>
+    </div>
   )
 }

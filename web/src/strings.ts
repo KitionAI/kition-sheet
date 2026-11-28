@@ -1535,6 +1535,7 @@ export const PHRASES: Record<string, Record<string, string>> = {
     'There is no row above the table for its header.': '表格上方没有可用作标题行的行。',
     'There is nothing in the selected rows or columns to format as a table.': '所选行或列中没有可套用表格样式的内容。',
     "There's a problem with this formula.": '公式存在错误。',
+    'unexpected end of formula': '公式没有写完',
     "There's no comment in this cell.": '此单元格中没有批注。',
     "There's no filter here.": '此处没有筛选。',
     "This action won't work on multiple selections.": '不能对多重选定区域使用此命令。',

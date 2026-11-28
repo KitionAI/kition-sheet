@@ -1,0 +1,23 @@
+format: 1
+id: sheet.editor.shortcuts/tool-formula-details
+feature: sheet.editor.shortcuts
+intent: >-
+  In the engine's tool: Enter on a formula that does not parse keeps it typed with the formula's
+  own reason (`formulaError`), gone once the text changes; AutoSum with `enter: false` types its
+  guess with the range selected, and Enter enters it.
+layer: unit
+dimension: function
+source:
+  kind: synthetic
+  from: bindings/wasm/src/tests.rs
+  license: owned
+input: []
+steps:
+  - cargo-test:
+      package: kition-sheet-kit
+      filter: a_bad_formula_stays_typed_and_autosum_waits_for_enter
+expected:
+  - actual: exit
+    compare: exit
+    value: 0
+since: "2026-11-28"

@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-e8-autosum-confirms
+feature: sheet.editor.shortcuts
+intent: "Alt+= and Cmd+Shift+T type AutoSum's guess (=SUM(E2:E5)) with the range selected and enter it only on Enter, one undo step (AutoSum wrote the formula at once, and its five menu items all showed Cmd+Shift+T; walkthrough E8)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/formula-details.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/formula-details.mjs, chromium, e8-autosum-confirms]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

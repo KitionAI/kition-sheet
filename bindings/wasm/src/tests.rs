@@ -2575,3 +2575,39 @@ fn the_caret_is_drawn_by_the_editor_not_in_the_pixels() {
     assert_eq!(area(&doc), at_end, "the pixels are the same wherever the caret is");
     assert!(get(&doc, "caretColor").as_str().is_some_and(|c| c.len() == 7 && c.starts_with('#')));
 }
+
+/// Stage 6 (walkthrough E6, E8): a formula that does not parse stays typed on Enter, with the
+/// reason (`formulaError`) until it is put right; AutoSum from the editor types its guess with
+/// the range selected, and Enter enters it.
+#[test]
+fn a_bad_formula_stays_typed_and_autosum_waits_for_enter() {
+    let mut doc = SheetDocument::create("Formula.xlsx", 0, 0).unwrap();
+    click(&mut doc, centre(1, 1), false);
+    KitTools::text(&mut doc, "=1+", 1.0).unwrap();
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!((get(&doc, "editing"), get(&doc, "editText"), get(&doc, "active")), (json!(true), json!("=1+"), json!("B2")));
+    let error = get(&doc, "formulaError");
+    assert!(error.as_str().is_some_and(|e| e.contains("end of formula")), "the formula's own reason: {error}");
+    KitTools::text(&mut doc, "2", 1.0).unwrap();
+    assert_eq!(get(&doc, "formulaError"), Json::Null, "gone once the text changes");
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "B2")["value"], json!(3.0));
+    assert_eq!(get(&doc, "active"), json!("B3"));
+
+    for (cell, n) in [("D2", 1), ("D3", 2), ("D4", 3)] {
+        doc.execute("cell.set", json!({ "cell": cell, "input": n.to_string() })).unwrap();
+    }
+    doc.execute("select.set", json!({ "range": "D5" })).unwrap();
+    doc.execute("formula.autoSum", json!({ "function": "SUM", "enter": false })).unwrap();
+    assert_eq!((get(&doc, "editing"), get(&doc, "editText")), (json!(true), json!("=SUM(D2:D4)")));
+    let (caret, anchor) = (get(&doc, "editCaret"), get(&doc, "editAnchor"));
+    assert_eq!((anchor, caret), (json!(5), json!(10)), "the range is selected");
+    assert_eq!(value(&mut doc, "D5")["value"], json!(null), "not entered yet");
+    // Pointing at other cells replaces the selected range (a drag from D2 to D3).
+    doc.pointer(&event(PointerAction::Down, centre(3, 1).0, centre(3, 1).1, false)).unwrap();
+    doc.pointer(&event(PointerAction::Drag, centre(3, 2).0, centre(3, 2).1, false)).unwrap();
+    doc.pointer(&event(PointerAction::Up, centre(3, 2).0, centre(3, 2).1, false)).unwrap();
+    assert_eq!(get(&doc, "editText"), json!("=SUM(D2:D3)"), "a drag replaces the guessed range");
+    doc.key("Enter", ToolMods::default(), 1.0).unwrap();
+    assert_eq!(value(&mut doc, "D5")["value"], json!(3.0));
+}

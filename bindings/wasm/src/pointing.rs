@@ -41,7 +41,8 @@ impl SheetDocument {
         let Some(edit) = self.editing.as_ref() else { return false };
         let (from, to) = edit.selection();
         if from != to {
-            return false;
+            // The reference pointed at may be selected (AutoSum's guess): pointing replaces it.
+            return self.point.is_some_and(|p| (p.from, p.to) == (from, to) && p.to == edit.caret);
         }
         self.point.is_some_and(|p| p.to == edit.caret) || point::can_point(edit.chars(), edit.caret)
     }

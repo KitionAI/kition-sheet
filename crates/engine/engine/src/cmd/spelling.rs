@@ -13,7 +13,7 @@ use super::*;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
-        cmd!(query "spelling.check", "Spelling", ["Review", "Proofing"], Some("F7"), "{range?, sheet?} → misspelled words with cells and suggestions", has_doc, spelling),
+        cmd!(query "spelling.check", "Spelling", ["Review", "Proofing"], None, "{range?, sheet?} → misspelled words with cells and suggestions", has_doc, spelling),
         cmd!(noundo "spelling.addToDictionary", "Add to Dictionary", [], None, "{word}", has_doc, add_word),
         cmd!("spelling.change", "Change", [], None, "{cell, word, to, all?: bool}", has_doc, change),
         cmd!(query "spelling.thesaurus", "Thesaurus", ["Review", "Proofing"], None, "{word} → related words (words sharing the stem in the dictionary)", has_doc, thesaurus),

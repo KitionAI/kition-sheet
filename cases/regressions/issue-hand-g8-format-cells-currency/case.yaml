@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-g8-format-cells-currency
+feature: sheet.editor.shortcuts
+intent: "Format Cells on a dollar cell shows $ (not ¥), every tab whole and every category without scrolling, and OK with nothing changed keeps the format (walkthrough G8)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/shortcuts.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/shortcuts.mjs, chromium, g8-format-cells-currency]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

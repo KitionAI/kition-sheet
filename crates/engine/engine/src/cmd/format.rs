@@ -99,7 +99,7 @@ pub fn specs() -> Vec<CommandSpec> {
         // Alignment
         cmd!("format.alignLeft", "Align Left", ["Home", "Alignment"], Some("Cmd+L"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Left)),
         cmd!("format.alignCenter", "Center", ["Home", "Alignment"], Some("Cmd+E"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Center)),
-        cmd!("format.alignRight", "Align Right", ["Home", "Alignment"], Some("Cmd+R"), "{range?}", has_doc, |s, p| halign(s, p, HAlign::Right)),
+        cmd!("format.alignRight", "Align Right", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| halign(s, p, HAlign::Right)),
         cmd!("format.justify", "Justify", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| halign(s, p, HAlign::Justify)),
         cmd!("format.alignTop", "Top Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Top)),
         cmd!("format.alignMiddle", "Middle Align", ["Home", "Alignment"], None, "{range?}", has_doc, |s, p| valign(s, p, VAlign::Center)),
@@ -146,7 +146,7 @@ pub fn specs() -> Vec<CommandSpec> {
         cmd!("format.accounting", "Accounting Number Format", ["Home", "Number"], None, "{range?, symbol?: \"$\"}", has_doc, |s, p| set_fmt(
             s, p, ACCOUNTING
         )),
-        cmd!("format.percent", "Percent Style", ["Home", "Number"], Some("Ctrl+Shift+%"), "{range?}", has_doc, |s, p| set_fmt(s, p, "0%")),
+        cmd!("format.percent", "Percent Style", ["Home", "Number"], Some("Ctrl+Shift+5"), "{range?}", has_doc, |s, p| set_fmt(s, p, "0%")),
         cmd!("format.comma", "Comma Style", ["Home", "Number"], None, "{range?}", has_doc, |s, p| set_fmt(s, p, COMMA)),
         cmd!("format.increaseDecimal", "Increase Decimal", ["Home", "Number"], None, "{range?}", has_doc, |s, p| decimals(s, p, 1)),
         cmd!("format.decreaseDecimal", "Decrease Decimal", ["Home", "Number"], None, "{range?}", has_doc, |s, p| decimals(s, p, -1)),

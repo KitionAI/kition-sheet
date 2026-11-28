@@ -37,7 +37,7 @@ pub fn specs() -> Vec<CommandSpec> {
             define_name
         ),
         cmd!("name.delete", "Delete Name", [], None, "{name, scope?: \"Workbook\"|sheet name (default: every scope)}", has_doc, delete_name),
-        cmd!(query "name.manage", "Name Manager", ["Formulas", "Defined Names"], Some("Cmd+F3"), "{} → names with values", has_doc, name_manager),
+        cmd!(query "name.manage", "Name Manager", ["Formulas", "Defined Names"], None, "{} → names with values", has_doc, name_manager),
         cmd!(
             "name.addFromSelection",
             "Create from Selection",

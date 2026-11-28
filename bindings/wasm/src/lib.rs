@@ -178,6 +178,9 @@ pub struct SheetDocument {
     view_at: (f64, f64),
     /// The last notice for the person (`controls`): how many there were, and its text.
     notice: (u64, Option<String>),
+    /// Why the formula being typed could not be entered (Enter on `=1+`), and the text it was
+    /// refused for: shown beside the cell while that text is being typed (walkthrough E6).
+    formula_error: Option<(String, String)>,
     /// The cell being typed began with what Insert put in (Insert Function, a symbol): entered,
     /// it does not make a table beside it larger (TS-C60), as typing does.
     edit_inserted: bool,
@@ -264,6 +267,7 @@ pub const EDITOR_STATE: &[&str] = &[
     "/preedit",
     "/caretRect",
     "/caretColor",
+    "/formulaError",
     "/style",
     "/tableInfo",
     "/dialog",
@@ -574,6 +578,7 @@ impl SheetDocument {
             freeze_preview: None,
             view_at: (0.0, 0.0),
             notice: (0, None),
+            formula_error: None,
             edit_inserted: false,
             fill_hover: false,
             move_hover: None,
@@ -1868,6 +1873,17 @@ impl SheetDocument {
             let was_circular = circular(self);
             let params = json!({ "sheet": sheet, "cell": cell.a1(), "input": text, "runs": edit.runs_param(), "expand": !std::mem::take(&mut self.edit_inserted), "widen": true });
             let entered = self.session.execute("cell.set", params).map(|_| ()).map_err(engine_error);
+            // A formula that does not parse stays typed, with the reason beside the cell (Excel; WPS
+            // W-D9 does not enter it either), rather than an error the person cannot see.
+            if let Err(error) = &entered
+                && text.starts_with('=')
+                && error.starts_with("There's a problem with this formula")
+            {
+                self.formula_error = Some((error.clone(), text));
+                self.editing = Some(edit);
+                return Ok(());
+            }
+            self.formula_error = None;
             // A formula that makes a new circular reference is warned about once (WPS, Excel), unless
             // iterative calculation is on; the cells show 0 meanwhile.
             if entered.is_ok() && !was_circular && circular(self) && self.session.doc().is_ok_and(|d| !d.wb.calc.iterative) {
@@ -2818,6 +2834,11 @@ impl KitDocument for SheetDocument {
         // the editor puts the input method's field at, for its candidate window (`composing`).
         out["preedit"] = self.preedit_info();
         out["caretRect"] = json!(self.caret_rect());
+        // Why the formula being typed was not entered, while it is typed as it was (E6).
+        out["formulaError"] = match (&self.formula_error, &self.editing) {
+            (Some((error, text)), Some(edit)) if edit.text() == *text => json!(error),
+            _ => Json::Null,
+        };
         // The colour the editor draws that caret in (the grid's scheme: light text on a dark grid).
         out["caretColor"] = if self.editing.is_some() {
             let [r, g, b, _] = self.scheme.palette().editing_text;

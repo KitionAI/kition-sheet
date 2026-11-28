@@ -786,6 +786,17 @@ features:
     gap: "Completing a word from the column above (WPS W-C11) and naming the typing mode in the status bar were cut. Cmd+Shift+Z and Cmd+Y do nothing while typing. Copying the selected text is checked in Chromium; WebKit's system clipboard is not read back."
     cases: [regressions/issue-hand-d5-double-click-caret, regressions/issue-hand-i3-undo-while-editing, regressions/issue-hand-r5-text-keys-while-editing, regressions/issue-hand-d16-caret-blinks, sheet.editor.cell-editor-keys/tool-text-keys, sheet.editor.cell-editor-keys/tool-caret]
     since: "2026-11-28"
+  - id: sheet.editor.shortcuts
+    title: "Formula details and the keys as menus show them: Enter on a formula that does not parse keeps the cell typed with the reason under it; AutoSum (Σ, Cmd+Shift+T, Alt+=) types its guess with the range selected and Enter enters it, only Sum has a key; Cmd+E centres and Cmd+R fills right; Ctrl+Shift+1, 3, 4 and 5 give two decimals with thousands, a date, currency and percent; F5 opens Go To and Cmd+T makes a table; on Windows and Linux the keys registered with Ctrl are pressed with Ctrl; every key the catalogue registers does something (keys that did nothing were taken off Name Manager and Spelling); Format Cells shows the cell's own currency symbol, every tab whole and every category without scrolling; the status bar's average has the decimals of the active cell's format, at most two"
+    dimension: [function]
+    priority: P1
+    status: has
+    commands: [formula.autoSum, format.numberFormat, format.percent, format.alignCenter, edit.fillRight]
+    paths: [bindings/wasm/src/lib.rs, bindings/wasm/src/bar.rs, crates/engine/engine/src/cmd/edit.rs, crates/engine/engine/src/cmd/format.rs, crates/engine/engine/src/cmd/formulas.rs, crates/engine/engine/src/cmd/spelling.rs, web/src/keys.ts, web/src/Validation.tsx, web/src/FormatCells.tsx, web/src/App.tsx, web/src/ribbon/HomeTab.tsx, web/tests/hand/shortcuts.mjs, web/tests/hand/formula-details.mjs]
+    target: "WPS Office for Mac 7.5.1"
+    gap: "Cmd+E and Cmd+R and the number-format keys follow Excel for Mac (WPS untested). The reason under a bad formula is the parser's (no suggestion to put it right, as Excel offers). The status bar does not say how many rows a filter shows (15 of 20) nor colour the filtered row numbers. Smart fill and Align Right have no key."
+    cases: [regressions/issue-hand-e6-bad-formula-message, regressions/issue-hand-e8-autosum-confirms, regressions/issue-hand-g6-number-format-keys, regressions/issue-hand-g8-format-cells-currency, regressions/issue-hand-r6-every-shortcut-works, sheet.editor.shortcuts/tool-formula-details]
+    since: "2026-11-28"
   - id: sheet.editor.edge-scroll
     title: "Scrolling at the grid's edge during a drag, as WPS does: past the bottom or the right edge (or the top and left while the view can go back) the view scrolls every frame with the pointer still, faster the further past (2.3 rows a second at 13 px, 5 at 43 px; 40 columns a second at 68 px), and the selection, the fill handle's cells, the block being moved and the reference pointed at for a formula reach the cells that come into view; on the grid nothing scrolls; a column or row being resized does not scroll back towards its start"
     dimension: [function]

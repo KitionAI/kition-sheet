@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-e6-bad-formula-message
+feature: sheet.editor.shortcuts
+intent: "Enter on a formula that does not parse (=1+) leaves the cell typed with the reason under it, gone once the text changes; put right, Enter enters it (Enter stopped with no word of why; walkthrough E6)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/formula-details.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/formula-details.mjs, chromium, e6-bad-formula-message]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

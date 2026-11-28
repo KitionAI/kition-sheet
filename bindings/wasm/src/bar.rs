@@ -164,8 +164,25 @@ impl SheetDocument {
             }
         }
         self.point = None;
+        self.select_guessed_range(text);
         self.hint_pick = 0;
         self.edits += 1;
+    }
+
+    /// AutoSum's guess (`=SUM(E2:E21)`, a whole formula a command typed) has its range selected
+    /// and pointed at, for the person to confirm with Enter, type over it, or point at other cells
+    /// in its place (a click, a drag, an arrow), as Excel does (walkthrough E8).
+    fn select_guessed_range(&mut self, text: &str) {
+        let Some(edit) = self.editing.as_mut() else { return };
+        let Some(open) = text.find('(').filter(|_| text.starts_with('=') && text.ends_with(')') && edit.text() == text) else { return };
+        let Some(inside) = text.get(open + 1..text.len() - 1) else { return };
+        let Some(range) = kition_sheet_engine::core::RangeRef::parse(inside) else { return };
+        let from = text.get(..=open).map_or(0, |head| head.chars().count());
+        let to = from + inside.chars().count();
+        edit.move_to(from, false);
+        edit.move_to(to, true);
+        let sheet = self.session.doc().map_or(0, |d| d.wb.active_sheet);
+        self.point = Some(crate::pointing::Pointing { sheet, anchor: range.start, end: range.end, whole: None, from, to });
     }
 
     /// The caret and the other end of the selection of the cell being typed (UTF-16).

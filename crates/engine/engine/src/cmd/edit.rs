@@ -109,7 +109,7 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             fill_series
         ),
-        cmd!("edit.smartFill", "Smart fill", ["Home", "Editing", "Fill"], Some("Cmd+E"), "{range?}", has_doc, smart_fill),
+        cmd!("edit.smartFill", "Smart fill", ["Home", "Editing", "Fill"], None, "{range?}", has_doc, smart_fill),
         cmd!(noundo "edit.find", "Find…", ["Home", "Editing", "Find & Select"], Some("Cmd+F"), "{what, matchCase?, wholeCell?, lookIn?: formulas|values, byColumns?, all?: bool, within?: sheet|workbook, backward?: bool}", has_doc, find),
         cmd!(
             "edit.replace",
@@ -177,14 +177,21 @@ pub fn input_to_cell(input: &str, sheet: usize, at: CellRef, wb: &mut kition_she
         // Excel closes missing parentheses for you.
         let mut text = body.to_string();
         let mut parsed = kition_sheet_formula::parse(&text);
+        // When closing parentheses does not help, the reason is the formula's own (`=1+`: its end),
+        // not that of the last parenthesis tried.
+        let mut reason = None;
         for _ in 0..8 {
             if parsed.is_ok() {
                 break;
             }
+            if reason.is_none() {
+                reason = parsed.as_ref().err().map(ToString::to_string);
+            }
             text.push(')');
             parsed = kition_sheet_formula::parse(&text);
         }
-        let expr = parsed.map_err(|e| EngineError::Other(format!("There's a problem with this formula: {e}")))?;
+        let expr =
+            parsed.map_err(|e| EngineError::Other(format!("There's a problem with this formula: {}", reason.unwrap_or_else(|| e.to_string()))))?;
         let expr = wb.name_call_case(expr);
         let mut cell = Cell::formula(Formula::from_expr(expr));
         cell.style = style;

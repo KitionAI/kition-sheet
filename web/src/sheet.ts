@@ -96,6 +96,8 @@ export type SheetInfo = {
   caretRect: [number, number, number, number] | null
   /** The colour the editor draws that caret in (caret.ts). */
   caretColor: string | null
+  /** Why the formula being typed was not entered (Enter on `=1+`), while it is typed as it was. */
+  formulaError: string | null
   /** View › Show: the formula bar (the person's setting), the sheet's gridlines and headings. */
   formulaBar: boolean
   gridlines: boolean
@@ -168,6 +170,7 @@ export function describe(info: KitEngineInfo): SheetInfo {
     preedit: inspected.preedit && typeof inspected.preedit.text === 'string' ? { text: inspected.preedit.text, at: Number(inspected.preedit.at) || 0 } : null,
     caretRect: Array.isArray(inspected.caretRect) && inspected.caretRect.length === 4 ? inspected.caretRect : null,
     caretColor: typeof inspected.caretColor === 'string' ? inspected.caretColor : null,
+    formulaError: typeof inspected.formulaError === 'string' ? inspected.formulaError : null,
     formulaBar: inspected.formulaBar !== false,
     gridlines: inspected.gridlines !== false,
     gridColor: typeof inspected.gridColor === 'string' ? inspected.gridColor : null,

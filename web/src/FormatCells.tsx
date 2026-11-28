@@ -131,6 +131,8 @@ export function FormatCellsDialog({ info }: { info: SheetInfo }) {
       setDecimals(cat === 'general' ? 2 : decimalsOf(code))
       setThousands(code.includes('#,##0'))
       setRedNegative(code.includes('[Red]'))
+      // The cell's own currency symbol (walkthrough G8: a $ cell showed ¥ and OK changed it).
+      if (cat === 'currency' || cat === 'accounting') setSymbol(SYMBOLS.find((sign) => sign && code.includes(sign)) ?? '')
       setListed(code)
       setCustom(code)
       setH(st.align?.h ?? 'General')
@@ -261,7 +263,7 @@ export function FormatCellsDialog({ info }: { info: SheetInfo }) {
 
   return (
     <Modal open onOpenChange={(open) => (open ? undefined : close())}>
-      <ModalContent size="md" dismissible={false} aria-describedby={undefined} onCloseAutoFocus={(event) => event.preventDefault()} data-testid="sheet-format-cells">
+      <ModalContent size="lg" dismissible={false} aria-describedby={undefined} onCloseAutoFocus={(event) => event.preventDefault()} data-testid="sheet-format-cells">
         <ModalHeader>
           <ModalTitle>{t('formatCellsTitle')}</ModalTitle>
         </ModalHeader>

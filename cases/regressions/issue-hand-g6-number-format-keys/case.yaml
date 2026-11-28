@@ -1,0 +1,21 @@
+format: 1
+id: regressions/issue-hand-g6-number-format-keys
+feature: sheet.editor.shortcuts
+intent: "Ctrl+Shift+1, 3, 4 and 5 give two decimals with thousands, a date, currency and percent; Cmd+E centres and Cmd+R fills right (the number-format keys did nothing and Cmd+E, Cmd+R each had two commands; walkthrough G6)."
+layer: gate
+dimension: function
+source:
+  kind: probe
+  from: web/tests/hand/shortcuts.mjs
+  license: owned
+input: []
+steps:
+  - exec:
+      cmd: [pnpm, --dir, web, exec, node, tests/hand/shortcuts.mjs, chromium, g6-number-format-keys, g6-cmd-e-centres-cmd-r-fills-right]
+expected:
+  - actual: out:exec
+    compare: exit
+    value: 0
+requires: [chromium]
+timeout_s: 180
+since: "2026-11-28"

@@ -579,6 +579,8 @@
 }
 
 .sheet-fc-tabs > button {
+  flex: none;
+  white-space: nowrap;
   padding: 4px 12px;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -602,8 +604,11 @@
   gap: 12px;
 }
 
+/* Every category shows without scrolling (walkthrough G8). */
 .sheet-fc-categories {
-  height: 290px;
+  height: auto;
+  min-height: 290px;
+  overflow-y: visible;
 }
 
 .sheet-fc-list {
@@ -1438,4 +1443,10 @@
 /* Paste Special (PasteSpecial.tsx): Paste Link at the start of the buttons. */
 .sheet-paste-link {
   margin-right: auto;
+}
+
+/* Why the formula being typed was not entered (Validation.tsx, FormulaErrorNote). */
+.sheet-formula-error {
+  border-color: var(--kit-danger, #c42b1c);
+  max-width: 320px;
 }
